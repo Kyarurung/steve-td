@@ -185,6 +185,17 @@ public final class PlayerLane {
         towers.clear();
     }
 
+    public void disableMonsters() {
+        for (Monster monster : activeMonsters) {
+            discardMinecraftEntity(monster);
+            monster.markRemoved();
+        }
+        activeMonsters.clear();
+        waveMonsterSpawnQueue.clear();
+        summonedMonsterSpawnQueue.clear();
+        clearedThisRound = true;
+    }
+
     private void removeDestroyedTowers() {
         Iterator<Tower> iterator = towers.iterator();
         while (iterator.hasNext()) {

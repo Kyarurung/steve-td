@@ -89,6 +89,13 @@ public final class TeamLaneGroup {
         }
     }
 
+    public void disableMonsters() {
+        for (PlayerLane lane : lanes) {
+            lane.disableMonsters();
+        }
+        finalDefenseDefenders.clear();
+    }
+
     public boolean hasBossEntity() {
         return bossEntity != null && !bossEntity.isRemoved();
     }

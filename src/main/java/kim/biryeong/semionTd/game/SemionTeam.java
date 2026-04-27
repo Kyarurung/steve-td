@@ -94,6 +94,7 @@ public final class SemionTeam {
             return false;
         }
         eliminated = true;
+        laneGroup.disableMonsters();
         laneGroup.clearTowers();
         laneGroup.discardBossEntity();
         return true;

@@ -482,6 +482,59 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void eliminatedTeamDisablesActiveAndQueuedLaneMonsters(GameTestHelper context) {
+        UUID redId = stableUuid("disable-red-owner");
+        UUID blueId = stableUuid("disable-blue-owner");
+        SemionGame game = startedTwoPlayerGame(context, redId, blueId);
+        PlayerLane blueLane = lane(game, TeamId.BLUE, 1);
+
+        blueLane.enqueueWaveMonster(new WaveMonsterEntry(
+                "disable-wave",
+                20.0,
+                0.0,
+                0.0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                5,
+                2
+        ));
+        blueLane.tick(context.getLevel().getServer());
+        if (!assertEquals(context, 1, blueLane.activeMonsters().size(), "Blue lane should have one active monster before elimination.")) {
+            return;
+        }
+        int activeMonsterEntityId = blueLane.activeMonsters().getFirst().minecraftEntityId();
+
+        var summonResult = game.summonMonster(redId, "grunt");
+        if (!assertEquals(context, kim.biryeong.semionTd.summon.SummonResultType.SUCCESS, summonResult.type(), "Summon should queue a monster on the only living enemy team.")) {
+            return;
+        }
+
+        if (!assertTrue(context, game.killBoss(TeamId.BLUE), "Blue boss kill should eliminate the target team.")) {
+            return;
+        }
+        if (!assertTrue(context, game.teams().get(TeamId.BLUE).eliminated(), "Blue team should be eliminated.")) {
+            return;
+        }
+        if (!assertEquals(context, 0, blueLane.activeMonsters().size(), "Eliminated team lane should have no active monsters.")) {
+            return;
+        }
+        if (!assertTrue(context, blueLane.clearedThisRound(), "Eliminated team lane should be marked resolved.")) {
+            return;
+        }
+
+        blueLane.tick(context.getLevel().getServer());
+        if (!assertEquals(context, 0, blueLane.activeMonsters().size(), "Eliminated team lane should not spawn queued wave or summon monsters.")) {
+            return;
+        }
+        if (!assertTrue(context, context.getLevel().getEntity(activeMonsterEntityId) == null
+                || context.getLevel().getEntity(activeMonsterEntityId).isRemoved(), "Active monster entity should be discarded.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void startLocksRosterAndActivatesOnlySelectedPlayers(GameTestHelper context) {
         Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.select(List.of(
                 candidate("p1"),
@@ -1253,6 +1306,27 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
+    @GameTest
+    public void summonDoesNotTargetEliminatedTeams(GameTestHelper context) {
+        UUID redId = stableUuid("summon-living-red-owner");
+        UUID blueId = stableUuid("summon-eliminated-blue-owner");
+        UUID greenId = stableUuid("summon-living-green-owner");
+        SemionGame game = startedThreePlayerGame(context, redId, blueId, greenId);
+
+        if (!assertTrue(context, game.killBoss(TeamId.BLUE), "Blue boss kill should eliminate BLUE before summon targeting.")) {
+            return;
+        }
+
+        var result = game.summonMonster(redId, "grunt");
+        if (!assertEquals(context, kim.biryeong.semionTd.summon.SummonResultType.SUCCESS, result.type(), "Summon should still succeed with another living enemy team.")) {
+            return;
+        }
+        if (!assertEquals(context, TeamId.GREEN, result.targetTeam().orElse(null), "Summon should skip eliminated BLUE and target living GREEN.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 120)
     public void waveMonsterKillRewardGoesToTowerOwner(GameTestHelper context) {
         UUID playerId = stableUuid("wave-reward-owner");
@@ -1484,6 +1558,28 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         return game;
     }
 
+    private static SemionGame startedThreePlayerGame(GameTestHelper context, UUID redId, UUID blueId, UUID greenId) {
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                new WaveConfig(List.of(), 20, null),
+                testArena(context)
+        );
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redId, "red", TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "blue", TeamId.BLUE, 1),
+                        new AssignedParticipant(greenId, "green", TeamId.GREEN, 1)
+                ),
+                java.util.Set.of(),
+                3
+        );
+        if (!game.start(context.getLevel().getServer(), plan)) {
+            throw new IllegalStateException("Failed to start three-player Semion test game.");
+        }
+        return game;
+    }
+
     private static void tickGame(SemionGame game, MinecraftServer server, int ticks) {
         for (int i = 0; i < ticks; i++) {
             game.tick(server);
@@ -1491,7 +1587,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     private static PlayerLane redLane(SemionGame game, int laneId) {
-        return game.teams().get(TeamId.RED).laneGroup().lane(laneId).orElseThrow();
+        return lane(game, TeamId.RED, laneId);
+    }
+
+    private static PlayerLane lane(SemionGame game, TeamId teamId, int laneId) {
+        return game.teams().get(teamId).laneGroup().lane(laneId).orElseThrow();
     }
 
     private static BlockPos towerPlacementPos(PlayerLane lane) {
@@ -1575,8 +1675,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         return true;
     }
 }
-
-
 
 
 

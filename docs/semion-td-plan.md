@@ -1088,7 +1088,11 @@ Implemented first compile-safe skeleton:
 - Fixed Fabric entrypoint bootstrap.
 - Added config model and default config generation:
   - `economy.json`
-  - `waves.json`
+  - `wave.json`
+  - `map.json`
+  - `summons.json`
+  - `progression.json`
+  - legacy `waves.json` is still accepted when `wave.json` does not exist
 - Added game state model:
   - `SemionGame`
   - `SemionGameManager`
@@ -1135,6 +1139,7 @@ Implemented first compile-safe skeleton:
   - `/semiontd autojoin`
   - `/semiontd start`
   - `/semiontd status`
+  - `/semiontd ui`
 - Added roster selection architecture:
   - `MatchMode`
   - `StartCandidate`
@@ -1179,6 +1184,10 @@ Implemented first compile-safe skeleton:
   - assigns a random active target lane
 - Added debug commands:
   - `/semiontd economy`
+  - `/semiontd profile`
+  - `/semiontd job list`
+  - `/semiontd job current`
+  - `/semiontd job select <id>`
   - `/semiontd tower test`
   - `/semiontd tower upgrades`
   - `/semiontd tower upgrade <id>`
@@ -1217,13 +1226,35 @@ Implemented first compile-safe skeleton:
   - upgrade replaces the runtime tower and Polymer tower entity in place
   - `/semiontd tower upgrades` lists available evolutions for the tower at the player's current block
   - `/semiontd tower upgrade <id>` applies the chosen evolution during prepare phase
+- Added first job framework:
+  - `SemionJob`
+  - `JobRegistry`
+  - default `semion-td:recruit` job
+  - pre-start job selection
+  - starting economy, tower, summon, kill reward, and lifecycle modifier hooks
+- Added match progression persistence:
+  - `ProgressionService`
+  - per-player profile store at `profiles.json`
+  - win/loss/play reward application after match end
+  - match result snapshots include winner state, team, kills, income, summons, and kill minerals
+- Added first status UI layer:
+  - DisplayHud-based in-match status HUD
+  - DialogUtils status dialog through `/semiontd ui`
+  - DialogUtils match result dialog at match end
 
 Verified:
 
-- `compileJava` succeeds with Gradle 9.2.1.
-- `build` succeeds with Gradle 9.2.1.
+- Gradle wrapper files are present and executable:
+  - `gradlew`
+  - `gradlew.bat`
+  - `gradle/wrapper/gradle-wrapper.jar`
+  - `gradle/wrapper/gradle-wrapper.properties`
+- `./gradlew --version` runs Gradle 9.2.1.
+- `./gradlew build` succeeds with Gradle 9.2.1 on 2026-04-27.
 - Fabric GameTest is configured through Loom `configureTests`.
-- 29 server-side Fabric GameTests pass:
+- 43 required server-side Fabric GameTests pass through the `runGameTest` task during `./gradlew build`.
+- GameTest logs are written under `build/run/gameTest/logs/`.
+- Current verified GameTest coverage includes:
   - 1v1 selection in `TEST` mode
   - `4 -> 2/2`
   - `6 -> 3/3`
@@ -1241,6 +1272,7 @@ Verified:
   - test tower placement success and mineral spending
   - test tower out-of-bounds placement rejection
   - test tower evolution success and mineral spending
+  - chained test tower evolution to `deadeye` and `bastion`
   - test tower rejects unknown evolution id
   - test tower entity damages lane monsters
   - test tower moves toward an out-of-range monster
@@ -1250,35 +1282,55 @@ Verified:
   - round reset returns test tower to its lane position
   - synthetic arena exposes ordered 7x7 final defense slots
   - roster lock on game start
+  - configured starting economy
+  - gas tick and gas cap behavior
+  - gas production upgrade cost and gas-per-second increase
+  - round payout for living players only
+  - eliminated players stop receiving economy ticks
+  - summon gas spending, income gain, no-target refund, eliminated-team target exclusion, and custom summon config loading
+  - eliminated target teams discard active and queued lane monsters without kill rewards
+  - wave monster kill reward for the tower owner
+  - defender last-hit reward is paid once
+  - boss and unknown deaths do not grant mineral
+  - selected job starting economy modifiers
+  - progression profile persistence
+  - game manager finalizes ended matches and clears active game state
+
+Known verification notes:
+
+- Polymer/DialogUtils resource-pack generation can log vanilla client jar access errors in the local GameTest environment, but the server continues and all 43 required GameTests pass.
+- A later `./gradlew tasks --all` attempt hit a sandbox permission error while opening the Gradle wrapper distribution lock file in the user Gradle cache. This did not affect the successful `./gradlew build` run.
 
 Not implemented yet:
 
-- BLI/Blockbench visual binding.
 - Actual exported `data/semion-td/map_template/arena.nbt` asset.
-- Full summon shop content.
-- Kill reward ownership.
-- Sidebar/Dialog UI.
+- Actual exported `data/semion-td/map_template/lobby.nbt` asset.
+- Full summon shop content. A config-driven summon shop exists, but only minimal default content is present.
+- Full production tower catalog. Current player-facing tower gameplay still uses hardcoded test tower content.
+- Full job catalog. The framework exists, but only the default `recruit` job is registered in production code.
+- BLI/Blockbench visual binding for monsters, towers, bosses, and job/theme presentation.
+- Sidebar-style UI polish. DisplayHud and Dialog UI exist, but a final production UI pass is still needed.
 - Full 20-player game flow testing.
 
 ## Open Design Questions
 
-These should be answered before or during the next planning session.
+Some earlier questions have now been fixed by code. They are recorded here so future planning does not reopen them accidentally.
 
 1. What are the final replacement names for mineral, gas, and income?
-2. What exact duration should the prepare/summon phase use: 20, 25, or 30 seconds?
-3. Is gas stored as integer only, or can gasPerSec accumulate fractional gas?
-4. What is the starting gasPerSec?
-5. Who receives kill mineral?
-   - tower owner
-   - whole team
-   - split among nearby players
-6. What happens to active monsters when their target team is eliminated?
-7. What are the boss monster's initial health, attack damage, range, and attack speed?
-8. Can players keep playing after their team is eliminated?
-9. Should wave monsters and summon monsters use separate configs or one shared monster definition table?
-10. Are monster tiers unlocked by round, gas production, income, or tech purchases?
-11. When a summoned monster targets a team, should it pick a random active player lane or the weakest/strongest lane?
-12. Should `lane_1` overrides replace `default` waves or add to them?
-13. What exact currency pays for gas production upgrades?
-14. Which hardcoded tower classes produce `DefenderEntity` instances?
-15. Do tower-produced entities persist across rounds or reset after each round?
+2. Which concrete producer/summoner tower types should create `DefenderEntity` or summoned entities?
+3. Do tower-produced entities persist across rounds or reset after each round?
+
+Settled in current code:
+
+- Prepare/summon phase duration is 25 seconds.
+- Economy values are integer `long` values.
+- Starting gas-per-second is `1`.
+- Kill mineral currently goes to the tower or defender last-hit owner. Boss and unknown deaths do not grant mineral.
+- Eliminated players become spectators for the current match.
+- When a team is eliminated, active and queued monsters targeting that team's lanes are discarded without kill rewards.
+- Wave and summon configs are separate.
+- Summoned monsters target a random living enemy team and then a random active lane on that team.
+- All configured attack summons are available; there is no tier unlock gate in the current policy.
+- `lane_N` wave entries are lane-specific overrides; default entries are used when a lane-specific entry is absent.
+- Gas production upgrade currency is config-driven and defaults to mineral.
+- Boss defaults are implemented in `BossMonster.defaultBoss`.
