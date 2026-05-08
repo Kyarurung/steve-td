@@ -132,7 +132,7 @@ public final class SemionGameManager {
             return;
         }
         if (activeGame != null) {
-            displayHudService.tick(server, activeGame);
+            displayHudService.tick(server, activeGame, matchMode);
         }
     }
 
