@@ -208,6 +208,84 @@ public final class SemionLifecycleGameTest implements CustomTestMethodInvoker {
     }
 
     @GameTest
+    public void gameManagerLoadsLobbyArenaAndStartsActualArena(GameTestHelper context) {
+        MinecraftServer server = context.getLevel().getServer();
+        SemionGameManager manager = new SemionGameManager();
+        Path storePath;
+        try {
+            storePath = Files.createTempDirectory("semion-manager-template-lifecycle").resolve("profiles.json");
+        } catch (java.io.IOException exception) {
+            context.fail(Component.literal("Failed to create temporary progression store path."));
+            return;
+        }
+        manager.configure(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                MapConfig.defaultConfig(),
+                ProgressionConfig.defaultConfig(),
+                storePath
+        );
+
+        try {
+            SemionGame game = manager.createGame(server);
+            if (!assertTrue(context, manager.lobbyWorld().isPresent(), "Manager create should load the lobby template.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.activeGame().orElse(null) == game, "Manager create should retain the active game.")) {
+                return;
+            }
+            if (!assertTrue(context, game.arena().lane(TeamId.RED, 1).isPresent(), "Created game should expose RED lane 1 from the arena template.")) {
+                return;
+            }
+            if (!assertTrue(context, game.arena().lane(TeamId.BLUE, 1).isPresent(), "Created game should expose BLUE lane 1 from the arena template.")) {
+                return;
+            }
+
+            UUID redId = playerId("manager-template-red");
+            UUID blueId = playerId("manager-template-blue");
+            if (!assertTrue(context, game.markReady(redId), "RED player should be able to ready after admin create.")) {
+                return;
+            }
+            if (!assertTrue(context, game.markReady(blueId), "BLUE player should be able to ready after admin create.")) {
+                return;
+            }
+            ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                    MatchMode.NORMAL,
+                    List.of(
+                            new AssignedParticipant(redId, "manager-template-red", TeamId.RED, 1),
+                            new AssignedParticipant(blueId, "manager-template-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(),
+                    2
+            );
+
+            if (!assertTrue(context, game.start(server, plan), "Manager-created arena should start with ready participants.")) {
+                return;
+            }
+            if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Started game should enter prepare phase.")) {
+                return;
+            }
+            if (!assertTrue(context, game.rosterLocked(), "Started game should lock the roster.")) {
+                return;
+            }
+            if (!assertEquals(context, 2, game.players().size(), "Started game should register both active participants.")) {
+                return;
+            }
+            if (!assertTrue(context, game.teams().get(TeamId.RED).laneGroup().bossEntity().isPresent(), "RED boss entity should spawn in the actual arena world.")) {
+                return;
+            }
+            if (!assertTrue(context, game.teams().get(TeamId.BLUE).laneGroup().bossEntity().isPresent(), "BLUE boss entity should spawn in the actual arena world.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Manager template lifecycle should work: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
     public void matchResultRecordsWinnerAndLoser(GameTestHelper context) {
         SemionGame game = startedTwoPlayerGame(context, playerId("life-red"), "life-red", playerId("life-blue"), "life-blue");
         if (!assertTrue(context, game.killBoss(TeamId.BLUE), "Blue boss should die to finish the match.")) {

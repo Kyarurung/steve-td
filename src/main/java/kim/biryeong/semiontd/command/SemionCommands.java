@@ -121,8 +121,8 @@ public final class SemionCommands {
     }
 
     private static int startGame(CommandSourceStack source, SemionGameManager gameManager) {
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
-        if (game == null || !ensureWaitingSetup(source, game, "start")) {
+        SemionGame game = activeWaitingGame(source, gameManager, "start");
+        if (game == null) {
             return 0;
         }
 
@@ -152,8 +152,8 @@ public final class SemionCommands {
     }
 
     private static int autojoin(CommandSourceStack source, SemionGameManager gameManager) {
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
-        if (game == null || !ensureWaitingSetup(source, game, "autojoin")) {
+        SemionGame game = activeWaitingGame(source, gameManager, "autojoin");
+        if (game == null) {
             return 0;
         }
 
@@ -177,8 +177,8 @@ public final class SemionCommands {
     }
 
     private static int ready(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
-        if (game == null || !ensureWaitingSetup(source, game, "ready")) {
+        SemionGame game = activeWaitingGame(source, gameManager, "ready");
+        if (game == null) {
             return 0;
         }
 
@@ -194,8 +194,8 @@ public final class SemionCommands {
     }
 
     private static int unready(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
-        if (game == null || !ensureWaitingSetup(source, game, "unready")) {
+        SemionGame game = activeWaitingGame(source, gameManager, "unready");
+        if (game == null) {
             return 0;
         }
 
@@ -220,20 +220,6 @@ public final class SemionCommands {
         gameManager.setMatchMode(enabled ? MatchMode.TEST : MatchMode.NORMAL);
         source.sendSuccess(() -> Component.literal("Semion TD test mode set to " + enabled + "."), false);
         return 1;
-    }
-
-    private static Optional<SemionGame> activeOrCreate(CommandSourceStack source, SemionGameManager gameManager) {
-        Optional<SemionGame> activeGame = gameManager.activeGame();
-        if (activeGame.isPresent()) {
-            return activeGame;
-        }
-
-        try {
-            return Optional.of(gameManager.createGame(source.getServer()));
-        } catch (ArenaLoadException exception) {
-            source.sendFailure(Component.literal("Failed to create Semion TD arena: " + exception.getMessage()));
-            return Optional.empty();
-        }
     }
 
     private static int status(CommandSourceStack source, SemionGameManager gameManager) {
@@ -340,8 +326,9 @@ public final class SemionCommands {
 
     private static int currentJob(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
+        SemionGame game = gameManager.activeGame().orElse(null);
         if (game == null) {
+            source.sendFailure(Component.literal("No Semion TD lobby is open. Ask an admin to run /semiontd create first."));
             return 0;
         }
 
@@ -358,7 +345,7 @@ public final class SemionCommands {
 
     private static int selectJob(CommandSourceStack source, SemionGameManager gameManager, String rawJobId)
             throws CommandSyntaxException {
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
+        SemionGame game = activeWaitingGame(source, gameManager, "select a job");
         if (game == null) {
             return 0;
         }
@@ -556,6 +543,22 @@ public final class SemionCommands {
             return false;
         }
         return true;
+    }
+
+    private static SemionGame activeWaitingGame(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            String action
+    ) {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("No Semion TD lobby is open. Use /semiontd create first."));
+            return null;
+        }
+        if (!ensureWaitingSetup(source, game, action)) {
+            return null;
+        }
+        return game;
     }
 
     private static Optional<ParticipantSelectionPlan> buildSelectionPlan(

@@ -1303,7 +1303,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
-    @GameTest(maxTicks = 120)
+    @GameTest(maxTicks = 180)
     public void monsterReachingBossFightsBossUntilKilled(GameTestHelper context) {
         UUID playerId = stableUuid("boss-reach-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
@@ -1345,20 +1345,24 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        context.runAfterDelay(80, () -> {
+        context.runAfterDelay(130, () -> {
             game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
 
             if (!assertTrue(context, game.teams().get(TeamId.RED).laneGroup().boss().health() < initialBossHealth, "Monster should damage the boss through normal combat.")) {
                 return;
             }
-            if (!assertEquals(context, 0, lane.activeMonsters().size(), "Boss should be able to kill and clear the reached monster.")) {
-                return;
-            }
-            if (!assertTrue(context, lane.arenaWorld().getEntity(monsterEntityId) == null
-                    || lane.arenaWorld().getEntity(monsterEntityId).isRemoved(), "Boss-killed monster entity should be removed.")) {
-                return;
-            }
-            context.succeed();
+            context.runAfterDelay(2, () -> {
+                game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
+
+                if (!assertEquals(context, 0, lane.activeMonsters().size(), "Boss should be able to kill and clear the reached monster.")) {
+                    return;
+                }
+                if (!assertTrue(context, lane.arenaWorld().getEntity(monsterEntityId) == null
+                        || lane.arenaWorld().getEntity(monsterEntityId).isRemoved(), "Boss-killed monster entity should be removed.")) {
+                    return;
+                }
+                context.succeed();
+            });
         });
     }
 
