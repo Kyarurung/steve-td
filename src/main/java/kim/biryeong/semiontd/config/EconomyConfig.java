@@ -1,21 +1,27 @@
 package kim.biryeong.semiontd.config;
 
+import com.google.gson.annotations.SerializedName;
+
 public record EconomyConfig(
-        long startingMineral,
-        long startingGas,
+        @SerializedName(value = "startingDiamond", alternate = "startingMineral")
+        long startingDiamond,
+        @SerializedName(value = "startingEmerald", alternate = "startingGas")
+        long startingEmerald,
         long startingIncome,
-        GasCapConfig gasCap,
-        GasProductionConfig gasProduction
+        @SerializedName(value = "emeraldCap", alternate = "gasCap")
+        GasCapConfig emeraldCap,
+        @SerializedName(value = "emeraldProduction", alternate = "gasProduction")
+        GasProductionConfig emeraldProduction
 ) {
     public EconomyConfig {
-        if (startingMineral < 0 || startingGas < 0 || startingIncome < 0) {
+        if (startingDiamond < 0 || startingEmerald < 0 || startingIncome < 0) {
             throw new IllegalArgumentException("Starting economy values cannot be negative.");
         }
-        if (gasCap == null) {
-            gasCap = GasCapConfig.defaultConfig();
+        if (emeraldCap == null) {
+            emeraldCap = GasCapConfig.defaultConfig();
         }
-        if (gasProduction == null) {
-            gasProduction = GasProductionConfig.defaultConfig();
+        if (emeraldProduction == null) {
+            emeraldProduction = GasProductionConfig.defaultConfig();
         }
     }
 
@@ -23,8 +29,28 @@ public record EconomyConfig(
         return new EconomyConfig(200, 50, 0, GasCapConfig.defaultConfig(), GasProductionConfig.defaultConfig());
     }
 
+    public long startingMineral() {
+        return startingDiamond;
+    }
+
+    public long startingGas() {
+        return startingEmerald;
+    }
+
+    public GasCapConfig gasCap() {
+        return emeraldCap;
+    }
+
+    public GasProductionConfig gasProduction() {
+        return emeraldProduction;
+    }
+
+    public long emeraldCapForRound(int round) {
+        return emeraldCap.capForRound(round);
+    }
+
     public long gasCapForRound(int round) {
-        return gasCap.capForRound(round);
+        return emeraldCapForRound(round);
     }
 
     public record GasCapConfig(long base, long roundOffsetMultiplier, long roundOffsetStep, long flatBonus) {
@@ -45,29 +71,39 @@ public record EconomyConfig(
     }
 
     public record GasProductionConfig(
-            long initialGasPerSec,
+            @SerializedName(value = "initialEmeraldPerSec", alternate = "initialGasPerSec")
+            long initialEmeraldPerSec,
             int maxUpgradeCount,
             long initialUpgradeCost,
             long upgradeCostIncrease,
-            long gasPerSecIncrease,
+            @SerializedName(value = "emeraldPerSecIncrease", alternate = "gasPerSecIncrease")
+            long emeraldPerSecIncrease,
             CurrencyType upgradeCurrency
     ) {
         public GasProductionConfig {
-            if (initialGasPerSec < 0 || maxUpgradeCount < 0 || initialUpgradeCost < 0
-                    || upgradeCostIncrease < 0 || gasPerSecIncrease < 0) {
-                throw new IllegalArgumentException("Gas production config values cannot be negative.");
+            if (initialEmeraldPerSec < 0 || maxUpgradeCount < 0 || initialUpgradeCost < 0
+                    || upgradeCostIncrease < 0 || emeraldPerSecIncrease < 0) {
+                throw new IllegalArgumentException("Emerald production config values cannot be negative.");
             }
             if (upgradeCurrency == null) {
-                upgradeCurrency = CurrencyType.MINERAL;
+                upgradeCurrency = CurrencyType.DIAMOND;
             }
         }
 
         public static GasProductionConfig defaultConfig() {
-            return new GasProductionConfig(1, 20, 50, 25, 1, CurrencyType.MINERAL);
+            return new GasProductionConfig(1, 20, 50, 25, 1, CurrencyType.DIAMOND);
         }
 
         public long upgradeCost(int currentUpgradeCount) {
             return initialUpgradeCost + upgradeCostIncrease * Math.max(0, currentUpgradeCount);
+        }
+
+        public long initialGasPerSec() {
+            return initialEmeraldPerSec;
+        }
+
+        public long gasPerSecIncrease() {
+            return emeraldPerSecIncrease;
         }
     }
 }

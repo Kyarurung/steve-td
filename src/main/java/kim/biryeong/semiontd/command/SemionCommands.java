@@ -46,16 +46,13 @@ public final class SemionCommands {
                                         gameManager,
                                         BoolArgumentType.getBool(context, "enabled")
                                 ))))
-                .then(literal("join")
-                        .then(argument("team", StringArgumentType.word())
-                                .executes(context -> joinTeam(
-                                        context.getSource(),
-                                        gameManager,
-                                        StringArgumentType.getString(context, "team")
-                                ))))
                 .then(literal("autojoin")
                         .requires(source -> source.hasPermission(2))
                         .executes(context -> autojoin(context.getSource(), gameManager)))
+                .then(literal("ready")
+                        .executes(context -> ready(context.getSource(), gameManager)))
+                .then(literal("unready")
+                        .executes(context -> unready(context.getSource(), gameManager)))
                 .then(literal("economy")
                         .executes(context -> economy(context.getSource(), gameManager)))
                 .then(literal("profile")
@@ -85,7 +82,9 @@ public final class SemionCommands {
                                                 StringArgumentType.getString(context, "id")
                                         )))))
                 .then(literal("gasup")
-                        .executes(context -> gasup(context.getSource(), gameManager)))
+                        .executes(context -> emeraldUp(context.getSource(), gameManager)))
+                .then(literal("emeraldup")
+                        .executes(context -> emeraldUp(context.getSource(), gameManager)))
                 .then(literal("summon")
                         .then(argument("id", StringArgumentType.word())
                                 .executes(context -> summon(
@@ -127,13 +126,14 @@ public final class SemionCommands {
             return 0;
         }
 
-        Optional<ParticipantSelectionPlan> plan = buildSelectionPlan(source, gameManager);
+        Optional<ParticipantSelectionPlan> plan = buildSelectionPlan(source, gameManager, game);
         if (plan.isEmpty()) {
-            source.sendFailure(Component.literal("Not enough players to start with the current mode."));
+            source.sendFailure(Component.literal("Not enough ready players to start with the current mode."));
             return 0;
         }
 
         applyPlanToVanillaTeams(source, plan.get());
+        assignUnreadyPlayersToSpectatorTeam(source, game, plan.get());
         if (!game.start(source.getServer(), plan.get())) {
             source.sendFailure(Component.literal("Failed to lock participants and start the game."));
             return 0;
@@ -145,32 +145,9 @@ public final class SemionCommands {
                 + ", teams=" + plan.get().activeTeamCount()
                 + ", composition=" + plan.get().compositionSummary()
                 + ", spectators=" + plan.get().spectatorCount()
+                + ", ready=" + game.readyPlayerCount()
                 + ", mode=" + gameManager.matchMode()
                 + lobbyLoaded), false);
-        return 1;
-    }
-
-    private static int joinTeam(CommandSourceStack source, SemionGameManager gameManager, String teamName)
-            throws CommandSyntaxException {
-        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
-        if (game == null || !ensureWaitingSetup(source, game, "join")) {
-            return 0;
-        }
-        TeamId teamId;
-        try {
-            teamId = parseTeam(teamName);
-        } catch (IllegalArgumentException exception) {
-            source.sendFailure(Component.literal("Unknown team: " + teamName + ". Use RED, BLUE, GREEN, or YELLOW."));
-            return 0;
-        }
-
-        if (gameManager.matchMode() == MatchMode.TEST && teamId != TeamId.RED && teamId != TeamId.BLUE) {
-            source.sendFailure(Component.literal("Test mode only allows RED and BLUE."));
-            return 0;
-        }
-
-        VanillaTeamBridge.assignPlayer(source.getServer(), source.getPlayerOrException(), teamId);
-        source.sendSuccess(() -> Component.literal("Assigned vanilla team preference " + teamId + " for the next start."), false);
         return 1;
     }
 
@@ -180,9 +157,9 @@ public final class SemionCommands {
             return 0;
         }
 
-        Optional<ParticipantSelectionPlan> plan = buildSelectionPlan(source, gameManager);
+        Optional<ParticipantSelectionPlan> plan = buildSelectionPlan(source, gameManager, game);
         if (plan.isEmpty()) {
-            source.sendFailure(Component.literal("Not enough players to auto-assign with the current mode."));
+            source.sendFailure(Component.literal("Not enough ready players to auto-assign with the current mode."));
             return 0;
         }
 
@@ -193,9 +170,44 @@ public final class SemionCommands {
                 + ", teams=" + plan.get().activeTeamCount()
                 + ", composition=" + plan.get().compositionSummary()
                 + ", spectators=" + plan.get().spectatorCount()
+                + ", ready=" + game.readyPlayerCount()
                 + ", mode=" + gameManager.matchMode()
                 + lobbyLoaded), false);
         return plan.get().activePlayerCount();
+    }
+
+    private static int ready(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
+        if (game == null || !ensureWaitingSetup(source, game, "ready")) {
+            return 0;
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        if (!game.markReady(player.getUUID())) {
+            source.sendFailure(Component.literal("Failed to mark you ready for Semion TD."));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal("You are ready for the next Semion TD match. ready="
+                + game.readyPlayerCount()), false);
+        return 1;
+    }
+
+    private static int unready(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGame game = activeOrCreate(source, gameManager).orElse(null);
+        if (game == null || !ensureWaitingSetup(source, game, "unready")) {
+            return 0;
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        if (!game.markNotReady(player.getUUID())) {
+            source.sendFailure(Component.literal("Failed to mark you not ready for Semion TD."));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal("You are no longer ready for the next Semion TD match. ready="
+                + game.readyPlayerCount()), false);
+        return 1;
     }
 
     private static int setTestMode(CommandSourceStack source, SemionGameManager gameManager, boolean enabled) {
@@ -246,6 +258,7 @@ public final class SemionCommands {
                 + ", phase=" + game.phase()
                 + ", players=" + game.players().size()
                 + ", spectators=" + game.spectatorCount()
+                + ", ready=" + game.readyPlayerCount()
                 + ", rosterLocked=" + game.rosterLocked()
                 + ", mode=" + gameManager.matchMode()
                 + ", lobbyLoaded=" + lobbyLoaded), false);
@@ -294,12 +307,12 @@ public final class SemionCommands {
 
         PlayerEconomy economy = player.economy();
         long nextGasUpgradeCost = nextGasUpgradeCost(game, economy);
-        source.sendSuccess(() -> Component.literal("Economy mineral=" + economy.mineral()
-                + ", gas=" + economy.gas()
+        source.sendSuccess(() -> Component.literal("Economy diamond=" + economy.diamond()
+                + ", emerald=" + economy.emerald()
                 + ", income=" + economy.income()
-                + ", gasPerSec=" + economy.gasPerSec()
-                + ", gasUpgrades=" + economy.gasProductionUpgradeCount()
-                + ", nextGasUpCost=" + (nextGasUpgradeCost >= 0 ? nextGasUpgradeCost : "capped")), false);
+                + ", emeraldPerSec=" + economy.emeraldPerSec()
+                + ", emeraldUpgrades=" + economy.emeraldProductionUpgradeCount()
+                + ", nextEmeraldUpCost=" + (nextGasUpgradeCost >= 0 ? nextGasUpgradeCost : "capped")), false);
         return 1;
     }
 
@@ -375,7 +388,7 @@ public final class SemionCommands {
         return 1;
     }
 
-    private static int gasup(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+    private static int emeraldUp(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
         SemionGame game = gameManager.activeGame().orElse(null);
         if (game == null) {
             source.sendFailure(Component.literal("No active Semion TD game."));
@@ -385,14 +398,14 @@ public final class SemionCommands {
         UUID playerId = source.getPlayerOrException().getUUID();
         boolean upgraded = game.upgradeGasProduction(playerId);
         if (!upgraded) {
-            source.sendFailure(Component.literal("Failed to upgrade gas production."));
+            source.sendFailure(Component.literal("Failed to upgrade emerald production."));
             return 0;
         }
 
         PlayerEconomy economy = game.players().get(playerId).economy();
         long nextGasUpgradeCost = nextGasUpgradeCost(game, economy);
-        source.sendSuccess(() -> Component.literal("Gas production upgraded. gasPerSec=" + economy.gasPerSec()
-                + ", gasUpgrades=" + economy.gasProductionUpgradeCount()
+        source.sendSuccess(() -> Component.literal("Emerald production upgraded. emeraldPerSec=" + economy.emeraldPerSec()
+                + ", emeraldUpgrades=" + economy.emeraldProductionUpgradeCount()
                 + ", nextCost=" + (nextGasUpgradeCost >= 0 ? nextGasUpgradeCost : "capped")), false);
         return 1;
     }
@@ -435,7 +448,7 @@ public final class SemionCommands {
         for (TowerUpgradeOption option : upgrades) {
             source.sendSuccess(() -> Component.literal(" - " + option.id()
                     + " => " + option.displayName()
-                    + " cost=" + option.mineralCost()), false);
+                    + " diamondCost=" + option.mineralCost()), false);
         }
         return upgrades.size();
     }
@@ -469,7 +482,7 @@ public final class SemionCommands {
 
         SummonResult result = game.summonMonster(source.getPlayerOrException().getUUID(), summonId);
         if (result.type() != SummonResultType.SUCCESS) {
-            source.sendFailure(Component.literal("Summon failed: " + result.type()));
+            source.sendFailure(Component.literal("Summon failed: " + summonFailureMessage(result.type())));
             return 0;
         }
 
@@ -489,7 +502,7 @@ public final class SemionCommands {
         source.sendSuccess(() -> Component.literal("Available summons:"), false);
         for (SummonMonsterType type : game.summonShop().all()) {
             source.sendSuccess(() -> Component.literal(" - " + type.id()
-                    + " cost=" + type.gasCost()
+                    + " emeraldCost=" + type.gasCost()
                     + ", income=" + type.incomeGain()
                     + ", hp=" + Math.round(type.maxHealth())), false);
         }
@@ -547,18 +560,18 @@ public final class SemionCommands {
 
     private static Optional<ParticipantSelectionPlan> buildSelectionPlan(
             CommandSourceStack source,
-            SemionGameManager gameManager
+            SemionGameManager gameManager,
+            SemionGame game
     ) {
         VanillaTeamBridge.ensureTeams(source.getServer());
         List<StartCandidate> candidates = new ArrayList<>();
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
             candidates.add(new StartCandidate(
                     player.getUUID(),
-                    player.getGameProfile().getName(),
-                    VanillaTeamBridge.teamForPlayer(source.getServer(), player)
+                    player.getGameProfile().getName()
             ));
         }
-        return ParticipantSelectionService.select(candidates, gameManager.matchMode());
+        return ParticipantSelectionService.selectReady(candidates, game.readyPlayerIds(), gameManager.matchMode());
     }
 
     private static void applyPlanToVanillaTeams(CommandSourceStack source, ParticipantSelectionPlan plan) {
@@ -571,6 +584,25 @@ public final class SemionCommands {
         }
         for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
             if (plan.spectatorIds().contains(player.getUUID())) {
+                VanillaTeamBridge.assignSpectator(source.getServer(), player);
+            }
+        }
+    }
+
+    private static void assignUnreadyPlayersToSpectatorTeam(
+            CommandSourceStack source,
+            SemionGame game,
+            ParticipantSelectionPlan plan
+    ) {
+        java.util.Set<UUID> selectedIds = new java.util.HashSet<>();
+        for (AssignedParticipant participant : plan.activeParticipants()) {
+            selectedIds.add(participant.uuid());
+        }
+        selectedIds.addAll(plan.spectatorIds());
+
+        for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+            UUID playerId = player.getUUID();
+            if (!game.readyPlayerIds().contains(playerId) && !selectedIds.contains(playerId)) {
                 VanillaTeamBridge.assignSpectator(source.getServer(), player);
             }
         }
@@ -593,7 +625,7 @@ public final class SemionCommands {
             case TOWER_NOT_ALLOWED_BY_JOB -> "your job cannot use that tower";
             case OUTSIDE_LANE_AREA -> "stand inside your lane_path region";
             case OCCUPIED -> "that block already has a tower";
-            case NOT_ENOUGH_MINERAL -> "not enough mineral";
+            case NOT_ENOUGH_MINERAL -> "not enough diamond";
             case SUCCESS -> "success";
         };
     }
@@ -609,11 +641,15 @@ public final class SemionCommands {
             case UNKNOWN_UPGRADE -> "unknown upgrade id for that tower";
             case UNKNOWN_TARGET_TYPE -> "tower evolution target type is not registered";
             case TOWER_NOT_ALLOWED_BY_JOB -> "your job cannot use that tower evolution";
-            case NOT_ENOUGH_MINERAL -> "not enough mineral";
+            case NOT_ENOUGH_MINERAL -> "not enough diamond";
             case SUCCESS -> "success";
         };
     }
+
+    private static String summonFailureMessage(SummonResultType result) {
+        return switch (result) {
+            case NOT_ENOUGH_GAS -> "not enough emerald";
+            default -> result.name();
+        };
+    }
 }
-
-
-

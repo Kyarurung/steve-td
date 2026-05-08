@@ -8,6 +8,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.CurrencyType;
@@ -83,10 +84,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void testModeSelectsOneVersusOne(GameTestHelper context) {
         Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.select(List.of(
-                candidate("alpha", TeamId.RED),
-                candidate("beta", TeamId.BLUE),
-                candidate("gamma", TeamId.GREEN),
-                candidate("delta", TeamId.YELLOW),
+                candidate("alpha"),
+                candidate("beta"),
+                candidate("gamma"),
+                candidate("delta"),
                 candidate("epsilon")
         ), MatchMode.TEST);
 
@@ -303,29 +304,39 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void preferredTeamsAreRespectedWhenCapacityExists(GameTestHelper context) {
-        Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.select(List.of(
-                candidate("red-1", TeamId.RED),
-                candidate("red-2", TeamId.RED),
-                candidate("blue-1", TeamId.BLUE),
-                candidate("blue-2", TeamId.BLUE)
-        ), MatchMode.NORMAL);
+    public void participantSelectionOnlyCountsReadyPlayers(GameTestHelper context) {
+        Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.selectReady(
+                List.of(
+                        candidate("ready-1"),
+                        candidate("ready-2"),
+                        candidate("ready-fill-1"),
+                        candidate("ready-fill-2"),
+                        candidate("not-ready")
+                ),
+                Set.of(
+                        stableUuid("ready-1"),
+                        stableUuid("ready-2"),
+                        stableUuid("ready-fill-1"),
+                        stableUuid("ready-fill-2")
+                ),
+                MatchMode.NORMAL
+        );
 
-        if (!assertPresent(context, plan, "Expected a selection plan for 4 players.")) {
+        if (!assertPresent(context, plan, "Expected normal mode to start from the four ready players.")) {
             return;
         }
 
         ParticipantSelectionPlan value = plan.get();
-        if (!assertAssignedTeam(context, value, "red-1", TeamId.RED)) {
+        if (!assertEquals(context, 4, value.activePlayerCount(), "Only ready players should be counted as active candidates.")) {
             return;
         }
-        if (!assertAssignedTeam(context, value, "red-2", TeamId.RED)) {
+        if (!assertEquals(context, 0, value.spectatorCount(), "Not-ready online players should not become match spectators.")) {
             return;
         }
-        if (!assertAssignedTeam(context, value, "blue-1", TeamId.BLUE)) {
+        if (!assertTeamSizes(context, value, Map.of(TeamId.RED, 2, TeamId.BLUE, 2))) {
             return;
         }
-        if (!assertAssignedTeam(context, value, "blue-2", TeamId.BLUE)) {
+        if (!assertTrue(context, value.activeParticipants().stream().noneMatch(participant -> participant.uuid().equals(stableUuid("not-ready"))), "Not-ready players should not be assigned to an active lane.")) {
             return;
         }
         context.succeed();
@@ -2719,11 +2730,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     private static StartCandidate candidate(String name) {
-        return new StartCandidate(stableUuid(name), name, Optional.empty());
-    }
-
-    private static StartCandidate candidate(String name, TeamId preferredTeam) {
-        return new StartCandidate(stableUuid(name), name, Optional.of(preferredTeam));
+        return new StartCandidate(stableUuid(name), name);
     }
 
     private static SemionGame startedSinglePlayerGame(GameTestHelper context, UUID playerId, TeamId teamId) {

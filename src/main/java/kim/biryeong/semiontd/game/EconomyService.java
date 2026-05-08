@@ -27,13 +27,17 @@ public final class EconomyService {
         return economyConfig;
     }
 
-    public void tickGas(Collection<SemionPlayer> players, Map<TeamId, SemionTeam> teams, int currentRound) {
-        long gasCap = economyConfig.gasCapForRound(currentRound);
+    public void tickEmerald(Collection<SemionPlayer> players, Map<TeamId, SemionTeam> teams, int currentRound) {
+        long emeraldCap = economyConfig.emeraldCapForRound(currentRound);
         for (SemionPlayer player : players) {
             if (isEconomyEligible(player, teams)) {
-                player.economy().addGas(player.economy().gasPerSec(), gasCap);
+                player.economy().addEmerald(player.economy().emeraldPerSec(), emeraldCap);
             }
         }
+    }
+
+    public void tickGas(Collection<SemionPlayer> players, Map<TeamId, SemionTeam> teams, int currentRound) {
+        tickEmerald(players, teams, currentRound);
     }
 
     public void payRoundIncome(Collection<SemionPlayer> players, Map<TeamId, SemionTeam> teams) {
@@ -70,7 +74,7 @@ public final class EconomyService {
         if (player == null) {
             return;
         }
-        player.economy().addGas(Math.max(0, gasCost), economyConfig.gasCapForRound(currentRound));
+        player.economy().addEmerald(Math.max(0, gasCost), economyConfig.emeraldCapForRound(currentRound));
     }
 
     public void applySummonIncome(SemionPlayer player, SummonMonsterType type) {
@@ -111,7 +115,7 @@ public final class EconomyService {
                 : player.job()
                         .map(job -> Math.max(0, job.modifyKillMineralReward(jobContext, monster, monster.mineralReward())))
                         .orElse(monster.mineralReward());
-        player.economy().addMineral(reward);
+        player.economy().addDiamond(reward);
         player.matchStats().recordMonsterKill(reward);
         if (jobContext != null) {
             player.job().ifPresent(job -> job.onMonsterKilled(jobContext, monster, reward));

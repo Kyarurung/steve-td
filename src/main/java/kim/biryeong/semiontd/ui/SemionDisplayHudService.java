@@ -90,8 +90,8 @@ public final class SemionDisplayHudService {
         SemionPlayer player = game.players().get(viewer.getUUID());
         if (player != null) {
             PlayerEconomy economy = player.economy();
-            text.append("Mineral ").append(economy.mineral())
-                    .append("  Gas ").append(economy.gas())
+            text.append("Diamond ").append(economy.diamond())
+                    .append("  Emerald ").append(economy.emerald())
                     .append("  Income ").append(economy.income())
                     .append('\n');
             text.append("Kills ").append(player.matchStats().monsterKills())

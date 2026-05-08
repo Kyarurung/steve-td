@@ -46,6 +46,7 @@ public final class SemionGame {
     private final Map<TeamId, SemionTeam> teams = new EnumMap<>(TeamId.class);
     private final Map<UUID, SemionPlayer> players = new java.util.HashMap<>();
     private final Map<UUID, SemionJob> selectedJobs = new java.util.HashMap<>();
+    private final Set<UUID> readyPlayerIds = new HashSet<>();
     private final Set<UUID> initialSpectatorIds = new HashSet<>();
     private final Set<UUID> matchSpectatorIds = new HashSet<>();
     private final Set<TeamId> announcedEliminations = new HashSet<>();
@@ -117,6 +118,34 @@ public final class SemionGame {
 
     public boolean canConfigureRoster() {
         return phase == RoundPhase.WAITING && !rosterLocked;
+    }
+
+    public Set<UUID> readyPlayerIds() {
+        return java.util.Collections.unmodifiableSet(readyPlayerIds);
+    }
+
+    public int readyPlayerCount() {
+        return readyPlayerIds.size();
+    }
+
+    public boolean isReady(UUID playerId) {
+        return readyPlayerIds.contains(playerId);
+    }
+
+    public boolean markReady(UUID playerId) {
+        if (!canConfigureRoster() || playerId == null) {
+            return false;
+        }
+        readyPlayerIds.add(playerId);
+        return true;
+    }
+
+    public boolean markNotReady(UUID playerId) {
+        if (!canConfigureRoster() || playerId == null) {
+            return false;
+        }
+        readyPlayerIds.remove(playerId);
+        return true;
     }
 
     public boolean isActiveParticipant(UUID playerId) {

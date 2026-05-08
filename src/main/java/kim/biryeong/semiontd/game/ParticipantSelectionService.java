@@ -30,18 +30,7 @@ public final class ParticipantSelectionService {
             assigned.put(teamId, new ArrayList<>());
         }
 
-        List<StartCandidate> unassigned = new ArrayList<>();
         for (StartCandidate candidate : activeCandidates) {
-            Optional<TeamId> preferredTeam = candidate.preferredTeam()
-                    .filter(activeTeams::contains);
-            if (preferredTeam.isPresent() && assigned.get(preferredTeam.get()).size() < capacities.get(preferredTeam.get())) {
-                assigned.get(preferredTeam.get()).add(candidate);
-            } else {
-                unassigned.add(candidate);
-            }
-        }
-
-        for (StartCandidate candidate : unassigned) {
             Optional<TeamId> targetTeam = leastFilledAvailableTeam(assigned, capacities, activeTeams);
             if (targetTeam.isEmpty()) {
                 break;
@@ -70,6 +59,19 @@ public final class ParticipantSelectionService {
                 spectatorIds,
                 shape.activeTeamCount()
         ));
+    }
+
+    public static Optional<ParticipantSelectionPlan> selectReady(
+            List<StartCandidate> candidates,
+            Set<UUID> readyPlayerIds,
+            MatchMode mode
+    ) {
+        if (readyPlayerIds == null || readyPlayerIds.isEmpty()) {
+            return Optional.empty();
+        }
+        return select(candidates.stream()
+                .filter(candidate -> readyPlayerIds.contains(candidate.uuid()))
+                .toList(), mode);
     }
 
     private static Map<TeamId, Integer> capacitiesByTeam(List<TeamId> activeTeams, List<Integer> teamCapacities) {

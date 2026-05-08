@@ -57,10 +57,10 @@ public final class SemionDialogService {
             PlayerEconomy economy = semionPlayer.economy();
             body.append('\n');
             body.append("Your Economy\n");
-            body.append("Mineral: ").append(economy.mineral()).append('\n');
-            body.append("Gas: ").append(economy.gas()).append('\n');
+            body.append("Diamond: ").append(economy.diamond()).append('\n');
+            body.append("Emerald: ").append(economy.emerald()).append('\n');
             body.append("Income: ").append(economy.income()).append('\n');
-            body.append("Gas/sec: ").append(economy.gasPerSec()).append('\n');
+            body.append("Emerald/sec: ").append(economy.emeraldPerSec()).append('\n');
         }
 
         show(player, "Semion TD Status", body.toString());
@@ -111,7 +111,7 @@ public final class SemionDialogService {
                     .append(stats.finalIncome())
                     .append(", summons=")
                     .append(stats.summonedMonsters())
-                    .append(", killMinerals=")
+                    .append(", killDiamonds=")
                     .append(stats.killMinerals());
 
             MatchProgressionReward reward = rewards.get(participant.playerId());

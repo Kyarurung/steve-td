@@ -1,6 +1,5 @@
 package kim.biryeong.semiontd.game;
 
-import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -38,14 +37,6 @@ public final class VanillaTeamBridge {
         scoreboard.addPlayerToTeam(playerName, team);
     }
 
-    public static Optional<TeamId> teamForPlayer(MinecraftServer server, ServerPlayer player) {
-        PlayerTeam team = server.getScoreboard().getPlayersTeam(player.getGameProfile().getName());
-        if (team == null) {
-            return Optional.empty();
-        }
-        return teamIdFromScoreboardName(team.getName());
-    }
-
     private static PlayerTeam getOrCreateTeam(ServerScoreboard scoreboard, TeamId teamId) {
         String teamName = scoreboardTeamName(teamId);
         PlayerTeam team = scoreboard.getPlayerTeam(teamName);
@@ -71,19 +62,6 @@ public final class VanillaTeamBridge {
         team.setAllowFriendlyFire(false);
         team.setSeeFriendlyInvisibles(true);
         return team;
-    }
-
-    private static Optional<TeamId> teamIdFromScoreboardName(String teamName) {
-        if (!teamName.startsWith(TEAM_PREFIX)) {
-            return Optional.empty();
-        }
-
-        String rawTeam = teamName.substring(TEAM_PREFIX.length());
-        try {
-            return Optional.of(TeamId.valueOf(rawTeam.toUpperCase()));
-        } catch (IllegalArgumentException exception) {
-            return Optional.empty();
-        }
     }
 
     private static String scoreboardTeamName(TeamId teamId) {
