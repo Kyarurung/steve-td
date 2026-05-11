@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -120,6 +121,8 @@ public final class SemionCommands {
                         .executes(context -> status(context.getSource(), gameManager))
                         .then(literal("teams")
                                 .executes(context -> statusTeams(context.getSource(), gameManager)))
+                        .then(literal("lanes")
+                                .executes(context -> statusLanes(context.getSource(), gameManager)))
                         .then(literal("players")
                                 .executes(context -> statusPlayers(context.getSource(), gameManager))))
                 .then(literal("ui")
@@ -323,6 +326,15 @@ public final class SemionCommands {
         return sendStatusLines(source, playerStatusLines(game));
     }
 
+    private static int statusLanes(CommandSourceStack source, SemionGameManager gameManager) {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+        return sendStatusLines(source, laneStatusLines(game));
+    }
+
     private static int sendStatusLines(CommandSourceStack source, List<String> lines) {
         for (String line : lines) {
             source.sendSuccess(() -> Component.literal(line), false);
@@ -376,6 +388,32 @@ public final class SemionCommands {
         return lines;
     }
 
+    public static List<String> laneStatusLines(SemionGame game) {
+        List<String> lines = new ArrayList<>();
+        for (SemionTeam team : game.teams().values()) {
+            if (!team.active()) {
+                continue;
+            }
+            for (PlayerLane lane : team.laneGroup().lanes()) {
+                SemionPlayer owner = game.players().get(lane.ownerPlayer());
+                BlockPos areaMin = lane.laneLayout().laneArea().min();
+                BlockPos areaMax = lane.laneLayout().laneArea().max();
+                BlockPos towerSample = centerBlockPos(areaMin, areaMax);
+                lines.add("라인 " + team.id()
+                        + "#" + lane.laneId()
+                        + " player=" + (owner == null ? lane.ownerPlayer() : owner.name())
+                        + ", towerSample=" + blockPosText(towerSample)
+                        + ", laneArea=" + blockPosText(areaMin) + ".." + blockPosText(areaMax)
+                        + ", monsters=" + lane.activeMonsters().size()
+                        + ", towers=" + lane.towers().size());
+            }
+        }
+        if (lines.isEmpty()) {
+            lines.add("활성 라인 없음");
+        }
+        return lines;
+    }
+
     public static List<String> playerStatusLines(SemionGame game) {
         List<String> lines = new ArrayList<>();
         if (game.players().isEmpty()) {
@@ -420,6 +458,18 @@ public final class SemionCommands {
         return Math.round(team.laneGroup().boss().health())
                 + "/"
                 + Math.round(team.laneGroup().boss().maxHealth());
+    }
+
+    private static String blockPosText(BlockPos blockPos) {
+        return blockPos.getX() + "," + blockPos.getY() + "," + blockPos.getZ();
+    }
+
+    private static BlockPos centerBlockPos(BlockPos min, BlockPos max) {
+        return new BlockPos(
+                Math.floorDiv(min.getX() + max.getX(), 2),
+                Math.floorDiv(min.getY() + max.getY(), 2),
+                Math.floorDiv(min.getZ() + max.getZ(), 2)
+        );
     }
 
     private static String winnersText(MatchResult result) {

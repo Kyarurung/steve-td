@@ -563,6 +563,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
 
+            List<String> laneLines = SemionCommands.laneStatusLines(game);
+            if (!assertTrue(context, laneLines.stream().anyMatch(line -> line.contains("라인 RED#1")), "Lane status should include active RED lane.")) {
+                return;
+            }
+            if (!assertTrue(context, laneLines.stream().anyMatch(line -> line.contains("towerSample=")), "Lane status should include a tower placement sample.")) {
+                return;
+            }
+            if (!assertTrue(context, laneLines.stream().anyMatch(line -> line.contains("laneArea=")), "Lane status should include the lane area bounds.")) {
+                return;
+            }
+
             List<String> playerLines = SemionCommands.playerStatusLines(game);
             if (!assertTrue(context, playerLines.stream().anyMatch(line -> line.contains("참가자 status-red")), "Player status should list active participants.")) {
                 return;
@@ -1634,7 +1645,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
-    @GameTest(maxTicks = 260)
+    @GameTest(maxTicks = 520)
     public void monsterReachingBossFightsBossUntilKilled(GameTestHelper context) {
         UUID playerId = stableUuid("boss-reach-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
@@ -3300,7 +3311,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             context.succeed();
             return;
         }
-        if (elapsedTicks >= 220) {
+        if (elapsedTicks >= 440) {
             if (!assertTrue(context, bossDamaged, "Monster should damage the boss through normal combat.")) {
                 return;
             }

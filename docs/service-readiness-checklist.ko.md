@@ -40,6 +40,7 @@ Carpet fake player로 검증 가능한 항목:
 - 2026-05-11 실클라이언트 QA를 위해 서버를 다시 기동했지만 접속자가 없어 ready/start/HUD/mount/관전 시야 항목은 아직 미완료다.
 - 2026-05-11 Carpet fake player QA로 4명 NORMAL ready/start, 팀 선택 관전 성공/실패, `ui`/`economy`/`summons` 명령 서버 처리, `end`/`reset` 복구 흐름은 확인했다.
 - 2026-05-11 추가 Carpet smoke에서 2명 TEST start, `summon grunt`, `economy`, `ui`, `end`, `reset`, `create`, `reset` 반복 복구를 다시 확인했다.
+- 2026-05-11 Carpet tower QA에서 `/semiontd status lanes`의 `towerSample=-26,145,50`으로 fake player를 이동한 뒤 `semiontd tower test` 성공과 `towers=1` 반영을 확인했다.
 - Carpet으로 닫은 서버 항목은 통과 처리한다. 실제 클라이언트 HUD 렌더링, DialogUtils 화면 표시, 리소스팩 적용, 관전 시야 품질은 여전히 실클라이언트로 확인해야 한다.
 
 ### 2. 맵 템플릿 실사용 QA
@@ -79,8 +80,9 @@ Carpet fake player로 검증 가능한 항목:
 - 2026-05-11 재기동 smoke에서도 `arenaLoaded=4/4`, 네 팀 arena/boss 상태, reset 복구가 다시 확인됐다.
 - 2026-05-11 Carpet fake player QA에서 RED/BLUE active team 배정, fake player 위치 이동, RED/BLUE 팀 선택 관전 이동을 확인했다.
 - 2026-05-11 추가 Carpet smoke에서 TEST 2인 `summon grunt`가 상대 active team lane으로 큐잉되고, `end`/`reset` 후 `create`/`reset` 반복 복구가 성공했다.
-- `semiontd tower test`는 active spawn 위치에서 `lane_path 영역 안에서 실행하세요`로 정상 실패했다. Carpet으로 tower placement 성공까지 보려면 fake player를 lane_path 좌표로 이동시키는 절차가 추가로 필요하다. tower placement 성공/실패 자체는 GameTest에서 이미 검증 중이다.
+- 2026-05-11 Carpet tower QA에서 active spawn 위치의 `tower test` 정상 실패와, `status lanes`의 laneArea 중심 `towerSample` 이동 후 `tower test` 성공을 모두 확인했다.
 - 실제 클라이언트 시야, final lane, boss convergence 체감 QA는 접속자 부재로 아직 미완료다.
+- 반복 실행 절차는 [Carpet QA Runbook](carpet-qa-runbook.ko.md)에 분리했다.
 
 ## 2026-05-11 콘솔 QA 기록
 
@@ -225,7 +227,12 @@ player qatower2 spawn
 execute as qatower1 run semiontd ready
 execute as qatower2 run semiontd ready
 semiontd start
+semiontd status lanes
+execute as qatower1 run tp @s -26 145 50
+execute as qatower1 run data get entity @s Pos
 execute as qatower1 run semiontd tower test
+execute as qatower1 run semiontd tower upgrades
+semiontd status lanes
 execute as qatower1 run semiontd summon grunt
 semiontd end
 semiontd reset
@@ -243,6 +250,8 @@ stop
 - `summon grunt`, `economy`, `ui`는 fake player 실행에서 서버 예외 없이 응답했다.
 - TEST 2인 ready/start가 성공했고, `summon grunt`는 상대 active team lane으로 큐잉됐다.
 - active spawn에서 `tower test`는 `lane_path 영역 안에서 실행하세요`로 실패했다. 이 실패는 active spawn이 tower placement 영역이 아님을 보여주는 정상 방어 동작이다.
+- `/semiontd status lanes`가 `towerSample=-26,145,50`, `laneArea=-47,145,47..-5,145,53`를 출력했고, `qatower1`을 해당 좌표로 이동시킨 뒤 `tower test`가 `테스트 타워를 설치했습니다: BlockPos{x=-26, y=145, z=50}`로 성공했다.
+- 직후 `/semiontd status lanes`에서 RED 라인이 `towers=1`로 갱신됐다.
 - `end`/`reset`/`create`/`reset` 반복 후 최종 status가 `activeGame=false`, `arenaLoaded=false`로 복구됐다.
 
 ## P1: 오픈 전 권장 확인

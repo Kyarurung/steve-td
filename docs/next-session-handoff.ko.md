@@ -3,7 +3,7 @@
 ## 현재 상태
 
 관전자 HUD, 팀 선택 관전, HUD 2차 정리, 운영 status 명령 강화, 출력 문구 정리, Carpet fake player를 이용한 서버 측 수동 QA와 reset/end 복구 보강은 커밋 완료 상태다.
-현재 세션에서는 P0 체크리스트를 Carpet으로 검증 가능한 항목과 실클라 전용 항목으로 재분류하고, 추가 Carpet smoke를 수행했다.
+현재 세션에서는 P0 체크리스트를 Carpet으로 검증 가능한 항목과 실클라 전용 항목으로 재분류하고, 추가 Carpet smoke와 tower placement QA를 수행했다.
 
 완료 커밋:
 
@@ -49,6 +49,9 @@ fix(command): harden lobby reset recovery
 - Carpet fake player의 cross-dimension teleport 실패가 전체 `end`/`reset` 실패로 번지지 않도록 플레이어별 lobby 이동 실패를 격리하고, 실패한 플레이어는 재접속 안내와 함께 disconnect한다.
 - `resetToLobby`는 arena close 전에 플레이어 lobby 이동을 먼저 시도해, 정상 클라이언트가 unload된 arena로 teleport되는 순서를 피한다.
 - P0 실플레이어 수동 QA와 맵 템플릿 실사용 QA는 `Carpet fake player로 검증 가능한 항목`과 `실클라 전용 확인 항목`으로 분리되어 있다.
+- `/semiontd status lanes`가 active lane별 laneArea 중심 `towerSample=x,y,z`와 `laneArea=min..max`를 출력한다.
+- Carpet tower QA에서는 fake player를 `towerSample` 좌표로 이동시켜 `semiontd tower test` 성공까지 확인했다.
+- 반복 실행 절차는 `docs/carpet-qa-runbook.ko.md`에 정리되어 있다.
 
 검증 완료 상태:
 
@@ -92,7 +95,8 @@ Carpet fake player QA 후 추가 확인:
 - fake player 실행에서 `semiontd economy`, `semiontd summons`, `semiontd ui`가 서버 예외 없이 응답했다.
 - 보강 후 `semiontd end`와 `semiontd reset`이 성공했고, 최종 status는 `activeGame=false`, `arenaLoaded=false`였다.
 - 추가 Carpet smoke에서 2명 TEST ready/start, `summon grunt`, `economy`, `ui`, `end`, `reset`, `create`, `reset` 반복 복구를 확인했다.
-- `semiontd tower test`는 active spawn 위치에서 `lane_path 영역 안에서 실행하세요`로 정상 실패했다. Carpet으로 tower placement 성공까지 검증하려면 fake player를 lane_path 좌표로 이동시키는 절차가 필요하다. tower placement 성공/실패 자체는 GameTest에서 검증 중이다.
+- `semiontd tower test`는 active spawn 위치에서 `lane_path 영역 안에서 실행하세요`로 정상 실패했다. 이 방어 동작과 tower placement 성공 경로는 모두 GameTest와 Carpet tower QA에서 확인됐다.
+- `/semiontd status lanes`는 active lane별 laneArea 중심 `towerSample=x,y,z`와 `laneArea=min..max`를 출력한다. Carpet tower QA에서 `towerSample=-26,145,50` 이동 후 `semiontd tower test` 성공과 `towers=1` 갱신을 확인했다.
 
 주의:
 
@@ -116,13 +120,12 @@ GameTest와 Carpet fake player로 확인하기 어려운 화면/체감 부분은
 - 월드 이동 뒤 DisplayHud mount/refresh가 실제 클라이언트 렌더링에서도 유지되는지 확인한다.
 - 실제 클라이언트에서 `/semiontd ui`, `/semiontd economy`, `/semiontd profile`, `/semiontd job list/current/select`, `/semiontd summons` 출력이 읽기 좋은지 확인한다.
 
-## 다음 작업 2: Carpet QA 보강 후보
+## 다음 작업 2: 서버 측 QA 보강 후보
 
 실클라 없이 더 닫을 수 있는 항목이다.
 
-- fake player를 lane_path 좌표로 이동시키는 QA 절차를 정리해 `semiontd tower test` 성공까지 확인한다.
-- Carpet smoke 명령을 문서의 실행 블록에서 별도 runbook으로 분리한다.
-- 필요하면 운영 전용 status에 lane/tower placement 참고 좌표를 추가할지 검토한다.
+- `docs/carpet-qa-runbook.ko.md` 기준으로 NORMAL 4인 smoke와 TEST tower smoke를 필요할 때 재실행한다.
+- tower placement는 `status lanes`의 `towerSample` 이동으로 닫혔으므로, 남은 서버 측 확인은 final lane, boss convergence, 라운드 진행 장시간 smoke 중심이다.
 
 ## 후속 큰 작업 후보
 
