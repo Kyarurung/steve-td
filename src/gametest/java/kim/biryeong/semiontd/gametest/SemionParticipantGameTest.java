@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.CurrencyType;
 import kim.biryeong.semiontd.config.EconomyConfig;
@@ -498,6 +499,83 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         context.succeed();
+    }
+
+    @GameTest
+    public void statusReportSummarizesOperationalState(GameTestHelper context) {
+        MinecraftServer server = context.getLevel().getServer();
+        SemionGameManager manager = new SemionGameManager();
+
+        List<String> noGameLines = SemionCommands.statusLines(manager);
+        if (!assertTrue(context, noGameLines.stream().anyMatch(line -> line.contains("activeGame=false")), "Status should report no active game.")) {
+            return;
+        }
+        if (!assertTrue(context, noGameLines.stream().anyMatch(line -> line.contains("lobbyLoaded=false")), "Status should report unloaded lobby before create.")) {
+            return;
+        }
+
+        try {
+            SemionGame game = manager.createGame(server);
+            UUID redId = stableUuid("status-red");
+            UUID blueId = stableUuid("status-blue");
+            UUID spectatorId = stableUuid("status-spectator");
+            ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                    MatchMode.NORMAL,
+                    List.of(
+                            new AssignedParticipant(redId, "status-red", TeamId.RED, 1),
+                            new AssignedParticipant(blueId, "status-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(spectatorId),
+                    2
+            );
+            if (!assertTrue(context, game.start(server, plan), "Status test game should start.")) {
+                return;
+            }
+
+            List<String> statusLines = SemionCommands.statusLines(manager);
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("activeGame=true")), "Status should report active game.")) {
+                return;
+            }
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("phase=PREPARE_AND_SUMMON")), "Status should report current phase.")) {
+                return;
+            }
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("activeParticipants=2")), "Status should report active participants.")) {
+                return;
+            }
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("spectators=1")), "Status should report spectators.")) {
+                return;
+            }
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("lobbyLoaded=true")), "Status should report loaded lobby.")) {
+                return;
+            }
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("arenaLoaded=4/4")), "Status should report loaded arenas.")) {
+                return;
+            }
+
+            List<String> teamLines = SemionCommands.teamStatusLines(game);
+            if (!assertTrue(context, teamLines.stream().anyMatch(line -> line.contains("팀 RED active=true")), "Team status should include active RED.")) {
+                return;
+            }
+            if (!assertTrue(context, teamLines.stream().anyMatch(line -> line.contains("팀 GREEN active=false")), "Team status should include inactive GREEN.")) {
+                return;
+            }
+            if (!assertTrue(context, teamLines.stream().anyMatch(line -> line.contains("boss=")), "Team status should include boss health.")) {
+                return;
+            }
+
+            List<String> playerLines = SemionCommands.playerStatusLines(game);
+            if (!assertTrue(context, playerLines.stream().anyMatch(line -> line.contains("참가자 status-red")), "Player status should list active participants.")) {
+                return;
+            }
+            if (!assertTrue(context, playerLines.stream().anyMatch(line -> line.contains("관전자 uuid=" + spectatorId)), "Player status should list spectators.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Status report should summarize operational state: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
     }
 
     @GameTest

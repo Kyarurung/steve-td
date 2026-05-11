@@ -158,6 +158,10 @@ public final class SemionGame {
         return matchSpectatorIds.contains(playerId);
     }
 
+    public Set<UUID> matchSpectatorIds() {
+        return java.util.Collections.unmodifiableSet(matchSpectatorIds);
+    }
+
     public Optional<SemionTeam> teamForWorld(ServerLevel world) {
         if (world == null) {
             return Optional.empty();

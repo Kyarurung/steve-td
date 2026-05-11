@@ -117,7 +117,11 @@ public final class SemionCommands {
                                         StringArgumentType.getString(context, "team")
                                 ))))
                 .then(literal("status")
-                        .executes(context -> status(context.getSource(), gameManager)))
+                        .executes(context -> status(context.getSource(), gameManager))
+                        .then(literal("teams")
+                                .executes(context -> statusTeams(context.getSource(), gameManager)))
+                        .then(literal("players")
+                                .executes(context -> statusPlayers(context.getSource(), gameManager))))
                 .then(literal("ui")
                         .executes(context -> statusDialog(context.getSource(), gameManager))));
     }
@@ -294,39 +298,134 @@ public final class SemionCommands {
     }
 
     private static int status(CommandSourceStack source, SemionGameManager gameManager) {
+        return sendStatusLines(source, statusLines(gameManager));
+    }
+
+    private static int statusTeams(CommandSourceStack source, SemionGameManager gameManager) {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+        return sendStatusLines(source, teamStatusLines(game));
+    }
+
+    private static int statusPlayers(CommandSourceStack source, SemionGameManager gameManager) {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+        return sendStatusLines(source, playerStatusLines(game));
+    }
+
+    private static int sendStatusLines(CommandSourceStack source, List<String> lines) {
+        for (String line : lines) {
+            source.sendSuccess(() -> Component.literal(line), false);
+        }
+        return lines.isEmpty() ? 0 : 1;
+    }
+
+    public static List<String> statusLines(SemionGameManager gameManager) {
+        List<String> lines = new ArrayList<>();
         SemionGame game = gameManager.activeGame().orElse(null);
         boolean lobbyLoaded = gameManager.lobbyWorld().isPresent();
         if (game == null) {
-            var lastResult = gameManager.lastMatchResult();
-            if (lastResult.isPresent()) {
-                String winners = lastResult.get().winningTeams().isEmpty()
-                        ? "none"
-                        : lastResult.get().winningTeams().stream().map(Enum::name).sorted().collect(java.util.stream.Collectors.joining(", "));
-                source.sendSuccess(() -> Component.literal("진행 중인 Semion TD 게임이 없습니다. 로비로드=" + lobbyLoaded
-                        + ", 최근승자=" + winners
-                        + ", 최근라운드=" + lastResult.get().finalRound()), false);
-                return 1;
-            }
-            source.sendSuccess(() -> Component.literal("진행 중인 Semion TD 게임이 없습니다. 로비로드=" + lobbyLoaded), false);
-            return 1;
+            lines.add("Semion TD 상태 activeGame=false, phase=NONE, matchMode="
+                    + gameManager.matchMode()
+                    + ", lobbyLoaded=" + lobbyLoaded
+                    + ", arenaLoaded=false");
+            gameManager.lastMatchResult().ifPresent(result -> lines.add("최근 결과 winners="
+                    + winnersText(result)
+                    + ", finalRound=" + result.finalRound()
+                    + ", participants=" + result.participantCount()
+                    + ", spectators=" + result.spectatorIds().size()));
+            return lines;
         }
 
-        source.sendSuccess(() -> Component.literal("Semion TD 라운드=" + game.currentRound()
-                + ", 상태=" + game.phase()
-                + ", 참가자=" + game.players().size()
-                + ", 관전자=" + game.spectatorCount()
-                + ", 준비=" + game.readyPlayerCount()
-                + ", rosterLocked=" + game.rosterLocked()
-                + ", 모드=" + gameManager.matchMode()
-                + ", 로비로드=" + lobbyLoaded), false);
+        lines.add("Semion TD 상태 activeGame=true, phase="
+                + game.phase()
+                + ", round=" + game.currentRound()
+                + ", matchMode=" + gameManager.matchMode()
+                + ", rosterLocked=" + game.rosterLocked());
+        lines.add("운영 상태 ready="
+                + game.readyPlayerCount()
+                + ", activeParticipants=" + game.players().size()
+                + ", spectators=" + game.spectatorCount()
+                + ", lobbyLoaded=" + lobbyLoaded
+                + ", arenaLoaded=" + loadedArenaCount(game) + "/" + TeamId.values().length);
+        lines.addAll(teamStatusLines(game));
+        return lines;
+    }
+
+    public static List<String> teamStatusLines(SemionGame game) {
+        List<String> lines = new ArrayList<>();
         for (SemionTeam team : game.teams().values()) {
-            source.sendSuccess(() -> Component.literal(" - " + team.id()
-                    + " 활성=" + team.active()
-                    + " 탈락=" + team.eliminated()
-                    + ", 인원=" + team.memberIds().size()
-                    + ", 보스HP=" + Math.round(team.laneGroup().boss().health())), false);
+            lines.add("팀 " + team.id()
+                    + " active=" + team.active()
+                    + ", eliminated=" + team.eliminated()
+                    + ", arenaLoaded=" + game.arena().teamArena(team.id()).isPresent()
+                    + ", players=" + team.memberIds().size()
+                    + ", lanes=" + team.laneGroup().lanes().size()
+                    + ", boss=" + bossHealthStatus(team));
         }
-        return 1;
+        return lines;
+    }
+
+    public static List<String> playerStatusLines(SemionGame game) {
+        List<String> lines = new ArrayList<>();
+        if (game.players().isEmpty()) {
+            lines.add("참가자 없음");
+        } else {
+            game.players().values().stream()
+                    .sorted(java.util.Comparator.comparing(SemionPlayer::name))
+                    .forEach(player -> lines.add("참가자 "
+                            + player.name()
+                            + " uuid=" + player.uuid()
+                            + ", team=" + player.teamId()
+                            + ", lane=" + player.laneId()
+                            + ", eliminated=" + game.teams().get(player.teamId()).eliminated()));
+        }
+
+        List<UUID> spectators = game.matchSpectatorIds().stream()
+                .filter(spectatorId -> !game.players().containsKey(spectatorId))
+                .sorted()
+                .toList();
+        if (spectators.isEmpty()) {
+            lines.add("관전자 없음");
+        } else {
+            spectators.forEach(spectatorId -> lines.add("관전자 uuid=" + spectatorId));
+        }
+        return lines;
+    }
+
+    private static int loadedArenaCount(SemionGame game) {
+        int loaded = 0;
+        for (TeamId teamId : TeamId.values()) {
+            if (game.arena().teamArena(teamId).isPresent()) {
+                loaded++;
+            }
+        }
+        return loaded;
+    }
+
+    private static String bossHealthStatus(SemionTeam team) {
+        if (team.eliminated()) {
+            return "ELIMINATED";
+        }
+        return Math.round(team.laneGroup().boss().health())
+                + "/"
+                + Math.round(team.laneGroup().boss().maxHealth());
+    }
+
+    private static String winnersText(MatchResult result) {
+        if (result.winningTeams().isEmpty()) {
+            return "none";
+        }
+        return result.winningTeams().stream()
+                .map(Enum::name)
+                .sorted()
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     private static int statusDialog(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
