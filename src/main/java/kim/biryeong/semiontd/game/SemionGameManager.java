@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.game;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -92,8 +93,18 @@ public final class SemionGameManager {
     }
 
     public void sendAllPlayersToLobby(MinecraftServer server) throws ArenaLoadException {
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            sendPlayerToLobby(server, player);
+        ensureLobby(server);
+        for (ServerPlayer player : List.copyOf(server.getPlayerList().getPlayers())) {
+            try {
+                sendPlayerToLobby(server, player);
+            } catch (RuntimeException exception) {
+                SemionTd.LOGGER.warn(
+                        "Failed to send player {} to the Semion TD lobby; disconnecting for a clean reconnect.",
+                        player.getGameProfile().getName(),
+                        exception
+                );
+                disconnectForLobbyReset(player);
+            }
         }
     }
 
@@ -141,12 +152,12 @@ public final class SemionGameManager {
         ensureLobby(server);
         boolean hadActiveGame = activeGame != null;
         displayHudService.clear(server);
+        sendAllPlayersToLobby(server);
         if (activeGame != null) {
             activeGame.close();
             activeGame = null;
         }
         lastMatchResult = null;
-        sendAllPlayersToLobby(server);
         return hadActiveGame;
     }
 
@@ -233,6 +244,18 @@ public final class SemionGameManager {
                 false
         );
         SemionDisplayHudService.refreshPlayerHud(player);
+    }
+
+    private void disconnectForLobbyReset(ServerPlayer player) {
+        try {
+            player.connection.disconnect(Component.literal("Semion TD 로비 이동에 실패했습니다. 다시 접속해 주세요."));
+        } catch (RuntimeException disconnectException) {
+            SemionTd.LOGGER.warn(
+                    "Failed to disconnect player {} after lobby reset failure.",
+                    player.getGameProfile().getName(),
+                    disconnectException
+            );
+        }
     }
 
     private void finishActiveGame(MinecraftServer server, SemionGame finishedGame) {

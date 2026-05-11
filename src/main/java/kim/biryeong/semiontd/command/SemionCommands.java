@@ -142,10 +142,14 @@ public final class SemionCommands {
         try {
             boolean hadActiveGame = gameManager.resetToLobby(source.getServer());
             String suffix = hadActiveGame ? "" : " 진행 중인 게임은 없었습니다.";
-            source.sendSuccess(() -> Component.literal("Semion TD 게임을 " + actionLabel + "하고 모두 로비로 이동했습니다." + suffix), true);
+            source.sendSuccess(() -> Component.literal("Semion TD 게임을 " + actionLabel + "하고 모두 로비로 이동했습니다." + suffix), false);
             return 1;
         } catch (ArenaLoadException exception) {
             source.sendFailure(Component.literal("Semion TD 로비 이동 실패: " + exception.getMessage()));
+            return 0;
+        } catch (RuntimeException exception) {
+            SemionTd.LOGGER.error("Unexpected Semion TD lobby reset failure.", exception);
+            source.sendFailure(Component.literal("Semion TD 로비 이동 중 예기치 못한 오류가 발생했습니다: " + exception.getMessage()));
             return 0;
         }
     }

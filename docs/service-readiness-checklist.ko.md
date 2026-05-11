@@ -31,6 +31,8 @@ GameTest와 콘솔 QA로는 실제 클라이언트의 teleport, HUD mount, Dialo
 
 - 2026-05-11 콘솔 QA에서 서버 기동과 운영 명령 기본 흐름은 확인했다.
 - 2026-05-11 실클라이언트 QA를 위해 서버를 다시 기동했지만 접속자가 없어 ready/start/HUD/mount/관전 시야 항목은 아직 미완료다.
+- 2026-05-11 Carpet fake player QA로 4명 NORMAL ready/start, 팀 선택 관전 성공/실패, `ui`/`economy`/`summons` 명령 서버 처리, `end`/`reset` 복구 흐름은 확인했다.
+- 실제 클라이언트 HUD 렌더링, DialogUtils 화면 표시, 리소스팩 적용, 관전 시야 품질은 여전히 실클라이언트로 확인해야 한다.
 
 ### 2. 맵 템플릿 실사용 QA
 
@@ -61,6 +63,7 @@ GameTest와 콘솔 QA로는 실제 클라이언트의 teleport, HUD mount, Dialo
 - `semiontd status teams`에서 RED/BLUE/GREEN/YELLOW 모두 `arenaLoaded=true`, `boss=1000/1000` 확인.
 - `semiontd reset` 후 `activeGame=false`, `arenaLoaded=false` 복구 확인.
 - 2026-05-11 재기동 smoke에서도 `arenaLoaded=4/4`, 네 팀 arena/boss 상태, reset 복구가 다시 확인됐다.
+- 2026-05-11 Carpet fake player QA에서 RED/BLUE active team 배정, fake player 위치 이동, RED/BLUE 팀 선택 관전 이동을 확인했다.
 - 실제 클라이언트 시야, lane path 진행, final lane, boss convergence 체감 QA는 접속자 부재로 아직 미완료다.
 
 ## 2026-05-11 콘솔 QA 기록
@@ -127,6 +130,53 @@ stop
 - team status는 네 팀 모두 `arenaLoaded=true`, `boss=1000/1000`을 출력했다.
 - reset 후 status가 `activeGame=false`, `arenaLoaded=false`로 돌아왔다.
 - `stop`으로 서버가 정상 종료됐고, 25565 리스너가 남지 않았다.
+
+## 2026-05-11 Carpet fake player QA 기록
+
+Carpet은 운영 배포물에 포함하지 않고 로컬 QA 런타임 의존성으로만 둔다.
+
+실행 흐름:
+
+```text
+./gradlew runServer --console=plain
+semiontd create
+player qared spawn
+player qablue spawn
+player qagreen spawn
+player qayellow spawn
+execute as qared run semiontd ready
+execute as qablue run semiontd ready
+execute as qagreen run semiontd ready
+execute as qayellow run semiontd ready
+semiontd start
+semiontd status
+semiontd status teams
+semiontd status players
+execute as qared run semiontd spectate blue
+player qaspec spawn
+execute as qaspec run semiontd spectate red
+execute as qaspec run semiontd spectate green
+execute as qaspec run semiontd spectate blue
+execute as qared run semiontd economy
+execute as qared run semiontd summons
+execute as qared run semiontd ui
+execute as qaspec run semiontd ui
+semiontd end
+semiontd reset
+stop
+```
+
+확인 결과:
+
+- Carpet `player ... spawn`으로 `qared`, `qablue`, `qagreen`, `qayellow` 4명을 투입했다.
+- 4명 ready 후 NORMAL 모드 start가 성공했고, status가 `activeParticipants=4`, `spectators=0`, `arenaLoaded=4/4`를 출력했다.
+- `status teams`에서 RED/BLUE는 active player 2명과 lane 2개, GREEN/YELLOW는 inactive로 출력됐다.
+- active participant가 `/semiontd spectate blue`를 실행하면 `현재 상태에서는 관전으로 전환할 수 없습니다.`로 실패했다.
+- 신규 fake player `qaspec`은 `/semiontd spectate red`와 `/semiontd spectate blue`에 성공했고, inactive GREEN 관전은 `현재 관전할 수 없는 팀입니다: GREEN`으로 실패했다.
+- `semiontd economy`, `semiontd summons`, `semiontd ui`가 fake player 실행에서 서버 예외 없이 응답했다.
+- Carpet fake player는 cross-dimension lobby teleport 중 내부 NPE를 낼 수 있어, reset/end는 해당 플레이어만 disconnect 처리하고 전체 reset을 계속 진행하도록 보강했다.
+- 보강 후 `semiontd end`와 `semiontd reset`이 모두 성공했고, 최종 status가 `activeGame=false`, `arenaLoaded=false`로 복구됐다.
+- fake player 프로필 조회 경고와 Polymer/DialogUtils 경고는 이 QA 흐름에서 치명 오류가 아니었다.
 
 ## P1: 오픈 전 권장 확인
 
