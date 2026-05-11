@@ -342,6 +342,26 @@ public final class SemionGame {
         return false;
     }
 
+    public boolean addLateSpectator(UUID spectatorId) {
+        if (!rosterLocked || phase == RoundPhase.WAITING || phase == RoundPhase.ENDED || spectatorId == null) {
+            return false;
+        }
+        if (players.containsKey(spectatorId) && !matchSpectatorIds.contains(spectatorId)) {
+            return false;
+        }
+        matchSpectatorIds.add(spectatorId);
+        return true;
+    }
+
+    public boolean addLateSpectator(MinecraftServer server, ServerPlayer player) {
+        if (server == null || player == null || !addLateSpectator(player.getUUID())) {
+            return false;
+        }
+        VanillaTeamBridge.assignSpectator(server, player);
+        placeSpectatorPlayer(player, spectatorIndex(player.getUUID()), null);
+        return true;
+    }
+
     public void tick(MinecraftServer server) {
         tickCounter++;
         if (phase != RoundPhase.WAITING && phase != RoundPhase.ENDED && tickCounter % 20 == 0) {

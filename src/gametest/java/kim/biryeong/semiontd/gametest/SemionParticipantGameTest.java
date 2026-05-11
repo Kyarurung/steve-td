@@ -37,6 +37,7 @@ import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.game.AssignedParticipant;
 import kim.biryeong.semiontd.game.EconomyService;
+import kim.biryeong.semiontd.game.MatchResult;
 import kim.biryeong.semiontd.game.MatchMode;
 import kim.biryeong.semiontd.game.ParticipantSelectionPlan;
 import kim.biryeong.semiontd.game.ParticipantSelectionService;
@@ -342,6 +343,47 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, value.activeParticipants().stream().noneMatch(participant -> participant.uuid().equals(stableUuid("not-ready"))), "Not-ready players should not be assigned to an active lane.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void lateSpectatorsDoNotPolluteResultSpectators(GameTestHelper context) {
+        UUID redId = stableUuid("late-spectator-red");
+        UUID blueId = stableUuid("late-spectator-blue");
+        UUID lateSpectatorId = stableUuid("late-spectator-waiting");
+        SemionGame game = new SemionGame(EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(), testArena(context));
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redId, "late-spectator-red", TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "late-spectator-blue", TeamId.BLUE, 1)
+                ),
+                Set.of(),
+                2
+        );
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Game should start for late spectator test.")) {
+            return;
+        }
+        if (!assertTrue(context, !game.addLateSpectator(redId), "Active participants should not become late spectators.")) {
+            return;
+        }
+        if (!assertTrue(context, game.addLateSpectator(lateSpectatorId), "Late joiners should be able to register as match spectators.")) {
+            return;
+        }
+        if (!assertEquals(context, 1, game.spectatorCount(), "Late spectator should count in the active match spectator set.")) {
+            return;
+        }
+        if (!assertTrue(context, game.killBoss(TeamId.BLUE), "Blue boss should die to finish the late spectator test.")) {
+            return;
+        }
+
+        Optional<MatchResult> result = game.matchResult();
+        if (!assertPresent(context, result, "Ended game should expose a match result.")) {
+            return;
+        }
+        if (!assertTrue(context, !result.get().spectatorIds().contains(lateSpectatorId), "Late spectators should not be stored as initial match spectators.")) {
             return;
         }
         context.succeed();

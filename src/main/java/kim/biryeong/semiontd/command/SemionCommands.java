@@ -53,6 +53,8 @@ public final class SemionCommands {
                         .executes(context -> ready(context.getSource(), gameManager)))
                 .then(literal("unready")
                         .executes(context -> unready(context.getSource(), gameManager)))
+                .then(literal("spectate")
+                        .executes(context -> spectate(context.getSource(), gameManager)))
                 .then(literal("economy")
                         .executes(context -> economy(context.getSource(), gameManager)))
                 .then(literal("profile")
@@ -205,6 +207,23 @@ public final class SemionCommands {
         }
 
         source.sendSuccess(() -> Component.literal("준비를 해제했습니다. 준비 인원=" + game.readyPlayerCount()), false);
+        return 1;
+    }
+
+    private static int spectate(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null || !game.rosterLocked() || game.phase() == RoundPhase.ENDED) {
+            source.sendFailure(Component.literal("관전할 수 있는 진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        if (!game.addLateSpectator(source.getServer(), player)) {
+            source.sendFailure(Component.literal("현재 상태에서는 관전으로 전환할 수 없습니다."));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal("Semion TD 게임 관전으로 이동했습니다."), false);
         return 1;
     }
 

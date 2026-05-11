@@ -182,7 +182,7 @@ public final class SemionGameManager {
             } catch (ArenaLoadException exception) {
                 SemionTd.LOGGER.warn("Failed to send late-joining player {} to lobby.", player.getGameProfile().getName(), exception);
             }
-            player.sendSystemMessage(Component.literal("Semion TD 게임이 진행 중입니다. 로비에서 대기합니다."));
+            player.sendSystemMessage(Component.literal("Semion TD 게임이 진행 중입니다. 관전하려면 /semiontd spectate를 사용하세요."));
             return;
         }
 
