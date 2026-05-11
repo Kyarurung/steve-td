@@ -9,17 +9,24 @@
 
 GameTest와 콘솔 QA로는 실제 클라이언트의 teleport, HUD mount, DialogUtils 표시를 완전히 검증할 수 없다.
 
-확인 항목:
+Carpet fake player로 검증 가능한 항목:
 
-- 실제 클라이언트 접속자가 게임 진행 중이 아니면 lobby로 이동한다.
-- 플레이어가 `/semiontd ready`를 실행할 수 있다.
+- fake player가 `/semiontd ready`를 실행할 수 있다.
 - 관리자가 `/semiontd start`로 경기를 시작할 수 있다.
-- 진행 중 신규 접속자는 lobby 안내를 받고 `/semiontd spectate`로 관전할 수 있다.
-- `/semiontd spectate red|blue|green|yellow`가 원하는 팀 world의 spectator spawn으로 보낸다.
-- spectator HUD가 현재 world의 팀 보스 체력을 보여준다.
-- 월드 이동 후 HUD가 사라지지 않고 다시 mount된다.
-- `/semiontd end` 또는 `/semiontd reset` 후 모든 플레이어가 lobby로 돌아간다.
-- `/semiontd ui`, `economy`, `profile`, `job list/current/select`, `summons` 출력이 실제 클라이언트에서 읽기 좋다.
+- 진행 중 신규 fake player는 lobby 안내 대상이 되고 `/semiontd spectate`로 관전 전환할 수 있다.
+- `/semiontd spectate red|blue|green|yellow`가 active/inactive 팀 규칙을 지킨다.
+- 팀 선택 관전 후 fake player의 world/좌표가 바뀐다.
+- active participant가 관전 전환을 시도하면 실패한다.
+- `/semiontd end` 또는 `/semiontd reset` 후 서버 상태가 `activeGame=false`, `arenaLoaded=false`로 돌아간다.
+- `/semiontd ui`, `economy`, `profile`, `job list/current/select`, `summons`가 서버 예외 없이 응답한다.
+
+실클라 전용 확인 항목:
+
+- 실제 클라이언트 접속자가 게임 진행 중이 아니면 lobby로 이동하고 화면 표시가 정상이다.
+- spectator HUD가 현재 world의 팀 보스 체력을 실제 화면에 보여준다.
+- 월드 이동 후 DisplayHud가 클라이언트 렌더링에서 사라지지 않고 다시 mount된다.
+- DialogUtils 창이 실제 클라이언트에서 읽기 좋게 표시된다.
+- Polymer resource pack이 접속과 표시를 막지 않는다.
 
 완료 기준:
 
@@ -32,23 +39,30 @@ GameTest와 콘솔 QA로는 실제 클라이언트의 teleport, HUD mount, Dialo
 - 2026-05-11 콘솔 QA에서 서버 기동과 운영 명령 기본 흐름은 확인했다.
 - 2026-05-11 실클라이언트 QA를 위해 서버를 다시 기동했지만 접속자가 없어 ready/start/HUD/mount/관전 시야 항목은 아직 미완료다.
 - 2026-05-11 Carpet fake player QA로 4명 NORMAL ready/start, 팀 선택 관전 성공/실패, `ui`/`economy`/`summons` 명령 서버 처리, `end`/`reset` 복구 흐름은 확인했다.
-- 실제 클라이언트 HUD 렌더링, DialogUtils 화면 표시, 리소스팩 적용, 관전 시야 품질은 여전히 실클라이언트로 확인해야 한다.
+- 2026-05-11 추가 Carpet smoke에서 2명 TEST start, `summon grunt`, `economy`, `ui`, `end`, `reset`, `create`, `reset` 반복 복구를 다시 확인했다.
+- Carpet으로 닫은 서버 항목은 통과 처리한다. 실제 클라이언트 HUD 렌더링, DialogUtils 화면 표시, 리소스팩 적용, 관전 시야 품질은 여전히 실클라이언트로 확인해야 한다.
 
 ### 2. 맵 템플릿 실사용 QA
 
 맵 템플릿은 GameTest에서 구조 일부를 검증해도 실제 플레이 동선과 시야 문제가 남을 수 있다.
 
-확인 항목:
+Carpet fake player로 검증 가능한 항목:
 
 - lobby spawn이 안전하고 명확하다.
 - 각 팀 arena가 정상 로드된다.
 - active player spawn이 각 lane 시작 위치에 맞다.
-- spectator spawn이 팀 상황을 관전하기 좋은 위치에 있다.
-- lane path가 끊기지 않고 몬스터가 진행 가능하다.
+- spectator spawn이 팀 runtime world의 spectator spawn 좌표로 이동한다.
+- lane path가 서버 로직상 끊기지 않고 몬스터가 진행 가능하다.
 - final lane과 boss convergence 지점이 의도한 위치에 모인다.
 - boss spawn이 팀별로 올바르게 생성된다.
-- tower placement 가능 영역과 실제 길이 충돌하지 않는다.
+- tower placement 가능 영역은 GameTest와 fake player 좌표 이동으로 검증할 수 있다.
 - `/semiontd reset` 후 lobby/arena 상태가 다시 정상화된다.
+
+실클라 전용 확인 항목:
+
+- spectator spawn이 실제 관전 시야로 충분한지 확인한다.
+- lane path, final lane, boss convergence가 플레이어 시야에서 이해 가능한지 확인한다.
+- tower placement 영역이 실제 플레이 중 눈으로 구분 가능한지 확인한다.
 
 완료 기준:
 
@@ -64,7 +78,9 @@ GameTest와 콘솔 QA로는 실제 클라이언트의 teleport, HUD mount, Dialo
 - `semiontd reset` 후 `activeGame=false`, `arenaLoaded=false` 복구 확인.
 - 2026-05-11 재기동 smoke에서도 `arenaLoaded=4/4`, 네 팀 arena/boss 상태, reset 복구가 다시 확인됐다.
 - 2026-05-11 Carpet fake player QA에서 RED/BLUE active team 배정, fake player 위치 이동, RED/BLUE 팀 선택 관전 이동을 확인했다.
-- 실제 클라이언트 시야, lane path 진행, final lane, boss convergence 체감 QA는 접속자 부재로 아직 미완료다.
+- 2026-05-11 추가 Carpet smoke에서 TEST 2인 `summon grunt`가 상대 active team lane으로 큐잉되고, `end`/`reset` 후 `create`/`reset` 반복 복구가 성공했다.
+- `semiontd tower test`는 active spawn 위치에서 `lane_path 영역 안에서 실행하세요`로 정상 실패했다. Carpet으로 tower placement 성공까지 보려면 fake player를 lane_path 좌표로 이동시키는 절차가 추가로 필요하다. tower placement 성공/실패 자체는 GameTest에서 이미 검증 중이다.
+- 실제 클라이언트 시야, final lane, boss convergence 체감 QA는 접속자 부재로 아직 미완료다.
 
 ## 2026-05-11 콘솔 QA 기록
 
@@ -177,6 +193,57 @@ stop
 - Carpet fake player는 cross-dimension lobby teleport 중 내부 NPE를 낼 수 있어, reset/end는 해당 플레이어만 disconnect 처리하고 전체 reset을 계속 진행하도록 보강했다.
 - 보강 후 `semiontd end`와 `semiontd reset`이 모두 성공했고, 최종 status가 `activeGame=false`, `arenaLoaded=false`로 복구됐다.
 - fake player 프로필 조회 경고와 Polymer/DialogUtils 경고는 이 QA 흐름에서 치명 오류가 아니었다.
+
+## 2026-05-11 Carpet fake player 추가 QA 기록
+
+실행 흐름:
+
+```text
+./gradlew runServer --console=plain
+semiontd create
+player qared spawn
+player qablue spawn
+player qagreen spawn
+player qayellow spawn
+execute as qared run semiontd ready
+execute as qablue run semiontd ready
+execute as qagreen run semiontd ready
+execute as qayellow run semiontd ready
+semiontd start
+execute as qared run semiontd summon grunt
+execute as qared run semiontd economy
+execute as qared run semiontd ui
+player qaspec spawn
+execute as qaspec run semiontd spectate red
+execute as qaspec run semiontd spectate green
+execute as qaspec run semiontd spectate blue
+semiontd end
+semiontd create
+semiontd testmode true
+player qatower1 spawn
+player qatower2 spawn
+execute as qatower1 run semiontd ready
+execute as qatower2 run semiontd ready
+semiontd start
+execute as qatower1 run semiontd tower test
+execute as qatower1 run semiontd summon grunt
+semiontd end
+semiontd reset
+semiontd create
+semiontd status
+semiontd reset
+semiontd status
+stop
+```
+
+확인 결과:
+
+- NORMAL 4인 ready/start는 유지됐다.
+- 진행 중 신규 `qaspec`의 RED/BLUE 팀 선택 관전은 성공했고, inactive GREEN 관전은 실패했다.
+- `summon grunt`, `economy`, `ui`는 fake player 실행에서 서버 예외 없이 응답했다.
+- TEST 2인 ready/start가 성공했고, `summon grunt`는 상대 active team lane으로 큐잉됐다.
+- active spawn에서 `tower test`는 `lane_path 영역 안에서 실행하세요`로 실패했다. 이 실패는 active spawn이 tower placement 영역이 아님을 보여주는 정상 방어 동작이다.
+- `end`/`reset`/`create`/`reset` 반복 후 최종 status가 `activeGame=false`, `arenaLoaded=false`로 복구됐다.
 
 ## P1: 오픈 전 권장 확인
 

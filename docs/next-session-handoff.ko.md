@@ -2,8 +2,8 @@
 
 ## 현재 상태
 
-관전자 HUD, 팀 선택 관전, HUD 2차 정리, 운영 status 명령 강화, 출력 문구 정리 작업은 커밋 완료 상태다.
-Carpet fake player를 이용한 서버 측 수동 QA와 reset/end 복구 보강은 현재 작업 중인 변경사항이다.
+관전자 HUD, 팀 선택 관전, HUD 2차 정리, 운영 status 명령 강화, 출력 문구 정리, Carpet fake player를 이용한 서버 측 수동 QA와 reset/end 복구 보강은 커밋 완료 상태다.
+현재 세션에서는 P0 체크리스트를 Carpet으로 검증 가능한 항목과 실클라 전용 항목으로 재분류하고, 추가 Carpet smoke를 수행했다.
 
 완료 커밋:
 
@@ -15,6 +15,8 @@ feat(ui): split match HUD by player role
 docs: update handoff after HUD role split
 feat(command): expand operational status output
 chore(ui): localize player-facing outputs
+docs: add service readiness checklist
+fix(command): harden lobby reset recovery
 ```
 
 완료된 내용:
@@ -46,6 +48,7 @@ chore(ui): localize player-facing outputs
 - Carpet을 로컬 QA 런타임 의존성으로 추가해 fake player 수동 QA에 사용할 수 있다.
 - Carpet fake player의 cross-dimension teleport 실패가 전체 `end`/`reset` 실패로 번지지 않도록 플레이어별 lobby 이동 실패를 격리하고, 실패한 플레이어는 재접속 안내와 함께 disconnect한다.
 - `resetToLobby`는 arena close 전에 플레이어 lobby 이동을 먼저 시도해, 정상 클라이언트가 unload된 arena로 teleport되는 순서를 피한다.
+- P0 실플레이어 수동 QA와 맵 템플릿 실사용 QA는 `Carpet fake player로 검증 가능한 항목`과 `실클라 전용 확인 항목`으로 분리되어 있다.
 
 검증 완료 상태:
 
@@ -88,6 +91,8 @@ Carpet fake player QA 후 추가 확인:
 - Carpet fake player QA에서는 4명 NORMAL ready/start, RED/BLUE active team 배정, active participant 관전 전환 실패, 신규 관전자 RED/BLUE 팀 선택 관전 성공, inactive GREEN 관전 실패를 확인했다.
 - fake player 실행에서 `semiontd economy`, `semiontd summons`, `semiontd ui`가 서버 예외 없이 응답했다.
 - 보강 후 `semiontd end`와 `semiontd reset`이 성공했고, 최종 status는 `activeGame=false`, `arenaLoaded=false`였다.
+- 추가 Carpet smoke에서 2명 TEST ready/start, `summon grunt`, `economy`, `ui`, `end`, `reset`, `create`, `reset` 반복 복구를 확인했다.
+- `semiontd tower test`는 active spawn 위치에서 `lane_path 영역 안에서 실행하세요`로 정상 실패했다. Carpet으로 tower placement 성공까지 검증하려면 fake player를 lane_path 좌표로 이동시키는 절차가 필요하다. tower placement 성공/실패 자체는 GameTest에서 검증 중이다.
 
 주의:
 
@@ -100,28 +105,24 @@ Carpet fake player QA 후 추가 확인:
 
 ## 다음 작업 1: 실플레이어 수동 QA
 
-GameTest로 확인하기 어려운 부분은 실제 서버에서 봐야 한다.
+GameTest와 Carpet fake player로 확인하기 어려운 화면/체감 부분은 실제 서버에서 봐야 한다.
 서비스 준비 기준의 필수/권장 작업은 `docs/service-readiness-checklist.ko.md`에 별도로 정리했다.
 
 수동 체크리스트:
-
-- 실제 클라이언트 접속자가 게임 진행 중이 아니면 lobby로 이동한다.
-- 플레이어 `/semiontd ready`
-- 관리자 `/semiontd start`
-- 신규 접속자는 lobby 대기 안내를 받고 `/semiontd spectate`로 관전 가능하다.
-- `/semiontd spectate red|blue|green|yellow`로 원하는 팀 world에 이동한다.
-- spectator HUD가 현재 world의 팀 보스 체력을 보여준다.
-- 월드 이동 후 HUD가 사라지지 않고 다시 mount된다.
-- `/semiontd end` 또는 `/semiontd reset` 후 모든 플레이어가 lobby로 이동한다.
-- 실제 클라이언트에서 `/semiontd status`, `/semiontd status teams`, `/semiontd status players`가 읽기 좋은지 확인한다.
-- 실제 클라이언트에서 `/semiontd ui`, `/semiontd economy`, `/semiontd profile`, `/semiontd job list/current/select`, `/semiontd summons` 출력이 읽기 좋은지 확인한다.
-
-Carpet fake player로 서버 측 명령 흐름은 상당 부분 확인했지만, 다음 항목은 실제 클라이언트가 아니면 대체할 수 없다.
 
 - HUD와 DialogUtils가 실제 화면에 보이는지 확인한다.
 - Polymer resource pack 적용이 접속과 표시를 막지 않는지 확인한다.
 - 팀 선택 관전 위치에서 시야가 실제 플레이 관전에 충분한지 확인한다.
 - 월드 이동 뒤 DisplayHud mount/refresh가 실제 클라이언트 렌더링에서도 유지되는지 확인한다.
+- 실제 클라이언트에서 `/semiontd ui`, `/semiontd economy`, `/semiontd profile`, `/semiontd job list/current/select`, `/semiontd summons` 출력이 읽기 좋은지 확인한다.
+
+## 다음 작업 2: Carpet QA 보강 후보
+
+실클라 없이 더 닫을 수 있는 항목이다.
+
+- fake player를 lane_path 좌표로 이동시키는 QA 절차를 정리해 `semiontd tower test` 성공까지 확인한다.
+- Carpet smoke 명령을 문서의 실행 블록에서 별도 runbook으로 분리한다.
+- 필요하면 운영 전용 status에 lane/tower placement 참고 좌표를 추가할지 검토한다.
 
 ## 후속 큰 작업 후보
 
