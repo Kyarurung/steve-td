@@ -112,10 +112,10 @@ public final class SemionCommands {
         try {
             gameManager.createGame(source.getServer());
             gameManager.sendAllPlayersToLobby(source.getServer());
-            source.sendSuccess(() -> Component.literal("Created Semion TD lobby and game arena from MapTemplate."), false);
+            source.sendSuccess(() -> Component.literal("Semion TD 로비와 아레나를 생성했습니다."), false);
             return 1;
         } catch (ArenaLoadException exception) {
-            source.sendFailure(Component.literal("Failed to create Semion TD arena: " + exception.getMessage()));
+            source.sendFailure(Component.literal("Semion TD 아레나 생성 실패: " + exception.getMessage()));
             return 0;
         }
     }
@@ -128,25 +128,25 @@ public final class SemionCommands {
 
         Optional<ParticipantSelectionPlan> plan = buildSelectionPlan(source, gameManager, game);
         if (plan.isEmpty()) {
-            source.sendFailure(Component.literal("Not enough ready players to start with the current mode."));
+            source.sendFailure(Component.literal("현재 게임 모드로 시작할 준비 완료 인원이 부족합니다."));
             return 0;
         }
 
         applyPlanToVanillaTeams(source, plan.get());
         assignUnreadyPlayersToSpectatorTeam(source, game, plan.get());
         if (!game.start(source.getServer(), plan.get())) {
-            source.sendFailure(Component.literal("Failed to lock participants and start the game."));
+            source.sendFailure(Component.literal("참가자 확정 및 게임 시작에 실패했습니다."));
             return 0;
         }
 
         String lobbyLoaded = gameManager.lobbyWorld().isPresent() ? ", lobbyLoaded=true" : ", lobbyLoaded=false";
-        source.sendSuccess(() -> Component.literal("Started Semion TD game. Active="
+        source.sendSuccess(() -> Component.literal("Semion TD 게임을 시작했습니다. 참가자="
                 + plan.get().activePlayerCount()
-                + ", teams=" + plan.get().activeTeamCount()
-                + ", composition=" + plan.get().compositionSummary()
-                + ", spectators=" + plan.get().spectatorCount()
-                + ", ready=" + game.readyPlayerCount()
-                + ", mode=" + gameManager.matchMode()
+                + ", 팀=" + plan.get().activeTeamCount()
+                + ", 구성=" + plan.get().compositionSummary()
+                + ", 관전자=" + plan.get().spectatorCount()
+                + ", 준비=" + game.readyPlayerCount()
+                + ", 모드=" + gameManager.matchMode()
                 + lobbyLoaded), false);
         return 1;
     }
@@ -159,19 +159,19 @@ public final class SemionCommands {
 
         Optional<ParticipantSelectionPlan> plan = buildSelectionPlan(source, gameManager, game);
         if (plan.isEmpty()) {
-            source.sendFailure(Component.literal("Not enough ready players to auto-assign with the current mode."));
+            source.sendFailure(Component.literal("현재 게임 모드로 팀을 배정할 준비 완료 인원이 부족합니다."));
             return 0;
         }
 
         applyPlanToVanillaTeams(source, plan.get());
         String lobbyLoaded = gameManager.lobbyWorld().isPresent() ? ", lobbyLoaded=true" : ", lobbyLoaded=false";
-        source.sendSuccess(() -> Component.literal("Assigned teams for next start. Active="
+        source.sendSuccess(() -> Component.literal("다음 시작을 위한 팀을 배정했습니다. 참가자="
                 + plan.get().activePlayerCount()
-                + ", teams=" + plan.get().activeTeamCount()
-                + ", composition=" + plan.get().compositionSummary()
-                + ", spectators=" + plan.get().spectatorCount()
-                + ", ready=" + game.readyPlayerCount()
-                + ", mode=" + gameManager.matchMode()
+                + ", 팀=" + plan.get().activeTeamCount()
+                + ", 구성=" + plan.get().compositionSummary()
+                + ", 관전자=" + plan.get().spectatorCount()
+                + ", 준비=" + game.readyPlayerCount()
+                + ", 모드=" + gameManager.matchMode()
                 + lobbyLoaded), false);
         return plan.get().activePlayerCount();
     }
@@ -184,12 +184,11 @@ public final class SemionCommands {
 
         ServerPlayer player = source.getPlayerOrException();
         if (!game.markReady(player.getUUID())) {
-            source.sendFailure(Component.literal("Failed to mark you ready for Semion TD."));
+            source.sendFailure(Component.literal("Semion TD 준비 완료 처리에 실패했습니다."));
             return 0;
         }
 
-        source.sendSuccess(() -> Component.literal("You are ready for the next Semion TD match. ready="
-                + game.readyPlayerCount()), false);
+        source.sendSuccess(() -> Component.literal("준비 완료했습니다. 준비 인원=" + game.readyPlayerCount()), false);
         return 1;
     }
 
@@ -201,24 +200,23 @@ public final class SemionCommands {
 
         ServerPlayer player = source.getPlayerOrException();
         if (!game.markNotReady(player.getUUID())) {
-            source.sendFailure(Component.literal("Failed to mark you not ready for Semion TD."));
+            source.sendFailure(Component.literal("Semion TD 준비 해제에 실패했습니다."));
             return 0;
         }
 
-        source.sendSuccess(() -> Component.literal("You are no longer ready for the next Semion TD match. ready="
-                + game.readyPlayerCount()), false);
+        source.sendSuccess(() -> Component.literal("준비를 해제했습니다. 준비 인원=" + game.readyPlayerCount()), false);
         return 1;
     }
 
     private static int setTestMode(CommandSourceStack source, SemionGameManager gameManager, boolean enabled) {
         SemionGame activeGame = gameManager.activeGame().orElse(null);
         if (activeGame != null && activeGame.rosterLocked()) {
-            source.sendFailure(Component.literal("Cannot change test mode after the match roster has been locked."));
+            source.sendFailure(Component.literal("참가자 확정 후에는 테스트 모드를 변경할 수 없습니다."));
             return 0;
         }
 
         gameManager.setMatchMode(enabled ? MatchMode.TEST : MatchMode.NORMAL);
-        source.sendSuccess(() -> Component.literal("Semion TD test mode set to " + enabled + "."), false);
+        source.sendSuccess(() -> Component.literal("Semion TD 테스트 모드=" + enabled), false);
         return 1;
     }
 
@@ -231,29 +229,29 @@ public final class SemionCommands {
                 String winners = lastResult.get().winningTeams().isEmpty()
                         ? "none"
                         : lastResult.get().winningTeams().stream().map(Enum::name).sorted().collect(java.util.stream.Collectors.joining(", "));
-                source.sendSuccess(() -> Component.literal("No active Semion TD game. lobbyLoaded=" + lobbyLoaded
-                        + ", lastWinners=" + winners
-                        + ", lastRound=" + lastResult.get().finalRound()), false);
+                source.sendSuccess(() -> Component.literal("진행 중인 Semion TD 게임이 없습니다. 로비로드=" + lobbyLoaded
+                        + ", 최근승자=" + winners
+                        + ", 최근라운드=" + lastResult.get().finalRound()), false);
                 return 1;
             }
-            source.sendSuccess(() -> Component.literal("No active Semion TD game. lobbyLoaded=" + lobbyLoaded), false);
+            source.sendSuccess(() -> Component.literal("진행 중인 Semion TD 게임이 없습니다. 로비로드=" + lobbyLoaded), false);
             return 1;
         }
 
-        source.sendSuccess(() -> Component.literal("Semion TD round=" + game.currentRound()
-                + ", phase=" + game.phase()
-                + ", players=" + game.players().size()
-                + ", spectators=" + game.spectatorCount()
-                + ", ready=" + game.readyPlayerCount()
+        source.sendSuccess(() -> Component.literal("Semion TD 라운드=" + game.currentRound()
+                + ", 상태=" + game.phase()
+                + ", 참가자=" + game.players().size()
+                + ", 관전자=" + game.spectatorCount()
+                + ", 준비=" + game.readyPlayerCount()
                 + ", rosterLocked=" + game.rosterLocked()
-                + ", mode=" + gameManager.matchMode()
-                + ", lobbyLoaded=" + lobbyLoaded), false);
+                + ", 모드=" + gameManager.matchMode()
+                + ", 로비로드=" + lobbyLoaded), false);
         for (SemionTeam team : game.teams().values()) {
             source.sendSuccess(() -> Component.literal(" - " + team.id()
-                    + " active=" + team.active()
-                    + " eliminated=" + team.eliminated()
-                    + ", players=" + team.memberIds().size()
-                    + ", bossHp=" + Math.round(team.laneGroup().boss().health())), false);
+                    + " 활성=" + team.active()
+                    + " 탈락=" + team.eliminated()
+                    + ", 인원=" + team.memberIds().size()
+                    + ", 보스HP=" + Math.round(team.laneGroup().boss().health())), false);
         }
         return 1;
     }
@@ -539,7 +537,7 @@ public final class SemionCommands {
 
     private static boolean ensureWaitingSetup(CommandSourceStack source, SemionGame game, String action) {
         if (!game.canConfigureRoster()) {
-            source.sendFailure(Component.literal("Cannot " + action + " after the match roster has been locked."));
+            source.sendFailure(Component.literal("참가자 확정 후에는 해당 작업을 할 수 없습니다: " + action));
             return false;
         }
         return true;
@@ -552,7 +550,7 @@ public final class SemionCommands {
     ) {
         SemionGame game = gameManager.activeGame().orElse(null);
         if (game == null) {
-            source.sendFailure(Component.literal("No Semion TD lobby is open. Use /semiontd create first."));
+            source.sendFailure(Component.literal("열린 Semion TD 로비가 없습니다. 먼저 /semiontd create를 실행하세요."));
             return null;
         }
         if (!ensureWaitingSetup(source, game, action)) {
