@@ -393,6 +393,46 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void teamSelectedLateSpectatorValidatesTargetTeam(GameTestHelper context) {
+        UUID redId = stableUuid("team-spectate-red");
+        UUID blueId = stableUuid("team-spectate-blue");
+        UUID greenId = stableUuid("team-spectate-green");
+        UUID blueSpectatorId = stableUuid("team-spectate-blue-viewer");
+        UUID greenSpectatorId = stableUuid("team-spectate-green-viewer");
+        SemionGame game = startedThreePlayerGame(context, redId, blueId, greenId);
+
+        if (!assertTrue(context, game.canSpectateTeam(TeamId.BLUE), "BLUE should be a valid selected spectate target while active.")) {
+            return;
+        }
+        if (!assertTrue(context, game.addLateSpectator(blueSpectatorId, TeamId.BLUE), "Late joiner should be able to select BLUE for spectating.")) {
+            return;
+        }
+        if (!assertEquals(context, 1, game.spectatorCount(), "Selected late spectator should be tracked.")) {
+            return;
+        }
+        if (!assertTrue(context, !game.addLateSpectator(redId, TeamId.BLUE), "Active participants should not switch to selected spectating.")) {
+            return;
+        }
+        if (!assertTrue(context, !game.addLateSpectator(greenSpectatorId, TeamId.YELLOW), "Inactive teams should not be selected for spectating.")) {
+            return;
+        }
+
+        if (!assertTrue(context, game.killBoss(TeamId.BLUE), "BLUE boss kill should eliminate selected target team.")) {
+            return;
+        }
+        if (!assertTrue(context, !game.canSpectateTeam(TeamId.BLUE), "Eliminated teams should not remain selected spectate targets.")) {
+            return;
+        }
+        if (!assertTrue(context, game.addLateSpectator(greenSpectatorId, TeamId.GREEN), "Late joiner should be able to select another active team.")) {
+            return;
+        }
+        if (!assertEquals(context, 3, game.spectatorCount(), "Late spectators plus the eliminated BLUE participant should be tracked.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void managerStartSpectateAndResetFlowWorks(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();
         SemionGameManager manager = new SemionGameManager();

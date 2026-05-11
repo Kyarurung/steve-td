@@ -367,6 +367,13 @@ public final class SemionGame {
         return true;
     }
 
+    public boolean addLateSpectator(UUID spectatorId, TeamId targetTeam) {
+        if (!canSpectateTeam(targetTeam)) {
+            return false;
+        }
+        return addLateSpectator(spectatorId);
+    }
+
     public boolean addLateSpectator(MinecraftServer server, ServerPlayer player) {
         if (server == null || player == null || !addLateSpectator(player.getUUID())) {
             return false;
@@ -374,6 +381,19 @@ public final class SemionGame {
         VanillaTeamBridge.assignSpectator(server, player);
         placeSpectatorPlayer(player, spectatorIndex(player.getUUID()), null);
         return true;
+    }
+
+    public boolean addLateSpectator(MinecraftServer server, ServerPlayer player, TeamId targetTeam) {
+        if (server == null || player == null || !addLateSpectator(player.getUUID(), targetTeam)) {
+            return false;
+        }
+        VanillaTeamBridge.assignSpectator(server, player);
+        placeSpectatorPlayerAtTeam(player, spectatorIndex(player.getUUID()), targetTeam);
+        return true;
+    }
+
+    public boolean canSpectateTeam(TeamId targetTeam) {
+        return spectatorArenaForActiveTeam(targetTeam).isPresent();
     }
 
     public void tick(MinecraftServer server) {
@@ -594,6 +614,35 @@ public final class SemionGame {
             );
             SemionDisplayHudService.refreshPlayerHud(player);
         });
+    }
+
+    private void placeSpectatorPlayerAtTeam(ServerPlayer player, int spectatorIndex, TeamId targetTeam) {
+        spectatorArenaForActiveTeam(targetTeam).ifPresent(teamArena -> {
+            Vec3 position = StartPlacement.spectatorSpawn(teamArena.layout(), spectatorIndex);
+            player.setGameMode(GameType.SPECTATOR);
+            player.teleportTo(
+                    teamArena.world(),
+                    position.x,
+                    position.y,
+                    position.z,
+                    Set.<Relative>of(),
+                    player.getYRot(),
+                    player.getXRot(),
+                    false
+            );
+            SemionDisplayHudService.refreshPlayerHud(player);
+        });
+    }
+
+    private Optional<TeamArena> spectatorArenaForActiveTeam(TeamId targetTeam) {
+        if (!rosterLocked || phase == RoundPhase.WAITING || phase == RoundPhase.ENDED || targetTeam == null) {
+            return Optional.empty();
+        }
+        SemionTeam team = teams.get(targetTeam);
+        if (team == null || !team.active() || team.eliminated()) {
+            return Optional.empty();
+        }
+        return arena.teamArena(targetTeam);
     }
 
     private Optional<TeamArena> spectatorArena(TeamId fallbackTeam) {

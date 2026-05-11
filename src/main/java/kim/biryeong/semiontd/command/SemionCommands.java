@@ -60,7 +60,13 @@ public final class SemionCommands {
                 .then(literal("unready")
                         .executes(context -> unready(context.getSource(), gameManager)))
                 .then(literal("spectate")
-                        .executes(context -> spectate(context.getSource(), gameManager)))
+                        .executes(context -> spectate(context.getSource(), gameManager))
+                        .then(argument("team", StringArgumentType.word())
+                                .executes(context -> spectate(
+                                        context.getSource(),
+                                        gameManager,
+                                        StringArgumentType.getString(context, "team")
+                                ))))
                 .then(literal("economy")
                         .executes(context -> economy(context.getSource(), gameManager)))
                 .then(literal("profile")
@@ -242,6 +248,36 @@ public final class SemionCommands {
         }
 
         source.sendSuccess(() -> Component.literal("Semion TD 게임 관전으로 이동했습니다."), false);
+        return 1;
+    }
+
+    private static int spectate(CommandSourceStack source, SemionGameManager gameManager, String teamName) throws CommandSyntaxException {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null || !game.rosterLocked() || game.phase() == RoundPhase.ENDED) {
+            source.sendFailure(Component.literal("관전할 수 있는 진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+
+        TeamId targetTeam;
+        try {
+            targetTeam = parseTeam(teamName);
+        } catch (IllegalArgumentException exception) {
+            source.sendFailure(Component.literal("알 수 없는 팀입니다. red, blue, green, yellow 중 하나를 사용하세요."));
+            return 0;
+        }
+
+        if (!game.canSpectateTeam(targetTeam)) {
+            source.sendFailure(Component.literal("현재 관전할 수 없는 팀입니다: " + targetTeam.name()));
+            return 0;
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        if (!game.addLateSpectator(source.getServer(), player, targetTeam)) {
+            source.sendFailure(Component.literal("현재 상태에서는 관전으로 전환할 수 없습니다."));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal("Semion TD " + targetTeam.name() + " 팀 관전으로 이동했습니다."), false);
         return 1;
     }
 
