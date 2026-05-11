@@ -25,9 +25,11 @@ import kim.biryeong.semiontd.summon.SummonMonsterType;
 import kim.biryeong.semiontd.summon.SummonResult;
 import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.summon.SummonShop;
+import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.level.GameType;
@@ -154,6 +156,18 @@ public final class SemionGame {
 
     public boolean isMatchSpectator(UUID playerId) {
         return matchSpectatorIds.contains(playerId);
+    }
+
+    public Optional<SemionTeam> teamForWorld(ServerLevel world) {
+        if (world == null) {
+            return Optional.empty();
+        }
+        return teams.values().stream()
+                .filter(SemionTeam::active)
+                .filter(team -> arena.teamArena(team.id())
+                        .map(teamArena -> teamArena.world() == world)
+                        .orElse(false))
+                .findFirst();
     }
 
     public Map<UUID, SemionJob> selectedJobs() {
@@ -549,6 +563,7 @@ public final class SemionGame {
                     player.getXRot(),
                     false
             );
+            SemionDisplayHudService.refreshPlayerHud(player);
         });
     }
 
@@ -577,6 +592,7 @@ public final class SemionGame {
                     player.getXRot(),
                     false
             );
+            SemionDisplayHudService.refreshPlayerHud(player);
         });
     }
 

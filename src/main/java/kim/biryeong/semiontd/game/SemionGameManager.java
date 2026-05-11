@@ -232,6 +232,7 @@ public final class SemionGameManager {
                 player.getXRot(),
                 false
         );
+        SemionDisplayHudService.refreshPlayerHud(player);
     }
 
     private void finishActiveGame(MinecraftServer server, SemionGame finishedGame) {

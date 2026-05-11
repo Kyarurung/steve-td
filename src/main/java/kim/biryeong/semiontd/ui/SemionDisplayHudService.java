@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.ui;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import kim.biryeong.dantashader.displayhud.DisplayHud;
 import kim.biryeong.dantashader.displayhud.DisplayHud.HudAlignment;
 import kim.biryeong.dantashader.displayhud.DisplayHudManager;
@@ -20,6 +21,7 @@ import net.kyori.adventure.platform.modcommon.impl.NonWrappingComponentSerialize
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 public final class SemionDisplayHudService {
@@ -59,6 +61,17 @@ public final class SemionDisplayHudService {
 
     public void remove(ServerPlayer player) {
         DisplayHud.removeHud(player, HUD_ID);
+    }
+
+    public static void refreshPlayerHud(ServerPlayer player) {
+        if (player == null) {
+            return;
+        }
+        Map<String, DisplayHud> huds = DisplayHud.getHuds(player);
+        for (DisplayHud hud : huds.values()) {
+            hud.teleport();
+            hud.mount();
+        }
     }
 
     private void update(ServerPlayer player, String text) {
@@ -154,23 +167,45 @@ public final class SemionDisplayHudService {
             }
         } else {
             text.append("<gray>준비 상태</gray> <yellow>관전 중</yellow>\n");
+            java.util.Optional<SemionTeam> viewingTeam = viewingTeam(viewer, game);
+            if (viewingTeam.isPresent()) {
+                SemionTeam team = viewingTeam.get();
+                text.append("<gray>관전 팀</gray> ")
+                        .append(teamColor(team.id()))
+                        .append(team.id().name())
+                        .append("</")
+                        .append(teamColorName(team.id()))
+                        .append(">\n");
+                text.append("<gray>보스</gray> ")
+                        .append(bossHealthText(team))
+                        .append('\n');
+            }
         }
 
         List<SemionTeam> activeTeams = game.teams().values().stream()
                 .filter(SemionTeam::active)
                 .sorted(Comparator.comparing(SemionTeam::id))
                 .toList();
-        text.append("<dark_gray>────</dark_gray>\n");
-        for (SemionTeam team : activeTeams) {
-            text.append(teamColor(team.id()))
-                    .append(team.id().name())
-                    .append("</")
-                    .append(teamColorName(team.id()))
-                    .append("> ")
-                    .append(bossHealthText(team))
-                    .append('\n');
+        if (player != null || viewingTeam(viewer, game).isEmpty()) {
+            text.append("<dark_gray>────</dark_gray>\n");
+            for (SemionTeam team : activeTeams) {
+                text.append(teamColor(team.id()))
+                        .append(team.id().name())
+                        .append("</")
+                        .append(teamColorName(team.id()))
+                        .append("> ")
+                        .append(bossHealthText(team))
+                        .append('\n');
+            }
         }
         return miniMessage(text.toString());
+    }
+
+    private static java.util.Optional<SemionTeam> viewingTeam(ServerPlayer viewer, SemionGame game) {
+        if (!(viewer.level() instanceof ServerLevel world)) {
+            return java.util.Optional.empty();
+        }
+        return game.teamForWorld(world);
     }
 
     private static String startableText(MinecraftServer server, SemionGame game, MatchMode matchMode) {

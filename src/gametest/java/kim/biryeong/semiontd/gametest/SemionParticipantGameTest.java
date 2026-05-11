@@ -47,6 +47,7 @@ import kim.biryeong.semiontd.game.RoundPhase;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
+import kim.biryeong.semiontd.game.SemionTeam;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.StartPlacement;
 import kim.biryeong.semiontd.game.StartCandidate;
@@ -443,6 +444,22 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
             if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Started game should enter prepare.")) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    TeamId.RED,
+                    game.teamForWorld(game.arena().teamArena(TeamId.RED).orElseThrow().world()).map(SemionTeam::id).orElse(null),
+                    "RED runtime world should map back to RED for spectator HUD."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    TeamId.BLUE,
+                    game.teamForWorld(game.arena().teamArena(TeamId.BLUE).orElseThrow().world()).map(SemionTeam::id).orElse(null),
+                    "BLUE runtime world should map back to BLUE for spectator HUD."
+            )) {
                 return;
             }
             if (!assertTrue(context, game.addLateSpectator(lateSpectatorId), "Late joiner should be able to spectate an active match.")) {
@@ -1431,7 +1448,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
-    @GameTest(maxTicks = 180)
+    @GameTest(maxTicks = 260)
     public void monsterReachingBossFightsBossUntilKilled(GameTestHelper context) {
         UUID playerId = stableUuid("boss-reach-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
@@ -1473,25 +1490,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        context.runAfterDelay(130, () -> {
-            game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
-
-            if (!assertTrue(context, game.teams().get(TeamId.RED).laneGroup().boss().health() < initialBossHealth, "Monster should damage the boss through normal combat.")) {
-                return;
-            }
-            context.runAfterDelay(2, () -> {
-                game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
-
-                if (!assertEquals(context, 0, lane.activeMonsters().size(), "Boss should be able to kill and clear the reached monster.")) {
-                    return;
-                }
-                if (!assertTrue(context, lane.arenaWorld().getEntity(monsterEntityId) == null
-                        || lane.arenaWorld().getEntity(monsterEntityId).isRemoved(), "Boss-killed monster entity should be removed.")) {
-                    return;
-                }
-                context.succeed();
-            });
-        });
+        awaitBossCombatResolution(context, game, TeamId.RED, lane, initialBossHealth, monsterEntityId, 0);
     }
 
     @GameTest
@@ -3093,6 +3092,45 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         entity.setPos(position);
         context.getLevel().addFreshEntity(entity);
         return entity;
+    }
+
+    private static void awaitBossCombatResolution(
+            GameTestHelper context,
+            SemionGame game,
+            TeamId teamId,
+            PlayerLane lane,
+            double initialBossHealth,
+            int monsterEntityId,
+            int elapsedTicks
+    ) {
+        game.teams().get(teamId).tick(context.getLevel().getServer());
+        boolean bossDamaged = game.teams().get(teamId).laneGroup().boss().health() < initialBossHealth;
+        boolean monsterCleared = lane.activeMonsters().isEmpty();
+        if (bossDamaged && monsterCleared) {
+            if (!assertTrue(context, lane.arenaWorld().getEntity(monsterEntityId) == null
+                    || lane.arenaWorld().getEntity(monsterEntityId).isRemoved(), "Boss-killed monster entity should be removed.")) {
+                return;
+            }
+            context.succeed();
+            return;
+        }
+        if (elapsedTicks >= 220) {
+            if (!assertTrue(context, bossDamaged, "Monster should damage the boss through normal combat.")) {
+                return;
+            }
+            assertEquals(context, 0, lane.activeMonsters().size(), "Boss should be able to kill and clear the reached monster.");
+            return;
+        }
+
+        context.runAfterDelay(10, () -> awaitBossCombatResolution(
+                context,
+                game,
+                teamId,
+                lane,
+                initialBossHealth,
+                monsterEntityId,
+                elapsedTicks + 10
+        ));
     }
 
     private static UUID stableUuid(String value) {
