@@ -2,13 +2,15 @@
 
 ## 현재 상태
 
-관전자 HUD와 팀 선택 관전 작업은 커밋 완료 상태다.
+관전자 HUD, 팀 선택 관전, HUD 2차 정리 작업은 커밋 완료 상태다.
 
 완료 커밋:
 
 ```text
 feat(ui): show spectator team boss status
 feat(command): add team spectate targets
+docs: refresh next session handoff
+feat(ui): split match HUD by player role
 ```
 
 완료된 내용:
@@ -27,6 +29,10 @@ feat(command): add team spectate targets
 - 진행 중 게임이 없거나, 팀이 active가 아니거나, active participant가 관전 전환하려 하면 실패한다.
 - 실패/성공 메시지는 한국어로 유지한다.
 - GameTest에는 runtime world -> team HUD 매핑, 팀 선택 관전 대상 검증, boss combat 안정화가 포함되어 있다.
+- match HUD는 active player, spectator, eliminated player 역할별로 정보량이 분리되어 있다.
+- active player HUD는 경제 정보와 전체 팀 보스 요약을 유지한다.
+- spectator HUD는 현재 관전 팀과 해당 팀 보스 체력 중심으로 축소되어 있다.
+- eliminated player HUD는 `탈락 후 관전 중`, 원래 소속 팀, 현재 관전 팀을 구분한다.
 
 검증 완료 상태:
 
@@ -35,7 +41,7 @@ feat(command): add team spectate targets
 ./gradlew runGameTest --console=plain
 ```
 
-마지막 확인 결과는 `All 71 required tests passed :)`.
+마지막 확인 결과는 `All 72 required tests passed :)`.
 
 주의:
 
@@ -44,45 +50,7 @@ feat(command): add team spectate targets
 - Gradle 실행 시 sandbox에서 `~/.gradle` 접근이 막히면 승인 후 재실행해야 한다.
 - Polymer/DialogUtils resource-pack 경고(`zip END header not found`, `rootPath is null`)는 현재 테스트 실패와 무관한 known noisy warning이다.
 
-## 다음 작업 1: HUD 2차 정리
-
-현재 HUD는 status 중심의 초안이다. 다음 단계에서는 역할별로 정보량을 나눈다.
-
-Active player HUD:
-
-- 상태
-- 게임 모드
-- 라운드와 준비 남은 시간
-- 팀/라인
-- 다이아/에메랄드
-- 수입/에메랄드/s
-- 내 팀 보스 체력
-- 전체 팀 보스 요약
-
-Spectator HUD:
-
-- 상태
-- 게임 모드
-- 라운드
-- 준비 상태: 관전 중
-- 관전 팀
-- 관전 팀 보스 체력
-
-Eliminated player HUD:
-
-- 준비 상태 또는 역할 표시를 `탈락 후 관전 중`으로 분리한다.
-- 원래 소속 팀과 현재 관전 팀을 함께 보여줄지 결정해야 한다.
-- 기본 구현은 원래 소속 팀과 현재 관전 팀을 둘 다 보여주는 쪽이 운영 확인에 유리하다.
-
-검증 포인트:
-
-- active player HUD에는 경제 정보와 전체 팀 보스 요약이 유지된다.
-- spectator HUD에는 전체 팀 요약을 노출하지 않고 현재 관전 팀 보스 체력만 표시한다.
-- eliminated player HUD는 `탈락 후 관전 중` 상태와 원래 소속 팀을 구분한다.
-- runtime world -> team HUD 매핑이 유지된다.
-- lifecycle/combat/summon/economy regression이 없어야 한다.
-
-## 다음 작업 2: 관리자 운영 명령 보강
+## 다음 작업 1: 관리자 운영 명령 보강
 
 현재 관리자 명령은 create/start/end/reset/spectate 기본 흐름이 있다. 운영용 상태 확인을 강화해야 한다.
 
@@ -115,7 +83,7 @@ Eliminated player HUD:
 
 단, 명령 구조를 늘리기 전에 기본 `/semiontd status` 출력부터 운영 가능한 수준으로 만드는 편이 좋다.
 
-## 다음 작업 3: 실서버 수동 QA
+## 다음 작업 2: 실서버 수동 QA
 
 GameTest로 확인하기 어려운 부분은 실제 서버에서 봐야 한다.
 
