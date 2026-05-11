@@ -2,7 +2,7 @@
 
 ## 현재 상태
 
-관전자 HUD, 팀 선택 관전, HUD 2차 정리 작업은 커밋 완료 상태다.
+관전자 HUD, 팀 선택 관전, HUD 2차 정리, 운영 status 명령 강화 작업은 커밋 완료 상태다.
 
 완료 커밋:
 
@@ -11,6 +11,8 @@ feat(ui): show spectator team boss status
 feat(command): add team spectate targets
 docs: refresh next session handoff
 feat(ui): split match HUD by player role
+docs: update handoff after HUD role split
+feat(command): expand operational status output
 ```
 
 완료된 내용:
@@ -33,6 +35,9 @@ feat(ui): split match HUD by player role
 - active player HUD는 경제 정보와 전체 팀 보스 요약을 유지한다.
 - spectator HUD는 현재 관전 팀과 해당 팀 보스 체력 중심으로 축소되어 있다.
 - eliminated player HUD는 `탈락 후 관전 중`, 원래 소속 팀, 현재 관전 팀을 구분한다.
+- `/semiontd status`는 activeGame, phase, round, matchMode, rosterLocked, ready, activeParticipants, spectators, lobbyLoaded, arenaLoaded를 출력한다.
+- `/semiontd status teams`는 팀별 active/eliminated/arenaLoaded/player/lane/boss 상태를 출력한다.
+- `/semiontd status players`는 active participant와 match spectator UUID를 출력한다.
 
 검증 완료 상태:
 
@@ -41,7 +46,26 @@ feat(ui): split match HUD by player role
 ./gradlew runGameTest --console=plain
 ```
 
-마지막 확인 결과는 `All 72 required tests passed :)`.
+마지막 확인 결과는 `All 73 required tests passed :)`.
+
+실서버 기동 QA 완료 상태:
+
+```text
+./gradlew runServer --console=plain
+```
+
+콘솔에서 확인한 흐름:
+
+- 서버 기동 성공, `Semion TD initialized.`
+- `/semiontd status` equivalent console command `semiontd status`가 `activeGame=false`, `lobbyLoaded=true`, `arenaLoaded=false`를 출력했다.
+- `semiontd create` 성공.
+- create 후 `semiontd status`가 `activeGame=true`, `phase=WAITING`, `ready=0`, `activeParticipants=0`, `spectators=0`, `lobbyLoaded=true`, `arenaLoaded=4/4`를 출력했다.
+- `semiontd status teams`가 RED/BLUE/GREEN/YELLOW 팀별 arena/boss 상태를 출력했다.
+- `semiontd status players`가 `참가자 없음`, `관전자 없음`을 출력했다.
+- `semiontd start`는 준비 인원 부족 메시지로 실패했다.
+- `semiontd spectate red`는 진행 중 게임 없음 메시지로 실패했다.
+- `semiontd reset` 후 `semiontd status`가 다시 `activeGame=false`를 출력했다.
+- `stop`으로 서버가 정상 종료되었다.
 
 주의:
 
@@ -50,48 +74,13 @@ feat(ui): split match HUD by player role
 - Gradle 실행 시 sandbox에서 `~/.gradle` 접근이 막히면 승인 후 재실행해야 한다.
 - Polymer/DialogUtils resource-pack 경고(`zip END header not found`, `rootPath is null`)는 현재 테스트 실패와 무관한 known noisy warning이다.
 
-## 다음 작업 1: 관리자 운영 명령 보강
-
-현재 관리자 명령은 create/start/end/reset/spectate 기본 흐름이 있다. 운영용 상태 확인을 강화해야 한다.
-
-대상 명령:
-
-```text
-/semiontd status
-```
-
-포함할 정보:
-
-- active game 여부
-- phase
-- round
-- match mode
-- ready count
-- active participants
-- spectators
-- team별 active/eliminated 상태
-- team별 boss health
-- lobby loaded 여부
-- arena loaded 여부
-
-추가 후보:
-
-```text
-/semiontd status teams
-/semiontd status players
-```
-
-단, 명령 구조를 늘리기 전에 기본 `/semiontd status` 출력부터 운영 가능한 수준으로 만드는 편이 좋다.
-
-## 다음 작업 2: 실서버 수동 QA
+## 다음 작업 1: 실플레이어 수동 QA
 
 GameTest로 확인하기 어려운 부분은 실제 서버에서 봐야 한다.
 
 수동 체크리스트:
 
-- 서버 시작 시 lobby가 선로드된다.
-- 접속자가 게임 진행 중이 아니면 lobby로 이동한다.
-- 관리자 `/semiontd create`
+- 실제 클라이언트 접속자가 게임 진행 중이 아니면 lobby로 이동한다.
 - 플레이어 `/semiontd ready`
 - 관리자 `/semiontd start`
 - 신규 접속자는 lobby 대기 안내를 받고 `/semiontd spectate`로 관전 가능하다.
@@ -99,6 +88,7 @@ GameTest로 확인하기 어려운 부분은 실제 서버에서 봐야 한다.
 - spectator HUD가 현재 world의 팀 보스 체력을 보여준다.
 - 월드 이동 후 HUD가 사라지지 않고 다시 mount된다.
 - `/semiontd end` 또는 `/semiontd reset` 후 모든 플레이어가 lobby로 이동한다.
+- 실제 클라이언트에서 `/semiontd status`, `/semiontd status teams`, `/semiontd status players`가 읽기 좋은지 확인한다.
 
 ## 후속 큰 작업 후보
 
