@@ -21,6 +21,7 @@ import kim.biryeong.semiontd.progression.ProgressionService;
 import kim.biryeong.semiontd.progression.SemionPlayerProfile;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
+import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -247,6 +248,7 @@ public final class SemionGameManager {
                 false
         );
         SemionDisplayHudService.refreshPlayerHud(player);
+        SemionHotbarService.clearMatchTools(player);
     }
 
     private void closeActiveGameSafely(SemionGame game, String reason) {

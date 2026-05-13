@@ -26,6 +26,8 @@ import kim.biryeong.semiontd.summon.SummonResult;
 import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
+import kim.biryeong.semiontd.ui.SemionHotbarService;
+import kim.biryeong.semiontd.ui.SemionLaneIndicatorService;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -250,7 +252,7 @@ public final class SemionGame {
         placeSpectators(server, plan.spectatorIds());
         rosterLocked = true;
         notifyMatchStarted();
-        startPreparePhase();
+        startPreparePhase(server);
         return true;
     }
 
@@ -400,6 +402,18 @@ public final class SemionGame {
         return spectatorArenaForActiveTeam(targetTeam).isPresent();
     }
 
+    public Optional<PlayerLane> playerLane(UUID playerId) {
+        SemionPlayer player = players.get(playerId);
+        if (player == null) {
+            return Optional.empty();
+        }
+        SemionTeam team = teams.get(player.teamId());
+        if (team == null || !team.active() || team.eliminated()) {
+            return Optional.empty();
+        }
+        return team.laneGroup().lane(player.laneId());
+    }
+
     public void tick(MinecraftServer server) {
         tickCounter++;
         if (phase != RoundPhase.WAITING && phase != RoundPhase.ENDED && tickCounter % 20 == 0) {
@@ -409,14 +423,17 @@ public final class SemionGame {
         switch (phase) {
             case WAITING, ENDED -> {
             }
-            case PREPARE_AND_SUMMON -> tickPrepare();
+            case PREPARE_AND_SUMMON -> tickPrepare(server);
             case LANE_WAVE -> tickWave(server);
-            case ROUND_PAYOUT -> tickPayout();
+            case ROUND_PAYOUT -> tickPayout(server);
         }
     }
 
-    private void tickPrepare() {
+    private void tickPrepare(MinecraftServer server) {
         phaseTicks++;
+        if (phaseTicks % 80 == 0) {
+            showLaneIndicators(server);
+        }
         if (phaseTicks >= DEFAULT_PREPARE_TICKS) {
             startWavePhase();
         }
@@ -458,19 +475,20 @@ public final class SemionGame {
         }
     }
 
-    private void tickPayout() {
+    private void tickPayout(MinecraftServer server) {
         notifyRoundEnded(currentRound);
         economyService.payRoundIncome(players.values(), teams);
         currentRound++;
-        startPreparePhase();
+        startPreparePhase(server);
     }
 
-    private void startPreparePhase() {
+    private void startPreparePhase(MinecraftServer server) {
         phase = RoundPhase.PREPARE_AND_SUMMON;
         phaseTicks = 0;
         for (SemionTeam team : livingTeams()) {
             team.resetForRound();
         }
+        prepareActivePlayers(server);
         notifyRoundStarted(currentRound);
     }
 
@@ -588,6 +606,8 @@ public final class SemionGame {
                     false
             );
             SemionDisplayHudService.refreshPlayerHud(player);
+            SemionHotbarService.grantMatchTools(player);
+            playerLane(activePlayer.uuid()).ifPresent(lane -> SemionLaneIndicatorService.showLane(player, lane));
         });
     }
 
@@ -617,6 +637,7 @@ public final class SemionGame {
                     false
             );
             SemionDisplayHudService.refreshPlayerHud(player);
+            SemionHotbarService.clearMatchTools(player);
         });
     }
 
@@ -635,6 +656,7 @@ public final class SemionGame {
                     false
             );
             SemionDisplayHudService.refreshPlayerHud(player);
+            SemionHotbarService.clearMatchTools(player);
         });
     }
 
@@ -729,6 +751,34 @@ public final class SemionGame {
                 job.modifyStartingIncome(context, economy.income()),
                 job.modifyStartingGasPerSec(context, economy.gasPerSec())
         );
+    }
+
+    private void prepareActivePlayers(MinecraftServer server) {
+        if (server == null) {
+            return;
+        }
+        for (SemionPlayer activePlayer : players.values()) {
+            SemionTeam team = teams.get(activePlayer.teamId());
+            if (team == null || !team.active() || team.eliminated()) {
+                continue;
+            }
+            ServerPlayer player = server.getPlayerList().getPlayer(activePlayer.uuid());
+            if (player != null) {
+                placeActivePlayer(player, activePlayer);
+            }
+        }
+    }
+
+    private void showLaneIndicators(MinecraftServer server) {
+        if (server == null) {
+            return;
+        }
+        for (SemionPlayer activePlayer : players.values()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(activePlayer.uuid());
+            if (player != null) {
+                playerLane(activePlayer.uuid()).ifPresent(lane -> SemionLaneIndicatorService.showLane(player, lane));
+            }
+        }
     }
 
     private void notifyMatchStarted() {

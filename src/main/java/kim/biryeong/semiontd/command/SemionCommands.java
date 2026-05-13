@@ -77,6 +77,8 @@ public final class SemionCommands {
                 .then(literal("job")
                         .then(literal("list")
                                 .executes(context -> listJobs(context.getSource())))
+                        .then(literal("ui")
+                                .executes(context -> jobDialog(context.getSource(), gameManager)))
                         .then(literal("current")
                                 .executes(context -> currentJob(context.getSource(), gameManager)))
                         .then(literal("select")
@@ -89,6 +91,8 @@ public final class SemionCommands {
                 .then(literal("tower")
                         .then(literal("list")
                                 .executes(context -> listProductionTowers(context.getSource(), gameManager)))
+                        .then(literal("ui")
+                                .executes(context -> towerDialog(context.getSource(), gameManager)))
                         .then(literal("build")
                                 .then(argument("id", StringArgumentType.word())
                                         .executes(context -> buildProductionTower(
@@ -120,6 +124,8 @@ public final class SemionCommands {
                                 ))))
                 .then(literal("summons")
                         .executes(context -> summons(context.getSource(), gameManager)))
+                .then(literal("summonui")
+                        .executes(context -> summonDialog(context.getSource(), gameManager)))
                 .then(literal("killboss")
                         .requires(source -> source.hasPermission(2))
                         .then(argument("team", StringArgumentType.word())
@@ -577,6 +583,17 @@ public final class SemionCommands {
         return 1;
     }
 
+    private static int jobDialog(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("열린 Semion TD 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요."));
+            return 0;
+        }
+        gameManager.dialogService().showJobSelection(source.getPlayerOrException(), game);
+        source.sendSuccess(() -> Component.literal("Semion TD 직업 선택 창을 열었습니다."), false);
+        return 1;
+    }
+
     private static int selectJob(CommandSourceStack source, SemionGameManager gameManager, String rawJobId)
             throws CommandSyntaxException {
         SemionGame game = activeWaitingGame(source, gameManager, "직업 선택");
@@ -695,6 +712,18 @@ public final class SemionCommands {
         return 1;
     }
 
+    private static int towerDialog(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+        gameManager.dialogService().showTowerControl(source.getPlayerOrException(), game);
+        source.sendSuccess(() -> Component.literal("Semion TD 타워 관리 창을 열었습니다."), false);
+        return 1;
+    }
+
     private static int listTowerUpgrades(CommandSourceStack source, SemionGameManager gameManager)
             throws CommandSyntaxException {
         SemionGame game = gameManager.activeGame().orElse(null);
@@ -772,6 +801,18 @@ public final class SemionCommands {
                     + ", 수입=" + type.incomeGain()
                     + ", 체력=" + Math.round(type.maxHealth())), false);
         }
+        return 1;
+    }
+
+    private static int summonDialog(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            source.sendFailure(Component.literal("진행 중인 Semion TD 게임이 없습니다."));
+            return 0;
+        }
+        gameManager.dialogService().showSummonShop(source.getPlayerOrException(), game);
+        source.sendSuccess(() -> Component.literal("Semion TD 견제 소환 창을 열었습니다."), false);
         return 1;
     }
 

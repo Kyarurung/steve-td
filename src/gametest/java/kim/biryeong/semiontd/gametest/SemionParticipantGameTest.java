@@ -76,6 +76,7 @@ import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerFaction;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
+import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import net.minecraft.core.BlockPos;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
@@ -85,6 +86,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
@@ -1164,6 +1166,81 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, !game.teams().get(TeamId.YELLOW).active(), "YELLOW should be inactive.")) {
             return;
         }
+        context.succeed();
+    }
+
+    @GameTest(maxTicks = 700)
+    public void preparePhaseTeleportsPlayerAndGrantsHotbarTools(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        UUID playerId = player.getUUID();
+        UUID blueId = stableUuid("prepare-hotbar-blue");
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                new WaveConfig(List.of(), 20, null),
+                testArena(context)
+        );
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(playerId, player.getGameProfile().getName(), TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "prepare-hotbar-blue", TeamId.BLUE, 1)
+                ),
+                Set.of(),
+                2
+        );
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Game should start with the mock player.")) {
+            return;
+        }
+
+        Vec3 laneSpawn = StartPlacement.activePlayerSpawn(game.arena().teamArena(TeamId.RED).orElseThrow().layout(), 1);
+        if (!assertEquals(context, game.arena().teamArena(TeamId.RED).orElseThrow().world(), player.level(), "Active player should be moved to their team runtime world.")) {
+            return;
+        }
+        if (!assertTrue(context, player.position().distanceTo(laneSpawn) < 0.01, "Active player should start at their assigned lane spawn.")) {
+            return;
+        }
+        if (!assertTrue(context, player.getInventory().getItem(0).is(Items.COMPASS), "Tower control item should be granted in hotbar slot 0.")) {
+            return;
+        }
+        if (!assertTrue(context, player.getInventory().getItem(1).is(Items.ECHO_SHARD), "Summon control item should be granted in hotbar slot 1.")) {
+            return;
+        }
+
+        player.teleportTo(player.getX() + 12.0, player.getY(), player.getZ() + 12.0);
+        tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS + 3);
+        if (!assertEquals(context, 2, game.currentRound(), "Empty first wave should advance into round 2 prepare.")) {
+            return;
+        }
+        if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Game should return to prepare after round payout.")) {
+            return;
+        }
+        if (!assertTrue(context, player.position().distanceTo(laneSpawn) < 0.01, "Round prepare should return the player to their assigned lane spawn.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void playerFacingDialogsOpenForJobsTowersAndSummons(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                testArena(context)
+        );
+        new SemionDialogService().showJobSelection(player, game);
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(new AssignedParticipant(player.getUUID(), player.getGameProfile().getName(), TeamId.RED, 1)),
+                Set.of(),
+                1
+        );
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Dialog test game should start.")) {
+            return;
+        }
+        SemionDialogService dialogService = new SemionDialogService();
+        dialogService.showTowerControl(player, game);
+        dialogService.showSummonShop(player, game);
         context.succeed();
     }
 
