@@ -16,6 +16,7 @@ import kim.biryeong.semiontd.map.GameArena;
 import kim.biryeong.semiontd.map.GameArenaLoader;
 import kim.biryeong.semiontd.map.LobbyWorld;
 import kim.biryeong.semiontd.map.LobbyWorldLoader;
+import kim.biryeong.semiontd.music.SemionMusicService;
 import kim.biryeong.semiontd.progression.MatchProgressionReward;
 import kim.biryeong.semiontd.progression.ProgressionService;
 import kim.biryeong.semiontd.progression.SemionPlayerProfile;
@@ -41,6 +42,7 @@ public final class SemionGameManager {
     private ProgressionConfig progressionConfig = ProgressionConfig.defaultConfig();
     private Path progressionStorePath;
     private ProgressionService progressionService;
+    private SemionMusicService musicService = SemionMusicService.disabled();
     private final SemionDialogService dialogService = new SemionDialogService();
     private final SemionDisplayHudService displayHudService = new SemionDisplayHudService();
     private MatchMode matchMode = MatchMode.NORMAL;
@@ -76,6 +78,10 @@ public final class SemionGameManager {
         this.progressionConfig = progressionConfig;
         this.progressionStorePath = progressionStorePath;
         this.progressionService = new ProgressionService(progressionConfig, progressionStorePath);
+    }
+
+    public void configureMusic(SemionMusicService musicService) {
+        this.musicService = musicService == null ? SemionMusicService.disabled() : musicService;
     }
 
     public LobbyWorld ensureLobby(MinecraftServer server) throws ArenaLoadException {
@@ -230,6 +236,7 @@ public final class SemionGameManager {
     }
 
     public void tick(MinecraftServer server) {
+        musicService.tick(server, activeGame);
         if (activeGame == null) {
             clearStartCountdown();
             return;
@@ -261,6 +268,7 @@ public final class SemionGameManager {
     }
 
     public void handlePlayerJoin(ServerPlayer player) {
+        musicService.handlePlayerJoin(player);
         MinecraftServer server = player.getServer();
         if (server == null) {
             return;
@@ -289,6 +297,10 @@ public final class SemionGameManager {
                 SemionTd.LOGGER.warn("Failed to send player {} to lobby.", player.getGameProfile().getName(), exception);
             }
         },1);
+    }
+
+    public void handlePlayerWorldChanged(ServerPlayer player) {
+        musicService.handlePlayerWorldChanged(player);
     }
 
     public void shutdown() {

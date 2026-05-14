@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.gametest;
 
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,6 +11,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import eu.pb4.polymer.resourcepack.api.ResourcePackBuilder;
 import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.CurrencyType;
@@ -60,6 +65,10 @@ import kim.biryeong.semiontd.game.TowerSellResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.game.VanillaTeamBridge;
 import kim.biryeong.semiontd.map.ArenaLayout;
+import kim.biryeong.semiontd.music.SemionMusicLibrary;
+import kim.biryeong.semiontd.music.SemionMusicResourcePack;
+import kim.biryeong.semiontd.music.SemionMusicService;
+import kim.biryeong.semiontd.music.SemionMusicTrack;
 import kim.biryeong.semiontd.test.TestTowerService;
 import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
 import kim.biryeong.semiontd.test.tower.TestTower;
@@ -93,6 +102,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 
@@ -1934,6 +1944,126 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         support.configure(new TestTower(rangedSupportType, playerId, TeamId.RED, 1, position), null);
         if (!assertTrue(context, !support.playsRangedAttackSound(), "Non-damage support towers should not use the ranged arrow sound cue.")) {
             return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void musicLibraryReadsConfigOggDurations(GameTestHelper context) {
+        try {
+            Path musicDir = Files.createTempDirectory("semion-music-library");
+            Files.write(musicDir.resolve("Opening Theme!.ogg"), syntheticOggVorbis(48_000, 120_000));
+
+            SemionMusicLibrary library = SemionMusicLibrary.load(musicDir, LoggerFactory.getLogger("semion-music-test"));
+            if (!assertEquals(context, 1, library.tracks().size(), "Music library should load OGG tracks from the config music directory.")) {
+                return;
+            }
+            SemionMusicTrack track = library.tracks().getFirst();
+            if (!assertEquals(context, "opening_theme", track.id(), "Music track ids should be resource-pack safe.")) {
+                return;
+            }
+            if (!assertEquals(context, 50L, track.durationTicks(), "Music library should record OGG playback duration in ticks.")) {
+                return;
+            }
+            if (!assertEquals(context, ResourceLocation.fromNamespaceAndPath("semion-td", "music.opening_theme"), track.eventId(), "Music event ids should use the Semion TD namespace.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Music library test setup failed: " + exception.getMessage()));
+        }
+    }
+
+    @GameTest
+    public void musicResourcePackInjectsOggAssetsAndSoundsJson(GameTestHelper context) {
+        try {
+            Path musicDir = Files.createTempDirectory("semion-music-pack");
+            Files.write(musicDir.resolve("Round One.ogg"), syntheticOggVorbis(44_100, 88_200));
+            SemionMusicLibrary library = SemionMusicLibrary.load(musicDir, LoggerFactory.getLogger("semion-music-test"));
+            CapturingResourcePackBuilder builder = new CapturingResourcePackBuilder();
+
+            SemionMusicResourcePack.addToResourcePack(library, builder, LoggerFactory.getLogger("semion-music-test"));
+
+            if (!assertTrue(
+                    context,
+                    builder.data().containsKey("assets/semion-td/sounds/music/round_one.ogg"),
+                    "Music resource pack hook should copy config OGG files into generated sound assets."
+            )) {
+                return;
+            }
+            String soundsJson = builder.getStringData("assets/semion-td/sounds.json");
+            if (!assertTrue(context, soundsJson != null && soundsJson.contains("\"music.round_one\""), "Music resource pack hook should register the sound event.")) {
+                return;
+            }
+            if (!assertTrue(context, soundsJson.contains("\"name\": \"semion-td:music/round_one\""), "sounds.json should point at the copied sound file.")) {
+                return;
+            }
+            if (!assertTrue(context, soundsJson.contains("\"stream\": true"), "Music sounds should be streamed by the client.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Music resource pack test setup failed: " + exception.getMessage()));
+        }
+    }
+
+    @GameTest
+    public void musicPlaybackTimerAvoidsMidTrackRestarts(GameTestHelper context) {
+        Path fakeSource = Path.of("music.ogg");
+        SemionMusicTrack first = new SemionMusicTrack(
+                "first",
+                fakeSource,
+                ResourceLocation.fromNamespaceAndPath("semion-td", "music.first"),
+                ResourceLocation.fromNamespaceAndPath("semion-td", "music/first"),
+                40L
+        );
+        SemionMusicTrack second = new SemionMusicTrack(
+                "second",
+                fakeSource,
+                ResourceLocation.fromNamespaceAndPath("semion-td", "music.second"),
+                ResourceLocation.fromNamespaceAndPath("semion-td", "music/second"),
+                60L
+        );
+        SemionMusicService service = new SemionMusicService(new SemionMusicLibrary(List.of(first, second)), () -> 100L);
+        UUID playerId = stableUuid("music-player");
+
+        SemionMusicService.PlaybackDecision initial = service.decisionFor(playerId, 0L, true);
+        if (!assertEquals(context, SemionMusicService.PlaybackAction.START_TRACK, initial.action(), "Music should start when a player's client is at the beginning of a track.")) {
+            return;
+        }
+        SemionMusicService.PlaybackDecision midTrackReconnect = service.decisionFor(playerId, 25L, true);
+        if (!assertEquals(context, SemionMusicService.PlaybackAction.WAIT_FOR_NEXT_TRACK, midTrackReconnect.action(), "Reconnects or world changes mid-track should wait for the next track instead of restarting from an impossible offset.")) {
+            return;
+        }
+        SemionMusicService.PlaybackDecision interTrackGap = service.decisionFor(playerId, 40L, true);
+        if (!assertEquals(context, SemionMusicService.PlaybackAction.WAIT_FOR_NEXT_TRACK, interTrackGap.action(), "Music should keep a silent gap after a track ends.")) {
+            return;
+        }
+        if (!assertTrue(context, interTrackGap.track() == null, "Inter-track music gaps should not select a sound event.")) {
+            return;
+        }
+        SemionMusicService.PlaybackDecision nextTrack = service.decisionFor(playerId, 140L, true);
+        if (!assertEquals(context, SemionMusicService.PlaybackAction.START_TRACK, nextTrack.action(), "Stopped clients should resume when the next track boundary arrives.")) {
+            return;
+        }
+        if (!assertEquals(context, second.eventId(), nextTrack.track().eventId(), "The next music boundary should advance to the next configured track.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void musicInterTrackGapIsRandomizedWithinFiveToTenSeconds(GameTestHelper context) {
+        for (int attempt = 0; attempt < 100; attempt++) {
+            long gapTicks = SemionMusicService.randomInterTrackGapTicks();
+            if (!assertTrue(
+                    context,
+                    gapTicks >= SemionMusicService.MIN_INTER_TRACK_GAP_TICKS
+                            && gapTicks <= SemionMusicService.MAX_INTER_TRACK_GAP_TICKS,
+                    "Music inter-track gaps should stay between five and ten seconds."
+            )) {
+                return;
+            }
         }
         context.succeed();
     }
@@ -4278,6 +4408,110 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         CompoundTag data = new CompoundTag();
         data.putInt("order", order);
         return data;
+    }
+
+    private static byte[] syntheticOggVorbis(int sampleRate, long samples) throws java.io.IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        writeOggPage(output, 0L, 0, syntheticVorbisIdentificationPacket(sampleRate));
+        writeOggPage(output, samples, 1, new byte[] {0});
+        return output.toByteArray();
+    }
+
+    private static byte[] syntheticVorbisIdentificationPacket(int sampleRate) {
+        byte[] packet = new byte[30];
+        packet[0] = 1;
+        byte[] vorbis = "vorbis".getBytes(StandardCharsets.US_ASCII);
+        System.arraycopy(vorbis, 0, packet, 1, vorbis.length);
+        packet[11] = 1;
+        writeLittleEndianInt(packet, 12, sampleRate);
+        packet[28] = 0x11;
+        packet[29] = 1;
+        return packet;
+    }
+
+    private static void writeOggPage(ByteArrayOutputStream output, long granulePosition, int sequence, byte[] body) throws java.io.IOException {
+        output.write("OggS".getBytes(StandardCharsets.US_ASCII));
+        output.write(0);
+        output.write(0);
+        writeLittleEndianLong(output, granulePosition);
+        writeLittleEndianInt(output, 1);
+        writeLittleEndianInt(output, sequence);
+        writeLittleEndianInt(output, 0);
+        output.write(1);
+        output.write(body.length);
+        output.write(body);
+    }
+
+    private static void writeLittleEndianInt(ByteArrayOutputStream output, int value) {
+        output.write(value & 0xff);
+        output.write((value >>> 8) & 0xff);
+        output.write((value >>> 16) & 0xff);
+        output.write((value >>> 24) & 0xff);
+    }
+
+    private static void writeLittleEndianInt(byte[] data, int offset, int value) {
+        data[offset] = (byte) (value & 0xff);
+        data[offset + 1] = (byte) ((value >>> 8) & 0xff);
+        data[offset + 2] = (byte) ((value >>> 16) & 0xff);
+        data[offset + 3] = (byte) ((value >>> 24) & 0xff);
+    }
+
+    private static void writeLittleEndianLong(ByteArrayOutputStream output, long value) {
+        for (int index = 0; index < 8; index++) {
+            output.write((int) ((value >>> (8 * index)) & 0xff));
+        }
+    }
+
+    private static final class CapturingResourcePackBuilder implements ResourcePackBuilder {
+        private final Map<String, byte[]> data = new java.util.HashMap<>();
+
+        private Map<String, byte[]> data() {
+            return data;
+        }
+
+        @Override
+        public boolean addData(String path, byte[] data) {
+            this.data.put(path, data);
+            return true;
+        }
+
+        @Override
+        public boolean copyAssets(String modId) {
+            return false;
+        }
+
+        @Override
+        public boolean copyFromPath(Path path, String targetPrefix, boolean override) {
+            return false;
+        }
+
+        @Override
+        public byte @Nullable [] getData(String path) {
+            return data.get(path);
+        }
+
+        @Override
+        public byte @Nullable [] getDataOrSource(String path) {
+            return data.get(path);
+        }
+
+        @Override
+        public void forEachFile(BiConsumer<String, byte[]> consumer) {
+            data.forEach(consumer);
+        }
+
+        @Override
+        public boolean addAssetsSource(String modId) {
+            return false;
+        }
+
+        @Override
+        public void addWriteConverter(BiFunction<String, byte[], byte @Nullable []> converter) {
+        }
+
+        @Override
+        public void addPreFinishTask(Consumer<ResourcePackBuilder> consumer) {
+        }
     }
 
     private static boolean assertTrue(GameTestHelper context, boolean condition, String message) {
