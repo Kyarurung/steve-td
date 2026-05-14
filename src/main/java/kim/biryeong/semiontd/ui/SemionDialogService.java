@@ -1,7 +1,9 @@
 package kim.biryeong.semiontd.ui;
 
 import de.tomalbrc.avatarrenderer.AvatarRendererMod;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,10 +13,13 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
+import kim.biryeong.semiontd.summon.SummonRole;
+import kim.biryeong.semiontd.summon.SummonTier;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
+import kim.biryeong.semiontd.ui.dialog.body.HeaderMessage;
 import net.kyori.adventure.platform.modcommon.impl.NonWrappingComponentSerializer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.network.chat.ClickEvent;
@@ -47,6 +52,7 @@ public final class SemionDialogService {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final int BODY_WIDTH = 360;
     private static final int BUTTON_WIDTH = 180;
+    private static final int COMPACT_BUTTON_WIDTH = 118;
 
     public void showGameStatus(ServerPlayer player, SemionGame game) {
         StringBuilder body = new StringBuilder();
@@ -200,69 +206,56 @@ public final class SemionDialogService {
                 ? List.of()
                 : ProductionTowerService.availableUpgrades(game, player.getUUID(), player.blockPosition());
         if (!upgrades.isEmpty()) {
-            body.append("<gray>선택 가능한 업그레이드</gray>\n");
-            for (TowerUpgradeOption option : upgrades) {
-                body.append("<aqua>").append(option.displayName()).append("</aqua>")
-                        .append(" <gray>비용</gray> <gold>").append(option.mineralCost()).append("</gold>\n");
-            }
+            body.append("<gray>아래 버튼에서 업그레이드 분기를 선택하세요.</gray>\n");
         } else if (selectedTower != null) {
             body.append("<gray>현재 위치 타워는 더 이상 업그레이드할 수 없습니다.</gray>\n");
         } else if (entries.isEmpty()) {
             body.append("<red>현재 직업으로 사용할 수 있는 타워가 없습니다.</red>\n");
         } else {
-            body.append("<gray>현재 위치에서 설치할 타워를 선택하세요.</gray>\n");
-            for (ProductionTowerCatalog.CatalogEntry entry : entries) {
-                body.append("<aqua>").append(entry.type().displayName()).append("</aqua>")
-                        .append(" <gray>비용</gray> <gold>").append(entry.type().mineralCost()).append("</gold>")
-                        .append(" <gray>사거리</gray> <white>").append(Math.round(entry.type().range())).append("</white>")
-                        .append(" <gray>스플래시</gray> <white>").append(entry.behavior().splashRadius()).append("</white>")
-                        .append(" <gray>특성</gray> <green>").append(entry.behavior().mechanicName()).append("</green>\n");
-            }
+            body.append("<gray>건설 후보</gray> <white>").append(entries.size()).append("</white>");
+            body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>\n");
         }
 
-        java.util.ArrayList<ActionButton> actions = new java.util.ArrayList<>();
+        ArrayList<ActionButton> actions = new ArrayList<>();
         if (selectedTower == null) {
             for (ProductionTowerCatalog.CatalogEntry entry : entries) {
-                actions.add(actionButton(
-                        entry.type().displayName(),
-                        "/semiontd tower build " + entry.type().id(),
-                        "현재 위치에 설치합니다."
-                ));
+                actions.add(towerButton(entry));
             }
         } else {
             for (TowerUpgradeOption option : upgrades) {
                 actions.add(actionButton(
                         option.displayName(),
                         "/semiontd tower upgrade " + option.id(),
-                        "현재 위치의 타워를 업그레이드합니다."
+                        upgradeTooltip(option),
+                        COMPACT_BUTTON_WIDTH
                 ));
             }
         }
         actions.add(actionButton("인컴 업그레이드", "/semiontd emeraldup", "에메랄드 생산량을 올립니다."));
         actions.add(actionButton("현재 타워 판매", "/semiontd tower sell", "현재 위치의 내 타워를 판매합니다."));
         actions.add(actionButton("상태 보기", "/semiontd ui", "현재 경기 상태를 엽니다."));
-        showActions(player, "세미온 TD 타워", body.toString(), actions);
+        showActions(player, "세미온 TD 타워", body.toString(), actions, 3);
     }
 
     public void showSummonShop(ServerPlayer player, SemionGame game) {
         StringBuilder body = new StringBuilder();
         body.append("<gradient:#f472b6:#a78bfa><bold>견제 몹 소환</bold></gradient>\n");
-        body.append("<gray>에메랄드를 사용해 상대 라인에 압박 몹을 보냅니다.</gray>\n\n");
-        for (SummonMonsterType type : game.summonShop().all()) {
-            body.append("<light_purple>").append(type.displayName()).append("</light_purple>")
-                    .append(" <gray>비용</gray> <green>").append(type.gasCost()).append("</green>")
-                    .append(" <gray>수입</gray> <gold>+").append(type.incomeGain()).append("</gold>")
-                    .append(" <gray>체력</gray> <white>").append(Math.round(type.maxHealth())).append("</white>\n");
-        }
+        body.append("<gray>티어별 역할 분포입니다. 상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>\n\n");
+        body.append(summonTierTable(game.summonShop().all()));
 
         List<ActionButton> actions = game.summonShop().all().stream()
+                .sorted(Comparator.comparing(SummonMonsterType::tier)
+                        .thenComparing(type -> primaryRole(type).ordinal())
+                        .thenComparingLong(SummonMonsterType::gasCost)
+                        .thenComparing(SummonMonsterType::displayName))
                 .map(type -> actionButton(
-                        type.displayName(),
+                        summonButtonLabel(type),
                         "/semiontd summon " + type.id(),
-                        "이 견제 몹을 소환합니다."
+                        summonTooltip(type),
+                        COMPACT_BUTTON_WIDTH
                 ))
                 .toList();
-        showActions(player, "세미온 TD 소환", body.toString(), actions);
+        showActions(player, "세미온 TD 소환", body.toString(), actions, 4);
     }
 
     private void show(ServerPlayer player, String title, String body) {
@@ -286,6 +279,10 @@ public final class SemionDialogService {
     }
 
     private void showActions(ServerPlayer player, String title, String body, List<ActionButton> actions) {
+        showActions(player, title, body, actions, 2);
+    }
+
+    private void showActions(ServerPlayer player, String title, String body, List<ActionButton> actions, int columns) {
         Dialog dialog = new MultiActionDialog(
                 new CommonDialogData(
                         Component.literal(title),
@@ -293,24 +290,152 @@ public final class SemionDialogService {
                         true,
                         false,
                         DialogAction.CLOSE,
-                        List.<DialogBody>of(new PlainMessage(miniMessage(body), BODY_WIDTH)),
+                        List.<DialogBody>of(HeaderMessage.body(miniMessage(body), BODY_WIDTH)),
                         List.of()
                 ),
                 actions,
                 Optional.of(actionButton("닫기", "", "창을 닫습니다.")),
-                2
+                columns
         );
         player.connection.send(new ClientboundShowDialogPacket(Holder.direct(dialog)));
     }
 
     private static ActionButton actionButton(String label, String command, String tooltip) {
+        return actionButton(label, command, Component.literal(tooltip), BUTTON_WIDTH);
+    }
+
+    private static ActionButton actionButton(String label, String command, Component tooltip, int width) {
         Optional<net.minecraft.server.dialog.action.Action> action = command == null || command.isBlank()
                 ? Optional.empty()
                 : Optional.of(new StaticAction(new ClickEvent.RunCommand(command)));
         return new ActionButton(
-                new CommonButtonData(Component.literal(label), Optional.of(Component.literal(tooltip)), BUTTON_WIDTH),
+                new CommonButtonData(Component.literal(label), Optional.of(tooltip), width),
                 action
         );
+    }
+
+    private static ActionButton towerButton(ProductionTowerCatalog.CatalogEntry entry) {
+        return actionButton(
+                entry.type().displayName(),
+                "/semiontd tower build " + entry.type().id(),
+                towerTooltip(entry),
+                COMPACT_BUTTON_WIDTH
+        );
+    }
+
+    private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry) {
+        var type = entry.type();
+        var behavior = entry.behavior();
+        String upgradeSummary = type.upgradeOptions().isEmpty()
+                ? "업그레이드 없음"
+                : type.upgradeOptions().stream()
+                .map(TowerUpgradeOption::displayName)
+                .collect(Collectors.joining(" / "));
+        return Component.literal(type.displayName())
+                .append(Component.literal("\n비용 " + type.mineralCost() + " 다이아"))
+                .append(Component.literal("\n피해 " + Math.round(type.damage()) + " / 사거리 " + Math.round(type.range())))
+                .append(Component.literal("\n공속 " + type.attackIntervalTicks() + "틱 / 스플래시 " + oneDecimal(behavior.splashRadius())))
+                .append(Component.literal("\n팩션 " + factionLabel(behavior.faction()) + " / 특성 " + behavior.mechanicName()))
+                .append(Component.literal("\n분기 " + upgradeSummary));
+    }
+
+    private static Component upgradeTooltip(TowerUpgradeOption option) {
+        Optional<ProductionTowerCatalog.CatalogEntry> target = ProductionTowerCatalog.find(option.targetTypeId());
+        if (target.isEmpty()) {
+            return Component.literal("대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아");
+        }
+        var entry = target.get();
+        var type = entry.type();
+        return Component.literal(option.displayName())
+                .append(Component.literal("\n대상 " + type.displayName()))
+                .append(Component.literal("\n비용 " + option.mineralCost() + " 다이아"))
+                .append(Component.literal("\n피해 " + Math.round(type.damage()) + " / 사거리 " + Math.round(type.range())))
+                .append(Component.literal("\n스플래시 " + oneDecimal(entry.behavior().splashRadius()) + " / 특성 " + entry.behavior().mechanicName()));
+    }
+
+    private static String summonTierTable(java.util.Collection<SummonMonsterType> summons) {
+        Map<SummonTier, Map<SummonRole, List<SummonMonsterType>>> grouped = new EnumMap<>(SummonTier.class);
+        for (SummonTier tier : SummonTier.values()) {
+            grouped.put(tier, new EnumMap<>(SummonRole.class));
+        }
+        for (SummonMonsterType type : summons) {
+            grouped.get(type.tier())
+                    .computeIfAbsent(primaryRole(type), ignored -> new ArrayList<>())
+                    .add(type);
+        }
+
+        SummonRole[] columns = {SummonRole.SWARM, SummonRole.RUSH, SummonRole.TANK, SummonRole.SIEGE, SummonRole.SUPPORT, SummonRole.DISRUPTOR};
+        StringBuilder table = new StringBuilder();
+        table.append("<dark_gray>|</dark_gray> <gray>티어</gray> ");
+        for (SummonRole role : columns) {
+            table.append("<dark_gray>|</dark_gray> <aqua>").append(roleLabel(role)).append("</aqua> ");
+        }
+        table.append("<dark_gray>|</dark_gray>\n");
+        for (SummonTier tier : SummonTier.values()) {
+            Map<SummonRole, List<SummonMonsterType>> row = grouped.getOrDefault(tier, Map.of());
+            boolean hasAny = row.values().stream().anyMatch(list -> !list.isEmpty());
+            if (!hasAny) {
+                continue;
+            }
+            table.append("<dark_gray>|</dark_gray> <gold>").append(tier.name()).append("</gold> ");
+            for (SummonRole role : columns) {
+                List<SummonMonsterType> values = row.getOrDefault(role, List.of());
+                table.append("<dark_gray>|</dark_gray> ");
+                if (values.isEmpty()) {
+                    table.append("<gray>-</gray> ");
+                } else {
+                    table.append("<white>").append(values.size()).append("</white>");
+                    table.append("<gray>x</gray> ");
+                }
+            }
+            table.append("<dark_gray>|</dark_gray>\n");
+        }
+        return table.toString();
+    }
+
+    private static String summonButtonLabel(SummonMonsterType type) {
+        return type.tier().name() + " " + type.displayName();
+    }
+
+    private static Component summonTooltip(SummonMonsterType type) {
+        return Component.literal(type.displayName())
+                .append(Component.literal("\n티어 " + type.tier().name() + " / 역할 " + roleList(type)))
+                .append(Component.literal("\n비용 " + type.gasCost() + " 에메랄드 / 수입 +" + type.incomeGain()))
+                .append(Component.literal("\n체력 " + Math.round(type.maxHealth()) + " / 방어 " + oneDecimal(type.armor()) + " / 저항 " + oneDecimal(type.resistance())))
+                .append(Component.literal("\n공격 " + oneDecimal(type.attackDamage()) + " / 보상 " + type.mineralReward() + " 다이아"));
+    }
+
+    private static SummonRole primaryRole(SummonMonsterType type) {
+        return type.roles().stream()
+                .max(Comparator.comparingInt(SummonRole::targetPriority))
+                .orElse(SummonRole.RUSH);
+    }
+
+    private static String roleList(SummonMonsterType type) {
+        return type.roles().stream().map(SemionDialogService::roleLabel).collect(Collectors.joining(", "));
+    }
+
+    private static String roleLabel(SummonRole role) {
+        return switch (role) {
+            case SWARM -> "물량";
+            case RUSH -> "러시";
+            case SIEGE -> "공성";
+            case SUPPORT -> "지원";
+            case TANK -> "탱커";
+            case DISRUPTOR -> "교란";
+        };
+    }
+
+    private static String factionLabel(kim.biryeong.semiontd.tower.TowerFaction faction) {
+        return switch (faction) {
+            case VILLAGER -> "주민";
+            case UNDEAD -> "언데드";
+            case BEAST -> "동물";
+        };
+    }
+
+    private static String oneDecimal(double value) {
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
     }
 
     private static Component miniMessage(String text) {
