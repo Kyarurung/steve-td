@@ -984,15 +984,15 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             List<Vec3> laneOneWaypoints = layout.lane(1).orElseThrow().waypoints();
             List<Vec3> laneFiveWaypoints = layout.lane(5).orElseThrow().waypoints();
             if (!assertEquals(context, List.of(
-                    new Vec3(-4.5, 64.0, 1.5),
-                    new Vec3(6.5, 64.0, 0.5),
-                    new Vec3(8.5, 64.0, 0.5)
+                    new Vec3(-4.5, 65.0, 1.5),
+                    new Vec3(6.5, 65.0, 0.5),
+                    new Vec3(8.5, 65.0, 0.5)
             ), laneOneWaypoints, "Lane waypoints should be followed by shared final waypoints.")) {
                 return;
             }
             if (!assertEquals(context, List.of(
-                    new Vec3(6.5, 64.0, 0.5),
-                    new Vec3(8.5, 64.0, 0.5)
+                    new Vec3(6.5, 65.0, 0.5),
+                    new Vec3(8.5, 65.0, 0.5)
             ), laneFiveWaypoints, "Lanes without lane waypoints should still use shared final waypoints.")) {
                 return;
             }
