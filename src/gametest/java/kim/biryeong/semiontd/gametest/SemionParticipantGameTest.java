@@ -15,6 +15,9 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import eu.pb4.polymer.resourcepack.api.ResourcePackBuilder;
+import eu.pb4.placeholders.api.PlaceholderContext;
+import eu.pb4.placeholders.api.PlaceholderResult;
+import eu.pb4.placeholders.api.Placeholders;
 import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.CurrencyType;
@@ -71,6 +74,7 @@ import kim.biryeong.semiontd.music.SemionMusicLibrary;
 import kim.biryeong.semiontd.music.SemionMusicResourcePack;
 import kim.biryeong.semiontd.music.SemionMusicService;
 import kim.biryeong.semiontd.music.SemionMusicTrack;
+import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
 import kim.biryeong.semiontd.test.TestTowerService;
 import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
 import kim.biryeong.semiontd.test.tower.TestTower;
@@ -1494,6 +1498,41 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 unaffordable.getStyle().getColor().getValue(),
                 "Unaffordable tower button labels should be red when the UI opens."
         )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void selectedJobPlaceholderShowsActivePlayerJob(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        ResourceLocation jobId = ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer");
+        SemionGame game = startedSinglePlayerGame(context, player.getUUID(), TeamId.RED, jobId);
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+        SemionPlaceholders.register(manager);
+
+        PlaceholderResult display = Placeholders.parsePlaceholder(
+                ResourceLocation.fromNamespaceAndPath("semion-td", "selected_job"),
+                null,
+                PlaceholderContext.of(player)
+        );
+        if (!assertTrue(context, display.isValid(), "Selected job display placeholder should resolve for a player.")) {
+            return;
+        }
+        if (!assertEquals(context, "주민 기술자", display.text().getString(), "Selected job placeholder should show the chosen job display name.")) {
+            return;
+        }
+
+        PlaceholderResult id = Placeholders.parsePlaceholder(
+                ResourceLocation.fromNamespaceAndPath("semion-td", "selected_job_id"),
+                null,
+                PlaceholderContext.of(player)
+        );
+        if (!assertTrue(context, id.isValid(), "Selected job id placeholder should resolve for a player.")) {
+            return;
+        }
+        if (!assertEquals(context, jobId.toString(), id.text().getString(), "Selected job id placeholder should show the chosen job id.")) {
             return;
         }
         context.succeed();
@@ -4359,6 +4398,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     private static void tickGame(SemionGame game, MinecraftServer server, int ticks) {
         for (int i = 0; i < ticks; i++) {
             game.tick(server);
+        }
+    }
+
+    private static void setField(Object target, String fieldName, Object value) {
+        try {
+            var field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Failed to set field " + fieldName + " on " + target.getClass().getName(), exception);
         }
     }
 

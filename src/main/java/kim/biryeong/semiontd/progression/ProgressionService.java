@@ -7,6 +7,7 @@ import java.util.UUID;
 import kim.biryeong.semiontd.config.ProgressionConfig;
 import kim.biryeong.semiontd.game.MatchParticipantResult;
 import kim.biryeong.semiontd.game.MatchResult;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 
 public final class ProgressionService {
@@ -24,6 +25,12 @@ public final class ProgressionService {
 
     public SemionPlayerProfile profile(MinecraftServer server, UUID playerId, String playerName) {
         return store.getOrCreateProfile(playerId, playerName);
+    }
+
+    public SemionPlayerProfile saveSelectedJob(MinecraftServer server, UUID playerId, String playerName, ResourceLocation jobId) {
+        SemionPlayerProfile updated = store.getOrCreateProfile(playerId, playerName)
+                .updateSelectedJob(playerName, jobId);
+        return store.putProfile(playerId, updated);
     }
 
     public Map<UUID, MatchProgressionReward> applyMatchResult(MinecraftServer server, MatchResult matchResult) {

@@ -9,6 +9,7 @@ import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.music.SemionMusicLibrary;
 import kim.biryeong.semiontd.music.SemionMusicResourcePack;
 import kim.biryeong.semiontd.music.SemionMusicService;
+import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import net.fabricmc.api.ModInitializer;
@@ -45,6 +46,7 @@ public class SemionTd implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 SemionCommands.register(dispatcher, gameManager));
+        SemionPlaceholders.register(gameManager);
         SemionHotbarService.register(gameManager);
         SemionTowerInteractionService.register(gameManager);
         Events.initialize(gameManager);

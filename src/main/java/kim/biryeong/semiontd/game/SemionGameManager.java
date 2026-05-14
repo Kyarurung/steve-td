@@ -25,6 +25,7 @@ import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.util.Scheduler;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Relative;
@@ -41,7 +42,7 @@ public final class SemionGameManager {
     private MapConfig mapConfig = MapConfig.defaultConfig();
     private ProgressionConfig progressionConfig = ProgressionConfig.defaultConfig();
     private Path progressionStorePath;
-    private ProgressionService progressionService;
+    private ProgressionService progressionService = new ProgressionService(progressionConfig, null);
     private SemionMusicService musicService = SemionMusicService.disabled();
     private final SemionDialogService dialogService = new SemionDialogService();
     private final SemionDisplayHudService displayHudService = new SemionDisplayHudService();
@@ -102,6 +103,10 @@ public final class SemionGameManager {
 
     public SemionPlayerProfile profile(MinecraftServer server, UUID playerId, String playerName) {
         return progressionService.profile(server, playerId, playerName);
+    }
+
+    public SemionPlayerProfile saveSelectedJob(MinecraftServer server, UUID playerId, String playerName, ResourceLocation jobId) {
+        return progressionService.saveSelectedJob(server, playerId, playerName, jobId);
     }
 
     public Optional<MatchResult> lastMatchResult() {
@@ -169,6 +174,7 @@ public final class SemionGameManager {
 
         GameArena arena = GameArenaLoader.load(server, mapConfig);
         activeGame = new SemionGame(economyConfig, waveConfig, arena);
+        applyPersistedJobSelections(server, activeGame);
         lastMatchResult = null;
         VanillaTeamBridge.ensureTeams(server);
         sendAllPlayersToLobby(server);
@@ -291,8 +297,14 @@ public final class SemionGameManager {
                 return;
             }
 
+            if (activeGame != null && activeGame.canConfigureRoster()) {
+                applyPersistedJobSelection(server, activeGame, player);
+            }
             try {
                 sendPlayerToLobby(server, player);
+                if (activeGame != null && activeGame.canConfigureRoster()) {
+                    displayHudService.refreshNow(server, activeGame, matchMode);
+                }
             } catch (ArenaLoadException exception) {
                 SemionTd.LOGGER.warn("Failed to send player {} to lobby.", player.getGameProfile().getName(), exception);
             }
@@ -335,6 +347,29 @@ public final class SemionGameManager {
         );
         SemionDisplayHudService.refreshPlayerHud(player);
         SemionHotbarService.clearMatchTools(player);
+    }
+
+    private void applyPersistedJobSelections(MinecraftServer server, SemionGame game) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            applyPersistedJobSelection(server, game, player);
+        }
+    }
+
+    private void applyPersistedJobSelection(MinecraftServer server, SemionGame game, ServerPlayer player) {
+        SemionPlayerProfile profile = progressionService.profile(
+                server,
+                player.getUUID(),
+                player.getGameProfile().getName()
+        );
+        profile.selectedJobResource().ifPresent(jobId -> {
+            if (!game.selectJob(player.getUUID(), jobId)) {
+                SemionTd.LOGGER.warn(
+                        "Ignoring persisted Semion TD job {} for player {}; the job is not available.",
+                        jobId,
+                        player.getGameProfile().getName()
+                );
+            }
+        });
     }
 
     private void tickStartCountdown(MinecraftServer server) {

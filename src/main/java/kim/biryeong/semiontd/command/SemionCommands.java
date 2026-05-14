@@ -587,7 +587,11 @@ public final class SemionCommands {
         success(source, "프로필 장식재화=" + profile.cosmeticCurrency()
                 + ", 플레이=" + profile.gamesPlayed()
                 + ", 승=" + profile.wins()
-                + ", 패=" + profile.losses());
+                + ", 패=" + profile.losses()
+                + ", 저장 직업=" + profile.selectedJobResource()
+                        .flatMap(JobRegistry::find)
+                        .map(job -> job.displayName().getString())
+                        .orElse(JobRegistry.defaultJob().displayName().getString()));
         return 1;
     }
 
@@ -655,11 +659,14 @@ public final class SemionCommands {
             return 0;
         }
 
-        SemionJob job = game.selectedJobOrDefault(source.getPlayerOrException().getUUID());
+        ServerPlayer player = source.getPlayerOrException();
+        SemionJob job = game.selectedJobOrDefault(player.getUUID());
+        gameManager.saveSelectedJob(source.getServer(), player.getUUID(), player.getGameProfile().getName(), job.id());
         success(source, "직업을 선택했습니다: "
                 + job.id()
                 + " => "
-                + job.displayName().getString());
+                + job.displayName().getString()
+                + " (다음 로비부터 자동 적용)");
         return 1;
     }
 

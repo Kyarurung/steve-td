@@ -1,5 +1,8 @@
 package kim.biryeong.semiontd.ui;
 
+import eu.pb4.placeholders.api.PlaceholderContext;
+import eu.pb4.placeholders.api.PlaceholderResult;
+import eu.pb4.placeholders.api.Placeholders;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,8 @@ import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.SemionTeam;
 import kim.biryeong.semiontd.game.StartCandidate;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.job.JobRegistry;
+import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -113,14 +118,16 @@ public final class SemionDisplayHudService {
         String readyLabel = ready ? "<green><bold>준비 완료</bold></green>" : "<red><bold>미준비</bold></red>";
         int onlinePlayers = server.getPlayerList().getPlayerCount();
         String startableLabel = startableText(server, game, matchMode);
+        String selectedJob = selectedJobText(viewer, null);
         return miniMessage("""
                 %s
                 <gray>상태</gray> <yellow>대기 중</yellow>
                 <gray>게임 모드</gray> <aqua>%s</aqua>
+                <gray>선택 직업</gray> <yellow>%s</yellow>
                 <gray>준비 인원</gray> <green>%d</green><dark_gray>/</dark_gray><white>%d</white>
                 <gray>준비 상태</gray> %s
                 <gray>시작 가능</gray> %s
-                """.formatted(SemionText.BRAND_MARKUP, matchModeLabel(matchMode), game.readyPlayerCount(), onlinePlayers, readyLabel, startableLabel));
+                """.formatted(SemionText.BRAND_MARKUP, matchModeLabel(matchMode), selectedJob, game.readyPlayerCount(), onlinePlayers, readyLabel, startableLabel));
     }
 
     private static Component miniMessage(String text) {
@@ -128,19 +135,27 @@ public final class SemionDisplayHudService {
     }
 
     private static Component matchTextFor(ServerPlayer viewer, SemionGame game, MatchMode matchMode) {
-        return miniMessage(matchMarkupFor(viewer.getUUID(), viewingTeam(viewer, game), game, matchMode));
+        return miniMessage(matchMarkupFor(viewer, viewingTeam(viewer, game), game, matchMode));
     }
 
     public static String matchMarkupFor(UUID viewerId, Optional<SemionTeam> viewingTeam, SemionGame game, MatchMode matchMode) {
+        return matchMarkupFor(viewerId, null, viewingTeam, game, matchMode);
+    }
+
+    private static String matchMarkupFor(ServerPlayer viewer, Optional<SemionTeam> viewingTeam, SemionGame game, MatchMode matchMode) {
+        return matchMarkupFor(viewer.getUUID(), viewer, viewingTeam, game, matchMode);
+    }
+
+    private static String matchMarkupFor(UUID viewerId, ServerPlayer viewer, Optional<SemionTeam> viewingTeam, SemionGame game, MatchMode matchMode) {
         StringBuilder text = new StringBuilder();
         appendMatchHeader(text, game, matchMode);
 
         SemionPlayer player = game.players().get(viewerId);
         SemionTeam playerTeam = player == null ? null : game.teams().get(player.teamId());
         if (player != null && playerTeam != null && playerTeam.eliminated()) {
-            appendEliminatedPlayerHud(text, player, playerTeam, viewingTeam);
+            appendEliminatedPlayerHud(text, viewer, player, playerTeam, viewingTeam);
         } else if (player != null) {
-            appendActivePlayerHud(text, player, playerTeam);
+            appendActivePlayerHud(text, viewer, player, playerTeam);
             appendTeamBossSummary(text, game);
         } else {
             appendSpectatorHud(text, viewingTeam);
@@ -162,13 +177,16 @@ public final class SemionDisplayHudService {
         text.append('\n');
     }
 
-    private static void appendActivePlayerHud(StringBuilder text, SemionPlayer player, SemionTeam team) {
+    private static void appendActivePlayerHud(StringBuilder text, ServerPlayer viewer, SemionPlayer player, SemionTeam team) {
         PlayerEconomy economy = player.economy();
         text.append("<gray>팀/라인</gray> ")
                 .append(teamNameText(player.teamId()))
                 .append(" <dark_gray>/</dark_gray> <white>")
                 .append(player.laneId())
                 .append("</white>\n");
+        text.append("<gray>직업</gray> <yellow>")
+                .append(selectedJobText(viewer, player))
+                .append("</yellow>\n");
         text.append("<gray>다이아</gray> <aqua>")
                 .append(economy.diamond())
                 .append("</aqua> <gray>에메랄드</gray> <green>")
@@ -200,6 +218,7 @@ public final class SemionDisplayHudService {
 
     private static void appendEliminatedPlayerHud(
             StringBuilder text,
+            ServerPlayer viewer,
             SemionPlayer player,
             SemionTeam playerTeam,
             Optional<SemionTeam> viewingTeam
@@ -210,6 +229,9 @@ public final class SemionDisplayHudService {
                 .append(" <dark_gray>/</dark_gray> <white>")
                 .append(player.laneId())
                 .append("</white>\n");
+        text.append("<gray>직업</gray> <yellow>")
+                .append(selectedJobText(viewer, player))
+                .append("</yellow>\n");
         text.append("<gray>소속 팀 보스</gray> ")
                 .append(bossHealthText(playerTeam))
                 .append('\n');
@@ -223,6 +245,23 @@ public final class SemionDisplayHudService {
                             .append(bossHealthText(team))
                             .append('\n');
                 });
+    }
+
+    private static String selectedJobText(ServerPlayer viewer, SemionPlayer player) {
+        if (viewer != null) {
+            PlaceholderResult result = Placeholders.parsePlaceholder(
+                    SemionPlaceholders.SELECTED_JOB,
+                    null,
+                    PlaceholderContext.of(viewer)
+            );
+            if (result.isValid()) {
+                return result.text().getString();
+            }
+        }
+        if (player != null) {
+            return player.job().orElse(JobRegistry.defaultJob()).displayName().getString();
+        }
+        return JobRegistry.defaultJob().displayName().getString();
     }
 
     private static void appendTeamBossSummary(StringBuilder text, SemionGame game) {

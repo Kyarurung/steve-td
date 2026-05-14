@@ -723,6 +723,57 @@ public final class SemionLifecycleGameTest implements CustomTestMethodInvoker {
     }
 
     @GameTest
+    public void selectedJobPersistsAndAppliesToNewLobby(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        MinecraftServer server = context.getLevel().getServer();
+        ResourceLocation jobId = ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer");
+        Path storePath;
+        try {
+            storePath = Files.createTempDirectory("semion-selected-job-test").resolve("profiles.json");
+        } catch (java.io.IOException exception) {
+            context.fail(Component.literal("Failed to create temporary selected-job store path."));
+            return;
+        }
+
+        ProgressionService progressionService = new ProgressionService(ProgressionConfig.defaultConfig(), storePath);
+        progressionService.saveSelectedJob(server, player.getUUID(), player.getGameProfile().getName(), jobId);
+        ProgressionService reloaded = new ProgressionService(ProgressionConfig.defaultConfig(), storePath);
+        if (!assertEquals(
+                context,
+                jobId,
+                reloaded.profile(server, player.getUUID(), player.getGameProfile().getName()).selectedJobResource().orElse(null),
+                "Selected job should survive progression store reload."
+        )) {
+            return;
+        }
+
+        SemionGameManager manager = new SemionGameManager();
+        manager.configure(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                MapConfig.defaultConfig(),
+                ProgressionConfig.defaultConfig(),
+                storePath
+        );
+        try {
+            SemionGame game = manager.createGame(server);
+            if (!assertEquals(
+                    context,
+                    jobId,
+                    game.selectedJobOrDefault(player.getUUID()).id(),
+                    "New lobbies should preselect each online player's persisted job."
+            )) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Persisted selected job should apply to a new lobby: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
     public void gameManagerFinalizesEndedMatchAndClearsActiveGame(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();
         UUID redId = playerId("manager-red");
