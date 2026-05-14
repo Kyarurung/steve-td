@@ -28,13 +28,14 @@ import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionLaneIndicatorService;
-import net.minecraft.network.chat.Component;
+import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
 
 public final class SemionGame {
@@ -54,6 +55,7 @@ public final class SemionGame {
     private final Set<UUID> initialSpectatorIds = new HashSet<>();
     private final Set<UUID> matchSpectatorIds = new HashSet<>();
     private final Set<TeamId> announcedEliminations = new HashSet<>();
+    private final Set<TeamId> currentWaveTeamIds = new HashSet<>();
     private RoundPhase phase = RoundPhase.WAITING;
     private boolean rosterLocked;
     private int currentRound = 1;
@@ -256,6 +258,26 @@ public final class SemionGame {
         return true;
     }
 
+    public boolean preloadWorldsForStart(ParticipantSelectionPlan plan) {
+        if (!canConfigureRoster() || plan.activeParticipants().isEmpty()) {
+            return false;
+        }
+
+        Set<TeamId> activeTeams = new HashSet<>();
+        for (AssignedParticipant participant : plan.activeParticipants()) {
+            activeTeams.add(participant.teamId());
+        }
+
+        for (TeamId teamId : activeTeams) {
+            Optional<TeamArena> teamArena = arena.teamArena(teamId);
+            if (teamArena.isEmpty()) {
+                return false;
+            }
+            teamArena.get().preloadForTeleport();
+        }
+        return true;
+    }
+
     public void close() {
         arena.unload();
     }
@@ -443,7 +465,9 @@ public final class SemionGame {
         phase = RoundPhase.LANE_WAVE;
         phaseTicks = 0;
         finalDefenseForcedThisRound = false;
+        currentWaveTeamIds.clear();
         for (SemionTeam team : livingTeams()) {
+            currentWaveTeamIds.add(team.id());
             for (PlayerLane lane : team.laneGroup().lanes()) {
                 lane.markWaveStarted(currentRound);
             }
@@ -466,10 +490,15 @@ public final class SemionGame {
         if (checkVictory()) {
             return;
         }
-        if (livingTeams().stream().allMatch(SemionTeam::isRoundResolved)) {
+        if (currentWaveTeamIds.stream().allMatch(this::isCurrentWaveTeamResolved)) {
             phase = RoundPhase.ROUND_PAYOUT;
             phaseTicks = 0;
         }
+    }
+
+    private boolean isCurrentWaveTeamResolved(TeamId teamId) {
+        SemionTeam team = teams.get(teamId);
+        return team == null || team.isRoundResolved();
     }
 
     private void forceFinalDefenseForLivingTeams() {
@@ -481,6 +510,7 @@ public final class SemionGame {
     private void tickPayout(MinecraftServer server) {
         notifyRoundEnded(currentRound);
         economyService.payRoundIncome(players.values(), teams);
+        currentWaveTeamIds.clear();
         currentRound++;
         startPreparePhase(server);
     }
@@ -598,15 +628,15 @@ public final class SemionGame {
         arena.teamArena(activePlayer.teamId()).ifPresent(teamArena -> {
             Vec3 position = StartPlacement.activePlayerSpawn(teamArena.layout(), activePlayer.laneId());
             player.setGameMode(GameType.ADVENTURE);
-            player.teleportTo(
-                    teamArena.world(),
-                    position.x,
-                    position.y,
-                    position.z,
-                    Set.<Relative>of(),
-                    player.getYRot(),
-                    player.getXRot(),
-                    false
+            player.teleport(
+                    new TeleportTransition(
+                            teamArena.world(),
+                            position,
+                            Vec3.ZERO,
+                            player.getXRot(),
+                            player.getYRot(),
+                            TeleportTransition.DO_NOTHING
+                    )
             );
             SemionDisplayHudService.refreshPlayerHud(player);
             SemionHotbarService.grantMatchTools(player);
@@ -629,15 +659,15 @@ public final class SemionGame {
         spectatorArena(fallbackTeam).ifPresent(teamArena -> {
             Vec3 position = StartPlacement.spectatorSpawn(teamArena.layout(), spectatorIndex);
             player.setGameMode(GameType.SPECTATOR);
-            player.teleportTo(
-                    teamArena.world(),
-                    position.x,
-                    position.y,
-                    position.z,
-                    Set.<Relative>of(),
-                    player.getYRot(),
-                    player.getXRot(),
-                    false
+            player.teleport(
+                    new TeleportTransition(
+                            teamArena.world(),
+                            position,
+                            Vec3.ZERO,
+                            player.getXRot(),
+                            player.getYRot(),
+                            TeleportTransition.DO_NOTHING
+                    )
             );
             SemionDisplayHudService.refreshPlayerHud(player);
             SemionHotbarService.clearMatchTools(player);
@@ -648,15 +678,15 @@ public final class SemionGame {
         spectatorArenaForActiveTeam(targetTeam).ifPresent(teamArena -> {
             Vec3 position = StartPlacement.spectatorSpawn(teamArena.layout(), spectatorIndex);
             player.setGameMode(GameType.SPECTATOR);
-            player.teleportTo(
-                    teamArena.world(),
-                    position.x,
-                    position.y,
-                    position.z,
-                    Set.<Relative>of(),
-                    player.getYRot(),
-                    player.getXRot(),
-                    false
+            player.teleport(
+                    new TeleportTransition(
+                            teamArena.world(),
+                            position,
+                            Vec3.ZERO,
+                            player.getXRot(),
+                            player.getYRot(),
+                            TeleportTransition.DO_NOTHING
+                    )
             );
             SemionDisplayHudService.refreshPlayerHud(player);
             SemionHotbarService.clearMatchTools(player);
@@ -728,7 +758,7 @@ public final class SemionGame {
             }
             VanillaTeamBridge.assignSpectator(server, player);
             placeSpectatorPlayer(player, spectatorIndex(memberId), team.id());
-            player.sendSystemMessage(Component.literal("Your team has been eliminated. You are now spectating."));
+            player.sendSystemMessage(SemionText.prefixedPlain("소속 팀이 탈락했습니다. 관전 모드로 전환됩니다."));
         }
         for (UUID memberId : team.memberIds()) {
             SemionPlayer semionPlayer = players.get(memberId);
@@ -739,7 +769,7 @@ public final class SemionGame {
 
         if (server != null) {
             server.getPlayerList().broadcastSystemMessage(
-                    Component.literal("Semion TD: " + team.id().name() + " team has been eliminated."),
+                    SemionText.prefixedMini("<red>" + team.id().name() + "</red> 팀이 탈락했습니다."),
                     false
             );
         }

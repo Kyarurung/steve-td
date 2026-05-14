@@ -67,12 +67,16 @@ public final class ProductionTowerService {
     }
 
     public static SaleResult sellTower(SemionGame game, UUID playerId, BlockPos blockPos) {
+        return sellTower(game, playerId, GridPosition.from(blockPos));
+    }
+
+    public static SaleResult sellTower(SemionGame game, UUID playerId, GridPosition position) {
         LaneContext laneContext = resolveActiveLaneContext(game, playerId);
         if (laneContext.failureResult != null) {
             return SaleResult.failure(mapSellFailure(laneContext.failureResult));
         }
 
-        Tower tower = laneContext.lane.towerAt(GridPosition.from(blockPos));
+        Tower tower = laneContext.lane.towerAt(position);
         if (tower == null) {
             return SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION);
         }
@@ -102,12 +106,16 @@ public final class ProductionTowerService {
     }
 
     public static List<TowerUpgradeOption> availableUpgrades(SemionGame game, UUID playerId, BlockPos blockPos) {
+        return availableUpgrades(game, playerId, GridPosition.from(blockPos));
+    }
+
+    public static List<TowerUpgradeOption> availableUpgrades(SemionGame game, UUID playerId, GridPosition position) {
         LaneContext laneContext = resolveLaneContext(game, playerId);
         if (laneContext.failureResult != null) {
             return List.of();
         }
 
-        Tower tower = laneContext.lane.towerAt(GridPosition.from(blockPos));
+        Tower tower = laneContext.lane.towerAt(position);
         if (!(tower instanceof ProductionTower productionTower) || !productionTower.ownerPlayer().equals(playerId)) {
             return List.of();
         }
@@ -115,12 +123,16 @@ public final class ProductionTowerService {
     }
 
     public static TowerUpgradeResult upgradeTower(SemionGame game, UUID playerId, BlockPos blockPos, String upgradeId) {
+        return upgradeTower(game, playerId, GridPosition.from(blockPos), upgradeId);
+    }
+
+    public static TowerUpgradeResult upgradeTower(SemionGame game, UUID playerId, GridPosition position, String upgradeId) {
         LaneContext laneContext = resolveLaneContext(game, playerId);
         if (laneContext.failureResult != null) {
             return mapPlacementFailure(laneContext.failureResult);
         }
 
-        Tower tower = laneContext.lane.towerAt(GridPosition.from(blockPos));
+        Tower tower = laneContext.lane.towerAt(position);
         if (!(tower instanceof ProductionTower productionTower)) {
             return tower == null ? TowerUpgradeResult.NO_TOWER_AT_POSITION : TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
         }

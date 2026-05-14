@@ -169,7 +169,6 @@ public final class PlayerLane {
             tower.tick(this);
         }
         syncTowerStates();
-        removeDestroyedTowers();
 
         Iterator<Monster> iterator = activeMonsters.iterator();
         while (iterator.hasNext()) {
@@ -236,19 +235,6 @@ public final class PlayerLane {
         waveMonsterSpawnQueue.clear();
         summonedMonsterSpawnQueue.clear();
         clearedThisRound = true;
-    }
-
-    private void removeDestroyedTowers() {
-        Iterator<Tower> iterator = towers.iterator();
-        while (iterator.hasNext()) {
-            Tower tower = iterator.next();
-            if (!tower.isDestroyed(this)) {
-                continue;
-            }
-
-            tower.onRemoved(this);
-            iterator.remove();
-        }
     }
 
     public List<DefenderEntity> releaseDefendersToFinalDefense() {

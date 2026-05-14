@@ -100,6 +100,10 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
         return laneId;
     }
 
+    public TestTower runtimeTower() {
+        return runtimeTower;
+    }
+
     public UUID ownerPlayer() {
         return ownerPlayer;
     }

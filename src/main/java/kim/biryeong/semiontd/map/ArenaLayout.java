@@ -28,17 +28,16 @@ public record ArenaLayout(
         lanes = Map.copyOf(lanes);
     }
 
-    public static ArenaLayout fromTemplate(MapTemplate template, BlockPos origin, MapConfig.RegionMarkers markers)
+    public static ArenaLayout fromTemplate(MapTemplate template, MapConfig.RegionMarkers markers)
             throws ArenaLoadException {
-        Vec3 teamSpawn = requiredPoint(template, origin, markers.teamSpawn());
-        Vec3 bossSpawn = requiredPoint(template, origin, markers.bossSpawn());
-        Map<Integer, Vec3> laneSpawns = readLanePoints(template, origin, markers.laneSpawn());
-        Map<Integer, BlockBounds> laneAreas = readLaneBounds(template, origin, markers.lanePath());
-        Map<Integer, List<OrderedPoint>> laneWaypoints = readLaneWaypoints(template, origin, markers.laneWaypoint());
-        List<Vec3> finalWaypoints = readOrderedPoints(template, origin, markers.finalWaypoint());
+        Vec3 teamSpawn = requiredPoint(template, markers.teamSpawn());
+        Vec3 bossSpawn = requiredPoint(template, markers.bossSpawn());
+        Map<Integer, Vec3> laneSpawns = readLanePoints(template, markers.laneSpawn());
+        Map<Integer, BlockBounds> laneAreas = readLaneBounds(template, markers.lanePath());
+        Map<Integer, List<OrderedPoint>> laneWaypoints = readLaneWaypoints(template, markers.laneWaypoint());
+        List<Vec3> finalWaypoints = readOrderedPoints(template, markers.finalWaypoint());
         FinalDefenseTowerSlots finalDefenseTowerSlots = readFinalDefenseTowerSlots(
                 template,
-                origin,
                 markers.finalDefenseTower(),
                 bossSpawn
         );
@@ -63,47 +62,46 @@ public record ArenaLayout(
         return Optional.ofNullable(lanes.get(laneId));
     }
 
-    private static Vec3 requiredPoint(MapTemplate template, BlockPos origin, String marker) throws ArenaLoadException {
+    private static Vec3 requiredPoint(MapTemplate template, String marker) throws ArenaLoadException {
         TemplateRegion region = template.getMetadata().getFirstRegion(marker);
         if (region == null) {
             throw new ArenaLoadException("Missing map region " + marker + ".");
         }
-        return centerBottom(region, origin);
+        return center(region);
     }
 
-    private static Map<Integer, Vec3> readLanePoints(MapTemplate template, BlockPos origin, String marker) {
+    private static Map<Integer, Vec3> readLanePoints(MapTemplate template, String marker) {
         Map<Integer, Vec3> points = new HashMap<>();
         template.getMetadata().getRegions(marker).forEach(region -> readLane(dataOrEmpty(region))
-                .ifPresent(laneId -> points.putIfAbsent(laneId, centerBottom(region, origin))));
+                .ifPresent(laneId -> points.putIfAbsent(laneId, center(region))));
         return points;
     }
 
-    private static Map<Integer, BlockBounds> readLaneBounds(MapTemplate template, BlockPos origin, String marker) {
+    private static Map<Integer, BlockBounds> readLaneBounds(MapTemplate template, String marker) {
         Map<Integer, BlockBounds> bounds = new HashMap<>();
         template.getMetadata().getRegions(marker).forEach(region -> readLane(dataOrEmpty(region))
-                .ifPresent(laneId -> bounds.putIfAbsent(laneId, region.getBounds().offset(origin))));
+                .ifPresent(laneId -> bounds.putIfAbsent(laneId, region.getBounds())));
         return bounds;
     }
 
     private static Map<Integer, List<OrderedPoint>> readLaneWaypoints(
             MapTemplate template,
-            BlockPos origin,
             String marker
     ) {
         Map<Integer, List<OrderedPoint>> waypoints = new HashMap<>();
         template.getMetadata().getRegions(marker).forEach(region -> readLane(dataOrEmpty(region)).ifPresent(laneId -> {
             int order = dataOrEmpty(region).getIntOr("order", waypoints.getOrDefault(laneId, List.of()).size());
             waypoints.computeIfAbsent(laneId, ignored -> new ArrayList<>())
-                    .add(new OrderedPoint(order, centerBottom(region, origin)));
+                    .add(new OrderedPoint(order, center(region)));
         }));
         return waypoints;
     }
 
-    private static List<Vec3> readOrderedPoints(MapTemplate template, BlockPos origin, String marker) {
+    private static List<Vec3> readOrderedPoints(MapTemplate template, String marker) {
         List<OrderedPoint> points = new ArrayList<>();
         template.getMetadata().getRegions(marker).forEach(region -> {
             int order = dataOrEmpty(region).getIntOr("order", points.size());
-            points.add(new OrderedPoint(order, centerBottom(region, origin)));
+            points.add(new OrderedPoint(order, center(region)));
         });
         return points.stream()
                 .sorted(Comparator.comparingInt(OrderedPoint::order))
@@ -113,7 +111,6 @@ public record ArenaLayout(
 
     private static FinalDefenseTowerSlots readFinalDefenseTowerSlots(
             MapTemplate template,
-            BlockPos origin,
             String marker,
             Vec3 bossSpawn
     ) {
@@ -121,11 +118,11 @@ public record ArenaLayout(
         Map<Integer, List<GridPosition>> laneSlots = new HashMap<>();
         List<TemplateRegion> regions = finalDefenseRegions(template, marker);
         regions.forEach(region -> readLane(dataOrEmpty(region)).ifPresent(laneId -> {
-            List<GridPosition> regionSlots = finalDefenseSlots(region.getBounds().offset(origin), bossSpawn);
+            List<GridPosition> regionSlots = finalDefenseSlots(region.getBounds(), bossSpawn);
             laneSlots.put(laneId, regionSlots);
         }));
         regions.stream().filter(region -> readLane(dataOrEmpty(region)).isEmpty())
-                .forEach(region -> sharedSlots.addAll(finalDefenseSlots(region.getBounds().offset(origin), bossSpawn)));
+                .forEach(region -> sharedSlots.addAll(finalDefenseSlots(region.getBounds(), bossSpawn)));
         sharedSlots.sort(finalDefenseSlotComparator(bossSpawn));
         return new FinalDefenseTowerSlots(List.copyOf(sharedSlots), laneSlots);
     }
@@ -159,8 +156,8 @@ public record ArenaLayout(
         return Optional.of(laneId);
     }
 
-    private static Vec3 centerBottom(TemplateRegion region, BlockPos origin) {
-        return region.getBounds().offset(origin).centerBottom();
+    private static Vec3 center(TemplateRegion region) {
+        return region.getBounds().centerTop();
     }
 
     private static Vec3 requiredLanePoint(Map<Integer, Vec3> points, int laneId, String marker)

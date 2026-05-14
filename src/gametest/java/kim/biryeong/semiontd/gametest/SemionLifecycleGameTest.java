@@ -334,6 +334,59 @@ public final class SemionLifecycleGameTest implements CustomTestMethodInvoker {
         }
     }
 
+    @GameTest
+    public void gameManagerStartsAfterPreloadCountdown(GameTestHelper context) {
+        MinecraftServer server = context.getLevel().getServer();
+        UUID redId = playerId("manager-countdown-red");
+        UUID blueId = playerId("manager-countdown-blue");
+        SemionGame game = new SemionGame(EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(), SyntheticArenaFactory.create(
+                context.getLevel(),
+                context.absolutePos(BlockPos.ZERO)
+        ));
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redId, "manager-countdown-red", TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "manager-countdown-blue", TeamId.BLUE, 1)
+                ),
+                Set.of(),
+                2
+        );
+
+        if (!assertEquals(
+                context,
+                SemionGameManager.StartCountdownResult.SCHEDULED,
+                manager.scheduleStart(server, plan),
+                "Manager start should schedule a preload countdown."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, manager.startCountdownActive(), "Start countdown should be active before the game starts.")) {
+            return;
+        }
+        if (!assertEquals(context, RoundPhase.WAITING, game.phase(), "Scheduled start should not immediately leave waiting phase.")) {
+            return;
+        }
+
+        for (int i = 0; i < SemionGameManager.START_COUNTDOWN_TICKS; i++) {
+            manager.tick(server);
+        }
+
+        if (!assertTrue(context, !manager.startCountdownActive(), "Start countdown should clear after the countdown finishes.")) {
+            return;
+        }
+        if (!assertTrue(context, game.rosterLocked(), "Game should lock the roster when the countdown finishes.")) {
+            return;
+        }
+        if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Game should enter prepare phase after the countdown.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 700)
     public void actualArenaSupportsMinimumPlayableActionLoop(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();

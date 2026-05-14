@@ -75,6 +75,18 @@ public class TestTower extends Tower {
     }
 
     @Override
+    public void resetForRound(PlayerLane lane) {
+        boolean shouldRespawn = shouldRespawnEntity(lane);
+        if (shouldRespawn) {
+            onRemoved(lane);
+        }
+        super.resetForRound(lane);
+        if (shouldRespawn) {
+            onPlaced(lane);
+        }
+    }
+
+    @Override
     public boolean isDestroyed(PlayerLane lane) {
         if (entityId < 0) {
             return false;
@@ -91,6 +103,15 @@ public class TestTower extends Tower {
         return entity == null || entity.isRemoved() || !entity.isAlive();
     }
 
+    private boolean shouldRespawnEntity(PlayerLane lane) {
+        if (entityId < 0) {
+            return true;
+        }
+
+        var entity = lane.arenaWorld().getEntity(entityId);
+        return !(entity instanceof SemionTestTowerEntity towerEntity) || towerEntity.isRemoved() || !towerEntity.isAlive();
+    }
+
     @Override
     public void tick(PlayerLane lane) {
     }
@@ -100,4 +121,3 @@ public class TestTower extends Tower {
         return false;
     }
 }
-

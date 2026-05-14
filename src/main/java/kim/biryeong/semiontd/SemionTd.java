@@ -7,6 +7,7 @@ import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
+import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -39,14 +40,8 @@ public class SemionTd implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 SemionCommands.register(dispatcher, gameManager));
         SemionHotbarService.register(gameManager);
-        ServerTickEvents.END_SERVER_TICK.register(server -> {
-            gameManager.tick(server);
-            gameManager.tickStartupLobbyLoad(server);
-        });
-        ServerLifecycleEvents.SERVER_STARTED.register(gameManager::scheduleStartupLobbyLoad);
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> gameManager.shutdown());
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> gameManager.handlePlayerJoin(handler.getPlayer()));
-
+        SemionTowerInteractionService.register(gameManager);
+        Events.initialize(gameManager);
         LOGGER.info("Semion TD initialized.");
     }
 }

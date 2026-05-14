@@ -22,6 +22,7 @@ import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.ui.dialog.body.HeaderMessage;
 import net.kyori.adventure.platform.modcommon.impl.NonWrappingComponentSerializer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import kim.biryeong.semiontd.game.MatchParticipantResult;
 import kim.biryeong.semiontd.game.MatchResult;
@@ -53,6 +54,7 @@ public final class SemionDialogService {
     private static final int BODY_WIDTH = 360;
     private static final int BUTTON_WIDTH = 180;
     private static final int COMPACT_BUTTON_WIDTH = 118;
+    private static final int SUMMON_BUTTON_WIDTH = 82;
 
     public void showGameStatus(ServerPlayer player, SemionGame game) {
         StringBuilder body = new StringBuilder();
@@ -150,25 +152,25 @@ public final class SemionDialogService {
 
     public void showJobSelection(ServerPlayer player, SemionGame game) {
         SemionJob currentJob = game.selectedJobOrDefault(player.getUUID());
-        StringBuilder body = new StringBuilder();
-        body.append("<gradient:#67e8f9:#a78bfa><bold>직업 선택</bold></gradient>\n");
-        body.append("<gray>현재 선택</gray> <yellow>").append(currentJob.displayName().getString()).append("</yellow>\n\n");
+        MutableComponent body = mutableMiniMessage("<gradient:#67e8f9:#a78bfa><bold>직업 선택</bold></gradient>\n")
+                .append(miniMessage("<gray>현재 선택</gray> <yellow>" + currentJob.displayName().getString() + "</yellow>\n\n"));
         for (SemionJob job : JobRegistry.all()) {
-            body.append("<aqua>").append(job.displayName().getString()).append("</aqua>\n");
+            String command = "/semiontd job select " + job.id();
+            body.append(miniMessage("<aqua><bold>" + job.displayName().getString() + "</bold></aqua>"))
+                    .append(Component.literal("  "))
+                    .append(Component.literal("[선택]")
+                            .withStyle(style -> style
+                                    .withColor(ChatFormatting.GREEN)
+                                    .withBold(true)
+                                    .withClickEvent(new ClickEvent.RunCommand(command))))
+                    .append(Component.literal("\n"));
             for (Component line : job.description()) {
-                body.append("<gray>- ").append(line.getString()).append("</gray>\n");
+                body.append(miniMessage("<gray>- " + line.getString() + "</gray>\n"));
             }
-            body.append('\n');
+            body.append(Component.literal("\n"));
         }
 
-        List<ActionButton> actions = JobRegistry.all().stream()
-                .map(job -> actionButton(
-                        job.displayName().getString(),
-                        "/semiontd job select " + job.id(),
-                        "이 직업으로 플레이합니다."
-                ))
-                .toList();
-        showActions(player, "세미온 TD 직업", body.toString(), actions);
+        show(player, "세미온 TD 직업", body);
     }
 
     public void showTowerControl(ServerPlayer player, SemionGame game) {
@@ -232,9 +234,69 @@ public final class SemionDialogService {
             }
         }
         actions.add(actionButton("인컴 업그레이드", "/semiontd emeraldup", "에메랄드 생산량을 올립니다."));
-        actions.add(actionButton("현재 타워 판매", "/semiontd tower sell", "현재 위치의 내 타워를 판매합니다."));
         actions.add(actionButton("상태 보기", "/semiontd ui", "현재 경기 상태를 엽니다."));
         showActions(player, "세미온 TD 타워", body.toString(), actions, 3);
+    }
+
+    public void showTowerDetails(ServerPlayer player, SemionGame game, Tower tower) {
+        if (tower == null) {
+            show(player, "세미온 TD 타워", "<red>타워 정보를 찾을 수 없습니다.</red>");
+            return;
+        }
+
+        SemionPlayer semionPlayer = game.players().get(player.getUUID());
+        boolean ownedByPlayer = tower.ownerPlayer().equals(player.getUUID());
+        boolean sameLane = semionPlayer != null
+                && semionPlayer.teamId() == tower.teamId()
+                && semionPlayer.laneId() == tower.laneId();
+
+        StringBuilder body = new StringBuilder();
+        body.append("<gradient:#facc15:#22d3ee><bold>타워 상세 정보</bold></gradient>\n");
+        body.append("<yellow>").append(tower.type().displayName()).append("</yellow>\n");
+        body.append("<gray>팀</gray> <white>").append(tower.teamId()).append("</white>");
+        body.append(" <gray>라인</gray> <white>#").append(tower.laneId()).append("</white>\n");
+        body.append("<gray>위치</gray> <white>")
+                .append(tower.position().x()).append(", ")
+                .append(tower.position().y()).append(", ")
+                .append(tower.position().z()).append("</white>\n");
+        body.append("<gray>레벨</gray> <white>").append(tower.level()).append("</white>");
+        body.append(" <gray>체력</gray> <red>").append(Math.round(tower.health())).append("</red>");
+        body.append("<dark_gray>/</dark_gray><red>").append(Math.round(tower.maxHealth())).append("</red>\n");
+        body.append("<gray>피해</gray> <red>").append(Math.round(tower.type().damage())).append("</red>");
+        body.append(" <gray>사거리</gray> <aqua>").append(oneDecimal(tower.type().range())).append("</aqua>");
+        body.append(" <gray>공속</gray> <white>").append(tower.type().attackIntervalTicks()).append("틱</white>\n");
+        body.append("<gray>판매 환불</gray> <gold>").append(tower.sellRefundAmount()).append(" 다이아</gold>\n");
+        if (!ownedByPlayer) {
+            body.append("\n<red>자신이 설치한 타워만 판매할 수 있습니다.</red>\n");
+        } else if (!sameLane) {
+            body.append("\n<red>현재 담당 라인의 타워만 판매할 수 있습니다.</red>\n");
+        }
+
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        if (ownedByPlayer && sameLane) {
+            for (TowerUpgradeOption option : ProductionTowerService.availableUpgrades(game, player.getUUID(), tower.position())) {
+                actions.add(actionButton(
+                        option.displayName(),
+                        "/semiontd tower upgrade "
+                                + option.id() + " "
+                                + tower.position().x() + " "
+                                + tower.position().y() + " "
+                                + tower.position().z(),
+                        upgradeTooltip(option),
+                        COMPACT_BUTTON_WIDTH
+                ));
+            }
+            actions.add(actionButton(
+                    "판매",
+                    "/semiontd tower sell "
+                            + tower.position().x() + " "
+                            + tower.position().y() + " "
+                            + tower.position().z(),
+                    Component.literal("이 타워를 판매하고 환불을 받습니다."),
+                    BUTTON_WIDTH
+            ));
+        }
+        showActions(player, "세미온 TD 타워 상세", body.toString(), actions, 2);
     }
 
     public void showSummonShop(ServerPlayer player, SemionGame game) {
@@ -252,10 +314,10 @@ public final class SemionDialogService {
                         summonButtonLabel(type),
                         "/semiontd summon " + type.id(),
                         summonTooltip(type),
-                        COMPACT_BUTTON_WIDTH
+                        SUMMON_BUTTON_WIDTH
                 ))
                 .toList();
-        showActions(player, "세미온 TD 소환", body.toString(), actions, 4);
+        showActions(player, "세미온 TD 소환", body.toString(), actions, 5);
     }
 
     private void show(ServerPlayer player, String title, String body) {
@@ -394,7 +456,7 @@ public final class SemionDialogService {
     }
 
     private static String summonButtonLabel(SummonMonsterType type) {
-        return type.tier().name() + " " + type.displayName();
+        return type.tier().name() + " " + type.displayName().split("\\s+", 2)[0];
     }
 
     private static Component summonTooltip(SummonMonsterType type) {

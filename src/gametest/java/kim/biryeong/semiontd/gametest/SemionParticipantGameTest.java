@@ -842,6 +842,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
+        var firstWave = config.configForRound(1).orElseThrow().entriesForLane("lane_1").getFirst();
+        if (!assertEquals(context, 18.0, firstWave.health(), "Round 1 monster health should be tuned for starter towers.")) {
+            return;
+        }
+        if (!assertEquals(context, 2.0, firstWave.attackDamage(), "Round 1 monster attack should be tuned for starter towers.")) {
+            return;
+        }
         context.succeed();
     }
 
@@ -946,7 +953,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         try {
             ArenaLayout layout = ArenaLayout.fromTemplate(
                     template,
-                    BlockPos.ZERO,
                     MapConfig.RegionMarkers.defaultMarkers()
             );
             List<?> laneOneSlots = layout.lane(1).orElseThrow().finalDefenseTowerSlots();
@@ -1600,7 +1606,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void hudScaleUsesQaMultiplier(GameTestHelper context) {
         if (!assertEquals(
                 context,
-                2.5F,
+                3.0F,
                 SemionDisplayHudService.HUD_SCALE_MULTIPLIER,
                 "Display HUD scale multiplier should match QA decision."
         )) {
@@ -2275,8 +2281,15 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
-        ((SemionTestTowerEntity) lane.arenaWorld().getEntity(tower.entityId().getAsInt())).setHealth(11.0F);
+        int originalEntityId = tower.entityId().getAsInt();
+        ((SemionTestTowerEntity) lane.arenaWorld().getEntity(originalEntityId)).setHealth(0.0F);
         lane.tick(context.getLevel().getServer());
+        if (!assertTrue(context, lane.towers().contains(tower), "Destroyed tower should stay in the lane until round reset.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.0, tower.health(), "Destroyed tower runtime health should sync to zero before reset.")) {
+            return;
+        }
 
         game.teams().get(TeamId.RED).resetForRound();
         game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
@@ -2291,6 +2304,20 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, tower.maxHealth(), tower.health(), "Tower health should reset to max on round reset.")) {
+            return;
+        }
+        if (!assertTrue(context, tower.entityId().isPresent(), "Destroyed tower should respawn a tower entity on round reset.")) {
+            return;
+        }
+        if (!assertTrue(context, tower.entityId().getAsInt() != originalEntityId, "Respawned tower should use a fresh entity id.")) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTestTowerEntity respawnedEntity
+                        && respawnedEntity.isAlive(),
+                "Respawned tower entity should exist and be alive after round reset."
+        )) {
             return;
         }
         if (!assertEquals(
@@ -2712,6 +2739,81 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, 1, game.players().get(playerId).economy().gasProductionUpgradeCount(), "Gas upgrade count should increase.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void roundWaitsForEveryActiveTeamToClearWave(GameTestHelper context) {
+        UUID redId = stableUuid("round-barrier-red-owner");
+        UUID blueId = stableUuid("round-barrier-blue-owner");
+        WaveMonsterEntry entry = new WaveMonsterEntry(
+                "round-barrier",
+                100.0,
+                0.0,
+                0.0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                0,
+                1
+        );
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                new WaveConfig(List.of(
+                        new kim.biryeong.semiontd.config.RoundWaveConfig(1, Map.of("lane_1", List.of(entry)))
+                ), 20, null),
+                testArena(context)
+        );
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redId, "round-barrier-red", TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "round-barrier-blue", TeamId.BLUE, 1)
+                ),
+                java.util.Set.of(),
+                2
+        );
+
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Round barrier game should start.")) {
+            return;
+        }
+        tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS + 1);
+        if (!assertEquals(context, RoundPhase.LANE_WAVE, game.phase(), "Round barrier game should enter wave phase.")) {
+            return;
+        }
+
+        PlayerLane redLane = redLane(game, 1);
+        PlayerLane blueLane = lane(game, TeamId.BLUE, 1);
+        if (!assertEquals(context, 1, redLane.activeMonsters().size(), "RED lane should have one wave monster.")) {
+            return;
+        }
+        if (!assertEquals(context, 1, blueLane.activeMonsters().size(), "BLUE lane should have one wave monster.")) {
+            return;
+        }
+
+        redLane.activeMonsters().getFirst().damage(Double.MAX_VALUE);
+        tickGame(game, context.getLevel().getServer(), 1);
+        if (!assertTrue(context, redLane.clearedThisRound(), "RED lane should be cleared after killing its wave monster.")) {
+            return;
+        }
+        if (!assertTrue(context, !blueLane.clearedThisRound(), "BLUE lane should still be unresolved.")) {
+            return;
+        }
+        if (!assertEquals(context, RoundPhase.LANE_WAVE, game.phase(), "Round should stay in wave phase until every active team is resolved.")) {
+            return;
+        }
+        if (!assertEquals(context, 1, game.currentRound(), "Round should not advance while another active team is still fighting.")) {
+            return;
+        }
+
+        blueLane.activeMonsters().getFirst().damage(Double.MAX_VALUE);
+        tickGame(game, context.getLevel().getServer(), 2);
+        if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Round should advance after every active team clears.")) {
+            return;
+        }
+        if (!assertEquals(context, 2, game.currentRound(), "Next prepare phase should be round 2 after all teams clear.")) {
             return;
         }
         context.succeed();

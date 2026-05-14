@@ -22,14 +22,17 @@ import kim.biryeong.semiontd.progression.SemionPlayerProfile;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
-import net.minecraft.network.chat.Component;
+import kim.biryeong.semiontd.ui.SemionText;
+import kim.biryeong.semiontd.util.Scheduler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Relative;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.portal.TeleportTransition;
 
 public final class SemionGameManager {
     private static final int STARTUP_LOBBY_LOAD_DELAY_TICKS = 20;
+    public static final int START_COUNTDOWN_TICKS = 5 * 20;
     public static final int MATCH_RESULT_DELAY_TICKS = 5 * 20;
 
     private EconomyConfig economyConfig = EconomyConfig.defaultConfig();
@@ -46,8 +49,19 @@ public final class SemionGameManager {
     private MatchResult lastMatchResult;
     private SemionGame pendingFinishedGame;
     private int pendingFinishDelayTicks;
+    private ParticipantSelectionPlan pendingStartPlan;
+    private int startCountdownTicks;
+    private int nextStartCountdownAnnouncementSecond;
     private boolean startupLobbyLoadPending;
     private int startupLobbyLoadDelayTicks;
+
+    public enum StartCountdownResult {
+        SCHEDULED,
+        NO_ACTIVE_GAME,
+        NOT_WAITING,
+        ALREADY_PENDING,
+        PRELOAD_FAILED
+    }
 
     public void configure(
             EconomyConfig economyConfig,
@@ -175,6 +189,38 @@ public final class SemionGameManager {
         return Optional.ofNullable(activeGame);
     }
 
+    public boolean startCountdownActive() {
+        return pendingStartPlan != null;
+    }
+
+    public int startCountdownSecondsRemaining() {
+        if (pendingStartPlan == null) {
+            return 0;
+        }
+        return Math.max(1, (startCountdownTicks + 19) / 20);
+    }
+
+    public StartCountdownResult scheduleStart(MinecraftServer server, ParticipantSelectionPlan plan) {
+        if (activeGame == null) {
+            return StartCountdownResult.NO_ACTIVE_GAME;
+        }
+        if (pendingStartPlan != null) {
+            return StartCountdownResult.ALREADY_PENDING;
+        }
+        if (!activeGame.canConfigureRoster()) {
+            return StartCountdownResult.NOT_WAITING;
+        }
+        if (!activeGame.preloadWorldsForStart(plan)) {
+            return StartCountdownResult.PRELOAD_FAILED;
+        }
+
+        pendingStartPlan = plan;
+        startCountdownTicks = START_COUNTDOWN_TICKS;
+        nextStartCountdownAnnouncementSecond = startCountdownSecondsRemaining();
+        announceStartCountdown(server, nextStartCountdownAnnouncementSecond);
+        return StartCountdownResult.SCHEDULED;
+    }
+
     public MatchMode matchMode() {
         return matchMode;
     }
@@ -185,6 +231,7 @@ public final class SemionGameManager {
 
     public void tick(MinecraftServer server) {
         if (activeGame == null) {
+            clearStartCountdown();
             return;
         }
 
@@ -194,6 +241,12 @@ public final class SemionGameManager {
                 return;
             }
             finishActiveGame(server, pendingFinishedGame);
+            return;
+        }
+
+        if (pendingStartPlan != null) {
+            tickStartCountdown(server);
+            displayHudService.tick(server, activeGame, matchMode);
             return;
         }
 
@@ -214,26 +267,28 @@ public final class SemionGameManager {
         }
         VanillaTeamBridge.ensureTeams(server);
 
-        if (activeGame != null && activeGame.rosterLocked()) {
-            if (activeGame.restorePlayerPlacement(server, player)) {
+        Scheduler.INSTANCE.submit((s) -> {
+            if (activeGame != null && activeGame.rosterLocked()) {
+                if (activeGame.restorePlayerPlacement(s, player)) {
+                    return;
+                }
+
+                VanillaTeamBridge.assignSpectator(s, player);
+                try {
+                    sendPlayerToLobby(s, player);
+                } catch (ArenaLoadException exception) {
+                    SemionTd.LOGGER.warn("Failed to send late-joining player {} to lobby.", player.getGameProfile().getName(), exception);
+                }
+                player.sendSystemMessage(SemionText.prefixedPlain("게임이 진행 중입니다. 관전하려면 /semiontd spectate를 사용하세요."));
                 return;
             }
 
-            VanillaTeamBridge.assignSpectator(server, player);
             try {
                 sendPlayerToLobby(server, player);
             } catch (ArenaLoadException exception) {
-                SemionTd.LOGGER.warn("Failed to send late-joining player {} to lobby.", player.getGameProfile().getName(), exception);
+                SemionTd.LOGGER.warn("Failed to send player {} to lobby.", player.getGameProfile().getName(), exception);
             }
-            player.sendSystemMessage(Component.literal("Semion TD 게임이 진행 중입니다. 관전하려면 /semiontd spectate를 사용하세요."));
-            return;
-        }
-
-        try {
-            sendPlayerToLobby(server, player);
-        } catch (ArenaLoadException exception) {
-            SemionTd.LOGGER.warn("Failed to send player {} to lobby.", player.getGameProfile().getName(), exception);
-        }
+        },1);
     }
 
     public void shutdown() {
@@ -241,6 +296,7 @@ public final class SemionGameManager {
             activeGame.close();
             activeGame = null;
         }
+        clearStartCountdown();
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
         if (lobbyWorld != null) {
@@ -255,18 +311,65 @@ public final class SemionGameManager {
         LobbyWorld lobby = ensureLobby(server);
         VanillaTeamBridge.assignSpectator(server, player);
         player.setGameMode(GameType.ADVENTURE);
-        player.teleportTo(
-                lobby.world(),
-                lobby.spawn().x,
-                lobby.spawn().y,
-                lobby.spawn().z,
-                java.util.Set.<Relative>of(),
-                player.getYRot(),
-                player.getXRot(),
-                false
+        player.teleport(
+                new TeleportTransition(
+                        lobby.world(),
+                        lobby.spawn(),
+                        player.getDeltaMovement(),
+                        player.getXRot(),
+                        player.getYRot(),
+                        TeleportTransition.DO_NOTHING
+                )
         );
         SemionDisplayHudService.refreshPlayerHud(player);
         SemionHotbarService.clearMatchTools(player);
+    }
+
+    private void tickStartCountdown(MinecraftServer server) {
+        if (pendingStartPlan == null) {
+            return;
+        }
+        if (activeGame == null || !activeGame.canConfigureRoster()) {
+            clearStartCountdown();
+            return;
+        }
+
+        if (startCountdownTicks > 0) {
+            startCountdownTicks--;
+            int secondsRemaining = (startCountdownTicks + 19) / 20;
+            if (secondsRemaining > 0 && secondsRemaining < nextStartCountdownAnnouncementSecond) {
+                nextStartCountdownAnnouncementSecond = secondsRemaining;
+                announceStartCountdown(server, secondsRemaining);
+            }
+            if (startCountdownTicks > 0) {
+                return;
+            }
+        }
+
+        ParticipantSelectionPlan plan = pendingStartPlan;
+        clearStartCountdown();
+        if (!activeGame.start(server, plan)) {
+            server.getPlayerList().broadcastSystemMessage(
+                    SemionText.prefixedPlain("시작 카운트다운이 취소되었습니다. 참가자 확정에 실패했습니다."),
+                    false
+            );
+            return;
+        }
+        server.getPlayerList().broadcastSystemMessage(SemionText.prefixedMini("<green><bold>게임을 시작합니다.</bold></green>"), false);
+        displayHudService.refreshNow(server, activeGame, matchMode);
+    }
+
+    private void announceStartCountdown(MinecraftServer server, int secondsRemaining) {
+        server.getPlayerList().broadcastSystemMessage(
+                SemionText.prefixedMini("<yellow>" + secondsRemaining + "초</yellow> 후 게임을 시작합니다."),
+                false
+        );
+    }
+
+    private void clearStartCountdown() {
+        pendingStartPlan = null;
+        startCountdownTicks = 0;
+        nextStartCountdownAnnouncementSecond = 0;
     }
 
     private void closeActiveGameSafely(SemionGame game, String reason) {
@@ -275,6 +378,7 @@ public final class SemionGameManager {
         }
         if (activeGame == game) {
             activeGame = null;
+            clearStartCountdown();
         }
         if (pendingFinishedGame == game) {
             pendingFinishedGame = null;
@@ -289,7 +393,7 @@ public final class SemionGameManager {
 
     private void disconnectForLobbyReset(ServerPlayer player) {
         try {
-            player.connection.disconnect(Component.literal("Semion TD 로비 이동에 실패했습니다. 다시 접속해 주세요."));
+            player.connection.disconnect(SemionText.prefixedPlain("로비 이동에 실패했습니다. 다시 접속해 주세요."));
         } catch (RuntimeException disconnectException) {
             SemionTd.LOGGER.warn(
                     "Failed to disconnect player {} after lobby reset failure.",
@@ -304,7 +408,7 @@ public final class SemionGameManager {
         pendingFinishDelayTicks = MATCH_RESULT_DELAY_TICKS;
         displayHudService.clear(server);
         server.getPlayerList().broadcastSystemMessage(
-                Component.literal("Semion TD 경기 종료. 결과를 집계하는 중입니다..."),
+                SemionText.prefixedMini("<gold>경기 종료.</gold> 결과를 집계하는 중입니다..."),
                 false
         );
     }
@@ -339,7 +443,7 @@ public final class SemionGameManager {
                 ? "없음"
                 : matchResult.winningTeams().stream().map(Enum::name).sorted().collect(Collectors.joining(", "));
         server.getPlayerList().broadcastSystemMessage(
-                Component.literal("Semion TD 경기 종료. 승리팀=" + winners + ", 라운드=" + matchResult.finalRound() + "."),
+                SemionText.prefixedMini("<gold>경기 종료.</gold> <gray>승리팀</gray> <aqua>" + winners + "</aqua><dark_gray>,</dark_gray> <gray>라운드</gray> <yellow>" + matchResult.finalRound() + "</yellow>"),
                 false
         );
 
@@ -352,12 +456,12 @@ public final class SemionGameManager {
             if (player == null) {
                 continue;
             }
-            player.sendSystemMessage(Component.literal(
-                    "꾸미기 재화 +" + reward.currencyAwarded()
-                            + " | 경기=" + reward.profile().gamesPlayed()
-                            + ", 승=" + reward.profile().wins()
-                            + ", 패=" + reward.profile().losses()
-                            + ", 보유=" + reward.profile().cosmeticCurrency()
+            player.sendSystemMessage(SemionText.prefixedMini(
+                    "<gray>보상</gray> <gold>+" + reward.currencyAwarded() + "</gold> "
+                            + "<dark_gray>|</dark_gray> <gray>경기</gray> <white>" + reward.profile().gamesPlayed() + "</white>"
+                            + " <gray>승</gray> <green>" + reward.profile().wins() + "</green>"
+                            + " <gray>패</gray> <red>" + reward.profile().losses() + "</red>"
+                            + " <gray>보유</gray> <aqua>" + reward.profile().cosmeticCurrency() + "</aqua>"
             ));
         }
     }

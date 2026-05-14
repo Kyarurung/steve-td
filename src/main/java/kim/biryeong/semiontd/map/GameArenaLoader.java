@@ -9,6 +9,7 @@ import java.util.Map;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.config.MapConfig;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.map.gen.TemplateChunkGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -19,6 +20,7 @@ import xyz.nucleoid.fantasy.Fantasy;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
+import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplatePlacer;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
@@ -38,15 +40,17 @@ public final class GameArenaLoader {
             for (TeamId teamId : TeamId.values()) {
                 RuntimeWorldHandle worldHandle = Fantasy.get(server).openTemporaryWorld(
                         ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, runtimeWorldPath(teamId)),
-                        runtimeWorldConfig(server, config)
+                        runtimeWorldConfig(server, config, template)
                 );
                 createdWorlds.add(worldHandle);
                 worldHandle.setTickWhenEmpty(true);
 
                 ServerLevel world = worldHandle.asWorld();
-                new MapTemplatePlacer(template).placeAt(world, origin);
-                ArenaLayout layout = ArenaLayout.fromTemplate(template, origin, config.regions());
-                teamArenas.put(teamId, new TeamArena(teamId, worldHandle::unload, world, layout));
+//                new MapTemplatePlacer(template).placeAt(world, origin);
+//                RuntimeWorldWarmup.loadTemplateChunks(world, template, origin);
+                ArenaLayout layout = ArenaLayout.fromTemplate(template, config.regions());
+                BlockBounds worldBounds = template.getBounds().offset(origin);
+                teamArenas.put(teamId, new TeamArena(teamId, worldHandle::unload, world, layout, worldBounds));
             }
 
             return new GameArena(teamArenas);
@@ -62,9 +66,9 @@ public final class GameArenaLoader {
         return "arena_" + teamId.name().toLowerCase(Locale.ROOT) + "_" + Long.toUnsignedString(System.nanoTime());
     }
 
-    private static RuntimeWorldConfig runtimeWorldConfig(MinecraftServer server, MapConfig config) {
+    private static RuntimeWorldConfig runtimeWorldConfig(MinecraftServer server, MapConfig config, MapTemplate template) {
         return new RuntimeWorldConfig()
-                .setGenerator(new VoidChunkGenerator(server))
+                .setGenerator(new TemplateChunkGenerator(server, template))
                 .setShouldTickTime(false)
                 .setTimeOfDay(config.timeOfDay())
                 .setDifficulty(Difficulty.NORMAL)
