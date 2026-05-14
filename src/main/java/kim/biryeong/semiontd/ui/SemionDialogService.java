@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
@@ -152,25 +153,15 @@ public final class SemionDialogService {
 
     public void showJobSelection(ServerPlayer player, SemionGame game) {
         SemionJob currentJob = game.selectedJobOrDefault(player.getUUID());
-        MutableComponent body = mutableMiniMessage("<gradient:#67e8f9:#a78bfa><bold>직업 선택</bold></gradient>\n")
-                .append(miniMessage("<gray>현재 선택</gray> <yellow>" + currentJob.displayName().getString() + "</yellow>\n\n"));
+        String body = "<gradient:#67e8f9:#a78bfa><bold>직업 선택</bold></gradient>\n"
+                + "<gray>현재 선택</gray> <yellow>" + currentJob.displayName().getString() + "</yellow>\n"
+                + "<gray>버튼에 마우스를 올려 직업 특성을 확인하세요.</gray>";
+        ArrayList<ActionButton> actions = new ArrayList<>();
         for (SemionJob job : JobRegistry.all()) {
-            String command = "/semiontd job select " + job.id();
-            body.append(miniMessage("<aqua><bold>" + job.displayName().getString() + "</bold></aqua>"))
-                    .append(Component.literal("  "))
-                    .append(Component.literal("[선택]")
-                            .withStyle(style -> style
-                                    .withColor(ChatFormatting.GREEN)
-                                    .withBold(true)
-                                    .withClickEvent(new ClickEvent.RunCommand(command))))
-                    .append(Component.literal("\n"));
-            for (Component line : job.description()) {
-                body.append(miniMessage("<gray>- " + line.getString() + "</gray>\n"));
-            }
-            body.append(Component.literal("\n"));
+            actions.add(jobButton(job, currentJob.id().equals(job.id())));
         }
 
-        show(player, "세미온 TD 직업", body);
+        showActions(player, "세미온 TD 직업", body, actions, 2);
     }
 
     public void showTowerControl(ServerPlayer player, SemionGame game) {
@@ -204,6 +195,8 @@ public final class SemionDialogService {
         }
 
         List<ProductionTowerCatalog.CatalogEntry> entries = ProductionTowerService.availableTowers(game, player.getUUID());
+        JobContext jobContext = new JobContext(game, semionPlayer);
+        SemionJob job = semionPlayer.job().orElse(JobRegistry.defaultJob());
         List<TowerUpgradeOption> upgrades = selectedTower == null
                 ? List.of()
                 : ProductionTowerService.availableUpgrades(game, player.getUUID(), player.blockPosition());
@@ -221,7 +214,8 @@ public final class SemionDialogService {
         ArrayList<ActionButton> actions = new ArrayList<>();
         if (selectedTower == null) {
             for (ProductionTowerCatalog.CatalogEntry entry : entries) {
-                actions.add(towerButton(entry));
+                long mineralCost = Math.max(0, job.modifyTowerMineralCost(jobContext, entry.type(), entry.type().mineralCost()));
+                actions.add(towerButton(entry, mineralCost, economy.diamond() >= mineralCost));
             }
         } else {
             for (TowerUpgradeOption option : upgrades) {
@@ -367,25 +361,65 @@ public final class SemionDialogService {
     }
 
     private static ActionButton actionButton(String label, String command, Component tooltip, int width) {
+        return actionButton(Component.literal(label), command, tooltip, width);
+    }
+
+    private static ActionButton actionButton(Component label, String command, Component tooltip, int width) {
         Optional<net.minecraft.server.dialog.action.Action> action = command == null || command.isBlank()
                 ? Optional.empty()
                 : Optional.of(new StaticAction(new ClickEvent.RunCommand(command)));
         return new ActionButton(
-                new CommonButtonData(Component.literal(label), Optional.of(tooltip), width),
+                new CommonButtonData(label, Optional.of(tooltip), width),
                 action
         );
     }
 
-    private static ActionButton towerButton(ProductionTowerCatalog.CatalogEntry entry) {
+    private static ActionButton towerButton(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
         return actionButton(
-                entry.type().displayName(),
+                towerButtonLabel(entry, affordable),
                 "/semiontd tower build " + entry.type().id(),
-                towerTooltip(entry),
+                towerTooltip(entry, mineralCost, affordable),
                 COMPACT_BUTTON_WIDTH
         );
     }
 
-    private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry) {
+    private static ActionButton jobButton(SemionJob job, boolean selected) {
+        return actionButton(
+                jobButtonLabel(job, selected),
+                jobSelectionCommand(job),
+                jobTooltip(job, selected),
+                BUTTON_WIDTH
+        );
+    }
+
+    public static String jobSelectionCommand(SemionJob job) {
+        return "/semiontd job select " + job.id().getPath();
+    }
+
+    public static Component jobButtonLabel(SemionJob job, boolean selected) {
+        String prefix = selected ? "✓ " : "";
+        return Component.literal(prefix + job.displayName().getString())
+                .withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.WHITE);
+    }
+
+    private static Component jobTooltip(SemionJob job, boolean selected) {
+        MutableComponent tooltip = job.displayName().copy()
+                .withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.AQUA);
+        if (selected) {
+            tooltip.append(Component.literal("\n현재 선택된 직업입니다.").withStyle(ChatFormatting.GREEN));
+        }
+        for (Component line : job.description()) {
+            tooltip.append(Component.literal("\n").append(line.copy().withStyle(ChatFormatting.GRAY)));
+        }
+        return tooltip;
+    }
+
+    public static Component towerButtonLabel(ProductionTowerCatalog.CatalogEntry entry, boolean affordable) {
+        return Component.literal(entry.type().displayName())
+                .withStyle(affordable ? ChatFormatting.WHITE : ChatFormatting.RED);
+    }
+
+    private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
         var type = entry.type();
         var behavior = entry.behavior();
         String upgradeSummary = type.upgradeOptions().isEmpty()
@@ -394,7 +428,7 @@ public final class SemionDialogService {
                 .map(TowerUpgradeOption::displayName)
                 .collect(Collectors.joining(" / "));
         return Component.literal(type.displayName())
-                .append(Component.literal("\n비용 " + type.mineralCost() + " 다이아"))
+                .append(Component.literal("\n비용 " + mineralCost + " 다이아" + (affordable ? "" : " (부족)")))
                 .append(Component.literal("\n피해 " + Math.round(type.damage()) + " / 사거리 " + Math.round(type.range())))
                 .append(Component.literal("\n공속 " + type.attackIntervalTicks() + "틱 / 스플래시 " + oneDecimal(behavior.splashRadius())))
                 .append(Component.literal("\n팩션 " + factionLabel(behavior.faction()) + " / 특성 " + behavior.mechanicName()))

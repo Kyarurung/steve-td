@@ -852,7 +852,8 @@ public final class SemionCommands {
             return 0;
         }
 
-        SummonResult result = game.summonMonster(source.getPlayerOrException().getUUID(), summonId);
+        ServerPlayer player = source.getPlayerOrException();
+        SummonResult result = game.summonMonster(player.getUUID(), summonId);
         if (result.type() != SummonResultType.SUCCESS) {
             failure(source, "소환 실패: " + summonFailureMessage(result.type()));
             return 0;
@@ -861,6 +862,7 @@ public final class SemionCommands {
         success(source, "소환했습니다: " + summonId
                 + ", 팀=" + result.targetTeam().orElseThrow()
                 + ", 라인=" + result.targetLaneId().orElseThrow());
+        gameManager.dialogService().showSummonShop(player, game);
         return 1;
     }
 

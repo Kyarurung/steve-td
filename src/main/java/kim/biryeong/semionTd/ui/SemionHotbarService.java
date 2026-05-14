@@ -17,8 +17,8 @@ import net.minecraft.world.level.Level;
 public final class SemionHotbarService {
     private static final int TOWER_TOOL_SLOT = 0;
     private static final int SUMMON_TOOL_SLOT = 1;
-    private static final Component TOWER_TOOL_NAME = Component.literal("Semion TD 타워 관리").withStyle(ChatFormatting.AQUA);
-    private static final Component SUMMON_TOOL_NAME = Component.literal("Semion TD 견제 소환").withStyle(ChatFormatting.LIGHT_PURPLE);
+    private static final Component TOWER_TOOL_NAME = Component.literal("타워 관리").withStyle(ChatFormatting.AQUA);
+    private static final Component SUMMON_TOOL_NAME = Component.literal("견제 소환").withStyle(ChatFormatting.LIGHT_PURPLE);
 
     private SemionHotbarService() {
     }
@@ -28,6 +28,7 @@ public final class SemionHotbarService {
     }
 
     public static void grantMatchTools(ServerPlayer player) {
+        player.getInventory().clearContent();
         setTool(player, TOWER_TOOL_SLOT, towerTool());
         setTool(player, SUMMON_TOOL_SLOT, summonTool());
     }

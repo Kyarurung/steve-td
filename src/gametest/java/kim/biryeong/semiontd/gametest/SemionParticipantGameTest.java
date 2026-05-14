@@ -64,6 +64,8 @@ import kim.biryeong.semiontd.game.TowerPlacementResult;
 import kim.biryeong.semiontd.game.TowerSellResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.game.VanillaTeamBridge;
+import kim.biryeong.semiontd.job.JobRegistry;
+import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.map.ArenaLayout;
 import kim.biryeong.semiontd.music.SemionMusicLibrary;
 import kim.biryeong.semiontd.music.SemionMusicResourcePack;
@@ -89,12 +91,14 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Items;
@@ -1430,6 +1434,95 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB,
                 ProductionTowerService.placeTower(game, playerId, secondPos, "villager_crossbow_post_militia_net"),
                 "Upgrade-only production towers should not be directly buildable."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void unjobbedKeepsAllStarterTowersButFactionJobsFilterUi(GameTestHelper context) {
+        UUID unjobbedId = stableUuid("unjobbed-production-owner");
+        SemionGame unjobbedGame = startedSinglePlayerGame(context, unjobbedId, TeamId.RED);
+        if (!assertEquals(
+                context,
+                9,
+                ProductionTowerService.availableTowers(unjobbedGame, unjobbedId).size(),
+                "Unjobbed players should keep the existing all-starter tower list."
+        )) {
+            return;
+        }
+
+        UUID beastId = stableUuid("beast-production-owner");
+        SemionGame beastGame = startedSinglePlayerGame(
+                context,
+                beastId,
+                TeamId.RED,
+                ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer")
+        );
+        List<ProductionTowerCatalog.CatalogEntry> beastEntries = ProductionTowerService.availableTowers(beastGame, beastId);
+        if (!assertEquals(context, 3, beastEntries.size(), "Faction jobs should show only their three starter towers.")) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                beastEntries.stream().allMatch(entry -> entry.behavior().faction() == TowerFaction.BEAST),
+                "Beast job tower UI entries should all be beast faction towers."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void towerBuildButtonLabelsColorUnaffordableTowersRed(GameTestHelper context) {
+        ProductionTowerCatalog.CatalogEntry entry = ProductionTowerCatalog.find(ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()).orElseThrow();
+        Component affordable = SemionDialogService.towerButtonLabel(entry, true);
+        Component unaffordable = SemionDialogService.towerButtonLabel(entry, false);
+
+        if (!assertEquals(
+                context,
+                ChatFormatting.WHITE.getColor(),
+                affordable.getStyle().getColor().getValue(),
+                "Affordable tower button labels should stay readable."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                ChatFormatting.RED.getColor(),
+                unaffordable.getStyle().getColor().getValue(),
+                "Unaffordable tower button labels should be red when the UI opens."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void jobSelectionDialogUsesPathCommandButtons(GameTestHelper context) {
+        SemionJob job = JobRegistry.find(ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")).orElseThrow();
+        if (!assertEquals(
+                context,
+                "/semiontd job select villager_engineer",
+                SemionDialogService.jobSelectionCommand(job),
+                "Job selection buttons should send path-only job ids instead of namespaced identifiers."
+        )) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                !SemionDialogService.jobSelectionCommand(job).contains("semion-td:"),
+                "Job selection UI commands should not expose the namespace."
+        )) {
+            return;
+        }
+        Component selected = SemionDialogService.jobButtonLabel(job, true);
+        if (!assertEquals(
+                context,
+                ChatFormatting.GREEN.getColor(),
+                selected.getStyle().getColor().getValue(),
+                "Selected job button labels should be highlighted."
         )) {
             return;
         }
