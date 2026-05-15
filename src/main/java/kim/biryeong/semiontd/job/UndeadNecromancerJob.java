@@ -12,7 +12,7 @@ public final class UndeadNecromancerJob extends FactionTowerJob {
                 TowerFaction.UNDEAD,
                 List.of(
                         Component.literal("언데드 타워만 사용할 수 있습니다."),
-                        Component.literal("Decay 스택과 죽음 폭발로 몹팩을 연쇄 정리합니다.")
+                        Component.literal("시체 폭발을 통해 많은 몹을 한번에 처치 가능합니다.")
                 )
         );
     }

@@ -12,7 +12,7 @@ public final class VillagerEngineerJob extends FactionTowerJob {
                 TowerFaction.VILLAGER,
                 List.of(
                         Component.literal("주민 타워만 사용할 수 있습니다."),
-                        Component.literal("Emerald 스택으로 전투가 길수록 타워 화력이 성장합니다.")
+                        Component.literal("매 라운드 진행 시 타워가 성장합니다.")
                 )
         );
     }

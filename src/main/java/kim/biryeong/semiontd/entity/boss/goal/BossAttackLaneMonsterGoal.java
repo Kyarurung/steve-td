@@ -9,7 +9,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
 public final class BossAttackLaneMonsterGoal extends Goal {
-    private static final double ATTACK_RANGE = 3.5;
+    private static final double ATTACK_RANGE = 5;
     private static final double RANGED_PULL_RANGE = 10.0;
     private static final double RANGED_PULL_STEP = 0.45;
 

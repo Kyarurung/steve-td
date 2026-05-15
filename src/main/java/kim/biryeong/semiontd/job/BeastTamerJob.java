@@ -12,7 +12,7 @@ public final class BeastTamerJob extends FactionTowerJob {
                 TowerFaction.BEAST,
                 List.of(
                         Component.literal("동물 타워만 사용할 수 있습니다."),
-                        Component.literal("Rage 스택으로 교전 중 공격 속도와 압박 대응력이 올라갑니다.")
+                        Component.literal("전투 중 분노가 충전됩니다. 분노가 높아질수록 공격속도가 오릅니다.")
                 )
         );
     }
