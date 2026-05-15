@@ -40,7 +40,7 @@ public final class SemionCommands {
     }
 
     private static void failure(CommandSourceStack source, String message) {
-        source.sendFailure(SemionText.prefixedPlain(message));
+        source.sendFailure(SemionText.prefixedError(message));
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, SemionGameManager gameManager) {
@@ -1060,6 +1060,7 @@ public final class SemionCommands {
             case PLAYER_TEAM_ELIMINATED -> "소속 팀이 탈락했습니다";
             case UNKNOWN_LANE -> "활성화된 라인이 아닙니다";
             case NO_TOWER_AT_POSITION -> "해당 위치에 타워가 없습니다";
+            case TOWER_NOT_OWNED -> "자신이 설치한 타워만 업그레이드할 수 있습니다";
             case TOWER_NOT_UPGRADABLE -> "사용 가능한 진화 경로가 없습니다";
             case UNKNOWN_UPGRADE -> "해당 타워에 없는 업그레이드 ID입니다";
             case UNKNOWN_TARGET_TYPE -> "타워 진화 대상 타입이 등록되지 않았습니다";

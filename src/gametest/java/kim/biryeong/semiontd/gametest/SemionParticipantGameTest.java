@@ -1682,6 +1682,47 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
+    @GameTest
+    public void productionTowerRejectsNonOwnerUpgrade(GameTestHelper context) {
+        UUID playerId = stableUuid("red-production-upgrade-viewer");
+        UUID ownerId = stableUuid("red-production-upgrade-real-owner");
+        SemionGame game = startedSinglePlayerGame(
+                context,
+                playerId,
+                TeamId.RED,
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+        );
+        PlayerLane lane = redLane(game, 1);
+        BlockPos towerPos = towerPlacementPos(lane);
+        ProductionTowerCatalog.CatalogEntry entry = ProductionTowerCatalog.find(ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()).orElseThrow();
+        lane.addTower(new ProductionTower(
+                entry.type(),
+                entry.behavior(),
+                ownerId,
+                TeamId.RED,
+                1,
+                new kim.biryeong.semiontd.game.GridPosition(towerPos.getX(), towerPos.getY(), towerPos.getZ())
+        ));
+        game.players().get(playerId).economy().addMineral(500);
+
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.TOWER_NOT_OWNED,
+                ProductionTowerService.upgradeTower(game, playerId, towerPos, "militia_net"),
+                "Players should get an explicit not-owned result when upgrading another player's production tower."
+        )) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                ProductionTowerService.availableUpgrades(game, playerId, towerPos).isEmpty(),
+                "Other players should not see upgrade options for a production tower they do not own."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 120)
     public void productionSplashTowerDamagesPackedMonsters(GameTestHelper context) {
         UUID playerId = stableUuid("red-production-splash-owner");

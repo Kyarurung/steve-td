@@ -90,7 +90,7 @@ public final class TestTowerService {
             return tower == null ? TowerUpgradeResult.NO_TOWER_AT_POSITION : TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
         }
         if (!testTower.ownerPlayer().equals(playerId)) {
-            return TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
+            return TowerUpgradeResult.TOWER_NOT_OWNED;
         }
         if (!testTower.type().hasUpgradeOptions()) {
             return TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
