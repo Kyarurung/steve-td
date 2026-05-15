@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd;
 
 import kim.biryeong.semiontd.game.SemionGameManager;
+import kim.biryeong.semiontd.game.SemionPlayerProtectionService;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -9,6 +10,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 public final class Events {
 
     public static void initialize(SemionGameManager gameManager) {
+        SemionPlayerProtectionService.register(gameManager);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             gameManager.tick(server);

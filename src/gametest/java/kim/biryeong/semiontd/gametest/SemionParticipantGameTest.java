@@ -58,6 +58,7 @@ import kim.biryeong.semiontd.game.RoundPhase;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
+import kim.biryeong.semiontd.game.SemionPlayerProtectionService;
 import kim.biryeong.semiontd.game.SemionTeam;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.StartPlacement;
@@ -2778,6 +2779,45 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, runtimeBossHealth, runtimeBoss.health(), "Player boss hits should not affect runtime boss health.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void activePlayersAndSpectatorsAreCombatProtected(GameTestHelper context) {
+        UUID activeId = stableUuid("protected-active");
+        UUID spectatorId = stableUuid("protected-spectator");
+        UUID outsiderId = stableUuid("protected-outsider");
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                testArena(context)
+        );
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(new AssignedParticipant(activeId, "protected-active", TeamId.RED, 1)),
+                Set.of(spectatorId),
+                1
+        );
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Protection test game should start.")) {
+            return;
+        }
+        if (!assertTrue(context, SemionPlayerProtectionService.shouldProtectPlayer(game, activeId), "Active players should be protected from combat.")) {
+            return;
+        }
+        if (!assertTrue(context, SemionPlayerProtectionService.shouldProtectPlayer(game, spectatorId), "Match spectators should be protected from combat.")) {
+            return;
+        }
+        if (!assertTrue(context, !SemionPlayerProtectionService.shouldProtectPlayer(game, outsiderId), "Players outside the active match should not be protected by match rules.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void monsterTowerTargetSearchUsesFiveBlockPadding(GameTestHelper context) {
+        if (!assertEquals(context, 5.0, SemionMonsterEntity.DEFENSE_SEARCH_HORIZONTAL_PADDING, "Monster tower target search should use five-block horizontal padding.")) {
             return;
         }
         context.succeed();

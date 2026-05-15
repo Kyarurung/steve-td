@@ -251,6 +251,7 @@ public final class SemionGame {
 
         spawnBossesForActiveTeams(activeTeams);
         placeActivePlayers(server, plan.activeParticipants());
+        sendTowerControlHint(server);
         placeSpectators(server, plan.spectatorIds());
         rosterLocked = true;
         notifyMatchStarted();
@@ -642,6 +643,17 @@ public final class SemionGame {
             SemionHotbarService.grantMatchTools(player);
             playerLane(activePlayer.uuid()).ifPresent(lane -> SemionLaneIndicatorService.showLane(player, lane));
         });
+    }
+
+    private void sendTowerControlHint(MinecraftServer server) {
+        for (SemionPlayer activePlayer : players.values()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(activePlayer.uuid());
+            if (player != null) {
+                player.sendSystemMessage(SemionText.prefixedMini(
+                        "<yellow>나침반</yellow>을 우클릭해서 <aqua>타워 설치</aqua> 창을 여세요."
+                ));
+            }
+        }
     }
 
     private void placeSpectators(MinecraftServer server, Set<UUID> spectatorIdSet) {

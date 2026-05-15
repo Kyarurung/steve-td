@@ -261,9 +261,9 @@ public final class SemionDialogService {
         body.append(" <gray>공속</gray> <white>").append(tower.type().attackIntervalTicks()).append("틱</white>\n");
         body.append("<gray>판매 환불</gray> <gold>").append(tower.sellRefundAmount()).append(" 다이아</gold>\n");
         if (!ownedByPlayer) {
-            body.append("\n<red>자신이 설치한 타워만 판매할 수 있습니다.</red>\n");
+            body.append("\n<red>자신이 설치한 타워만 업그레이드하거나 판매할 수 있습니다.</red>\n");
         } else if (!sameLane) {
-            body.append("\n<red>현재 담당 라인의 타워만 판매할 수 있습니다.</red>\n");
+            body.append("\n<red>현재 담당 라인의 타워만 업그레이드하거나 판매할 수 있습니다.</red>\n");
         }
 
         ArrayList<ActionButton> actions = new ArrayList<>();
@@ -339,6 +339,10 @@ public final class SemionDialogService {
     }
 
     private void showActions(ServerPlayer player, String title, String body, List<ActionButton> actions, int columns) {
+        if (actions.isEmpty()) {
+            show(player, title, body);
+            return;
+        }
         Dialog dialog = new MultiActionDialog(
                 new CommonDialogData(
                         Component.literal(title),
