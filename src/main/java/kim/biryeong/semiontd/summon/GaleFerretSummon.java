@@ -11,7 +11,7 @@ public final class GaleFerretSummon extends SummonMonsterType {
                 SummonDisplayNames.GALE_FERRET,
                 100,
                 7,
-                135,
+                95,
                 1,
                 11,
                 AttackKind.MELEE,

@@ -12,7 +12,7 @@ public final class BulwarkBisonSummon extends SummonMonsterType {
                 SummonDisplayNames.BULWARK_BISON,
                 150,
                 10,
-                300,
+                210,
                 12,
                 9,
                 AttackKind.MELEE,

@@ -15,7 +15,7 @@ public final class SiegeBreakerSummon extends SummonMonsterType {
                 SummonDisplayNames.SIEGE_BREAKER,
                 380,
                 18,
-                520,
+                364,
                 14,
                 22,
                 AttackKind.MELEE,

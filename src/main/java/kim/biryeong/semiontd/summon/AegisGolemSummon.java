@@ -16,7 +16,7 @@ public final class AegisGolemSummon extends SummonMonsterType {
                 SummonDisplayNames.AEGIS_GOLEM,
                 270,
                 15,
-                540,
+                378,
                 18,
                 13,
                 AttackKind.MELEE,

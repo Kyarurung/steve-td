@@ -15,7 +15,7 @@ public final class BombardToadSummon extends SummonMonsterType {
                 SummonDisplayNames.BOMBARD_TOAD,
                 310,
                 16,
-                380,
+                266,
                 8,
                 21,
                 AttackKind.RANGED,

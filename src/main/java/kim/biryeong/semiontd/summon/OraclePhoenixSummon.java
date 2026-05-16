@@ -18,7 +18,7 @@ public final class OraclePhoenixSummon extends SummonMonsterType {
                 SummonDisplayNames.ORACLE_PHOENIX,
                 470,
                 21,
-                560,
+                392,
                 4,
                 17,
                 AttackKind.RANGED,

@@ -17,7 +17,7 @@ public final class ApexWardenSummon extends SummonMonsterType {
                 SummonDisplayNames.APEX_WARDEN,
                 430,
                 19,
-                900,
+                630,
                 22,
                 21,
                 AttackKind.MELEE,

@@ -15,7 +15,7 @@ public final class NullImpSummon extends SummonMonsterType {
                 SummonDisplayNames.NULL_IMP,
                 220,
                 12,
-                170,
+                119,
                 1,
                 9,
                 AttackKind.RANGED,

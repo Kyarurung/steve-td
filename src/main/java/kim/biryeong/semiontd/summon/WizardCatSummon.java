@@ -11,7 +11,7 @@ public final class WizardCatSummon extends SummonMonsterType {
                 SummonDisplayNames.WIZARD_CAT,
                 125,
                 8,
-                95,
+                67,
                 0,
                 6,
                 AttackKind.RANGED,

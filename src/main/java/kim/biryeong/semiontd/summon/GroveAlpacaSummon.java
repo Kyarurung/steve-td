@@ -15,7 +15,7 @@ public final class GroveAlpacaSummon extends SummonMonsterType {
                 SummonDisplayNames.GROVE_ALPACA,
                 140,
                 9,
-                125,
+                88,
                 1,
                 4,
                 AttackKind.RANGED,

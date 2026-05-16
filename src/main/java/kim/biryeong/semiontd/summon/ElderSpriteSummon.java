@@ -17,7 +17,7 @@ public final class ElderSpriteSummon extends SummonMonsterType {
                 SummonDisplayNames.ELDER_SPRITE,
                 250,
                 14,
-                185,
+                130,
                 1,
                 6,
                 AttackKind.RANGED,

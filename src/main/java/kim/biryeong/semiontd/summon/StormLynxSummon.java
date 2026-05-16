@@ -15,7 +15,7 @@ public final class StormLynxSummon extends SummonMonsterType {
                 SummonDisplayNames.STORM_LYNX,
                 190,
                 10,
-                190,
+                133,
                 2,
                 15,
                 AttackKind.MELEE,
