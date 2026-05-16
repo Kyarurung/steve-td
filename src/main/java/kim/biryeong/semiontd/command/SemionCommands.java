@@ -181,6 +181,19 @@ public final class SemionCommands {
                                 .executes(context -> statusPlayers(context.getSource(), gameManager))))
                 .then(literal("ui")
                         .executes(context -> statusDialog(context.getSource(), gameManager))));
+
+        dispatcher.register(literal("semiontd-debug")
+                .requires(source -> source.hasPermission(2))
+                .then(literal("towerui")
+                        .executes(context -> debugTowerDialog(context.getSource(), gameManager)))
+                .then(literal("tower")
+                        .then(literal("ui")
+                                .executes(context -> debugTowerDialog(context.getSource(), gameManager))))
+                .then(literal("summonui")
+                        .executes(context -> debugSummonDialog(context.getSource(), gameManager)))
+                .then(literal("summon")
+                        .then(literal("ui")
+                                .executes(context -> debugSummonDialog(context.getSource(), gameManager)))));
     }
 
     private static int createGame(CommandSourceStack source, SemionGameManager gameManager) {
@@ -769,6 +782,13 @@ public final class SemionCommands {
         return 1;
     }
 
+    private static int debugTowerDialog(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        gameManager.dialogService().showDebugTowerControl(source.getPlayerOrException());
+        success(source, "디버그 타워 설치 창을 열었습니다.");
+        return 1;
+    }
+
     private static int sellTower(CommandSourceStack source, SemionGameManager gameManager)
             throws CommandSyntaxException {
         return sellTower(source, gameManager, null);
@@ -899,6 +919,13 @@ public final class SemionCommands {
         }
         gameManager.dialogService().showSummonShop(source.getPlayerOrException(), game);
         success(source, "견제 소환 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int debugSummonDialog(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        gameManager.dialogService().showDebugSummonShop(source.getPlayerOrException());
+        success(source, "디버그 견제 소환 창을 열었습니다.");
         return 1;
     }
 

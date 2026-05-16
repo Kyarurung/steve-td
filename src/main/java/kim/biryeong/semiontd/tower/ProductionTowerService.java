@@ -151,14 +151,14 @@ public final class ProductionTowerService {
             return TowerUpgradeResult.UNKNOWN_UPGRADE;
         }
 
-        Optional<ProductionTowerCatalog.CatalogEntry> targetEntry = ProductionTowerCatalog.find(upgrade.targetTypeId());
+        TowerType targetType = upgrade.targetType();
+        Optional<ProductionTowerCatalog.CatalogEntry> targetEntry = ProductionTowerCatalog.entry(targetType);
         if (targetEntry.isEmpty()) {
             return TowerUpgradeResult.UNKNOWN_TARGET_TYPE;
         }
 
         JobContext jobContext = new JobContext(game, laneContext.player);
         SemionJob job = laneContext.player.job().orElse(JobRegistry.defaultJob());
-        TowerType targetType = targetEntry.get().type();
         if (!job.canUseTower(jobContext, targetType)) {
             return TowerUpgradeResult.TOWER_NOT_ALLOWED_BY_JOB;
         }

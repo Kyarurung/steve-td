@@ -17,7 +17,6 @@ import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.tower.Tower;
-import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import net.minecraft.core.BlockPos;
 
@@ -104,23 +103,20 @@ public final class TestTowerService {
             return TowerUpgradeResult.UNKNOWN_UPGRADE;
         }
 
-        Optional<TowerType> targetType = TestTowerTypes.find(upgrade.targetTypeId());
-        if (targetType.isEmpty()) {
-            return TowerUpgradeResult.UNKNOWN_TARGET_TYPE;
-        }
+        var targetType = upgrade.targetType();
 
         JobContext jobContext = new JobContext(game, laneContext.player);
         SemionJob job = laneContext.player.job().orElse(JobRegistry.defaultJob());
-        if (!job.canUseTower(jobContext, targetType.get())) {
+        if (!job.canUseTower(jobContext, targetType)) {
             return TowerUpgradeResult.TOWER_NOT_ALLOWED_BY_JOB;
         }
-        long mineralCost = Math.max(0, job.modifyTowerMineralCost(jobContext, targetType.get(), upgrade.mineralCost()));
+        long mineralCost = Math.max(0, job.modifyTowerMineralCost(jobContext, targetType, upgrade.mineralCost()));
         if (!laneContext.player.economy().spendMineral(mineralCost)) {
             return TowerUpgradeResult.NOT_ENOUGH_MINERAL;
         }
 
         TestTower evolvedTower = new TestTower(
-                targetType.get(),
+                targetType,
                 testTower.ownerPlayer(),
                 testTower.teamId(),
                 testTower.laneId(),
@@ -132,7 +128,7 @@ public final class TestTowerService {
             laneContext.player.economy().addMineral(mineralCost);
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
-        job.onTowerPlaced(jobContext, laneContext.lane, targetType.get());
+        job.onTowerPlaced(jobContext, laneContext.lane, targetType);
         return TowerUpgradeResult.SUCCESS;
     }
 

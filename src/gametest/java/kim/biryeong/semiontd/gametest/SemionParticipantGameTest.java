@@ -1338,7 +1338,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
             for (var option : starter.type().upgradeOptions()) {
-                Optional<ProductionTowerCatalog.CatalogEntry> tierTwo = ProductionTowerCatalog.find(option.targetTypeId());
+                Optional<ProductionTowerCatalog.CatalogEntry> tierTwo = ProductionTowerCatalog.entry(option.targetType());
                 if (!assertPresent(context, tierTwo, "Starter upgrade target should exist in production catalog.")) {
                     return;
                 }
@@ -1351,7 +1351,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 if (!assertEquals(context, 1, tierTwo.get().type().upgradeOptions().size(), "Each tier-2 branch should expose one ultimate upgrade.")) {
                     return;
                 }
-                Optional<ProductionTowerCatalog.CatalogEntry> ultimate = ProductionTowerCatalog.find(tierTwo.get().type().upgradeOptions().getFirst().targetTypeId());
+                Optional<ProductionTowerCatalog.CatalogEntry> ultimate =
+                        ProductionTowerCatalog.entry(tierTwo.get().type().upgradeOptions().getFirst().targetType());
                 if (!assertPresent(context, ultimate, "Tier-2 ultimate target should exist in production catalog.")) {
                     return;
                 }

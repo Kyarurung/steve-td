@@ -17,6 +17,7 @@ import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
 import kim.biryeong.semiontd.summon.SummonRole;
+import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.summon.SummonTier;
 import kim.biryeong.semiontd.summon.SummonAbilityActivation;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
@@ -305,6 +306,21 @@ public final class SemionDialogService {
         showActions(player, "세미온 TD 타워 상세", body.toString(), actions, 2);
     }
 
+    public void showDebugTowerControl(ServerPlayer player) {
+        StringBuilder body = new StringBuilder();
+        body.append("<gradient:#facc15:#22d3ee><bold>타워 관리</bold></gradient>\n");
+        body.append("<gray>건설 후보</gray> <white>")
+                .append(ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count())
+                .append("</white>");
+        body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>\n");
+
+        List<ActionButton> actions = ProductionTowerCatalog.all().stream()
+                .filter(ProductionTowerCatalog.CatalogEntry::starter)
+                .map(entry -> towerButton(entry, entry.type().mineralCost(), true))
+                .toList();
+        showActions(player, "세미온 TD 타워", body.toString(), actions, 3);
+    }
+
     public void showSummonShop(ServerPlayer player, SemionGame game) {
         StringBuilder body = new StringBuilder();
         body.append("<gradient:#f472b6:#a78bfa><bold>견제 몹 소환</bold></gradient>\n");
@@ -325,6 +341,29 @@ public final class SemionDialogService {
                 .toList();
         showActions(player, "세미온 TD 소환", body.toString(), actions, 5);
     }
+
+    public void showDebugSummonShop(ServerPlayer player) {
+        SummonShop summonShop = new SummonShop();
+        StringBuilder body = new StringBuilder();
+        body.append("<gradient:#f472b6:#a78bfa><bold>견제 몹 소환</bold></gradient>\n");
+        body.append("<gray>티어별 역할 분포입니다. 상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>\n\n");
+        body.append(summonTierTable(summonShop.all()));
+
+        List<ActionButton> actions = summonShop.all().stream()
+                .sorted(Comparator.comparing(SummonMonsterType::tier)
+                        .thenComparing(type -> primaryRole(type).ordinal())
+                        .thenComparingLong(SummonMonsterType::gasCost)
+                        .thenComparing(SummonMonsterType::displayName))
+                .map(type -> actionButton(
+                        summonButtonLabel(type),
+                        "/semiontd summon " + type.id(),
+                        summonTooltip(type),
+                        SUMMON_BUTTON_WIDTH
+                ))
+                .toList();
+        showActions(player, "세미온 TD 소환", body.toString(), actions, 5);
+    }
+
 
     private void show(ServerPlayer player, String title, String body) {
         show(player, title, miniMessage(body));
@@ -441,7 +480,7 @@ public final class SemionDialogService {
         String upgradeSummary = type.upgradeOptions().isEmpty()
                 ? "업그레이드 없음"
                 : type.upgradeOptions().stream()
-                .map(TowerUpgradeOption::displayName)
+                .map(option -> option.displayName() + " -> " + option.targetType().displayName())
                 .collect(Collectors.joining(" / "));
         MutableComponent tooltip = Component.literal(type.displayName())
                 .append(Component.literal("\n비용 " + mineralCost + " 다이아" + (affordable ? "" : " (부족)")))
@@ -458,7 +497,7 @@ public final class SemionDialogService {
     }
 
     private static Component upgradeTooltip(TowerUpgradeOption option) {
-        Optional<ProductionTowerCatalog.CatalogEntry> target = ProductionTowerCatalog.find(option.targetTypeId());
+        Optional<ProductionTowerCatalog.CatalogEntry> target = ProductionTowerCatalog.entry(option.targetType());
         if (target.isEmpty()) {
             return Component.literal("대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아");
         }

@@ -3,7 +3,7 @@ package kim.biryeong.semiontd.tower;
 public record TowerUpgradeOption(
         String id,
         String displayName,
-        String targetTypeId,
+        TowerType targetType,
         long mineralCost
 ) {
     public TowerUpgradeOption {
@@ -13,8 +13,8 @@ public record TowerUpgradeOption(
         if (displayName == null || displayName.isBlank()) {
             displayName = id;
         }
-        if (targetTypeId == null || targetTypeId.isBlank()) {
-            throw new IllegalArgumentException("Tower upgrade target type id cannot be blank.");
+        if (targetType == null) {
+            throw new IllegalArgumentException("Tower upgrade target type cannot be null.");
         }
         if (mineralCost < 0) {
             throw new IllegalArgumentException("Tower upgrade mineral cost cannot be negative.");
