@@ -41,6 +41,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     private static final double DEFAULT_MELEE_RANGE = 2.5;
     private static final double DEFAULT_RANGED_RANGE = 8.0;
     private static final double DEFAULT_FOLLOW_RANGE = 5.0;
+    private static final double DEFAULT_MOVEMENT_SPEED = 0.28 * 1.5;
     public static final double DEFENSE_SEARCH_HORIZONTAL_PADDING = 5.0;
     public static final double DEFENSE_TARGET_LEASH_RANGE = 8.0;
     private static final double DEFENSE_SEARCH_VERTICAL_PADDING = 3.0;
@@ -112,7 +113,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(monster.maxHealth());
         getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(monster.attackDamage());
         getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(followRangeFor(monster));
-        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.28);
+        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(DEFAULT_MOVEMENT_SPEED);
         getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
         setHealth((float) monster.health());
         installBilModel(blockbenchModelId);

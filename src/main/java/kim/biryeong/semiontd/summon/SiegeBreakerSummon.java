@@ -17,7 +17,7 @@ public final class SiegeBreakerSummon extends SummonMonsterType {
                 18,
                 364,
                 14,
-                22,
+                46,
                 AttackKind.MELEE,
                 "minecraft:ravager",
                 "semion-td:summon/t5_siege",

@@ -42,8 +42,8 @@ public final class SemionGame {
     public static final int DEFAULT_PREPARE_TICKS = 25 * 20;
     public static final int DEFAULT_WAVE_FINAL_DEFENSE_TICKS = 90 * 20;
 
-    private final EconomyConfig economyConfig;
-    private final WaveConfig waveConfig;
+    private EconomyConfig economyConfig;
+    private WaveConfig waveConfig;
     private final GameArena arena;
     private final EconomyService economyService;
     private final SummonShop summonShop;
@@ -112,6 +112,12 @@ public final class SemionGame {
 
     public EconomyConfig economyConfig() {
         return economyConfig;
+    }
+
+    public void applyConfigs(EconomyConfig economyConfig, WaveConfig waveConfig) {
+        this.economyConfig = economyConfig;
+        this.waveConfig = waveConfig;
+        this.economyService.configure(economyConfig);
     }
 
     public boolean rosterLocked() {
@@ -469,6 +475,7 @@ public final class SemionGame {
         currentWaveTeamIds.clear();
         for (SemionTeam team : livingTeams()) {
             currentWaveTeamIds.add(team.id());
+            team.laneGroup().setCurrentRound(currentRound);
             for (PlayerLane lane : team.laneGroup().lanes()) {
                 lane.markWaveStarted(currentRound);
             }

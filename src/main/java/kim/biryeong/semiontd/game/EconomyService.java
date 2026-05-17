@@ -11,7 +11,7 @@ import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
 
 public final class EconomyService {
-    private final EconomyConfig economyConfig;
+    private EconomyConfig economyConfig;
     private final SemionGame game;
 
     public EconomyService(EconomyConfig economyConfig) {
@@ -25,6 +25,10 @@ public final class EconomyService {
 
     public EconomyConfig economyConfig() {
         return economyConfig;
+    }
+
+    public void configure(EconomyConfig economyConfig) {
+        this.economyConfig = economyConfig;
     }
 
     public void tickEmerald(Collection<SemionPlayer> players, Map<TeamId, SemionTeam> teams, int currentRound) {

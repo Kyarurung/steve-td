@@ -126,6 +126,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     @Override
     public void aiStep() {
         super.aiStep();
+        invulnerableTime = 0;
         timedEffects.tick();
         returnToFinalDefenseAreaIfNeeded();
     }
@@ -369,6 +370,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
 
         double previousHealth = getHealth();
         super.actuallyHurt(serverLevel, damageSource, (float) damageAmount);
+        invulnerableTime = 0;
         double currentHealth = getHealth();
         if (runtimeTower != null) {
             runtimeTower.syncHealth(currentHealth);

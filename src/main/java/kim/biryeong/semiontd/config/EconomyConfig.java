@@ -61,7 +61,7 @@ public record EconomyConfig(
         }
 
         public static GasCapConfig defaultConfig() {
-            return new GasCapConfig(500, 2, 20, 10);
+            return new GasCapConfig(1500, 6, 20, 30);
         }
 
         public long capForRound(int round) {

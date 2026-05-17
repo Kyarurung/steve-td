@@ -21,6 +21,7 @@ public final class TeamLaneGroup {
     private ServerLevel bossWorld;
     private SemionBossEntity bossEntity;
     private int bossEntityId = -1;
+    private int currentRound = 1;
 
     public TeamLaneGroup(TeamId teamId, BossMonster boss) {
         this.teamId = teamId;
@@ -124,12 +125,20 @@ public final class TeamLaneGroup {
         return Optional.ofNullable(bossEntity);
     }
 
+    public void setCurrentRound(int currentRound) {
+        this.currentRound = Math.max(1, currentRound);
+        if (bossEntity != null) {
+            bossEntity.setCurrentRound(this.currentRound);
+        }
+    }
+
     public void spawnBossEntity(ServerLevel world, Vec3 position) {
         discardBossEntity();
         bossWorld = world;
 
         SemionBossEntity entity = new SemionBossEntity(SemionEntityTypes.BOSS, world);
         entity.configure(teamId, boss);
+        entity.setCurrentRound(currentRound);
         entity.setPos(position.x, position.y, position.z);
         entity.setAnchorPosition(position);
 

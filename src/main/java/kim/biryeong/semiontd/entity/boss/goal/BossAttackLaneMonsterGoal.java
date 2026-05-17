@@ -5,7 +5,6 @@ import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.entity.boss.SemionBossEntity;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -76,8 +75,7 @@ public final class BossAttackLaneMonsterGoal extends Goal {
     }
 
     private void attackTargetAndSplash(SemionMonsterEntity primaryTarget) {
-        double damageAmount = boss.getAttributeValue(Attributes.ATTACK_DAMAGE);
-        damage(primaryTarget, damageAmount);
+        damage(primaryTarget);
 
         AABB splashBox = primaryTarget.getBoundingBox().inflate(SPLASH_RADIUS);
         double splashRadiusSqr = SPLASH_RADIUS * SPLASH_RADIUS;
@@ -93,14 +91,15 @@ public final class BossAttackLaneMonsterGoal extends Goal {
                 ).stream()
                 .filter(SemionMonsterEntity.class::isInstance)
                 .map(SemionMonsterEntity.class::cast)
-                .forEach(monster -> damage(monster, damageAmount));
+                .forEach(this::damage);
     }
 
-    private void damage(SemionMonsterEntity target, double damageAmount) {
+    private void damage(SemionMonsterEntity target) {
         Monster runtimeMonster = target.runtimeMonster();
         if (runtimeMonster != null) {
             runtimeMonster.recordBossHit();
         }
+        double damageAmount = boss.attackDamageAgainst(runtimeMonster);
         target.hurt(boss.damageSources().mobAttack(boss), (float) damageAmount);
         if (runtimeMonster != null) {
             runtimeMonster.syncHealth(target.getHealth());

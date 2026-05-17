@@ -317,15 +317,16 @@ public abstract class SummonMonsterType {
         Objects.requireNonNull(context, "context");
         UUID ownerPlayer = context.player().uuid();
         TeamId senderTeam = context.player().teamId();
+        int currentRound = context.game() == null ? 1 : context.game().currentRound();
         return new Monster(
                 id,
                 targetTeam,
                 targetLaneId,
                 Optional.of(ownerPlayer),
                 Optional.of(senderTeam),
-                maxHealth,
+                maxHealth * SummonBalancePolicy.summonHealthMultiplier(currentRound),
                 armor,
-                attackDamage,
+                attackDamage * SummonBalancePolicy.summonAttackDamageMultiplier(currentRound),
                 attackKind,
                 entityTypeId,
                 blockbenchModelId,

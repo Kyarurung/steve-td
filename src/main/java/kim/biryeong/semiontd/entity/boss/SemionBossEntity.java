@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.entity.boss;
 
 import eu.pb4.polymer.core.api.entity.PolymerEntity;
 import kim.biryeong.semiontd.entity.boss.goal.BossAttackLaneMonsterGoal;
+import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.game.TeamId;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -15,10 +16,14 @@ import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public class SemionBossEntity extends PathfinderMob implements PolymerEntity {
+    private static final double DAMAGE_SCALING_PER_ROUND = 0.10;
+    private static final double SUMMON_DAMAGE_MULTIPLIER = 3.0;
+
     private TeamId teamId = TeamId.RED;
     private BossMonster runtimeBoss;
     private EntityType<?> polymerEntityType = EntityType.IRON_GOLEM;
     private Vec3 anchorPosition;
+    private int currentRound = 1;
 
     public SemionBossEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
@@ -81,6 +86,19 @@ public class SemionBossEntity extends PathfinderMob implements PolymerEntity {
     public void setAnchorPosition(Vec3 anchorPosition) {
         this.anchorPosition = anchorPosition;
         holdAnchorPosition();
+    }
+
+    public void setCurrentRound(int currentRound) {
+        this.currentRound = Math.max(1, currentRound);
+    }
+
+    public double attackDamageAgainst(Monster target) {
+        double damage = getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+        damage *= 1.0 + Math.max(0, currentRound - 1) * DAMAGE_SCALING_PER_ROUND;
+        if (target != null && target.senderTeam().isPresent()) {
+            damage *= SUMMON_DAMAGE_MULTIPLIER;
+        }
+        return damage;
     }
 
     @Override
