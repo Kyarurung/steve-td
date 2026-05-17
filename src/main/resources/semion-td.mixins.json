@@ -4,7 +4,26 @@
   "package": "kim.biryeong.semiontd.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "BezierInterpolatorMixin"
+    "BezierInterpolatorMixin",
+    "accessor.AxolotlAccessor",
+    "accessor.CatAccessor",
+    "accessor.ChickenAccessor",
+    "accessor.CowAccessor",
+    "accessor.FoxAccessor",
+    "accessor.FrogAccessor",
+    "accessor.HorseAccessor",
+    "accessor.LlamaAccessor",
+    "accessor.MushroomCowAccessor",
+    "accessor.ParrotAccessor",
+    "accessor.PigAccessor",
+    "accessor.RabbitAccessor",
+    "accessor.SalmonAccessor",
+    "accessor.SheepAccessor",
+    "accessor.TamableAnimalAccessor",
+    "accessor.TropicalFishAccessor",
+    "accessor.VillagerAccessor",
+    "accessor.WolfAccessor",
+    "accessor.ZombieVillagerAccessor"
   ],
   "client": [
   ],

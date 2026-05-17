@@ -52,8 +52,10 @@ fix(command): harden lobby reset recovery
 - `/semiontd status lanes`가 active lane별 laneArea 중심 `towerSample=x,y,z`와 `laneArea=min..max`를 출력한다.
 - Carpet tower QA에서는 fake player를 `towerSample` 좌표로 이동시켜 `semiontd tower test` 성공까지 확인했다.
 - 반복 실행 절차는 `docs/carpet-qa-runbook.ko.md`에 정리되어 있다.
-- 프로덕션 타워 1차 카탈로그는 `docs/production-tower-catalog.ko.md`에 정리되어 있다.
+- 프로덕션 타워 등록 방식은 `docs/production-tower-catalog.ko.md`에 정리되어 있다. 현재 기본 등록 타워는 비어 있으므로, 실제 플레이용 타워는 새 카탈로그 클래스로 직접 추가해야 한다.
 - `/semiontd tower list`와 `/semiontd tower build <id>`가 추가되어 직업별 허용 타워를 설치할 수 있다.
+- 타워 외형은 typed visual builder로 바닐라 엔티티 variant/tracked data를 지정할 수 있다. villager/zombie_villager, cow, pig, chicken, wolf, cat, frog, horse, llama/trader_llama, fox, rabbit, parrot, axolotl, mooshroom, salmon, tropical_fish, sheep builder는 `docs/production-tower-catalog.ko.md`에 정리되어 있다.
+- 바닐라 tracked data 필드 접근은 reflection 없이 mixin accessor를 사용한다. 새 엔티티 property를 추가할 때도 `kim.biryeong.semiontd.mixin.accessor`에 accessor를 추가하고 `semion-td.mixins.json`에 등록한다.
 
 검증 완료 상태:
 

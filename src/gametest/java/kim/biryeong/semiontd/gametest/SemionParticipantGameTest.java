@@ -94,6 +94,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerFaction;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
@@ -1387,7 +1388,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void productionTowerCatalogRegistersFactionJobsAndSplashTowers(GameTestHelper context) {
+    public void productionTowerCatalogStartsEmptyForManualAuthoring(GameTestHelper context) {
         if (!assertTrue(context, kim.biryeong.semiontd.job.JobRegistry.find(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")).isPresent(), "Villager job should be registered.")) {
             return;
         }
@@ -1397,111 +1398,19 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, kim.biryeong.semiontd.job.JobRegistry.find(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer")).isPresent(), "Beast job should be registered.")) {
             return;
         }
-        if (!assertEquals(context, 45, ProductionTowerCatalog.all().size(), "Production catalog should expose nine starter towers plus two-branch upgrade trees.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.all().isEmpty(), "Production catalog should start empty so towers can be authored manually.")) {
             return;
         }
         for (TowerFaction faction : TowerFaction.values()) {
-            if (!assertEquals(context, 15, ProductionTowerCatalog.forFaction(faction).size(), "Each faction should expose three starter trees with five towers each.")) {
+            if (!assertTrue(context, ProductionTowerCatalog.forFaction(faction).isEmpty(), "Empty production catalog should not expose faction tower entries.")) {
                 return;
             }
-        }
-        List<ProductionTowerCatalog.CatalogEntry> starters = ProductionTowerCatalog.all().stream()
-                .filter(ProductionTowerCatalog.CatalogEntry::starter)
-                .toList();
-        if (!assertEquals(context, 9, starters.size(), "Only the nine first-tier towers should be directly installable.")) {
-            return;
-        }
-        for (TowerFaction faction : TowerFaction.values()) {
-            List<ProductionTowerCatalog.CatalogEntry> factionStarters = starters.stream()
-                    .filter(entry -> entry.behavior().faction() == faction)
-                    .toList();
-            if (!assertTrue(
-                    context,
-                    factionStarters.stream().anyMatch(SemionParticipantGameTest::isDurableStarter),
-                    faction + " starters should include a durable low-damage front line tower."
-            )) {
-                return;
-            }
-            if (!assertTrue(
-                    context,
-                    factionStarters.stream().anyMatch(SemionParticipantGameTest::isSplashStarter),
-                    faction + " starters should include a pack-clearing splash tower."
-            )) {
-                return;
-            }
-            if (!assertTrue(
-                    context,
-                    factionStarters.stream().anyMatch(SemionParticipantGameTest::isFocusedDamageStarter),
-                    faction + " starters should include a long-range focused damage tower."
-            )) {
-                return;
-            }
-        }
-        for (ProductionTowerCatalog.CatalogEntry starter : starters) {
-            if (!assertEquals(context, 2, starter.type().upgradeOptions().size(), "Every starter tower should expose two tier-2 branches.")) {
-                return;
-            }
-            for (var option : starter.type().upgradeOptions()) {
-                Optional<ProductionTowerCatalog.CatalogEntry> tierTwo = ProductionTowerCatalog.entry(option.targetType());
-                if (!assertPresent(context, tierTwo, "Starter upgrade target should exist in production catalog.")) {
-                    return;
-                }
-                if (!assertEquals(context, 2, tierTwo.get().tier(), "Starter upgrade target should be a tier-2 tower.")) {
-                    return;
-                }
-                if (!assertEquals(context, starter.behavior().faction(), tierTwo.get().behavior().faction(), "Upgrade branch should stay in the same faction.")) {
-                    return;
-                }
-                if (!assertEquals(context, 1, tierTwo.get().type().upgradeOptions().size(), "Each tier-2 branch should expose one ultimate upgrade.")) {
-                    return;
-                }
-                Optional<ProductionTowerCatalog.CatalogEntry> ultimate =
-                        ProductionTowerCatalog.entry(tierTwo.get().type().upgradeOptions().getFirst().targetType());
-                if (!assertPresent(context, ultimate, "Tier-2 ultimate target should exist in production catalog.")) {
-                    return;
-                }
-                if (!assertEquals(context, 3, ultimate.get().tier(), "Final target should be a tier-3 ultimate tower.")) {
-                    return;
-                }
-                if (!assertTrue(context, ultimate.get().type().upgradeOptions().isEmpty(), "Ultimate towers should be leaf upgrades.")) {
-                    return;
-                }
-            }
-        }
-        long splashTowerCount = ProductionTowerCatalog.all().stream()
-                .filter(entry -> entry.behavior().splashRadius() > 0.0)
-                .count();
-        if (!assertTrue(context, splashTowerCount >= 40, "Most production towers should have splash coverage for mob packs.")) {
-            return;
         }
         context.succeed();
     }
 
-    private static boolean isDurableStarter(ProductionTowerCatalog.CatalogEntry entry) {
-        TowerType type = entry.type();
-        return type.maxHealth() >= 140.0
-                && type.aggroPriority() >= 30
-                && starterDamagePerSecond(type) <= 8.0;
-    }
-
-    private static boolean isSplashStarter(ProductionTowerCatalog.CatalogEntry entry) {
-        return entry.behavior().splashRadius() >= 2.0
-                && entry.behavior().splashDamageMultiplier() >= 0.5;
-    }
-
-    private static boolean isFocusedDamageStarter(ProductionTowerCatalog.CatalogEntry entry) {
-        TowerType type = entry.type();
-        return type.range() >= 13.0
-                && starterDamagePerSecond(type) >= 14.0
-                && entry.behavior().splashRadius() <= 0.6;
-    }
-
-    private static double starterDamagePerSecond(TowerType type) {
-        return type.damage() * 20.0 / type.attackIntervalTicks();
-    }
-
     @GameTest
-    public void productionTowerBuildRespectsSelectedFactionJob(GameTestHelper context) {
+    public void emptyProductionTowerCatalogRejectsBuildRequests(GameTestHelper context) {
         UUID playerId = stableUuid("red-production-villager-owner");
         SemionGame game = startedSinglePlayerGame(
                 context,
@@ -1514,52 +1423,27 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         if (!assertEquals(
                 context,
-                TowerPlacementResult.SUCCESS,
-                ProductionTowerService.placeTower(game, playerId, towerPos, ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()),
-                "Villager job should place villager production towers."
-        )) {
-            return;
-        }
-        if (!assertTrue(context, lane.towers().getFirst() instanceof ProductionTower, "Production build should create a ProductionTower runtime object.")) {
-            return;
-        }
-        if (!assertEquals(
-                context,
-                3,
-                ProductionTowerService.availableTowers(game, playerId).size(),
-                "Production build list should expose only starter towers for the selected faction."
-        )) {
-            return;
-        }
-        BlockPos secondPos = towerPos.offset(1, 0, 0);
-        if (!assertEquals(
-                context,
                 TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB,
-                ProductionTowerService.placeTower(game, playerId, secondPos, ProductionTowerCatalog.UNDEAD_BONE_SPITTER.id()),
-                "Villager job should reject undead faction towers."
+                ProductionTowerService.placeTower(game, playerId, towerPos, "missing_manual_tower"),
+                "Empty production catalog should reject build requests until a tower is registered."
         )) {
             return;
         }
-        if (!assertEquals(
-                context,
-                TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB,
-                ProductionTowerService.placeTower(game, playerId, secondPos, "villager_crossbow_post_militia_net"),
-                "Upgrade-only production towers should not be directly buildable."
-        )) {
+        if (!assertTrue(context, lane.towers().isEmpty(), "Rejected production build should not add a runtime tower.")) {
             return;
         }
         context.succeed();
     }
 
     @GameTest
-    public void unjobbedKeepsAllStarterTowersButFactionJobsFilterUi(GameTestHelper context) {
+    public void emptyProductionTowerCatalogKeepsBuildListsEmpty(GameTestHelper context) {
         UUID unjobbedId = stableUuid("unjobbed-production-owner");
         SemionGame unjobbedGame = startedSinglePlayerGame(context, unjobbedId, TeamId.RED);
         if (!assertEquals(
                 context,
-                9,
+                0,
                 ProductionTowerService.availableTowers(unjobbedGame, unjobbedId).size(),
-                "Unjobbed players should keep the existing all-starter tower list."
+                "Unjobbed players should see no production towers while the catalog is empty."
         )) {
             return;
         }
@@ -1572,14 +1456,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer")
         );
         List<ProductionTowerCatalog.CatalogEntry> beastEntries = ProductionTowerService.availableTowers(beastGame, beastId);
-        if (!assertEquals(context, 3, beastEntries.size(), "Faction jobs should show only their three starter towers.")) {
-            return;
-        }
-        if (!assertTrue(
-                context,
-                beastEntries.stream().allMatch(entry -> entry.behavior().faction() == TowerFaction.BEAST),
-                "Beast job tower UI entries should all be beast faction towers."
-        )) {
+        if (!assertTrue(context, beastEntries.isEmpty(), "Faction jobs should show no production towers while the catalog is empty.")) {
             return;
         }
         context.succeed();
@@ -1587,7 +1464,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void towerBuildButtonLabelsColorUnaffordableTowersRed(GameTestHelper context) {
-        ProductionTowerCatalog.CatalogEntry entry = ProductionTowerCatalog.find(ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()).orElseThrow();
+        ProductionTowerCatalog.CatalogEntry entry = productionFixtureEntry(TowerFaction.VILLAGER);
         Component affordable = SemionDialogService.towerButtonLabel(entry, true);
         Component unaffordable = SemionDialogService.towerButtonLabel(entry, false);
 
@@ -1608,6 +1485,55 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         context.succeed();
+    }
+
+    private static ProductionTowerCatalog.CatalogEntry productionFixtureEntry(TowerFaction faction) {
+        return new ProductionTowerCatalog.CatalogEntry(
+                productionFixtureType("manual_fixture_entry", List.of()),
+                productionFixtureBehavior(faction),
+                null,
+                1
+        );
+    }
+
+    private static TowerType productionFixtureType(String id, List<TowerUpgradeOption> upgradeOptions) {
+        return new TowerType(
+                id,
+                "Manual Fixture",
+                TowerCategory.DIRECT,
+                0,
+                80.0,
+                8.0,
+                8.0,
+                20,
+                0,
+                "minecraft:villager",
+                upgradeOptions
+        );
+    }
+
+    private static kim.biryeong.semiontd.tower.ProductionTowerBehavior productionFixtureBehavior(TowerFaction faction) {
+        return productionFixtureBehavior(faction, 0.0, 0.0);
+    }
+
+    private static kim.biryeong.semiontd.tower.ProductionTowerBehavior productionFixtureBehavior(
+            TowerFaction faction,
+            double splashRadius,
+            double splashDamageMultiplier
+    ) {
+        return new kim.biryeong.semiontd.tower.ProductionTowerBehavior(
+                faction,
+                faction.name(),
+                splashRadius,
+                splashDamageMultiplier,
+                8,
+                0.05,
+                0.0,
+                true,
+                false,
+                0.0,
+                0.0
+        );
     }
 
     @GameTest
@@ -1676,7 +1602,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void productionTowerUpgradeChainsToUltimateAndPreservesRefund(GameTestHelper context) {
+    public void productionTowerUpgradeRejectsUnregisteredTargetType(GameTestHelper context) {
         UUID playerId = stableUuid("red-production-upgrade-owner");
         SemionGame game = startedSinglePlayerGame(
                 context,
@@ -1687,71 +1613,33 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
 
-        if (!assertEquals(
-                context,
-                TowerPlacementResult.SUCCESS,
-                ProductionTowerService.placeTower(game, playerId, towerPos, ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()),
-                "Starter production tower placement should succeed before upgrade."
-        )) {
-            return;
-        }
-        game.players().get(playerId).economy().addMineral(500);
-        ProductionTower starter = (ProductionTower) lane.towers().getFirst();
-        int starterEntityId = starter.entityId().orElse(-1);
-
-        if (!assertEquals(
-                context,
-                2,
-                ProductionTowerService.availableUpgrades(game, playerId, towerPos).size(),
-                "Starter production tower should expose two upgrade branches."
-        )) {
-            return;
-        }
-        if (!assertEquals(
-                context,
-                TowerUpgradeResult.SUCCESS,
-                ProductionTowerService.upgradeTower(game, playerId, towerPos, "militia_net"),
-                "Production tower should upgrade into the selected tier-2 branch."
-        )) {
-            return;
-        }
-
-        ProductionTower tierTwo = (ProductionTower) lane.towers().getFirst();
-        if (!assertEquals(context, "villager_crossbow_post_militia_net", tierTwo.type().id(), "Tier-2 production tower id should match the selected branch.")) {
-            return;
-        }
-        if (!assertTrue(context, tierTwo.entityId().orElse(-1) != starterEntityId, "Production upgrade should replace the live tower entity.")) {
-            return;
-        }
-        if (!assertEquals(
-                context,
+        TowerType upgradeTarget = new TowerType("manual_fixture_t2", "Manual Fixture T2", TowerCategory.DIRECT, 0, 80.0, 8.0, 8.0, 20, 0);
+        TowerType starterType = new TowerType(
+                "manual_fixture_starter",
+                "Manual Fixture Starter",
+                TowerCategory.DIRECT,
+                0,
+                80.0,
+                8.0,
+                8.0,
+                20,
+                0,
+                List.of(new TowerUpgradeOption("manual_upgrade", "Manual Upgrade", upgradeTarget, 0))
+        );
+        lane.addTower(new ProductionTower(
+                starterType,
+                productionFixtureBehavior(TowerFaction.VILLAGER),
+                playerId,
+                TeamId.RED,
                 1,
-                ProductionTowerService.availableUpgrades(game, playerId, towerPos).size(),
-                "Tier-2 production tower should expose one ultimate upgrade."
-        )) {
-            return;
-        }
-        if (!assertEquals(
-                context,
-                TowerUpgradeResult.SUCCESS,
-                ProductionTowerService.upgradeTower(game, playerId, towerPos, "emerald_sentry"),
-                "Tier-2 production tower should upgrade into its ultimate."
-        )) {
-            return;
-        }
+                new kim.biryeong.semiontd.game.GridPosition(towerPos.getX(), towerPos.getY(), towerPos.getZ())
+        ));
 
-        ProductionTower ultimate = (ProductionTower) lane.towers().getFirst();
-        if (!assertEquals(context, "villager_crossbow_post_emerald_sentry", ultimate.type().id(), "Ultimate production tower id should match the branch leaf.")) {
-            return;
-        }
-        if (!assertTrue(context, ProductionTowerService.availableUpgrades(game, playerId, towerPos).isEmpty(), "Ultimate production towers should be leaf upgrades.")) {
-            return;
-        }
         if (!assertEquals(
                 context,
-                ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.mineralCost() + 90L + 210L,
-                ultimate.sellRefundAmount(),
-                "Production upgrade should preserve full paid cost for pre-wave refund."
+                TowerUpgradeResult.UNKNOWN_TARGET_TYPE,
+                ProductionTowerService.upgradeTower(game, playerId, towerPos, "manual_upgrade"),
+                "Production upgrades should reject targets that are not registered in the catalog."
         )) {
             return;
         }
@@ -1769,15 +1657,32 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
+        TowerType starterType = new TowerType(
+                "manual_fixture_unknown_upgrade",
+                "Manual Fixture Unknown Upgrade",
+                TowerCategory.DIRECT,
+                0,
+                80.0,
+                8.0,
+                8.0,
+                20,
+                0,
+                List.of(new TowerUpgradeOption(
+                        "known_upgrade",
+                        "Known Upgrade",
+                        new TowerType("manual_fixture_known_target", "Manual Fixture Known Target", TowerCategory.DIRECT, 0, 80.0, 8.0, 8.0, 20, 0),
+                        0
+                ))
+        );
 
-        if (!assertEquals(
-                context,
-                TowerPlacementResult.SUCCESS,
-                ProductionTowerService.placeTower(game, playerId, towerPos, ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()),
-                "Starter production tower placement should succeed before invalid upgrade."
-        )) {
-            return;
-        }
+        lane.addTower(new ProductionTower(
+                starterType,
+                productionFixtureBehavior(TowerFaction.VILLAGER),
+                playerId,
+                TeamId.RED,
+                1,
+                new kim.biryeong.semiontd.game.GridPosition(towerPos.getX(), towerPos.getY(), towerPos.getZ())
+        ));
         if (!assertEquals(
                 context,
                 TowerUpgradeResult.UNKNOWN_UPGRADE,
@@ -1801,10 +1706,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
-        ProductionTowerCatalog.CatalogEntry entry = ProductionTowerCatalog.find(ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.id()).orElseThrow();
         lane.addTower(new ProductionTower(
-                entry.type(),
-                entry.behavior(),
+                productionFixtureType("manual_fixture_non_owner", List.of(new TowerUpgradeOption(
+                        "manual_upgrade",
+                        "Manual Upgrade",
+                        new TowerType("manual_fixture_non_owner_target", "Manual Fixture Non Owner Target", TowerCategory.DIRECT, 0, 80.0, 8.0, 8.0, 20, 0),
+                        0
+                ))),
+                productionFixtureBehavior(TowerFaction.VILLAGER),
                 ownerId,
                 TeamId.RED,
                 1,
@@ -1836,10 +1745,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
-        ProductionTowerCatalog.CatalogEntry entry = ProductionTowerCatalog.find(ProductionTowerCatalog.UNDEAD_GRAVE_BOMBARD.id()).orElseThrow();
         lane.addTower(new ProductionTower(
-                entry.type(),
-                entry.behavior(),
+                productionFixtureType("manual_fixture_splash", List.of()),
+                productionFixtureBehavior(TowerFaction.UNDEAD, 2.0, 0.8),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1879,10 +1787,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
-        ProductionTowerCatalog.CatalogEntry entry = ProductionTowerCatalog.find(ProductionTowerCatalog.VILLAGER_BELL_MORTAR.id()).orElseThrow();
         ProductionTower tower = new ProductionTower(
-                entry.type(),
-                entry.behavior(),
+                productionFixtureType("manual_fixture_stack", List.of()),
+                productionFixtureBehavior(TowerFaction.VILLAGER, 0.0, 0.0),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1914,22 +1821,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void productionTowerCatalogUsesVanillaMobVisuals(GameTestHelper context) {
-        if (!assertEquals(
-                context,
-                "minecraft:villager",
-                ProductionTowerCatalog.VILLAGER_CROSSBOW_POST.entityTypeId(),
-                "Villager faction towers should use a visible vanilla mob entity."
-        )) {
-            return;
-        }
-        if (!assertEquals(
-                context,
-                "minecraft:pig",
-                ProductionTowerCatalog.BEAST_BOAR_CRASHER.entityTypeId(),
-                "Beast faction boar tower should use a pig visual instead of armor stand."
-        )) {
-            return;
-        }
         if (!assertTrue(
                 context,
                 ProductionTowerCatalog.all().stream()

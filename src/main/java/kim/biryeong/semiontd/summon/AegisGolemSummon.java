@@ -1,35 +1,14 @@
 package kim.biryeong.semiontd.summon;
 
 import java.util.List;
-import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.goal.ApplyMonsterTimedEffectGoal;
-import kim.biryeong.semiontd.entity.monster.DamageType;
-import kim.biryeong.semiontd.entity.monster.MonsterDimensions;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 
 public final class AegisGolemSummon extends SummonMonsterType {
     public AegisGolemSummon() {
-        super(
-                "aegis_golem",
-                SummonDisplayNames.AEGIS_GOLEM,
-                270,
-                15,
-                378,
-                18,
-                13,
-                AttackKind.MELEE,
-                "minecraft:iron_golem",
-                null,
-                MonsterDimensions.of(1.4, 2.2),
-                DamageType.PHYSICAL,
-                8,
-                SummonTier.T4,
-                List.of(SummonRole.TANK),
-                List.of(SummonAbilityActivation.PASSIVE),
-                31
-        );
+        super(SummonDefinitions.AEGIS_GOLEM);
     }
 
     @Override

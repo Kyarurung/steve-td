@@ -1,33 +1,14 @@
 package kim.biryeong.semiontd.summon;
 
 import java.util.List;
-import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.goal.ApplyMonsterTimedEffectGoal;
-import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 
 public final class StormLynxSummon extends SummonMonsterType {
     public StormLynxSummon() {
-        super(
-                "storm_lynx",
-                SummonDisplayNames.STORM_LYNX,
-                190,
-                10,
-                133,
-                2,
-                15,
-                AttackKind.MELEE,
-                "minecraft:ocelot",
-                null,
-                DamageType.PHYSICAL,
-                4,
-                SummonTier.T4,
-                List.of(SummonRole.RUSH),
-                List.of(SummonAbilityActivation.PASSIVE),
-                22
-        );
+        super(SummonDefinitions.STORM_LYNX);
     }
 
     @Override

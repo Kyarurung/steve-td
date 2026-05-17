@@ -4,6 +4,7 @@ import de.tomalbrc.bil.api.AnimatedEntity;
 import de.tomalbrc.bil.api.AnimatedEntityHolder;
 import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
+import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.effect.TimedEffectSet;
 import kim.biryeong.semiontd.effect.TimedEffectType;
@@ -11,6 +12,8 @@ import kim.biryeong.semiontd.entity.defender.LaneDefenseEntity;
 import kim.biryeong.semiontd.entity.healing.HealingTarget;
 import kim.biryeong.semiontd.entity.model.SemionBilModelCache;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.entity.visual.EntityVisual;
+import kim.biryeong.semiontd.entity.visual.EntityVisualApplierRegistry;
 import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
@@ -19,8 +22,9 @@ import kim.biryeong.semiontd.test.entity.goal.TestTowerAttackMonsterGoal;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.ProductionTowerBehavior;
-import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -54,6 +58,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     private double moveSpeed;
     private LaneRegionLayout laneLayout;
     private Vec3 finalDefenseAnchorPosition;
+    private EntityVisual visual = EntityVisual.vanilla(EntityVisual.DEFAULT_TOWER_ENTITY_TYPE);
     private String blockbenchModelId;
     private SemionAnimationState animationState = SemionAnimationState.IDLE;
     private EntityType<?> polymerEntityType = EntityType.ARMOR_STAND;
@@ -86,8 +91,9 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
         aggroPriority = tower.aggroPriority();
         finalDefense = tower.deployedAtFinalDefense();
         finalDefenseAnchorPosition = finalDefense ? towerAnchorPosition(tower.position()) : null;
-        blockbenchModelId = tower.type().blockbenchModel().orElse(null);
-        setPolymerEntityType(tower.type().entityTypeId());
+        visual = tower.type().visual();
+        blockbenchModelId = visual.blockbenchModel().orElse(null);
+        setPolymerEntityType(visual.entityTypeId());
         targetAcquireRange = Math.max(attackRange + 4.0, DEFAULT_TARGET_ACQUIRE_RANGE);
         moveSpeed = DEFAULT_MOVE_SPEED;
         setCustomName(Component.literal(tower.type().displayName()));
@@ -341,6 +347,11 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     }
 
     @Override
+    public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
+        EntityVisualApplierRegistry.apply(visual, polymerEntityType, level().registryAccess(), data);
+    }
+
+    @Override
     public AnimatedEntityHolder getHolder() {
         return holder;
     }
@@ -379,6 +390,10 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     }
 
     private void setPolymerEntityType(String entityTypeId) {
+        if (entityTypeId == null || entityTypeId.isBlank()) {
+            polymerEntityType = EntityType.VILLAGER;
+            return;
+        }
         ResourceLocation id = ResourceLocation.tryParse(entityTypeId);
         if (id == null) {
             polymerEntityType = EntityType.VILLAGER;

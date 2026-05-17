@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower;
 import java.util.UUID;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
 import kim.biryeong.semiontd.test.tower.TestTower;
@@ -77,7 +78,7 @@ public class ProductionTower extends TestTower {
     }
 
     @Override
-    public void resetForRound(kim.biryeong.semiontd.game.PlayerLane lane) {
+    public void resetForRound(PlayerLane lane) {
         super.resetForRound(lane);
         idleTicks = 0;
         if (faction() == TowerFaction.BEAST) {
@@ -86,7 +87,7 @@ public class ProductionTower extends TestTower {
     }
 
     @Override
-    public void tick(kim.biryeong.semiontd.game.PlayerLane lane) {
+    public void tick(PlayerLane lane) {
         super.tick(lane);
         if (faction() == TowerFaction.BEAST && mechanicStacks > 0) {
             idleTicks++;

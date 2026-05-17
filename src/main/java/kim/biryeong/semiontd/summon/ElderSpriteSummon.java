@@ -1,35 +1,16 @@
 package kim.biryeong.semiontd.summon;
 
 import java.util.List;
-import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.goal.ApplyMonsterTimedEffectGoal;
 import kim.biryeong.semiontd.entity.goal.AreaAllyHealGoal;
 import kim.biryeong.semiontd.entity.goal.SingleAllyHealGoal;
-import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 
 public final class ElderSpriteSummon extends SummonMonsterType {
     public ElderSpriteSummon() {
-        super(
-                "elder_sprite",
-                SummonDisplayNames.ELDER_SPRITE,
-                250,
-                14,
-                130,
-                1,
-                6,
-                AttackKind.RANGED,
-                "minecraft:allay",
-                null,
-                DamageType.MAGIC,
-                12,
-                SummonTier.T4,
-                List.of(SummonRole.SUPPORT),
-                List.of(SummonAbilityActivation.COOLDOWN),
-                28
-        );
+        super(SummonDefinitions.ELDER_SPRITE);
     }
 
     @Override

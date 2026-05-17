@@ -1,33 +1,14 @@
 package kim.biryeong.semiontd.summon;
 
 import java.util.List;
-import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.goal.ApplyTowerTimedEffectGoal;
-import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 
 public final class NullImpSummon extends SummonMonsterType {
     public NullImpSummon() {
-        super(
-                "null_imp",
-                SummonDisplayNames.NULL_IMP,
-                220,
-                12,
-                119,
-                1,
-                9,
-                AttackKind.RANGED,
-                "minecraft:vex",
-                null,
-                DamageType.MAGIC,
-                14,
-                SummonTier.T4,
-                List.of(SummonRole.DISRUPTOR),
-                List.of(SummonAbilityActivation.COOLDOWN),
-                25
-        );
+        super(SummonDefinitions.NULL_IMP);
     }
 
     @Override

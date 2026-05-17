@@ -2,7 +2,7 @@ package kim.biryeong.semiontd.tower;
 
 import java.util.List;
 import java.util.Optional;
-import kim.biryeong.semiontd.entity.model.SemionBilModelCache;
+import kim.biryeong.semiontd.entity.visual.EntityVisual;
 
 public record TowerType(
         String id,
@@ -15,8 +15,7 @@ public record TowerType(
         int attackIntervalTicks,
         int aggroPriority,
         List<String> description,
-        String entityTypeId,
-        String blockbenchModelId,
+        EntityVisual visual,
         List<TowerUpgradeOption> upgradeOptions
 ) {
     public TowerType(
@@ -56,8 +55,7 @@ public record TowerType(
                 attackIntervalTicks,
                 aggroPriority,
                 List.of(),
-                "minecraft:villager",
-                null,
+                EntityVisual.vanilla(EntityVisual.DEFAULT_TOWER_ENTITY_TYPE),
                 upgradeOptions
         );
     }
@@ -85,8 +83,7 @@ public record TowerType(
                 attackIntervalTicks,
                 aggroPriority,
                 List.of(),
-                entityTypeId,
-                null,
+                EntityVisual.vanilla(entityTypeId),
                 List.of()
         );
     }
@@ -115,8 +112,7 @@ public record TowerType(
                 attackIntervalTicks,
                 aggroPriority,
                 List.of(),
-                entityTypeId,
-                null,
+                EntityVisual.vanilla(entityTypeId),
                 upgradeOptions
         );
     }
@@ -145,9 +141,36 @@ public record TowerType(
                 damage,
                 attackIntervalTicks,
                 aggroPriority,
+                EntityVisual.modeled(entityTypeId, blockbenchModelId),
+                upgradeOptions
+        );
+    }
+
+    public TowerType(
+            String id,
+            String displayName,
+            TowerCategory category,
+            long mineralCost,
+            double maxHealth,
+            double range,
+            double damage,
+            int attackIntervalTicks,
+            int aggroPriority,
+            EntityVisual visual,
+            List<TowerUpgradeOption> upgradeOptions
+    ) {
+        this(
+                id,
+                displayName,
+                category,
+                mineralCost,
+                maxHealth,
+                range,
+                damage,
+                attackIntervalTicks,
+                aggroPriority,
                 List.of(),
-                entityTypeId,
-                blockbenchModelId,
+                visual,
                 upgradeOptions
         );
     }
@@ -176,9 +199,39 @@ public record TowerType(
                 attackIntervalTicks,
                 aggroPriority,
                 description,
-                entityTypeId,
-                null,
+                EntityVisual.vanilla(entityTypeId),
                 List.of()
+        );
+    }
+
+    public TowerType(
+            String id,
+            String displayName,
+            TowerCategory category,
+            long mineralCost,
+            double maxHealth,
+            double range,
+            double damage,
+            int attackIntervalTicks,
+            int aggroPriority,
+            List<String> description,
+            String entityTypeId,
+            String blockbenchModelId,
+            List<TowerUpgradeOption> upgradeOptions
+    ) {
+        this(
+                id,
+                displayName,
+                category,
+                mineralCost,
+                maxHealth,
+                range,
+                damage,
+                attackIntervalTicks,
+                aggroPriority,
+                description,
+                EntityVisual.modeled(entityTypeId, blockbenchModelId),
+                upgradeOptions
         );
     }
 
@@ -195,11 +248,7 @@ public record TowerType(
         if (mineralCost < 0 || maxHealth <= 0 || range < 0 || damage < 0 || attackIntervalTicks < 1) {
             throw new IllegalArgumentException("Tower numeric values are invalid.");
         }
-        entityTypeId = SemionBilModelCache.normalize(entityTypeId);
-        blockbenchModelId = SemionBilModelCache.normalize(blockbenchModelId);
-        if (entityTypeId == null && blockbenchModelId == null) {
-            entityTypeId = "minecraft:villager";
-        }
+        visual = visual == null ? EntityVisual.vanilla(EntityVisual.DEFAULT_TOWER_ENTITY_TYPE) : visual;
         description = description == null ? List.of() : List.copyOf(description);
         upgradeOptions = List.copyOf(upgradeOptions);
     }
@@ -209,6 +258,14 @@ public record TowerType(
     }
 
     public Optional<String> blockbenchModel() {
-        return Optional.ofNullable(blockbenchModelId);
+        return visual.blockbenchModel();
+    }
+
+    public String entityTypeId() {
+        return visual.entityTypeId();
+    }
+
+    public String blockbenchModelId() {
+        return visual.blockbenchModelId();
     }
 }

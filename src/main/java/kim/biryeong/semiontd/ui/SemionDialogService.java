@@ -270,9 +270,7 @@ public final class SemionDialogService {
             body.append("<gray>특성</gray> <white>").append(behavior.mechanicName()).append("</white>");
             body.append(" <gray>스플래시</gray> <white>").append(oneDecimal(behavior.splashRadius())).append("</white>\n");
         });
-        for (String line : tower.type().description()) {
-            body.append("<dark_gray>-</dark_gray> <gray>").append(line).append("</gray>\n");
-        }
+        appendTowerDescription(body, tower.type().description());
         if (!ownedByPlayer) {
             body.append("\n<red>자신이 설치한 타워만 업그레이드하거나 판매할 수 있습니다.</red>\n");
         } else if (!sameLane) {
@@ -491,7 +489,7 @@ public final class SemionDialogService {
                 .append(Component.literal("\n스플래시 " + oneDecimal(behavior.splashRadius()) + "칸 x" + oneDecimal(behavior.splashDamageMultiplier())))
                 .append(Component.literal("\n팩션 " + factionLabel(behavior.faction()) + " / 특성 " + behavior.mechanicName()))
                 .append(Component.literal("\n분기 " + upgradeSummary));
-        appendDescription(tooltip, type.description());
+        appendTowerDescription(tooltip, type.description());
         appendTowerBehaviorDetails(tooltip, behavior);
         return tooltip;
     }
@@ -511,7 +509,7 @@ public final class SemionDialogService {
                 .append(Component.literal("\n공속 " + type.attackIntervalTicks() + "틱 (" + attacksPerSecond(type.attackIntervalTicks()) + "회/초)"))
                 .append(Component.literal("\n스플래시 " + oneDecimal(entry.behavior().splashRadius()) + "칸 x" + oneDecimal(entry.behavior().splashDamageMultiplier())))
                 .append(Component.literal("\n특성 " + entry.behavior().mechanicName()));
-        appendDescription(tooltip, type.description());
+        appendTowerDescription(tooltip, type.description());
         appendTowerBehaviorDetails(tooltip, entry.behavior());
         return tooltip;
     }
@@ -573,6 +571,27 @@ public final class SemionDialogService {
                 .append(Component.literal("\n능력 발동 " + abilityActivationList(type)));
         appendDescription(tooltip, type.description());
         return tooltip;
+    }
+
+    private static void appendTowerDescription(StringBuilder body, List<String> description) {
+        for (String line : description) {
+            if (line != null && !line.isBlank()) {
+                body.append("<dark_gray>-</dark_gray> <gray>").append(line).append("</gray>\n");
+            }
+        }
+    }
+
+    private static void appendTowerDescription(MutableComponent tooltip, List<String> description) {
+        if (description.isEmpty()) {
+            return;
+        }
+        tooltip.append(Component.literal("\n\n설명"));
+        for (String line : description) {
+            if (line != null && !line.isBlank()) {
+                tooltip.append(Component.literal("\n- ").withStyle(ChatFormatting.DARK_GRAY));
+                tooltip.append(miniMessage("<gray>" + line + "</gray>"));
+            }
+        }
     }
 
     private static void appendDescription(MutableComponent tooltip, List<String> description) {
@@ -684,7 +703,11 @@ public final class SemionDialogService {
     }
 
     private static Component miniMessage(String text) {
-        return NonWrappingComponentSerializer.INSTANCE.serialize(MINI_MESSAGE.deserialize(text));
+        try {
+            return NonWrappingComponentSerializer.INSTANCE.serialize(MINI_MESSAGE.deserialize(text));
+        } catch (RuntimeException exception) {
+            return Component.literal(text);
+        }
     }
 
     private static MutableComponent mutableMiniMessage(String text) {
