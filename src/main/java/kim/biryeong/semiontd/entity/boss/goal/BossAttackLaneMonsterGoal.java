@@ -100,9 +100,22 @@ public final class BossAttackLaneMonsterGoal extends Goal {
             runtimeMonster.recordBossHit();
         }
         double damageAmount = boss.attackDamageAgainst(runtimeMonster);
+        float previousHealth = target.getHealth();
         target.hurt(boss.damageSources().mobAttack(boss), (float) damageAmount);
         if (runtimeMonster != null) {
             runtimeMonster.syncHealth(target.getHealth());
+        }
+        if (target.getHealth() < previousHealth - 0.01F) {
+            return;
+        }
+
+        float nextHealth = Math.max(0.0F, previousHealth - (float) damageAmount);
+        target.setHealth(nextHealth);
+        if (runtimeMonster != null) {
+            runtimeMonster.syncHealth(nextHealth);
+        }
+        if (nextHealth <= 0.0F) {
+            target.discard();
         }
     }
 

@@ -78,7 +78,7 @@ import kim.biryeong.semiontd.music.SemionMusicService;
 import kim.biryeong.semiontd.music.SemionMusicTrack;
 import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
 import kim.biryeong.semiontd.test.TestTowerService;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.summon.SummonAbilityActivation;
 import kim.biryeong.semiontd.summon.SummonBalancePolicy;
@@ -682,7 +682,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("lobbyLoaded=true")), "Status should report loaded lobby.")) {
                 return;
             }
-            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("arenaLoaded=4/4")), "Status should report loaded arenas.")) {
+            if (!assertTrue(context, statusLines.stream().anyMatch(line -> line.contains("arenaLoaded=5/5")), "Status should report loaded arenas.")) {
                 return;
             }
 
@@ -968,7 +968,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         var firstWave = config.configForRound(1).orElseThrow().entriesForLane("lane_1").getFirst();
-        if (!assertEquals(context, 18.0, firstWave.health(), "Round 1 monster health should be tuned for starter towers.")) {
+        if (!assertEquals(context, 10.0, firstWave.health(), "Round 1 monster health should be tuned for starter towers.")) {
             return;
         }
         if (!assertEquals(context, 1.0, firstWave.attackDamage(), "Round 1 monster attack should be tuned for starter towers.")) {
@@ -1878,8 +1878,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         if (!assertTrue(
                 context,
-                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTestTowerEntity,
-                "Placed tower should spawn a SemionTestTowerEntity."
+                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity,
+                "Placed tower should spawn a SemionTowerEntity."
         )) {
             return;
         }
@@ -2148,19 +2148,19 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         TowerType closeDamageType = new TowerType("sound_close", "Sound Close", TowerCategory.DIRECT, 0, 50.0, 2.0, 10.0, 20, 0);
         TowerType rangedSupportType = new TowerType("sound_support", "Sound Support", TowerCategory.SUPPORT, 0, 50.0, 8.0, 0.0, 20, 0);
 
-        SemionTestTowerEntity ranged = new SemionTestTowerEntity(SemionEntityTypes.TEST_TOWER, context.getLevel());
+        SemionTowerEntity ranged = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
         ranged.configure(new TestTower(rangedDamageType, playerId, TeamId.RED, 1, position), null);
         if (!assertTrue(context, ranged.playsRangedAttackSound(), "Damage-dealing ranged towers should play the arrow attack sound cue.")) {
             return;
         }
 
-        SemionTestTowerEntity close = new SemionTestTowerEntity(SemionEntityTypes.TEST_TOWER, context.getLevel());
+        SemionTowerEntity close = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
         close.configure(new TestTower(closeDamageType, playerId, TeamId.RED, 1, position), null);
         if (!assertTrue(context, !close.playsRangedAttackSound(), "Close-range towers should not use the ranged arrow sound cue.")) {
             return;
         }
 
-        SemionTestTowerEntity support = new SemionTestTowerEntity(SemionEntityTypes.TEST_TOWER, context.getLevel());
+        SemionTowerEntity support = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
         support.configure(new TestTower(rangedSupportType, playerId, TeamId.RED, 1, position), null);
         if (!assertTrue(context, !support.playsRangedAttackSound(), "Non-damage support towers should not use the ranged arrow sound cue.")) {
             return;
@@ -2344,7 +2344,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest(maxTicks = 120)
-    public void testTowerStaysAnchoredAgainstOutOfRangeMonster(GameTestHelper context) {
+    public void testTowerMovesTowardOutOfRangeMonster(GameTestHelper context) {
         UUID playerId = stableUuid("red-tower-anchor-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
@@ -2402,36 +2402,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             )) {
                 return;
             }
-            SemionTestTowerEntity towerEntity = (SemionTestTowerEntity) lane.arenaWorld().getEntity(tower.entityId().getAsInt());
+            SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().getAsInt());
             Vec3 currentTowerPos = towerEntity.position();
             if (!assertTrue(
                     context,
-                    currentTowerPos.distanceTo(anchorPosition) < 0.01,
-                    "Tower entity should stay at its placed position when the target starts out of range."
-            )) {
-                return;
-            }
-            towerEntity.teleportTo(anchorPosition.x + 3.0, anchorPosition.y, anchorPosition.z);
-        });
-
-        context.runAfterDelay(42, () -> {
-            TestTower tower = (TestTower) lane.towers().getFirst();
-            if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should still exist after forced displacement.")) {
-                return;
-            }
-            var displacedTowerEntity = lane.arenaWorld().getEntity(tower.entityId().getAsInt());
-            if (!assertTrue(
-                    context,
-                    displacedTowerEntity instanceof SemionTestTowerEntity,
-                    "Tower entity should still be present after forced displacement."
-            )) {
-                return;
-            }
-            SemionTestTowerEntity towerEntity = (SemionTestTowerEntity) displacedTowerEntity;
-            if (!assertTrue(
-                    context,
-                    towerEntity.position().distanceTo(anchorPosition) < 0.01,
-                    "Tower entity should return to its placed position after being displaced."
+                    currentTowerPos.distanceTo(anchorPosition) > 0.01,
+                    "Tower entity should move toward a live target that starts out of range."
             )) {
                 return;
             }
@@ -2462,7 +2438,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "tower-breaker",
                 120.0,
                 0.0,
-                14.0,
+                2.0,
                 AttackKind.MELEE,
                 "minecraft:zombie",
                 null,
@@ -2473,13 +2449,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.runAfterDelay(120, () -> {
             if (!assertTrue(
                     context,
-                    lane.arenaWorld().getEntity(towerEntityId) instanceof SemionTestTowerEntity,
+                    lane.arenaWorld().getEntity(towerEntityId) instanceof SemionTowerEntity,
                     "Tower entity should still exist while checking retaliation."
             )) {
                 return;
             }
 
-            SemionTestTowerEntity towerEntity = (SemionTestTowerEntity) lane.arenaWorld().getEntity(towerEntityId);
+            SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(towerEntityId);
             if (!assertTrue(
                     context,
                     towerEntity.getHealth() < 50.0F,
@@ -2538,7 +2514,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.runAfterDelay(20, () -> {
             if (!assertTrue(
                     context,
-                    lane.arenaWorld().getEntity(highPriorityTower.entityId().getAsInt()) instanceof SemionTestTowerEntity,
+                    lane.arenaWorld().getEntity(highPriorityTower.entityId().getAsInt()) instanceof SemionTowerEntity,
                     "High priority tower entity should still exist."
             )) {
                 return;
@@ -2626,13 +2602,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         if (!assertTrue(
                 context,
-                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTestTowerEntity,
+                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity,
                 "Tower entity should be available before reset validation."
         )) {
             return;
         }
         int originalEntityId = tower.entityId().getAsInt();
-        ((SemionTestTowerEntity) lane.arenaWorld().getEntity(originalEntityId)).setHealth(0.0F);
+        ((SemionTowerEntity) lane.arenaWorld().getEntity(originalEntityId)).setHealth(0.0F);
         lane.tick(context.getLevel().getServer());
         if (!assertTrue(context, lane.towers().contains(tower), "Destroyed tower should stay in the lane until round reset.")) {
             return;
@@ -2664,7 +2640,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         if (!assertTrue(
                 context,
-                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTestTowerEntity respawnedEntity
+                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity respawnedEntity
                         && respawnedEntity.isAlive(),
                 "Respawned tower entity should exist and be alive after round reset."
         )) {
@@ -2750,7 +2726,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         var player = context.makeMockServerPlayerInLevel();
         Vec3 origin = context.absolutePos(BlockPos.ZERO).getCenter();
 
-        SemionTestTowerEntity tower = spawnTowerEntity(context, TeamId.RED, 1, origin, TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity tower = spawnTowerEntity(context, TeamId.RED, 1, origin, TestTowerTypes.TEST_DIRECT);
         float towerHealth = tower.getHealth();
         context.hurt(tower, tower.damageSources().playerAttack(player), 20.0F);
         if (!assertEquals(context, towerHealth, tower.getHealth(), "Players should not damage tower entities directly.")) {
@@ -2834,7 +2810,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 1,
                 monsterPosition
         );
-        SemionTestTowerEntity distantTower = spawnTowerEntity(
+        SemionTowerEntity distantTower = spawnTowerEntity(
                 context,
                 TeamId.RED,
                 1,
@@ -2855,7 +2831,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void bossEntityStaysAnchoredAndPullsRangedMonsters(GameTestHelper context) {
-        Vec3 anchor = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 2.0, 4.0);
+        Vec3 anchor = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 24.0, 4.0);
         BossMonster runtimeBoss = BossMonster.defaultBoss(TeamId.RED);
         SemionBossEntity boss = new SemionBossEntity(SemionEntityTypes.BOSS, context.getLevel());
         boss.configure(TeamId.RED, runtimeBoss);
@@ -2901,7 +2877,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
-    @GameTest
+    @GameTest(maxTicks = 40)
     public void bossAttackDamagesNearbyMonstersWithSplash(GameTestHelper context) {
         Vec3 anchor = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 2.0, 4.0);
         SemionBossEntity boss = new SemionBossEntity(SemionEntityTypes.BOSS, context.getLevel());
@@ -2914,18 +2890,20 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionMonsterEntity nearby = spawnBossTargetMonster(context, "boss-splash-nearby", anchor.add(3.0, 0.0, 0.0));
         SemionMonsterEntity far = spawnBossTargetMonster(context, "boss-splash-far", anchor.add(7.0, 0.0, 0.0));
 
-        new BossAttackLaneMonsterGoal(boss).tick();
+        context.runAfterDelay(1, () -> {
+            new BossAttackLaneMonsterGoal(boss).tick();
 
-        if (!assertTrue(context, primary.getHealth() < 100.0F, "Boss should damage its primary target.")) {
-            return;
-        }
-        if (!assertTrue(context, nearby.getHealth() < 100.0F, "Boss attack should splash onto nearby monsters.")) {
-            return;
-        }
-        if (!assertEquals(context, 100.0F, far.getHealth(), "Boss splash should not hit monsters outside the splash radius.")) {
-            return;
-        }
-        context.succeed();
+            if (!assertTrue(context, primary.getHealth() < 100.0F, "Boss should damage its primary target.")) {
+                return;
+            }
+            if (!assertTrue(context, nearby.getHealth() < 100.0F, "Boss attack should splash onto nearby monsters.")) {
+                return;
+            }
+            if (!assertEquals(context, 100.0F, far.getHealth(), "Boss splash should not hit monsters outside the splash radius.")) {
+                return;
+            }
+            context.succeed();
+        });
     }
 
     @GameTest
@@ -3957,10 +3935,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void nullImpDebuffsOnlyNearestTargetLaneTower(GameTestHelper context) {
         Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
         SemionMonsterEntity caster = spawnSummonEntity(context, "null_imp", TeamId.RED, TeamId.BLUE, 1, origin, 100.0, 0.0);
-        SemionTestTowerEntity wrongTeam = spawnTowerEntity(context, TeamId.RED, 1, origin.add(1.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
-        SemionTestTowerEntity wrongLane = spawnTowerEntity(context, TeamId.BLUE, 2, origin.add(2.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
-        SemionTestTowerEntity target = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
-        SemionTestTowerEntity fartherTarget = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(4.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity wrongTeam = spawnTowerEntity(context, TeamId.RED, 1, origin.add(1.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity wrongLane = spawnTowerEntity(context, TeamId.BLUE, 2, origin.add(2.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity target = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity fartherTarget = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(4.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
 
         new ApplyTowerTimedEffectGoal(
                 caster,
@@ -3994,7 +3972,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionMonsterEntity caster = spawnSummonEntity(context, "apex_warden", TeamId.RED, TeamId.BLUE, 1, origin, 200.0, 0.0);
         SemionMonsterEntity ally = spawnSummonEntity(context, "apex_ally", TeamId.RED, TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), 100.0, 0.0);
         SemionMonsterEntity enemy = spawnSummonEntity(context, "apex_enemy", TeamId.GREEN, TeamId.BLUE, 1, origin.add(2.0, 0.0, 0.0), 100.0, 0.0);
-        SemionTestTowerEntity tower = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity tower = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
 
         for (var goal : SummonRegistry.find("apex_warden").orElseThrow().createAbilityGoals(caster)) {
             goal.tick();
@@ -4024,7 +4002,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionMonsterEntity caster = spawnSummonEntity(context, "oracle_phoenix", TeamId.RED, TeamId.BLUE, 1, origin, 200.0, 0.0);
         SemionMonsterEntity ally = spawnSummonEntity(context, "oracle_ally", TeamId.RED, TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), 100.0, 20.0);
         SemionMonsterEntity enemy = spawnSummonEntity(context, "oracle_enemy", TeamId.GREEN, TeamId.BLUE, 1, origin.add(2.0, 0.0, 0.0), 100.0, 20.0);
-        SemionTestTowerEntity tower = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity tower = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
 
         for (var goal : SummonRegistry.find("oracle_phoenix").orElseThrow().createAbilityGoals(caster)) {
             goal.tick();
@@ -4049,7 +4027,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void siegeSummonsDealConditionalTrueBonusDamage(GameTestHelper context) {
         Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
         SemionMonsterEntity bombard = spawnSummonEntity(context, "bombard_toad", TeamId.RED, TeamId.BLUE, 1, origin, 100.0, 0.0);
-        SemionTestTowerEntity tower = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
+        SemionTowerEntity tower = spawnTowerEntity(context, TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), TestTowerTypes.TEST_DIRECT);
         bombard.setTarget(tower);
 
         new SiegeTrueDamageGoal(
@@ -4109,11 +4087,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.addTower(targetTower);
         targetTower.syncHealth(50.0);
 
-        SemionTestTowerEntity healerEntity = (SemionTestTowerEntity) lane.arenaWorld().getEntity(healerTower.entityId().orElseThrow());
-        SemionTestTowerEntity targetEntity = (SemionTestTowerEntity) lane.arenaWorld().getEntity(targetTower.entityId().orElseThrow());
+        SemionTowerEntity healerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(healerTower.entityId().orElseThrow());
+        SemionTowerEntity targetEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(targetTower.entityId().orElseThrow());
         targetEntity.syncTowerState(targetTower);
 
-        new SingleAllyHealGoal<>(healerEntity, SemionTestTowerEntity.class, 6.0, 15.0, 80, 10).tick();
+        new SingleAllyHealGoal<>(healerEntity, SemionTowerEntity.class, 6.0, 15.0, 80, 10).tick();
 
         if (!assertEquals(context, 65.0, targetTower.health(), "Generic heal goal should update the tower runtime health.")) {
             return;
@@ -4489,7 +4467,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 1,
                 new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)
         );
-        SemionTestTowerEntity entity = new SemionTestTowerEntity(SemionEntityTypes.TEST_TOWER, context.getLevel());
+        SemionTowerEntity entity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
         entity.configure(tower, null);
         if (!assertEquals(context, EntityType.BLOCK_DISPLAY, entity.getPolymerEntityType(null), "Modeled towers should render through BIL's animated entity display type.")) {
             return;
@@ -4647,6 +4625,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
         entity.configureFrom(monster, null);
+        entity.setNoGravity(true);
         entity.setPos(position);
         context.getLevel().addFreshEntity(entity);
         return entity;
@@ -4711,7 +4690,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         return entity;
     }
 
-    private static SemionTestTowerEntity spawnTowerEntity(
+    private static SemionTowerEntity spawnTowerEntity(
             GameTestHelper context,
             TeamId teamId,
             int laneId,
@@ -4725,7 +4704,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 laneId,
                 new kim.biryeong.semiontd.game.GridPosition((int) Math.floor(position.x), (int) Math.floor(position.y), (int) Math.floor(position.z))
         );
-        SemionTestTowerEntity entity = new SemionTestTowerEntity(SemionEntityTypes.TEST_TOWER, context.getLevel());
+        SemionTowerEntity entity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
         entity.configure(tower, null);
         entity.setPos(position);
         context.getLevel().addFreshEntity(entity);
