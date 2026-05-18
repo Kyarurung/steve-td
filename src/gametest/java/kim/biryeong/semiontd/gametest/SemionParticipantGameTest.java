@@ -88,6 +88,7 @@ import kim.biryeong.semiontd.summon.SummonMonsterType;
 import kim.biryeong.semiontd.summon.SummonRegistry;
 import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonTier;
+import kim.biryeong.semiontd.tower.BaseAttackableTower;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
@@ -1496,6 +1497,36 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
     }
 
+    @GameTest
+    public void productionCatalogFactoryAcceptsNonProductionAttackableTower(GameTestHelper context) {
+        UUID playerId = stableUuid("red-custom-production-runtime-owner");
+        TowerType type = productionFixtureType("manual_fixture_custom_runtime", List.of());
+        ProductionTowerCatalog.CatalogEntry entry = new ProductionTowerCatalog.CatalogEntry(
+                type,
+                productionFixtureBehavior(TowerFaction.VILLAGER),
+                FixtureSupportTower::new,
+                1
+        );
+
+        BaseAttackableTower tower = entry.create(
+                playerId,
+                TeamId.RED,
+                1,
+                new kim.biryeong.semiontd.game.GridPosition(0, 64, 0)
+        );
+        if (!assertTrue(
+                context,
+                tower instanceof FixtureSupportTower,
+                "Production catalog factories should allow attackable tower implementations that do not extend ProductionTower."
+        )) {
+            return;
+        }
+        if (!assertEquals(context, type, tower.type(), "Factory-created custom runtime tower should preserve its catalog type.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     private static TowerType productionFixtureType(String id, List<TowerUpgradeOption> upgradeOptions) {
         return new TowerType(
                 id,
@@ -1640,6 +1671,65 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TowerUpgradeResult.UNKNOWN_TARGET_TYPE,
                 ProductionTowerService.upgradeTower(game, playerId, towerPos, "manual_upgrade"),
                 "Production upgrades should reject targets that are not registered in the catalog."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void towerUpgradeServiceAcceptsNonProductionAttackableTower(GameTestHelper context) {
+        UUID playerId = stableUuid("red-custom-runtime-upgrade-owner");
+        SemionGame game = startedSinglePlayerGame(
+                context,
+                playerId,
+                TeamId.RED,
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+        );
+        PlayerLane lane = redLane(game, 1);
+        BlockPos towerPos = towerPlacementPos(lane);
+
+        TowerType upgradeTarget = new TowerType("manual_fixture_custom_t2", "Manual Fixture Custom T2", TowerCategory.DIRECT, 0, 80.0, 8.0, 8.0, 20, 0);
+        TowerType starterType = new TowerType(
+                "manual_fixture_custom_starter",
+                "Manual Fixture Custom Starter",
+                TowerCategory.DIRECT,
+                0,
+                80.0,
+                8.0,
+                8.0,
+                20,
+                0,
+                List.of(new TowerUpgradeOption("manual_upgrade", "Manual Upgrade", upgradeTarget, 0))
+        );
+        kim.biryeong.semiontd.game.GridPosition gridPosition = new kim.biryeong.semiontd.game.GridPosition(
+                towerPos.getX(),
+                towerPos.getY(),
+                towerPos.getZ()
+        );
+        lane.addTower(new FixtureSupportTower(
+                starterType,
+                productionFixtureBehavior(TowerFaction.VILLAGER),
+                playerId,
+                TeamId.RED,
+                1,
+                gridPosition,
+                gridPosition
+        ));
+
+        if (!assertEquals(
+                context,
+                1,
+                ProductionTowerService.availableUpgrades(game, playerId, towerPos).size(),
+                "Upgrade service should read upgrade options from generic Tower state, not ProductionTower runtime type."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.UNKNOWN_TARGET_TYPE,
+                ProductionTowerService.upgradeTower(game, playerId, towerPos, "manual_upgrade"),
+                "Generic attackable towers should reach target catalog validation during upgrade."
         )) {
             return;
         }
@@ -4878,6 +4968,20 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     private static void writeLittleEndianLong(ByteArrayOutputStream output, long value) {
         for (int index = 0; index < 8; index++) {
             output.write((int) ((value >>> (8 * index)) & 0xff));
+        }
+    }
+
+    private static final class FixtureSupportTower extends BaseAttackableTower {
+        private FixtureSupportTower(
+                TowerType type,
+                kim.biryeong.semiontd.tower.ProductionTowerBehavior behavior,
+                UUID ownerPlayer,
+                TeamId teamId,
+                int laneId,
+                kim.biryeong.semiontd.game.GridPosition originalPosition,
+                kim.biryeong.semiontd.game.GridPosition currentPosition
+        ) {
+            super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
         }
     }
 

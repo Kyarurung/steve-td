@@ -266,7 +266,7 @@ stop
 - 실제 플레이어가 사용할 기본 타워 목록은 아직 없다. 새 타워 카탈로그를 직접 작성해 등록해야 한다.
 - 배치 명령 또는 UI 흐름이 운영자가 아닌 플레이어 기준으로 자연스럽다. 2026-05-13 기준 `/semiontd tower list`, `/semiontd tower build <id>`를 추가했다.
 - 업그레이드 경로가 최소 1개 이상 실전에서 작동한다. 기존 test tower evolution은 유지되지만, 프로덕션 타워 전용 upgrade tree는 다음 밸런스 패스에서 별도로 확장한다.
-- 새 프로덕션 타워가 기본 `ProductionTower::new` factory 또는 명시적인 `ProductionTower` subclass factory로 등록되어 `semion-td:tower` 엔티티를 생성한다.
+- 새 프로덕션 타워가 기본 `ProductionTower::new` factory 또는 명시적인 `BaseAttackableTower` 구현 factory로 등록되어 `semion-td:tower` 엔티티를 생성한다.
 
 ### 4. 소환/타워/경제 밸런스 1차 패스
 

@@ -66,7 +66,7 @@ public final class ProductionTowerCatalog {
 
     @FunctionalInterface
     public interface TowerFactory {
-        ProductionTower create(
+        BaseAttackableTower create(
                 TowerType type,
                 ProductionTowerBehavior behavior,
                 UUID ownerPlayer,
@@ -86,11 +86,11 @@ public final class ProductionTowerCatalog {
             return tier == 1;
         }
 
-        public ProductionTower create(UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
+        public BaseAttackableTower create(UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
             return create(ownerPlayer, teamId, laneId, position, position);
         }
 
-        public ProductionTower create(
+        public BaseAttackableTower create(
                 UUID ownerPlayer,
                 TeamId teamId,
                 int laneId,

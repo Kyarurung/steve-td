@@ -52,7 +52,7 @@ public final class ProductionTowerService {
             return TowerPlacementResult.NOT_ENOUGH_MINERAL;
         }
 
-        ProductionTower tower = entry.get().create(
+        BaseAttackableTower tower = entry.get().create(
                 laneContext.player.uuid(),
                 laneContext.player.teamId(),
                 laneContext.player.laneId(),
@@ -114,10 +114,10 @@ public final class ProductionTowerService {
         }
 
         Tower tower = laneContext.lane.towerAt(position);
-        if (!(tower instanceof ProductionTower productionTower) || !productionTower.ownerPlayer().equals(playerId)) {
+        if (tower == null || !tower.ownerPlayer().equals(playerId)) {
             return List.of();
         }
-        return productionTower.type().upgradeOptions();
+        return tower.type().upgradeOptions();
     }
 
     public static TowerUpgradeResult upgradeTower(SemionGame game, UUID playerId, BlockPos blockPos, String upgradeId) {
@@ -131,17 +131,17 @@ public final class ProductionTowerService {
         }
 
         Tower tower = laneContext.lane.towerAt(position);
-        if (!(tower instanceof ProductionTower productionTower)) {
-            return tower == null ? TowerUpgradeResult.NO_TOWER_AT_POSITION : TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
+        if (tower == null) {
+            return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
-        if (!productionTower.ownerPlayer().equals(playerId)) {
+        if (!tower.ownerPlayer().equals(playerId)) {
             return TowerUpgradeResult.TOWER_NOT_OWNED;
         }
-        if (!productionTower.type().hasUpgradeOptions()) {
+        if (!tower.type().hasUpgradeOptions()) {
             return TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
         }
 
-        TowerUpgradeOption upgrade = productionTower.type().upgradeOptions().stream()
+        TowerUpgradeOption upgrade = tower.type().upgradeOptions().stream()
                 .filter(option -> option.id().equalsIgnoreCase(upgradeId))
                 .findFirst()
                 .orElse(null);
@@ -165,15 +165,15 @@ public final class ProductionTowerService {
             return TowerUpgradeResult.NOT_ENOUGH_MINERAL;
         }
 
-        ProductionTower upgradedTower = targetEntry.get().create(
-                productionTower.ownerPlayer(),
-                productionTower.teamId(),
-                productionTower.laneId(),
-                productionTower.originalPosition(),
-                productionTower.position()
+        BaseAttackableTower upgradedTower = targetEntry.get().create(
+                tower.ownerPlayer(),
+                tower.teamId(),
+                tower.laneId(),
+                tower.originalPosition(),
+                tower.position()
         );
-        upgradedTower.inheritSaleState(productionTower, mineralCost);
-        if (!laneContext.lane.replaceTower(productionTower, upgradedTower)) {
+        upgradedTower.inheritSaleState(tower, mineralCost);
+        if (!laneContext.lane.replaceTower(tower, upgradedTower)) {
             laneContext.player.economy().addMineral(mineralCost);
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }

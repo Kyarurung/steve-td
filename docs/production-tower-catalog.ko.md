@@ -38,14 +38,15 @@ Tower
   BaseAttackableTower
     TestTower
     ProductionTower
-      custom ProductionTower subclass, optional
+    custom attackable production tower, optional
 ```
 
 - `BaseAttackableTower`는 배치, 제거, 라운드 리셋, 엔티티 health/position 동기화처럼 공격 가능한 타워가 공유하는 생명주기를 담당한다.
 - `TestTower`는 GameTest와 테스트 명령용 타워다. 프로덕션 타워가 `TestTower`를 상속하지 않는다.
-- `ProductionTower`는 catalog entry가 기본 생성하는 실전용 런타임 타워다.
+- `ProductionTower`는 catalog entry가 기본 생성하는 실전용 런타임 타워다. 커스텀 런타임은 `ProductionTower`를 상속해도 되고, 프로덕션 스택/스플래시 기본 동작이 필요 없으면 `BaseAttackableTower`를 직접 상속해도 된다.
 - `SemionTowerEntity`는 테스트/프로덕션 양쪽이 공유하는 엔티티다. 엔티티 타입 ID는 `semion-td:tower`이며, 예전 `SemionTestTowerEntity`/`test_tower` 전용 구조는 쓰지 않는다.
 - `TowerAttackMonsterGoal`은 `SemionTowerEntity`에서 동작한다. 공격 속도, 스플래시, 스택 UI 값은 `Tower` 훅과 `ProductionTowerBehavior`를 통해 얻는다.
+- 업그레이드 서비스는 기존 타워를 `ProductionTower`로 캐스팅하지 않고 일반 `Tower` 상태(`type`, `ownerPlayer`, `position`)로 판정한다. 업그레이드 대상 생성은 catalog entry의 factory가 담당한다.
 
 따라서 새 프로덕션 카탈로그만 추가하면 기본적으로 공격 가능한 타워가 생성된다. 별도 엔티티나 goal을 새로 만들 필요는 없다.
 
@@ -151,8 +152,9 @@ public final class MyProductionTowers {
 - 직접 설치 가능한 starter tower는 `ProductionTowerLine`의 `starter`로 등록한다.
 - 2차/3차 타워는 `ProductionTowerBranch` 안에 들어가며 직접 설치할 수 없다.
 - 직업 제한은 `ProductionTowerBehavior.faction()` 기준으로 적용된다.
-- 타워별 특수 로직이 필요하면 `ProductionTower`를 상속한 클래스를 만들고 `line(...)` 또는 `branch(...)`에 factory를 넘긴다. 완전히 다른 공격 가능 타워 계열을 만들 때만 `BaseAttackableTower`를 직접 상속한다.
-- factory는 `ProductionTowerCatalog.TowerFactory` 형태이며, 기본값은 `ProductionTower::new`이다.
+- 타워별 특수 로직이 필요하면 `ProductionTower` 또는 `BaseAttackableTower`를 상속한 클래스를 만들고 `line(...)` 또는 `branch(...)`에 factory를 넘긴다.
+- factory는 `ProductionTowerCatalog.TowerFactory` 형태이며, 반환 타입은 `BaseAttackableTower`다. 기본값은 `ProductionTower::new`이다.
+- 1차/2차/3차가 서로 다른 런타임 클래스여도 각 tier의 factory가 해당 `TowerType`에 맞는 `BaseAttackableTower` 구현을 반환하면 등록할 수 있다.
 - 외형은 기존 `entityTypeId`/`blockbenchModelId` 생성자 또는 `EntityVisual`로 지정한다. 둘 다 비우면 기본 villager fallback을 쓴다.
 - `blockbenchModelId`가 있으면 BIL 모델이 우선이며, 바닐라 tracked data property는 적용하지 않는다.
 - `TowerType.description`은 타워 상세/빌드/업그레이드 tooltip에서 MiniMessage로 파싱된다. 예: `List.of("<green>처치 시</green> 주변에 피해를 줍니다.")`
@@ -160,7 +162,7 @@ public final class MyProductionTowers {
 커스텀 프로덕션 타워 예시:
 
 ```java
-public final class SupporterTower extends ProductionTower {
+public final class SupporterTower extends BaseAttackableTower {
     public SupporterTower(
             TowerType type,
             ProductionTowerBehavior behavior,
@@ -170,7 +172,7 @@ public final class SupporterTower extends ProductionTower {
             GridPosition originalPosition,
             GridPosition currentPosition
     ) {
-        super(type, behavior, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
+        super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
     }
 
     @Override
@@ -180,7 +182,6 @@ public final class SupporterTower extends ProductionTower {
             double damageAmount,
             boolean killedTarget
     ) {
-        super.onAttack(towerEntity, target, damageAmount, killedTarget);
         // 특수 효과를 여기서 적용한다.
     }
 }
@@ -241,4 +242,4 @@ WolfVisual.builder()
 - 빈 카탈로그에서는 tower list/build UI가 production tower를 노출하지 않는다.
 - `ProductionTower`의 스택, 스플래시, 업그레이드 에러 처리는 테스트 fixture로 검증한다.
 - `TestTower`와 `ProductionTower`는 모두 `SemionTowerEntity`를 사용한다.
-- `./gradlew runGameTest --console=plain --no-daemon` 기준 `All 108 required tests passed :)`를 확인했다.
+- `./gradlew runGameTest --console=plain --no-daemon` 기준 `All 110 required tests passed :)`를 확인했다.
