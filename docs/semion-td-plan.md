@@ -1353,7 +1353,7 @@ Verified:
 - `./gradlew --version` runs Gradle 9.2.1.
 - `./gradlew build` succeeds with Gradle 9.2.1 on 2026-04-28.
 - Fabric GameTest is configured through Loom `configureTests`.
-- 54 required server-side Fabric GameTests pass through the `runGameTest` task during `./gradlew build`.
+- 108 required server-side Fabric GameTests pass through the `runGameTest` task.
 - GameTest logs are written under `build/run/gameTest/logs/`.
 - Current verified GameTest coverage includes:
   - 1v1 selection in `TEST` mode
@@ -1404,7 +1404,7 @@ Verified:
 
 Known verification notes:
 
-- Polymer/DialogUtils resource-pack generation can log vanilla client jar access errors in the local GameTest environment, but the server continues and all 54 required GameTests pass.
+- Polymer/DialogUtils resource-pack generation can log vanilla client jar access errors in the local GameTest environment, but the server continues and all 108 required GameTests pass.
 - A later `./gradlew tasks --all` attempt hit a sandbox permission error while opening the Gradle wrapper distribution lock file in the user Gradle cache. This did not affect the successful `./gradlew build` run.
 
 Not implemented yet:
@@ -1412,7 +1412,7 @@ Not implemented yet:
 - Actual exported `data/semion-td/map_template/arena.nbt` asset.
 - Actual exported `data/semion-td/map_template/lobby.nbt` asset.
 - Full summon unit catalog. A class-based summon registry exists with full T1 role coverage and one T5 siege baseline, but the final T1-T5 production catalog is not complete.
-- Full production tower catalog. Current player-facing tower gameplay still uses hardcoded test tower content.
+- Full production tower catalog. The production catalog registry exists but starts empty; test tower content remains for QA/test commands until a real catalog is authored.
 - Full job catalog. The framework exists, but only the default `recruit` job is registered in production code.
 - BIL/Blockbench visual binding for bosses and job/theme presentation. Monster, summon, and test tower entities now use BIL holders when model resources are present.
 - Sidebar-style UI polish. DisplayHud and Dialog UI exist, but a final production UI pass is still needed.

@@ -74,10 +74,10 @@ Carpet fake player로 검증 가능한 항목:
 현재 상태:
 
 - 2026-05-11 `./gradlew runServer --console=plain` 기동 성공.
-- `semiontd create` 후 `arenaLoaded=4/4` 확인.
+- `semiontd create` 후 `arenaLoaded=5/5` 확인.
 - `semiontd status teams`에서 RED/BLUE/GREEN/YELLOW 모두 `arenaLoaded=true`, `boss=1000/1000` 확인.
 - `semiontd reset` 후 `activeGame=false`, `arenaLoaded=false` 복구 확인.
-- 2026-05-11 재기동 smoke에서도 `arenaLoaded=4/4`, 네 팀 arena/boss 상태, reset 복구가 다시 확인됐다.
+- 2026-05-11 재기동 smoke에서도 `arenaLoaded=5/5`, 네 팀 arena/boss 상태, reset 복구가 다시 확인됐다.
 - 2026-05-11 Carpet fake player QA에서 RED/BLUE active team 배정, fake player 위치 이동, RED/BLUE 팀 선택 관전 이동을 확인했다.
 - 2026-05-11 추가 Carpet smoke에서 TEST 2인 `summon grunt`가 상대 active team lane으로 큐잉되고, `end`/`reset` 후 `create`/`reset` 반복 복구가 성공했다.
 - 2026-05-11 Carpet tower QA에서 active spawn 위치의 `tower test` 정상 실패와, `status lanes`의 laneArea 중심 `towerSample` 이동 후 `tower test` 성공을 모두 확인했다.
@@ -109,7 +109,7 @@ stop
 - `Semion TD initialized.` 로그가 출력됐다.
 - Polymer resource pack 생성이 성공했다.
 - 초기 status는 `activeGame=false`, `lobbyLoaded=true`, `arenaLoaded=false`였다.
-- create 후 status는 `activeGame=true`, `phase=WAITING`, `round=1`, `ready=0`, `activeParticipants=0`, `spectators=0`, `arenaLoaded=4/4`였다.
+- create 후 status는 `activeGame=true`, `phase=WAITING`, `round=1`, `ready=0`, `activeParticipants=0`, `spectators=0`, `arenaLoaded=5/5`였다.
 - team status는 네 팀 모두 arena 로드와 기본 boss 체력을 출력했다.
 - player status는 `참가자 없음`, `관전자 없음`이었다.
 - 접속자는 `0 of a max of 20 players online`이었다.
@@ -144,7 +144,7 @@ stop
 - 접속 대기 중 `list` 결과가 계속 `0 of a max of 20 players online`이었다.
 - 실제 클라이언트 접속자가 없어 2인 ready/start/spectate/HUD/mount 검증은 진행하지 못했다.
 - 초기 status는 `activeGame=false`, `lobbyLoaded=true`, `arenaLoaded=false`였다.
-- create 후 status는 `activeGame=true`, `phase=WAITING`, `round=1`, `ready=0`, `activeParticipants=0`, `spectators=0`, `arenaLoaded=4/4`였다.
+- create 후 status는 `activeGame=true`, `phase=WAITING`, `round=1`, `ready=0`, `activeParticipants=0`, `spectators=0`, `arenaLoaded=5/5`였다.
 - team status는 네 팀 모두 `arenaLoaded=true`, `boss=1000/1000`을 출력했다.
 - reset 후 status가 `activeGame=false`, `arenaLoaded=false`로 돌아왔다.
 - `stop`으로 서버가 정상 종료됐고, 25565 리스너가 남지 않았다.
@@ -187,7 +187,7 @@ stop
 확인 결과:
 
 - Carpet `player ... spawn`으로 `qared`, `qablue`, `qagreen`, `qayellow` 4명을 투입했다.
-- 4명 ready 후 NORMAL 모드 start가 성공했고, status가 `activeParticipants=4`, `spectators=0`, `arenaLoaded=4/4`를 출력했다.
+- 4명 ready 후 NORMAL 모드 start가 성공했고, status가 `activeParticipants=4`, `spectators=0`, `arenaLoaded=5/5`를 출력했다.
 - `status teams`에서 RED/BLUE는 active player 2명과 lane 2개, GREEN/YELLOW는 inactive로 출력됐다.
 - active participant가 `/semiontd spectate blue`를 실행하면 `현재 상태에서는 관전으로 전환할 수 없습니다.`로 실패했다.
 - 신규 fake player `qaspec`은 `/semiontd spectate red`와 `/semiontd spectate blue`에 성공했고, inactive GREEN 관전은 `현재 관전할 수 없는 팀입니다: GREEN`으로 실패했다.
@@ -259,12 +259,14 @@ stop
 ### 3. 프로덕션 타워 배치/카탈로그 정리
 
 프로덕션 타워 등록 방식은 [프로덕션 타워 카탈로그](production-tower-catalog.ko.md)에 정리되어 있다. 현재 기본 등록 타워는 비워 두었고, 실제 플레이용 타워는 `tower.catalog` 패키지에서 직접 작성해 등록해야 한다.
+공격 가능한 타워 런타임은 `BaseAttackableTower`/`SemionTowerEntity`로 공용화되어 있으며, `ProductionTower`는 `TestTower`와 독립적인 형제 계열이다.
 
 확인 항목:
 
 - 실제 플레이어가 사용할 기본 타워 목록은 아직 없다. 새 타워 카탈로그를 직접 작성해 등록해야 한다.
 - 배치 명령 또는 UI 흐름이 운영자가 아닌 플레이어 기준으로 자연스럽다. 2026-05-13 기준 `/semiontd tower list`, `/semiontd tower build <id>`를 추가했다.
 - 업그레이드 경로가 최소 1개 이상 실전에서 작동한다. 기존 test tower evolution은 유지되지만, 프로덕션 타워 전용 upgrade tree는 다음 밸런스 패스에서 별도로 확장한다.
+- 새 프로덕션 타워가 기본 `ProductionTower::new` factory 또는 명시적인 `ProductionTower` subclass factory로 등록되어 `semion-td:tower` 엔티티를 생성한다.
 
 ### 4. 소환/타워/경제 밸런스 1차 패스
 

@@ -53,6 +53,7 @@ fix(command): harden lobby reset recovery
 - Carpet tower QA에서는 fake player를 `towerSample` 좌표로 이동시켜 `semiontd tower test` 성공까지 확인했다.
 - 반복 실행 절차는 `docs/carpet-qa-runbook.ko.md`에 정리되어 있다.
 - 프로덕션 타워 등록 방식은 `docs/production-tower-catalog.ko.md`에 정리되어 있다. 현재 기본 등록 타워는 비어 있으므로, 실제 플레이용 타워는 새 카탈로그 클래스로 직접 추가해야 한다.
+- 공격 가능한 타워 런타임은 `BaseAttackableTower`와 `SemionTowerEntity`로 공용화되어 있다. `ProductionTower`는 더 이상 `TestTower`를 상속하지 않고, 두 타워 모두 `BaseAttackableTower`를 통해 `semion-td:tower` 엔티티를 사용한다.
 - `/semiontd tower list`와 `/semiontd tower build <id>`가 추가되어 직업별 허용 타워를 설치할 수 있다.
 - 타워 외형은 typed visual builder로 바닐라 엔티티 variant/tracked data를 지정할 수 있다. villager/zombie_villager, cow, pig, chicken, wolf, cat, frog, horse, llama/trader_llama, fox, rabbit, parrot, axolotl, mooshroom, salmon, tropical_fish, sheep builder는 `docs/production-tower-catalog.ko.md`에 정리되어 있다.
 - 바닐라 tracked data 필드 접근은 reflection 없이 mixin accessor를 사용한다. 새 엔티티 property를 추가할 때도 `kim.biryeong.semiontd.mixin.accessor`에 accessor를 추가하고 `semion-td.mixins.json`에 등록한다.
@@ -64,7 +65,7 @@ fix(command): harden lobby reset recovery
 ./gradlew runGameTest --console=plain
 ```
 
-마지막 확인 결과는 `All 73 required tests passed :)`.
+마지막 확인 결과는 `All 108 required tests passed :)`.
 
 Carpet fake player QA 후 추가 확인:
 
@@ -73,7 +74,7 @@ Carpet fake player QA 후 추가 확인:
 ./gradlew runGameTest --console=plain
 ```
 
-마지막 확인 결과도 `All 73 required tests passed :)`.
+마지막 확인 결과도 `All 108 required tests passed :)`.
 
 실서버 기동 QA 완료 상태:
 
@@ -86,7 +87,7 @@ Carpet fake player QA 후 추가 확인:
 - 서버 기동 성공, `Semion TD initialized.`
 - `/semiontd status` equivalent console command `semiontd status`가 `activeGame=false`, `lobbyLoaded=true`, `arenaLoaded=false`를 출력했다.
 - `semiontd create` 성공.
-- create 후 `semiontd status`가 `activeGame=true`, `phase=WAITING`, `ready=0`, `activeParticipants=0`, `spectators=0`, `lobbyLoaded=true`, `arenaLoaded=4/4`를 출력했다.
+- create 후 `semiontd status`가 `activeGame=true`, `phase=WAITING`, `ready=0`, `activeParticipants=0`, `spectators=0`, `lobbyLoaded=true`, `arenaLoaded=5/5`를 출력한다.
 - `semiontd status teams`가 RED/BLUE/GREEN/YELLOW 팀별 arena/boss 상태를 출력했다.
 - `semiontd status players`가 `참가자 없음`, `관전자 없음`을 출력했다.
 - `semiontd start`는 준비 인원 부족 메시지로 실패했다.
@@ -94,7 +95,7 @@ Carpet fake player QA 후 추가 확인:
 - `semiontd reset` 후 `semiontd status`가 다시 `activeGame=false`를 출력했다.
 - `stop`으로 서버가 정상 종료되었다.
 - 이후 실클라이언트 QA를 위해 서버를 다시 기동했지만 접속자가 없어 2인 ready/start/spectate/HUD/mount 검증은 진행하지 못했다.
-- 재기동 smoke에서는 Polymer resource pack 생성 성공, `arenaLoaded=4/4`, 네 팀 boss 상태, reset 복구, 정상 종료를 다시 확인했다.
+- 재기동 smoke에서는 Polymer resource pack 생성 성공, `arenaLoaded=5/5`, 네 팀 boss 상태, reset 복구, 정상 종료를 확인한다.
 - Carpet fake player QA에서는 4명 NORMAL ready/start, RED/BLUE active team 배정, active participant 관전 전환 실패, 신규 관전자 RED/BLUE 팀 선택 관전 성공, inactive GREEN 관전 실패를 확인했다.
 - fake player 실행에서 `semiontd economy`, `semiontd summons`, `semiontd ui`가 서버 예외 없이 응답했다.
 - 보강 후 `semiontd end`와 `semiontd reset`이 성공했고, 최종 status는 `activeGame=false`, `arenaLoaded=false`였다.
