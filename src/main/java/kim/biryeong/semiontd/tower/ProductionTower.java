@@ -7,7 +7,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 
-public class ProductionTower extends BaseAttackableTower {
+public class ProductionTower extends EntityBackedTower {
     private final ProductionTowerBehavior behavior;
     private int mechanicStacks;
     private int idleTicks;

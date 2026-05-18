@@ -88,7 +88,7 @@ import kim.biryeong.semiontd.summon.SummonMonsterType;
 import kim.biryeong.semiontd.summon.SummonRegistry;
 import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonTier;
-import kim.biryeong.semiontd.tower.BaseAttackableTower;
+import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
@@ -1498,7 +1498,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void productionCatalogFactoryAcceptsNonProductionAttackableTower(GameTestHelper context) {
+    public void productionCatalogFactoryAcceptsNonProductionEntityBackedTower(GameTestHelper context) {
         UUID playerId = stableUuid("red-custom-production-runtime-owner");
         TowerType type = productionFixtureType("manual_fixture_custom_runtime", List.of());
         ProductionTowerCatalog.CatalogEntry entry = new ProductionTowerCatalog.CatalogEntry(
@@ -1508,7 +1508,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 1
         );
 
-        BaseAttackableTower tower = entry.create(
+        EntityBackedTower tower = entry.create(
                 playerId,
                 TeamId.RED,
                 1,
@@ -1517,7 +1517,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(
                 context,
                 tower instanceof FixtureSupportTower,
-                "Production catalog factories should allow attackable tower implementations that do not extend ProductionTower."
+                "Production catalog factories should allow entity-backed tower implementations that do not extend ProductionTower."
         )) {
             return;
         }
@@ -1678,7 +1678,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void towerUpgradeServiceAcceptsNonProductionAttackableTower(GameTestHelper context) {
+    public void towerUpgradeServiceAcceptsNonProductionEntityBackedTower(GameTestHelper context) {
         UUID playerId = stableUuid("red-custom-runtime-upgrade-owner");
         SemionGame game = startedSinglePlayerGame(
                 context,
@@ -1729,7 +1729,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 context,
                 TowerUpgradeResult.UNKNOWN_TARGET_TYPE,
                 ProductionTowerService.upgradeTower(game, playerId, towerPos, "manual_upgrade"),
-                "Generic attackable towers should reach target catalog validation during upgrade."
+                "Generic entity-backed towers should reach target catalog validation during upgrade."
         )) {
             return;
         }
@@ -4971,7 +4971,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
     }
 
-    private static final class FixtureSupportTower extends BaseAttackableTower {
+    private static final class FixtureSupportTower extends EntityBackedTower {
         private FixtureSupportTower(
                 TowerType type,
                 kim.biryeong.semiontd.tower.ProductionTowerBehavior behavior,

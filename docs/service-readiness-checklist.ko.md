@@ -259,14 +259,14 @@ stop
 ### 3. 프로덕션 타워 배치/카탈로그 정리
 
 프로덕션 타워 등록 방식은 [프로덕션 타워 카탈로그](production-tower-catalog.ko.md)에 정리되어 있다. 현재 기본 등록 타워는 비워 두었고, 실제 플레이용 타워는 `tower.catalog` 패키지에서 직접 작성해 등록해야 한다.
-공격 가능한 타워 런타임은 `BaseAttackableTower`/`SemionTowerEntity`로 공용화되어 있으며, `ProductionTower`는 `TestTower`와 독립적인 형제 계열이다.
+엔티티를 가진 타워 런타임은 `EntityBackedTower`/`SemionTowerEntity`로 공용화되어 있으며, `ProductionTower`는 `TestTower`와 독립적인 형제 계열이다.
 
 확인 항목:
 
 - 실제 플레이어가 사용할 기본 타워 목록은 아직 없다. 새 타워 카탈로그를 직접 작성해 등록해야 한다.
 - 배치 명령 또는 UI 흐름이 운영자가 아닌 플레이어 기준으로 자연스럽다. 2026-05-13 기준 `/semiontd tower list`, `/semiontd tower build <id>`를 추가했다.
 - 업그레이드 경로가 최소 1개 이상 실전에서 작동한다. 기존 test tower evolution은 유지되지만, 프로덕션 타워 전용 upgrade tree는 다음 밸런스 패스에서 별도로 확장한다.
-- 새 프로덕션 타워가 기본 `ProductionTower::new` factory 또는 명시적인 `BaseAttackableTower` 구현 factory로 등록되어 `semion-td:tower` 엔티티를 생성한다.
+- 새 프로덕션 타워가 기본 `ProductionTower::new` factory 또는 명시적인 `EntityBackedTower` 구현 factory로 등록되어 `semion-td:tower` 엔티티를 생성한다.
 
 ### 4. 소환/타워/경제 밸런스 1차 패스
 

@@ -9,14 +9,17 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import net.minecraft.core.BlockPos;
 
-public abstract class BaseAttackableTower extends Tower {
+/**
+ * Tower runtime backed by a {@link SemionTowerEntity}; this does not imply that the tower attacks.
+ */
+public abstract class EntityBackedTower extends Tower {
     private int entityId = -1;
 
-    protected BaseAttackableTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
+    protected EntityBackedTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
     }
 
-    protected BaseAttackableTower(
+    protected EntityBackedTower(
             TowerType type,
             UUID ownerPlayer,
             TeamId teamId,

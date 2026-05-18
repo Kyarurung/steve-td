@@ -52,7 +52,7 @@ public final class ProductionTowerService {
             return TowerPlacementResult.NOT_ENOUGH_MINERAL;
         }
 
-        BaseAttackableTower tower = entry.get().create(
+        EntityBackedTower tower = entry.get().create(
                 laneContext.player.uuid(),
                 laneContext.player.teamId(),
                 laneContext.player.laneId(),
@@ -165,7 +165,7 @@ public final class ProductionTowerService {
             return TowerUpgradeResult.NOT_ENOUGH_MINERAL;
         }
 
-        BaseAttackableTower upgradedTower = targetEntry.get().create(
+        EntityBackedTower upgradedTower = targetEntry.get().create(
                 tower.ownerPlayer(),
                 tower.teamId(),
                 tower.laneId(),
