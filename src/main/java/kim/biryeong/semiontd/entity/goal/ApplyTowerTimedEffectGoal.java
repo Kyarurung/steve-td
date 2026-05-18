@@ -4,7 +4,7 @@ import java.util.Comparator;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import net.minecraft.world.phys.AABB;
 
 public final class ApplyTowerTimedEffectGoal extends CooldownAbilityGoal {
@@ -44,16 +44,16 @@ public final class ApplyTowerTimedEffectGoal extends CooldownAbilityGoal {
         AABB searchBox = caster.getBoundingBox().inflate(radius);
         double radiusSqr = radius * radius;
         int applied = 0;
-        for (SemionTestTowerEntity tower : caster.level().getEntities(
+        for (SemionTowerEntity tower : caster.level().getEntities(
                         caster,
                         searchBox,
-                        entity -> entity instanceof SemionTestTowerEntity towerEntity
+                        entity -> entity instanceof SemionTowerEntity towerEntity
                                 && towerEntity.isAlive()
                                 && towerEntity.teamId() == runtimeMonster.targetTeam()
                                 && towerEntity.defendsLane(runtimeMonster.targetLaneId())
                 ).stream()
-                .filter(SemionTestTowerEntity.class::isInstance)
-                .map(SemionTestTowerEntity.class::cast)
+                .filter(SemionTowerEntity.class::isInstance)
+                .map(SemionTowerEntity.class::cast)
                 .filter(tower -> caster.distanceToSqr(tower) <= radiusSqr)
                 .sorted(Comparator.comparingDouble(caster::distanceToSqr))
                 .toList()) {

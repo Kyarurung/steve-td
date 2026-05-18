@@ -2,7 +2,7 @@ package kim.biryeong.semiontd.ui;
 
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -32,7 +32,7 @@ public final class SemionTowerInteractionService {
         if (world.isClientSide() || hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.PASS;
         }
-        if (!(entity instanceof SemionTestTowerEntity towerEntity) || towerEntity.runtimeTower() == null) {
+        if (!(entity instanceof SemionTowerEntity towerEntity) || towerEntity.runtimeTower() == null) {
             return InteractionResult.PASS;
         }
 

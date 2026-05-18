@@ -1,4 +1,4 @@
-package kim.biryeong.semiontd.test.entity;
+package kim.biryeong.semiontd.entity.tower;
 
 import de.tomalbrc.bil.api.AnimatedEntity;
 import de.tomalbrc.bil.api.AnimatedEntityHolder;
@@ -18,10 +18,9 @@ import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
-import kim.biryeong.semiontd.test.entity.goal.TestTowerAttackMonsterGoal;
-import kim.biryeong.semiontd.test.tower.TestTower;
-import kim.biryeong.semiontd.tower.ProductionTower;
+import kim.biryeong.semiontd.entity.tower.goal.TowerAttackMonsterGoal;
 import kim.biryeong.semiontd.tower.ProductionTowerBehavior;
+import kim.biryeong.semiontd.tower.Tower;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -38,14 +37,14 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.packettweaker.PacketContext;
 
-public final class SemionTestTowerEntity extends PathfinderMob implements AnimatedEntity, LaneDefenseEntity, HealingTarget {
+public final class SemionTowerEntity extends PathfinderMob implements AnimatedEntity, LaneDefenseEntity, HealingTarget {
     private static final double DEFAULT_MOVE_SPEED = 0.23;
     private static final double DEFAULT_TARGET_ACQUIRE_RANGE = 24.0;
     private static final double TARGET_SEARCH_HORIZONTAL_PADDING = 8.0;
     private static final double TARGET_SEARCH_VERTICAL_PADDING = 3.0;
     private static final double FINAL_DEFENSE_RETURN_SPEED_MULTIPLIER = 1.25;
 
-    private TestTower runtimeTower;
+    private Tower runtimeTower;
     private TeamId teamId;
     private int laneId;
     private UUID ownerPlayer;
@@ -63,10 +62,10 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     private SemionAnimationState animationState = SemionAnimationState.IDLE;
     private EntityType<?> polymerEntityType = EntityType.ARMOR_STAND;
     private final TimedEffectSet timedEffects = new TimedEffectSet();
-    private LivingEntityHolder<SemionTestTowerEntity> holder;
+    private LivingEntityHolder<SemionTowerEntity> holder;
     private EntityAttachment holderAttachment;
 
-    public SemionTestTowerEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
+    public SemionTowerEntity(EntityType<? extends PathfinderMob> entityType, Level level) {
         super(entityType, level);
         setSilent(true);
         setPersistenceRequired();
@@ -76,10 +75,10 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
-        goalSelector.addGoal(1, new TestTowerAttackMonsterGoal(this));
+        goalSelector.addGoal(1, new TowerAttackMonsterGoal(this));
     }
 
-    public void configure(TestTower tower, LaneRegionLayout laneLayout) {
+    public void configure(Tower tower, LaneRegionLayout laneLayout) {
         runtimeTower = tower;
         this.laneLayout = laneLayout;
         laneId = tower.laneId();
@@ -112,7 +111,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
         return laneId;
     }
 
-    public TestTower runtimeTower() {
+    public Tower runtimeTower() {
         return runtimeTower;
     }
 
@@ -169,10 +168,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     }
 
     public int attackIntervalTicks() {
-        int adjustedInterval = attackIntervalTicks;
-        if (runtimeTower instanceof ProductionTower productionTower) {
-            adjustedInterval = productionTower.adjustedAttackInterval(adjustedInterval);
-        }
+        int adjustedInterval = runtimeTower == null ? attackIntervalTicks : runtimeTower.adjustAttackInterval(attackIntervalTicks);
         double attackSpeedMultiplier = 1.0
                 + timedEffects.magnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS)
                 - timedEffects.magnitude(TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION);
@@ -214,11 +210,11 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
     }
 
     public ProductionTowerBehavior productionBehavior() {
-        return runtimeTower instanceof ProductionTower productionTower ? productionTower.behavior() : null;
+        return runtimeTower == null ? null : runtimeTower.productionBehavior();
     }
 
     public int productionMechanicStacks() {
-        return runtimeTower instanceof ProductionTower productionTower ? productionTower.mechanicStacks() : 0;
+        return runtimeTower == null ? 0 : runtimeTower.productionMechanicStacks();
     }
 
     public void recordAttack(SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
@@ -286,7 +282,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
         this.animationState = animationState;
     }
 
-    public void syncTowerState(TestTower tower) {
+    public void syncTowerState(Tower tower) {
         runtimeTower = tower;
         aggroPriority = tower.aggroPriority();
         boolean wasFinalDefense = finalDefense;
@@ -303,7 +299,7 @@ public final class SemionTestTowerEntity extends PathfinderMob implements Animat
 
     @Override
     public boolean isHealingAlly(HealingTarget other) {
-        if (!(other instanceof SemionTestTowerEntity towerEntity) || towerEntity == this) {
+        if (!(other instanceof SemionTowerEntity towerEntity) || towerEntity == this) {
             return false;
         }
         return teamId != null

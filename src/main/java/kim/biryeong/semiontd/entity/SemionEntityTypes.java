@@ -3,7 +3,7 @@ package kim.biryeong.semiontd.entity;
 import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.entity.boss.SemionBossEntity;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
@@ -31,9 +31,9 @@ public final class SemionEntityTypes {
                     .clientTrackingRange(10)
                     .updateInterval(2)
     );
-    public static final EntityType<SemionTestTowerEntity> TEST_TOWER = register(
-            "test_tower",
-            EntityType.Builder.of(SemionTestTowerEntity::new, MobCategory.MISC)
+    public static final EntityType<SemionTowerEntity> TOWER = register(
+            "tower",
+            EntityType.Builder.of(SemionTowerEntity::new, MobCategory.MISC)
                     .sized(0.8F, 1.8F)
                     .clientTrackingRange(8)
                     .updateInterval(2)
@@ -45,7 +45,7 @@ public final class SemionEntityTypes {
     public static void register() {
         PolymerEntityUtils.registerType(MONSTER);
         PolymerEntityUtils.registerType(BOSS);
-        PolymerEntityUtils.registerType(TEST_TOWER);
+        PolymerEntityUtils.registerType(TOWER);
         FabricDefaultAttributeRegistry.register(
                 MONSTER,
                 PathfinderMob.createMobAttributes()
@@ -63,7 +63,7 @@ public final class SemionEntityTypes {
                         .add(Attributes.KNOCKBACK_RESISTANCE, 1.0)
         );
         FabricDefaultAttributeRegistry.register(
-                TEST_TOWER,
+                TOWER,
                 PathfinderMob.createMobAttributes()
                         .add(Attributes.MAX_HEALTH, 50.0)
                         .add(Attributes.ATTACK_DAMAGE, 8)
@@ -82,5 +82,4 @@ public final class SemionEntityTypes {
         return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, builder.build(key));
     }
 }
-
 

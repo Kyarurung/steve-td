@@ -1,4 +1,4 @@
-package kim.biryeong.semiontd.test.entity.goal;
+package kim.biryeong.semiontd.entity.tower.goal;
 
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -6,18 +6,18 @@ import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.tower.ProductionTowerBehavior;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.AABB;
 
-public final class TestTowerAttackMonsterGoal extends Goal {
-    private final SemionTestTowerEntity tower;
+public final class TowerAttackMonsterGoal extends Goal {
+    private final SemionTowerEntity tower;
     private int cooldownTicks;
 
-    public TestTowerAttackMonsterGoal(SemionTestTowerEntity tower) {
+    public TowerAttackMonsterGoal(SemionTowerEntity tower) {
         this.tower = tower;
         setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }

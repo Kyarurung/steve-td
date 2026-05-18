@@ -6,7 +6,7 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import java.util.UUID;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import net.minecraft.world.damagesource.DamageSource;
 
 public abstract class Tower {
@@ -139,22 +139,22 @@ public abstract class Tower {
     public void onStateChanged(PlayerLane lane) {
     }
 
-    public double modifyAttackDamage(SemionTestTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return damageAmount;
     }
 
-    public void onAttack(SemionTestTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
+    public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
     }
 
-    public void onKill(SemionTestTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
     }
 
-    public double modifyIncomingDamage(SemionTestTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
+    public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
         return damageAmount;
     }
 
     public void onDamaged(
-            SemionTestTowerEntity towerEntity,
+            SemionTowerEntity towerEntity,
             DamageSource damageSource,
             double damageAmount,
             double previousHealth,
@@ -163,11 +163,23 @@ public abstract class Tower {
     }
 
     public void onTimedEffectApplied(
-            SemionTestTowerEntity towerEntity,
+            SemionTowerEntity towerEntity,
             TimedEffectType type,
             double magnitude,
             int durationTicks
     ) {
+    }
+
+    public int adjustAttackInterval(int baseIntervalTicks) {
+        return baseIntervalTicks;
+    }
+
+    public ProductionTowerBehavior productionBehavior() {
+        return null;
+    }
+
+    public int productionMechanicStacks() {
+        return 0;
     }
 
     public boolean isDestroyed(PlayerLane lane) {

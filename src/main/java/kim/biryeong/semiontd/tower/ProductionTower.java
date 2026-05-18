@@ -5,10 +5,9 @@ import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
-import kim.biryeong.semiontd.test.entity.SemionTestTowerEntity;
-import kim.biryeong.semiontd.test.tower.TestTower;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 
-public class ProductionTower extends TestTower {
+public class ProductionTower extends BaseAttackableTower {
     private final ProductionTowerBehavior behavior;
     private int mechanicStacks;
     private int idleTicks;
@@ -54,19 +53,30 @@ public class ProductionTower extends TestTower {
         return 1.0 + mechanicStacks * behavior.damagePerStack();
     }
 
-    public int adjustedAttackInterval(int baseIntervalTicks) {
+    @Override
+    public int adjustAttackInterval(int baseIntervalTicks) {
         double multiplier = 1.0 - mechanicStacks * behavior.attackSpeedPerStack();
         return Math.max(1, (int) Math.ceil(baseIntervalTicks * Math.max(0.35, multiplier)));
     }
 
     @Override
-    public double modifyAttackDamage(SemionTestTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    public ProductionTowerBehavior productionBehavior() {
+        return behavior;
+    }
+
+    @Override
+    public int productionMechanicStacks() {
+        return mechanicStacks;
+    }
+
+    @Override
+    public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return damageAmount * damageMultiplier();
     }
 
     @Override
     public void onAttack(
-            SemionTestTowerEntity towerEntity,
+            SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
             double damageAmount,
             boolean killedTarget
