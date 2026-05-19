@@ -105,7 +105,7 @@ public final class ProductionTowerCatalog {
 
     @FunctionalInterface
     public interface TowerFactory {
-        EntityBackedTower create(
+        Tower create(
                 TowerType type,
                 UUID ownerPlayer,
                 TeamId teamId,
@@ -124,11 +124,11 @@ public final class ProductionTowerCatalog {
             return tier == 1;
         }
 
-        public EntityBackedTower create(UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
+        public Tower create(UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
             return create(ownerPlayer, teamId, laneId, position, position);
         }
 
-        public EntityBackedTower create(
+        public Tower create(
                 UUID ownerPlayer,
                 TeamId teamId,
                 int laneId,

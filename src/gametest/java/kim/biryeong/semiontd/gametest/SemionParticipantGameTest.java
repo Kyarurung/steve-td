@@ -92,11 +92,15 @@ import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
+import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.tower.villager.AllayTower;
+import kim.biryeong.semiontd.tower.villager.AntiTankerCatTower;
+import kim.biryeong.semiontd.tower.villager.LaneClearCatTower;
+import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.ui.SemionDialogService;
@@ -1485,7 +1489,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 1
         );
 
-        EntityBackedTower tower = entry.create(
+        Tower tower = entry.create(
                 playerId,
                 TeamId.RED,
                 1,
@@ -4224,6 +4228,121 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void villagerAntiTankerCatBonusesNonWaveAndTankTargets(GameTestHelper context) {
+        AntiTankerCatTower catTower = new AntiTankerCatTower(
+                VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
+                stableUuid("anti-tanker-cat-owner"),
+                TeamId.RED,
+                1,
+                new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)
+        );
+        SemionMonsterEntity wave = spawnRoleMonsterEntity(
+                context,
+                "cat-wave",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                Vec3.ZERO,
+                100.0,
+                List.of(SummonRole.RUSH)
+        );
+        SemionMonsterEntity rushSummon = spawnRoleMonsterEntity(
+                context,
+                "cat-rush",
+                Optional.of(TeamId.BLUE),
+                TeamId.RED,
+                1,
+                Vec3.ZERO.add(1.0, 0.0, 0.0),
+                100.0,
+                List.of(SummonRole.RUSH)
+        );
+        SemionMonsterEntity tankSummon = spawnRoleMonsterEntity(
+                context,
+                "cat-tank",
+                Optional.of(TeamId.BLUE),
+                TeamId.RED,
+                1,
+                Vec3.ZERO.add(2.0, 0.0, 0.0),
+                100.0,
+                List.of(SummonRole.TANK)
+        );
+
+        if (!assertClose(context, 20.0, catTower.modifyAttackDamage(null, wave, 20.0), "Anti-tanker cat should not bonus wave monsters.")) {
+            return;
+        }
+        if (!assertClose(context, 30.0, catTower.modifyAttackDamage(null, rushSummon, 20.0), "T2 anti-tanker cat should deal 50% bonus damage to non-wave summons.")) {
+            return;
+        }
+        if (!assertClose(context, 40.0, catTower.modifyAttackDamage(null, tankSummon, 20.0), "T2 anti-tanker cat should deal 100% bonus damage to tank summons.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void villagerLaneClearCatExplodesWithoutChainKills(GameTestHelper context) {
+        UUID playerId = stableUuid("lane-clear-cat-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+        LaneClearCatTower catTower = new LaneClearCatTower(
+                VillagerTowers.T2_LANE_CLEAR_CAT_TOWER,
+                playerId,
+                TeamId.RED,
+                1,
+                new kim.biryeong.semiontd.game.GridPosition(base.getX(), base.getY(), base.getZ())
+        );
+        SemionTowerEntity towerEntity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+        towerEntity.configure(catTower, lane.laneLayout());
+        Vec3 targetPosition = Vec3.atBottomCenterOf(base);
+        towerEntity.setPos(targetPosition.add(0.0, 0.0, -1.0));
+        context.getLevel().addFreshEntity(towerEntity);
+
+        SemionMonsterEntity primary = spawnRoleMonsterEntity(context, "cat-primary", Optional.empty(), TeamId.RED, 1, targetPosition, 100.0, List.of(SummonRole.RUSH));
+        SemionMonsterEntity nearby = spawnRoleMonsterEntity(context, "cat-nearby", Optional.empty(), TeamId.RED, 1, targetPosition.add(0.8, 0.0, 0.0), 10.0, List.of(SummonRole.RUSH));
+        SemionMonsterEntity chainCandidate = spawnRoleMonsterEntity(context, "cat-chain-candidate", Optional.empty(), TeamId.RED, 1, targetPosition.add(1.6, 0.0, 0.0), 10.0, List.of(SummonRole.RUSH));
+
+        catTower.onKill(towerEntity, primary, 15.0);
+
+        if (!assertTrue(context, nearby.isRemoved() || !nearby.isAlive() || nearby.getHealth() <= 0.0F, "Lane-clear cat explosion should damage and kill monsters near the primary target.")) {
+            return;
+        }
+        if (!assertTrue(context, chainCandidate.isAlive() && chainCandidate.getHealth() > 0.0F, "Lane-clear cat explosion should not chain from explosion-killed monsters.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void villagerTowerCatalogRegistersAndLinksAllFamilies(GameTestHelper context) {
+        ProductionTowerCatalog.clearForTesting();
+        VillagerTowerCatalogs.register();
+
+        if (!assertEquals(context, 4L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Villager catalog should expose four starter tower families.")) {
+            return;
+        }
+        if (!assertEquals(context, 1, ProductionTowerCatalog.upgrades(VillagerTowers.T1_SPLASH_TOWER).size(), "Splash starter should link to librarian tower.")) {
+            return;
+        }
+        if (!assertEquals(context, 1, ProductionTowerCatalog.upgrades(VillagerTowers.T1_GOLEM_TOWER).size(), "Golem starter should link to llama tower.")) {
+            return;
+        }
+        if (!assertEquals(context, 2, ProductionTowerCatalog.upgrades(VillagerTowers.T1_ALLAY_TOWER).size(), "Allay starter should branch to heal and weapon-smith support towers.")) {
+            return;
+        }
+        if (!assertEquals(context, 2, ProductionTowerCatalog.upgrades(VillagerTowers.T1_CAT_TOWER).size(), "Cat starter should branch to anti-tanker and lane-clear towers.")) {
+            return;
+        }
+        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_ANTI_TANKER_CAT_TOWER).orElseThrow().create(stableUuid("cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof AntiTankerCatTower, "Anti-tanker cat catalog entry should create AntiTankerCatTower.")) {
+            return;
+        }
+        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_LANE_CLEAR_CAT_TOWER).orElseThrow().create(stableUuid("lane-cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof LaneClearCatTower, "Lane-clear cat catalog entry should create LaneClearCatTower.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void configLoaderDoesNotCreateSummonsConfigFile(GameTestHelper context) {
         try {
             Path tempDir = Files.createTempDirectory("semion-td-config-test");
@@ -4744,6 +4863,42 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             monster.damage(damageTaken, DamageType.TRUE);
         }
 
+        SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        entity.configureFrom(monster, null);
+        entity.setNoGravity(true);
+        entity.setPos(position);
+        context.getLevel().addFreshEntity(entity);
+        return entity;
+    }
+
+    private static SemionMonsterEntity spawnRoleMonsterEntity(
+            GameTestHelper context,
+            String id,
+            Optional<TeamId> senderTeam,
+            TeamId targetTeam,
+            int targetLaneId,
+            Vec3 position,
+            double maxHealth,
+            List<SummonRole> roles
+    ) {
+        Monster monster = new Monster(
+                id,
+                targetTeam,
+                targetLaneId,
+                Optional.empty(),
+                senderTeam,
+                maxHealth,
+                0,
+                0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                DamageType.PHYSICAL,
+                0,
+                SummonTier.T1,
+                roles,
+                0
+        );
         SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
         entity.configureFrom(monster, null);
         entity.setNoGravity(true);

@@ -11,6 +11,7 @@ import kim.biryeong.semiontd.music.SemionMusicLibrary;
 import kim.biryeong.semiontd.music.SemionMusicResourcePack;
 import kim.biryeong.semiontd.music.SemionMusicService;
 import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
+import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import kim.biryeong.semiontd.ui.dialog.body.AlignedItemBody;
@@ -39,6 +40,7 @@ public class SemionTd implements ModInitializer {
     @Override
     public void onInitialize() {
         SemionEntityTypes.register();
+        VillagerTowerCatalogs.register();
 
         Path configDir = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
         LoadedConfigs configs = SemionConfigLoader.load(configDir, LOGGER);
