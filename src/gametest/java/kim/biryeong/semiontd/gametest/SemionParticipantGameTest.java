@@ -3924,6 +3924,39 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void timedEffectsRejectDuplicateSourcesAndStackDifferentSources(GameTestHelper context) {
+        TimedEffectSet effects = new TimedEffectSet();
+        ResourceLocation firstSource = ResourceLocation.fromNamespaceAndPath("semion-td", "test/first_damage_bonus");
+        ResourceLocation secondSource = ResourceLocation.fromNamespaceAndPath("semion-td", "test/second_damage_bonus");
+
+        if (!assertTrue(context, effects.apply(TimedEffectType.TOWER_DAMAGE_BONUS, firstSource, 0.10, 20), "First sourced effect should apply.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.10, effects.magnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Sourced effect should contribute its magnitude.")) {
+            return;
+        }
+        if (!assertTrue(context, !effects.apply(TimedEffectType.TOWER_DAMAGE_BONUS, firstSource, 0.20, 40), "Duplicate source should not refresh or stack while active.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.10, effects.magnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Duplicate source should leave magnitude unchanged.")) {
+            return;
+        }
+        if (!assertEquals(context, 20, effects.remainingTicks(TimedEffectType.TOWER_DAMAGE_BONUS), "Duplicate source should leave duration unchanged.")) {
+            return;
+        }
+        if (!assertTrue(context, effects.apply(TimedEffectType.TOWER_DAMAGE_BONUS, secondSource, 0.15, 30), "Different sources should stack.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.25, effects.magnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Different sourced effects should stack by type.")) {
+            return;
+        }
+        if (!assertEquals(context, 30, effects.remainingTicks(TimedEffectType.TOWER_DAMAGE_BONUS), "Type duration should expose the longest active source duration.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void nullImpDebuffsOnlyNearestTargetLaneTower(GameTestHelper context) {
         Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
         SemionMonsterEntity caster = spawnSummonEntity(context, "null_imp", TeamId.RED, TeamId.BLUE, 1, origin, 100.0, 0.0);

@@ -240,12 +240,32 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         }
     }
 
+    public boolean applyTimedEffect(TimedEffectType type, ResourceLocation sourceId, double magnitude, int durationTicks) {
+        double previousMagnitude = type == null ? 0.0 : activeTimedEffectMagnitude(type);
+        int previousTicks = type == null ? 0 : activeTimedEffectTicks(type);
+        boolean applied = timedEffects.apply(type, sourceId, magnitude, durationTicks);
+        double currentMagnitude = type == null ? 0.0 : activeTimedEffectMagnitude(type);
+        int currentTicks = type == null ? 0 : activeTimedEffectTicks(type);
+        if (applied
+                && runtimeTower != null
+                && type != null
+                && currentTicks > 0
+                && (Double.compare(previousMagnitude, currentMagnitude) != 0 || previousTicks != currentTicks)) {
+            runtimeTower.onTimedEffectApplied(this, type, currentMagnitude, currentTicks);
+        }
+        return applied;
+    }
+
     public double activeTimedEffectMagnitude(TimedEffectType type) {
         return timedEffects.magnitude(type);
     }
 
     public int activeTimedEffectTicks(TimedEffectType type) {
         return timedEffects.remainingTicks(type);
+    }
+
+    public boolean hasTimedEffectSource(TimedEffectType type, ResourceLocation sourceId) {
+        return timedEffects.hasSource(type, sourceId);
     }
 
     public String blockbenchModelId() {

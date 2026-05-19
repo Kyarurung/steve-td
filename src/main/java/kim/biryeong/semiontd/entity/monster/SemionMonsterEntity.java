@@ -279,12 +279,20 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         timedEffects.apply(type, magnitude, durationTicks);
     }
 
+    public boolean applyTimedEffect(TimedEffectType type, ResourceLocation sourceId, double magnitude, int durationTicks) {
+        return timedEffects.apply(type, sourceId, magnitude, durationTicks);
+    }
+
     public double activeTimedEffectMagnitude(TimedEffectType type) {
         return timedEffects.magnitude(type);
     }
 
     public int activeTimedEffectTicks(TimedEffectType type) {
         return timedEffects.remainingTicks(type);
+    }
+
+    public boolean hasTimedEffectSource(TimedEffectType type, ResourceLocation sourceId) {
+        return timedEffects.hasSource(type, sourceId);
     }
 
     public double movementSpeedMultiplier() {
