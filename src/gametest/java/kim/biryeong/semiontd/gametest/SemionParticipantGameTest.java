@@ -4339,6 +4339,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_LANE_CLEAR_CAT_TOWER).orElseThrow().create(stableUuid("lane-cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof LaneClearCatTower, "Lane-clear cat catalog entry should create LaneClearCatTower.")) {
             return;
         }
+        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T1_ALLAY_TOWER).orElseThrow().create(stableUuid("allay-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof AllayTower, "Allay catalog entry should create AllayTower through the widened production factory.")) {
+            return;
+        }
         context.succeed();
     }
 
