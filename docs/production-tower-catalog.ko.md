@@ -20,12 +20,10 @@ src/main/java/kim/biryeong/semiontd/entity/tower/
   goal/TowerAttackMonsterGoal.java 타워 공격/추적 goal
 
 src/main/java/kim/biryeong/semiontd/tower/catalog/
-  ProductionTowerDefinitions.java  tower/upgrade/branch/line helper
-  ProductionTowerLine.java         starter + 두 upgrade branch 묶음
-  ProductionTowerBranch.java       tier-2 + ultimate 묶음
+  ProductionTowerDefinitions.java  tower/upgrade helper
 ```
 
-새 기본 타워를 만들 때는 `tower.catalog` 패키지 아래에 직접 카탈로그 클래스를 만들고, `ProductionTowerCatalog.registerLine(...)` 또는 `registerAll(...)`로 등록한다.
+새 기본 타워를 만들 때는 `tower.catalog` 패키지 아래에 직접 카탈로그 클래스를 만들고, 타워 타입을 먼저 등록한 뒤 등록된 타입끼리 업그레이드 링크를 만든다.
 작성한 `register()` 메서드는 모드 초기화 흐름에서 한 번 호출해야 한다.
 
 ## 런타임 구조
@@ -55,8 +53,6 @@ Tower
 ```java
 package kim.biryeong.semiontd.tower.catalog;
 
-import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.branch;
-import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.line;
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.tower;
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.upgrade;
 
@@ -110,11 +106,16 @@ public final class MyProductionTowers {
     }
 
     public static void register() {
-        ProductionTowerCatalog.registerLine(line(
-                STARTER,
-                branch(LEFT_BRANCH, LEFT_ULTIMATE),
-                branch(RIGHT_BRANCH, RIGHT_ULTIMATE)
-        ));
+        ProductionTowerCatalog.registerStarter(STARTER);
+        ProductionTowerCatalog.register(LEFT_BRANCH);
+        ProductionTowerCatalog.register(LEFT_ULTIMATE, 3);
+        ProductionTowerCatalog.register(RIGHT_BRANCH);
+        ProductionTowerCatalog.register(RIGHT_ULTIMATE, 3);
+
+        ProductionTowerCatalog.linkUpgrade(STARTER, "my_left_branch", "내 왼쪽 2차 타워", LEFT_BRANCH, 100);
+        ProductionTowerCatalog.linkUpgrade(STARTER, "my_right_branch", "내 오른쪽 2차 타워", RIGHT_BRANCH, 100);
+        ProductionTowerCatalog.linkUpgrade(LEFT_BRANCH, "my_left_ultimate", "내 왼쪽 궁극 타워", LEFT_ULTIMATE, 250);
+        ProductionTowerCatalog.linkUpgrade(RIGHT_BRANCH, "my_right_ultimate", "내 오른쪽 궁극 타워", RIGHT_ULTIMATE, 250);
     }
 }
 ```
@@ -134,9 +135,9 @@ public final class MyProductionTowers {
 
 ## 작성 기준
 
-- 직접 설치 가능한 starter tower는 `ProductionTowerLine`의 `starter`로 등록한다.
-- 2차/3차 타워는 `ProductionTowerBranch` 안에 들어가며 직접 설치할 수 없다.
-- 타워별 특수 로직이 필요하면 `ProductionTower` 또는 `EntityBackedTower`를 상속한 클래스를 만들고 `line(...)` 또는 `branch(...)`에 factory를 넘긴다.
+- 직접 설치 가능한 starter tower는 `registerStarter(...)`로 등록한다.
+- 2차/3차 타워는 `register(type, factory, tier)`로 등록하고 starter로 표시하지 않는다.
+- 타워별 특수 로직이 필요하면 `ProductionTower` 또는 `EntityBackedTower`를 상속한 클래스를 만들고 등록 시 factory를 넘긴다.
 - factory는 `ProductionTowerCatalog.TowerFactory` 형태이며, 반환 타입은 `EntityBackedTower`다. 기본값은 `ProductionTower::new`이다.
 - 1차/2차/3차가 서로 다른 런타임 클래스여도 각 tier의 factory가 해당 `TowerType`에 맞는 `EntityBackedTower` 구현을 반환하면 등록할 수 있다.
 - 외형은 기존 `entityTypeId`/`blockbenchModelId` 생성자 또는 `EntityVisual`로 지정한다. 둘 다 비우면 기본 villager fallback을 쓴다.
@@ -180,7 +181,7 @@ public final class SupporterTower extends EntityBackedTower {
 카탈로그 등록 시:
 
 ```java
-line(STARTER, SupporterTower::new, leftBranch, rightBranch);
+ProductionTowerCatalog.registerStarter(STARTER, SupporterTower::new);
 ```
 
 ## 바닐라 엔티티 외형 속성

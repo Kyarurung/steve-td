@@ -107,36 +107,4 @@ public final class ProductionTowerDefinitions {
         return new TowerUpgradeOption(id, displayName, target, mineralCost);
     }
 
-    public static ProductionTowerBranch branch(
-            TowerType tierTwo,
-            TowerType ultimate
-    ) {
-        return branch(tierTwo, DEFAULT_TOWER_FACTORY, ultimate, DEFAULT_TOWER_FACTORY);
-    }
-
-    public static ProductionTowerBranch branch(
-            TowerType tierTwo,
-            ProductionTowerCatalog.TowerFactory tierTwoFactory,
-            TowerType ultimate,
-            ProductionTowerCatalog.TowerFactory ultimateFactory
-    ) {
-        return new ProductionTowerBranch(tierTwo, tierTwoFactory, ultimate, ultimateFactory);
-    }
-
-    public static ProductionTowerLine line(
-            TowerType starter,
-            ProductionTowerBranch left,
-            ProductionTowerBranch right
-    ) {
-        return line(starter, DEFAULT_TOWER_FACTORY, left, right);
-    }
-
-    public static ProductionTowerLine line(
-            TowerType starter,
-            ProductionTowerCatalog.TowerFactory starterFactory,
-            ProductionTowerBranch left,
-            ProductionTowerBranch right
-    ) {
-        return new ProductionTowerLine(starter, starterFactory, left, right);
-    }
 }

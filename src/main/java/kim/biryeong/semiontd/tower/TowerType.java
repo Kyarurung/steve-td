@@ -253,10 +253,6 @@ public record TowerType(
         upgradeOptions = List.copyOf(upgradeOptions);
     }
 
-    public boolean hasUpgradeOptions() {
-        return !upgradeOptions.isEmpty();
-    }
-
     public Optional<String> blockbenchModel() {
         return visual.blockbenchModel();
     }

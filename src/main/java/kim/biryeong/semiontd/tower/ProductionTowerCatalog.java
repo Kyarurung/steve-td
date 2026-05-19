@@ -10,7 +10,6 @@ import java.util.UUID;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions;
-import kim.biryeong.semiontd.tower.catalog.ProductionTowerLine;
 
 public final class ProductionTowerCatalog {
     private static final Map<String, CatalogEntry> ENTRIES = new LinkedHashMap<>();
@@ -47,6 +46,10 @@ public final class ProductionTowerCatalog {
         return register(type, factory, 2);
     }
 
+    public static CatalogEntry register(TowerType type, int tier) {
+        return register(type, ProductionTowerDefinitions.DEFAULT_TOWER_FACTORY, tier);
+    }
+
     public static TowerUpgradeOption linkUpgrade(TowerType from, String id, String displayName, TowerType to, long mineralCost) {
         requireRegistered(from);
         requireRegistered(to);
@@ -77,20 +80,6 @@ public final class ProductionTowerCatalog {
         return upgrades(type).stream()
                 .filter(option -> option.id().equalsIgnoreCase(upgradeId))
                 .findFirst();
-    }
-
-    public static void registerAll(List<ProductionTowerLine> lines) {
-        for (ProductionTowerLine line : lines) {
-            registerLine(line);
-        }
-    }
-
-    public static void registerLine(ProductionTowerLine line) {
-        register(line.starter(), line.starterFactory(), 1);
-        register(line.left().tierTwo(), line.left().tierTwoFactory(), 2);
-        register(line.left().ultimate(), line.left().ultimateFactory(), 3);
-        register(line.right().tierTwo(), line.right().tierTwoFactory(), 2);
-        register(line.right().ultimate(), line.right().ultimateFactory(), 3);
     }
 
     public static CatalogEntry register(TowerType type, TowerFactory factory, int tier) {
