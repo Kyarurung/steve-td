@@ -3,9 +3,7 @@ package kim.biryeong.semiontd.job;
 import java.util.List;
 import java.util.Objects;
 import kim.biryeong.semiontd.entity.monster.Monster;
-import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
-import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -65,17 +63,6 @@ public abstract class SemionJob {
 
     public long modifyStartingGasPerSec(JobContext context, long baseGasPerSec) {
         return baseGasPerSec;
-    }
-
-    public boolean canUseTower(JobContext context, TowerType towerType) {
-        return true;
-    }
-
-    public long modifyTowerMineralCost(JobContext context, TowerType towerType, long baseCost) {
-        return baseCost;
-    }
-
-    public void onTowerPlaced(JobContext context, PlayerLane lane, TowerType towerType) {
     }
 
     public boolean canUseSummon(JobContext context, SummonMonsterType summonType) {

@@ -13,9 +13,6 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TowerPlacementResult;
 import kim.biryeong.semiontd.game.TowerSellResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
-import kim.biryeong.semiontd.job.JobContext;
-import kim.biryeong.semiontd.job.JobRegistry;
-import kim.biryeong.semiontd.job.SemionJob;
 import net.minecraft.core.BlockPos;
 
 public final class ProductionTowerService {
@@ -30,7 +27,7 @@ public final class ProductionTowerService {
 
         Optional<ProductionTowerCatalog.CatalogEntry> entry = ProductionTowerCatalog.find(towerId);
         if (entry.isEmpty() || !entry.get().starter()) {
-            return TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB;
+            return TowerPlacementResult.UNKNOWN_TOWER;
         }
         if (!laneContext.lane.canPlaceTowerAt(blockPos)) {
             return TowerPlacementResult.OUTSIDE_LANE_AREA;
@@ -41,13 +38,8 @@ public final class ProductionTowerService {
             return TowerPlacementResult.OCCUPIED;
         }
 
-        JobContext jobContext = new JobContext(game, laneContext.player);
-        SemionJob job = laneContext.player.job().orElse(JobRegistry.defaultJob());
         TowerType towerType = entry.get().type();
-        if (!job.canUseTower(jobContext, towerType)) {
-            return TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB;
-        }
-        long mineralCost = Math.max(0, job.modifyTowerMineralCost(jobContext, towerType, towerType.mineralCost()));
+        long mineralCost = Math.max(0, towerType.mineralCost());
         if (!laneContext.player.economy().spendMineral(mineralCost)) {
             return TowerPlacementResult.NOT_ENOUGH_MINERAL;
         }
@@ -60,7 +52,6 @@ public final class ProductionTowerService {
         );
         tower.recordPlacementEconomy(mineralCost, game.currentRound());
         laneContext.lane.addTower(tower);
-        job.onTowerPlaced(jobContext, laneContext.lane, towerType);
         return TowerPlacementResult.SUCCESS;
     }
 
@@ -95,11 +86,8 @@ public final class ProductionTowerService {
         if (player == null) {
             return List.of();
         }
-        JobContext context = new JobContext(game, player);
-        SemionJob job = player.job().orElse(JobRegistry.defaultJob());
         return ProductionTowerCatalog.all().stream()
                 .filter(ProductionTowerCatalog.CatalogEntry::starter)
-                .filter(entry -> job.canUseTower(context, entry.type()))
                 .toList();
     }
 
@@ -155,12 +143,7 @@ public final class ProductionTowerService {
             return TowerUpgradeResult.UNKNOWN_TARGET_TYPE;
         }
 
-        JobContext jobContext = new JobContext(game, laneContext.player);
-        SemionJob job = laneContext.player.job().orElse(JobRegistry.defaultJob());
-        if (!job.canUseTower(jobContext, targetType)) {
-            return TowerUpgradeResult.TOWER_NOT_ALLOWED_BY_JOB;
-        }
-        long mineralCost = Math.max(0, job.modifyTowerMineralCost(jobContext, targetType, upgrade.mineralCost()));
+        long mineralCost = Math.max(0, upgrade.mineralCost());
         if (!laneContext.player.economy().spendMineral(mineralCost)) {
             return TowerUpgradeResult.NOT_ENOUGH_MINERAL;
         }
@@ -177,7 +160,6 @@ public final class ProductionTowerService {
             laneContext.player.economy().addMineral(mineralCost);
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
-        job.onTowerPlaced(jobContext, laneContext.lane, targetType);
         return TowerUpgradeResult.SUCCESS;
     }
 
@@ -213,7 +195,7 @@ public final class ProductionTowerService {
             case PLAYER_NOT_IN_GAME -> TowerSellResult.PLAYER_NOT_IN_GAME;
             case PLAYER_TEAM_ELIMINATED -> TowerSellResult.PLAYER_TEAM_ELIMINATED;
             case UNKNOWN_LANE -> TowerSellResult.UNKNOWN_LANE;
-            case OUTSIDE_LANE_AREA, OCCUPIED, TOWER_NOT_ALLOWED_BY_JOB, NOT_ENOUGH_MINERAL, SUCCESS -> throw new IllegalStateException(
+            case UNKNOWN_TOWER, OUTSIDE_LANE_AREA, OCCUPIED, NOT_ENOUGH_MINERAL, SUCCESS -> throw new IllegalStateException(
                     "Unexpected sell failure " + result
             );
         };
@@ -225,7 +207,7 @@ public final class ProductionTowerService {
             case PLAYER_NOT_IN_GAME -> TowerUpgradeResult.PLAYER_NOT_IN_GAME;
             case PLAYER_TEAM_ELIMINATED -> TowerUpgradeResult.PLAYER_TEAM_ELIMINATED;
             case UNKNOWN_LANE -> TowerUpgradeResult.UNKNOWN_LANE;
-            case OUTSIDE_LANE_AREA, OCCUPIED, TOWER_NOT_ALLOWED_BY_JOB, NOT_ENOUGH_MINERAL, SUCCESS -> throw new IllegalStateException(
+            case UNKNOWN_TOWER, OUTSIDE_LANE_AREA, OCCUPIED, NOT_ENOUGH_MINERAL, SUCCESS -> throw new IllegalStateException(
                     "Unexpected placement-only failure " + result
             );
         };

@@ -726,7 +726,7 @@ public final class SemionLifecycleGameTest implements CustomTestMethodInvoker {
     public void selectedJobPersistsAndAppliesToNewLobby(GameTestHelper context) {
         var player = context.makeMockServerPlayerInLevel();
         MinecraftServer server = context.getLevel().getServer();
-        ResourceLocation jobId = ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer");
+        ResourceLocation jobId = JobRegistry.defaultJob().id();
         Path storePath;
         try {
             storePath = Files.createTempDirectory("semion-selected-job-test").resolve("profiles.json");

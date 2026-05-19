@@ -19,7 +19,6 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.entity.tower.goal.TowerAttackMonsterGoal;
-import kim.biryeong.semiontd.tower.ProductionTowerBehavior;
 import kim.biryeong.semiontd.tower.Tower;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -209,12 +208,11 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         moveToward(moveTarget, speedModifier);
     }
 
-    public ProductionTowerBehavior productionBehavior() {
-        return runtimeTower == null ? null : runtimeTower.productionBehavior();
-    }
-
-    public int productionMechanicStacks() {
-        return runtimeTower == null ? 0 : runtimeTower.productionMechanicStacks();
+    public boolean damageTarget(SemionMonsterEntity target, double baseDamage) {
+        if (runtimeTower == null || target == null) {
+            return false;
+        }
+        return runtimeTower.damageTarget(this, target, baseDamage);
     }
 
     public void recordAttack(SemionMonsterEntity target, double damageAmount, boolean killedTarget) {

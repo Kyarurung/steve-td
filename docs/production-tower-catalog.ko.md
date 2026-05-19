@@ -14,14 +14,13 @@ src/main/java/kim/biryeong/semiontd/tower/
   EntityBackedTower.java         엔티티를 가진 타워의 공용 생명주기
   ProductionTowerCatalog.java      외부 API와 registry
   ProductionTower.java             런타임 프로덕션 타워
-  ProductionTowerBehavior.java     팩션/스택/스플래시 동작값
 
 src/main/java/kim/biryeong/semiontd/entity/tower/
   SemionTowerEntity.java           런타임 타워 엔티티
-  goal/TowerAttackMonsterGoal.java 타워 공격/추적/스플래시 goal
+  goal/TowerAttackMonsterGoal.java 타워 공격/추적 goal
 
 src/main/java/kim/biryeong/semiontd/tower/catalog/
-  ProductionTowerDefinitions.java  tower/behavior/upgrade/branch/line helper
+  ProductionTowerDefinitions.java  tower/upgrade/branch/line helper
   ProductionTowerLine.java         starter + 두 upgrade branch 묶음
   ProductionTowerBranch.java       tier-2 + ultimate 묶음
 ```
@@ -43,9 +42,9 @@ Tower
 
 - `EntityBackedTower`는 배치, 제거, 라운드 리셋, 엔티티 health/position 동기화처럼 엔티티를 가진 타워가 공유하는 생명주기를 담당한다. 이름 그대로 엔티티 기반이라는 뜻이며, 공격 여부를 의미하지 않는다.
 - `TestTower`는 GameTest와 테스트 명령용 타워다. 프로덕션 타워가 `TestTower`를 상속하지 않는다.
-- `ProductionTower`는 catalog entry가 기본 생성하는 실전용 런타임 타워다. 커스텀 런타임은 `ProductionTower`를 상속해도 되고, 프로덕션 스택/스플래시 기본 동작이 필요 없으면 `EntityBackedTower`를 직접 상속해도 된다.
+- `ProductionTower`는 catalog entry가 기본 생성하는 실전용 런타임 타워다. 커스텀 런타임은 `ProductionTower`를 상속해도 되고, 특수 로직이 필요하면 `EntityBackedTower`를 직접 상속해도 된다.
 - `SemionTowerEntity`는 테스트/프로덕션 양쪽이 공유하는 엔티티다. 엔티티 타입 ID는 `semion-td:tower`이며, 예전 `SemionTestTowerEntity`/`test_tower` 전용 구조는 쓰지 않는다.
-- `TowerAttackMonsterGoal`은 `SemionTowerEntity`에서 동작한다. 공격 속도, 스플래시, 스택 UI 값은 `Tower` 훅과 `ProductionTowerBehavior`를 통해 얻는다.
+- `TowerAttackMonsterGoal`은 `SemionTowerEntity`에서 동작한다. 공격 피해/공격 속도 조정이 필요하면 개별 `Tower` 훅을 override한다.
 - 업그레이드 서비스는 기존 타워를 `ProductionTower`로 캐스팅하지 않고 일반 `Tower` 상태(`type`, `ownerPlayer`, `position`)로 판정한다. 업그레이드 대상 생성은 catalog entry의 factory가 담당한다.
 - 업그레이드로 새 타워 인스턴스를 만들면 `Tower.copyFrom(previousTower, upgradeCost)`가 호출된다. 기본 판매/라운드 상태는 공통으로 복사되고, 영구 스택 같은 타워별 런타임 상태는 `copyRuntimeStateFrom(...)`을 override해 복사한다.
 
@@ -56,7 +55,6 @@ Tower
 ```java
 package kim.biryeong.semiontd.tower.catalog;
 
-import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.behavior;
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.branch;
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.line;
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.tower;
@@ -65,8 +63,6 @@ import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.upg
 import java.util.List;
 import kim.biryeong.semiontd.entity.visual.VillagerVisual;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
-import kim.biryeong.semiontd.tower.ProductionTowerBehavior;
-import kim.biryeong.semiontd.tower.TowerFaction;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.entity.npc.VillagerProfession;
 
@@ -110,26 +106,14 @@ public final class MyProductionTowers {
             )
     );
 
-    private static final ProductionTowerBehavior STARTER_BEHAVIOR =
-            behavior(TowerFaction.VILLAGER, "Emerald", 1.0, 0.5, 8, 0.03, 0.0, true, false, 0.0, 0.0);
-    private static final ProductionTowerBehavior LEFT_BRANCH_BEHAVIOR =
-            behavior(TowerFaction.VILLAGER, "Emerald", 1.5, 0.6, 10, 0.04, 0.0, true, false, 0.0, 0.0);
-    private static final ProductionTowerBehavior LEFT_ULTIMATE_BEHAVIOR =
-            behavior(TowerFaction.VILLAGER, "Emerald", 2.0, 0.7, 12, 0.05, 0.0, true, false, 0.0, 0.0);
-    private static final ProductionTowerBehavior RIGHT_BRANCH_BEHAVIOR =
-            behavior(TowerFaction.VILLAGER, "Emerald", 0.5, 0.4, 10, 0.04, 0.01, true, true, 0.0, 0.0);
-    private static final ProductionTowerBehavior RIGHT_ULTIMATE_BEHAVIOR =
-            behavior(TowerFaction.VILLAGER, "Emerald", 0.75, 0.5, 12, 0.05, 0.02, true, true, 0.0, 0.0);
-
     private MyProductionTowers() {
     }
 
     public static void register() {
         ProductionTowerCatalog.registerLine(line(
                 STARTER,
-                STARTER_BEHAVIOR,
-                branch(LEFT_BRANCH, LEFT_BRANCH_BEHAVIOR, LEFT_ULTIMATE, LEFT_ULTIMATE_BEHAVIOR),
-                branch(RIGHT_BRANCH, RIGHT_BRANCH_BEHAVIOR, RIGHT_ULTIMATE, RIGHT_ULTIMATE_BEHAVIOR)
+                branch(LEFT_BRANCH, LEFT_ULTIMATE),
+                branch(RIGHT_BRANCH, RIGHT_ULTIMATE)
         ));
     }
 }
@@ -152,7 +136,6 @@ public final class MyProductionTowers {
 
 - 직접 설치 가능한 starter tower는 `ProductionTowerLine`의 `starter`로 등록한다.
 - 2차/3차 타워는 `ProductionTowerBranch` 안에 들어가며 직접 설치할 수 없다.
-- 직업 제한은 `ProductionTowerBehavior.faction()` 기준으로 적용된다.
 - 타워별 특수 로직이 필요하면 `ProductionTower` 또는 `EntityBackedTower`를 상속한 클래스를 만들고 `line(...)` 또는 `branch(...)`에 factory를 넘긴다.
 - factory는 `ProductionTowerCatalog.TowerFactory` 형태이며, 반환 타입은 `EntityBackedTower`다. 기본값은 `ProductionTower::new`이다.
 - 1차/2차/3차가 서로 다른 런타임 클래스여도 각 tier의 factory가 해당 `TowerType`에 맞는 `EntityBackedTower` 구현을 반환하면 등록할 수 있다.
@@ -166,7 +149,6 @@ public final class MyProductionTowers {
 public final class SupporterTower extends EntityBackedTower {
     public SupporterTower(
             TowerType type,
-            ProductionTowerBehavior behavior,
             UUID ownerPlayer,
             TeamId teamId,
             int laneId,
@@ -198,7 +180,7 @@ public final class SupporterTower extends EntityBackedTower {
 카탈로그 등록 시:
 
 ```java
-line(STARTER, STARTER_BEHAVIOR, SupporterTower::new, leftBranch, rightBranch);
+line(STARTER, SupporterTower::new, leftBranch, rightBranch);
 ```
 
 ## 바닐라 엔티티 외형 속성
@@ -245,9 +227,8 @@ WolfVisual.builder()
 
 현재 GameTest 기준:
 
-- 프로덕션 직업 3개는 계속 등록된다.
 - 기본 `ProductionTowerCatalog`는 비어 있다.
 - 빈 카탈로그에서는 tower list/build UI가 production tower를 노출하지 않는다.
-- `ProductionTower`의 스택, 스플래시, 업그레이드 에러 처리는 테스트 fixture로 검증한다.
+- `ProductionTower`의 업그레이드 에러 처리는 테스트 fixture로 검증한다.
 - `TestTower`와 `ProductionTower`는 모두 `SemionTowerEntity`를 사용한다.
-- `./gradlew runGameTest --console=plain --no-daemon` 기준 `All 110 required tests passed :)`를 확인했다.
+- `./gradlew runGameTest --console=plain --no-daemon`로 검증한다.

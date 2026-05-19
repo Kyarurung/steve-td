@@ -757,7 +757,7 @@ public final class SemionCommands {
         ServerPlayer player = source.getPlayerOrException();
         List<ProductionTowerCatalog.CatalogEntry> entries = ProductionTowerService.availableTowers(game, player.getUUID());
         if (entries.isEmpty()) {
-            failure(source, "현재 직업으로 사용할 수 있는 타워가 없습니다.");
+            failure(source, "사용할 수 있는 타워가 없습니다.");
             return 0;
         }
 
@@ -766,9 +766,7 @@ public final class SemionCommands {
             success(source, " - " + entry.type().id()
                     + " => " + entry.type().displayName()
                     + " 다이아비용=" + entry.type().mineralCost()
-                    + ", 팩션=" + entry.behavior().faction()
-                    + ", 스플래시=" + entry.behavior().splashRadius()
-                    + ", 특성=" + entry.behavior().mechanicName());
+                    + ", 티어=" + entry.tier());
         }
         return entries.size();
     }
@@ -1099,7 +1097,7 @@ public final class SemionCommands {
             case PLAYER_NOT_IN_GAME -> "현재 경기 참가자가 아닙니다";
             case PLAYER_TEAM_ELIMINATED -> "소속 팀이 탈락했습니다";
             case UNKNOWN_LANE -> "활성화된 라인이 아닙니다";
-            case TOWER_NOT_ALLOWED_BY_JOB -> "현재 직업은 해당 타워를 사용할 수 없습니다";
+            case UNKNOWN_TOWER -> "알 수 없는 타워입니다";
             case OUTSIDE_LANE_AREA -> "lane_path 영역 안에서 실행하세요";
             case OCCUPIED -> "이미 타워가 있는 위치입니다";
             case NOT_ENOUGH_MINERAL -> "다이아가 부족합니다";
@@ -1118,7 +1116,6 @@ public final class SemionCommands {
             case TOWER_NOT_UPGRADABLE -> "사용 가능한 진화 경로가 없습니다";
             case UNKNOWN_UPGRADE -> "해당 타워에 없는 업그레이드 ID입니다";
             case UNKNOWN_TARGET_TYPE -> "타워 진화 대상 타입이 등록되지 않았습니다";
-            case TOWER_NOT_ALLOWED_BY_JOB -> "현재 직업은 해당 타워 진화를 사용할 수 없습니다";
             case NOT_ENOUGH_MINERAL -> "다이아가 부족합니다";
             case SUCCESS -> "성공";
         };

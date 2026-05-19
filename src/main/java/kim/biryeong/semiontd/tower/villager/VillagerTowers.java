@@ -42,7 +42,7 @@ public final class VillagerTowers {
             List.of(
                     "<gray>무난한 초반 타워입니다.<gray>",
                     "<green>+ 생존한 라운드마다 피해, 공격 속도가 5% 씩 증가합니다. 최대 30% </green>",
-                    "<green>+ 스플래시가 존재합니다. 0.5블록"
+                    "<green>+ 스플래시가 존재합니다. 0.75블록, 75% 피해"
                     )
     );
 
@@ -59,7 +59,7 @@ public final class VillagerTowers {
             List.of(
                     "<gray> 초중반용 스플래시 타워입니다. </green>",
                     "<green> + 생존한 라운드마다 피해, 공격 속도가 7.5% 씩 증가합니다. 최대 45%",
-                    "<green> + 스플래시가 존재합니다. 0.75블록 </green>",
+                    "<green> + 스플래시가 존재합니다. 1.25블록, 75% 피해 </green>",
                     "<green> + 3번 공격 시 1번 추가로 공격을 가합니다.</green>"
                     )
     );
@@ -90,7 +90,7 @@ public final class VillagerTowers {
             50,
             byId(EntityType.TRADER_LLAMA),
             List.of("<gray>구리 골렘이 있는 줄 알고 만들다가 없는거 알고 급하게 바꾼 타워입니다.</gray>",
-                    "<green> + 피격 시 3 범위 적에게 8 데미지를 입힙니다. (쿨타임 : 5초)</green>",
+                    "<green> + 피격 시 3 범위 적에게 10 데미지를 입힙니다. (쿨타임 : 5초)</green>",
                     "<green> + 생존한 라운드 마다 체력이 10% 증가합니다. (최대 : 50%)"
                     )
     );
@@ -106,7 +106,7 @@ public final class VillagerTowers {
             80,
             byId(EntityType.IRON_GOLEM),
             List.of(
-                    "<green> + 피격 시 4 범위 적에게 10 데미지를 입힙니다. ( 쿨타임 : 4초 ) </green>",
+                    "<green> + 피격 시 4 범위 적에게 15 데미지를 입힙니다. ( 쿨타임 : 4초 ) </green>",
                     "<green> + 생존한 라운드 마다 체력이 20% 증가합니다. ( 최대 : 100 % ) "
             )
     );
@@ -203,7 +203,7 @@ public final class VillagerTowers {
             5,
             byId(EntityType.OCELOT),
             List.of(
-                    "<gray> 동물 팀에는 가기싫어서 주민 팩션에 온 고양이 타워입니다. </gray>"
+                    "<gray> 빠른 사거리 공격을 담당하는 고양이 타워입니다. </gray>"
             )
     );
 

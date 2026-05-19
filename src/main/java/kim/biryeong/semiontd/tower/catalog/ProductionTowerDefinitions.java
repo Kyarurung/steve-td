@@ -3,10 +3,8 @@ package kim.biryeong.semiontd.tower.catalog;
 import java.util.List;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.tower.ProductionTower;
-import kim.biryeong.semiontd.tower.ProductionTowerBehavior;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.TowerCategory;
-import kim.biryeong.semiontd.tower.TowerFaction;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 
@@ -105,74 +103,40 @@ public final class ProductionTowerDefinitions {
         );
     }
 
-    public static ProductionTowerBehavior behavior(
-            TowerFaction faction,
-            String mechanicName,
-            double splashRadius,
-            double splashDamageMultiplier,
-            int maxStacks,
-            double damagePerStack,
-            double attackSpeedPerStack,
-            boolean stackOnHit,
-            boolean stackOnKill,
-            double killSplashRadius,
-            double killSplashDamageMultiplier
-    ) {
-        return new ProductionTowerBehavior(
-                faction,
-                mechanicName,
-                splashRadius,
-                splashDamageMultiplier,
-                maxStacks,
-                damagePerStack,
-                attackSpeedPerStack,
-                stackOnHit,
-                stackOnKill,
-                killSplashRadius,
-                killSplashDamageMultiplier
-        );
-    }
-
     public static TowerUpgradeOption upgrade(String id, String displayName, TowerType target, long mineralCost) {
         return new TowerUpgradeOption(id, displayName, target, mineralCost);
     }
 
     public static ProductionTowerBranch branch(
             TowerType tierTwo,
-            ProductionTowerBehavior tierTwoBehavior,
-            TowerType ultimate,
-            ProductionTowerBehavior ultimateBehavior
+            TowerType ultimate
     ) {
-        return branch(tierTwo, tierTwoBehavior, DEFAULT_TOWER_FACTORY, ultimate, ultimateBehavior, DEFAULT_TOWER_FACTORY);
+        return branch(tierTwo, DEFAULT_TOWER_FACTORY, ultimate, DEFAULT_TOWER_FACTORY);
     }
 
     public static ProductionTowerBranch branch(
             TowerType tierTwo,
-            ProductionTowerBehavior tierTwoBehavior,
             ProductionTowerCatalog.TowerFactory tierTwoFactory,
             TowerType ultimate,
-            ProductionTowerBehavior ultimateBehavior,
             ProductionTowerCatalog.TowerFactory ultimateFactory
     ) {
-        return new ProductionTowerBranch(tierTwo, tierTwoBehavior, tierTwoFactory, ultimate, ultimateBehavior, ultimateFactory);
+        return new ProductionTowerBranch(tierTwo, tierTwoFactory, ultimate, ultimateFactory);
     }
 
     public static ProductionTowerLine line(
             TowerType starter,
-            ProductionTowerBehavior starterBehavior,
             ProductionTowerBranch left,
             ProductionTowerBranch right
     ) {
-        return line(starter, starterBehavior, DEFAULT_TOWER_FACTORY, left, right);
+        return line(starter, DEFAULT_TOWER_FACTORY, left, right);
     }
 
     public static ProductionTowerLine line(
             TowerType starter,
-            ProductionTowerBehavior starterBehavior,
             ProductionTowerCatalog.TowerFactory starterFactory,
             ProductionTowerBranch left,
             ProductionTowerBranch right
     ) {
-        return new ProductionTowerLine(starter, starterBehavior, starterFactory, left, right);
+        return new ProductionTowerLine(starter, starterFactory, left, right);
     }
 }

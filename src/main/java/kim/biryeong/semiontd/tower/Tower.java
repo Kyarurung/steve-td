@@ -1,12 +1,14 @@
 package kim.biryeong.semiontd.tower;
 
 import kim.biryeong.semiontd.effect.TimedEffectType;
+import kim.biryeong.semiontd.entity.monster.KillSourceKind;
+import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import java.util.UUID;
-import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import net.minecraft.world.damagesource.DamageSource;
 
 public abstract class Tower {
@@ -154,6 +156,33 @@ public abstract class Tower {
         return damageAmount;
     }
 
+    public boolean damageTarget(SemionTowerEntity towerEntity, SemionMonsterEntity target, double baseDamage) {
+        Monster runtimeMonster = target.runtimeMonster();
+        if (runtimeMonster != null) {
+            runtimeMonster.recordLastHit(ownerPlayer, KillSourceKind.TOWER);
+        }
+        double damageAmount = target.towerDamageTaken(baseDamage);
+
+        float previousHealth = target.getHealth();
+        target.hurt(towerEntity.damageSources().mobAttack(towerEntity), (float) damageAmount);
+        boolean damaged = target.getHealth() < previousHealth - 0.01F;
+        if (!damaged || target.getHealth() >= previousHealth - 0.01F) {
+            float nextHealth = Math.max(0.0F, previousHealth - (float) damageAmount);
+            target.setHealth(nextHealth);
+            if (runtimeMonster != null) {
+                runtimeMonster.syncHealth(nextHealth);
+            }
+            if (nextHealth <= 0.0F) {
+                target.discard();
+                return true;
+            }
+        } else if (runtimeMonster != null) {
+            runtimeMonster.syncHealth(target.getHealth());
+        }
+        return target.isRemoved() || !target.isAlive() || target.getHealth() <= 0.0F
+                || (runtimeMonster != null && !runtimeMonster.isAlive());
+    }
+
     public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
     }
 
@@ -183,14 +212,6 @@ public abstract class Tower {
 
     public int adjustAttackInterval(int baseIntervalTicks) {
         return baseIntervalTicks;
-    }
-
-    public ProductionTowerBehavior productionBehavior() {
-        return null;
-    }
-
-    public int productionMechanicStacks() {
-        return 0;
     }
 
     public boolean isDestroyed(PlayerLane lane) {

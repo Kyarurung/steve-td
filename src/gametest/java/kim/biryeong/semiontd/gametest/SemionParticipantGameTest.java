@@ -93,7 +93,6 @@ import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.TowerCategory;
-import kim.biryeong.semiontd.tower.TowerFaction;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
@@ -1390,22 +1389,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void productionTowerCatalogStartsEmptyForManualAuthoring(GameTestHelper context) {
-        if (!assertTrue(context, kim.biryeong.semiontd.job.JobRegistry.find(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")).isPresent(), "Villager job should be registered.")) {
-            return;
-        }
-        if (!assertTrue(context, kim.biryeong.semiontd.job.JobRegistry.find(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "undead_necromancer")).isPresent(), "Undead job should be registered.")) {
-            return;
-        }
-        if (!assertTrue(context, kim.biryeong.semiontd.job.JobRegistry.find(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer")).isPresent(), "Beast job should be registered.")) {
-            return;
-        }
         if (!assertTrue(context, ProductionTowerCatalog.all().isEmpty(), "Production catalog should start empty so towers can be authored manually.")) {
             return;
-        }
-        for (TowerFaction faction : TowerFaction.values()) {
-            if (!assertTrue(context, ProductionTowerCatalog.forFaction(faction).isEmpty(), "Empty production catalog should not expose faction tower entries.")) {
-                return;
-            }
         }
         context.succeed();
     }
@@ -1416,15 +1401,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(
                 context,
                 playerId,
-                TeamId.RED,
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+                TeamId.RED
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
 
         if (!assertEquals(
                 context,
-                TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB,
+                TowerPlacementResult.UNKNOWN_TOWER,
                 ProductionTowerService.placeTower(game, playerId, towerPos, "missing_manual_tower"),
                 "Empty production catalog should reject build requests until a tower is registered."
         )) {
@@ -1449,23 +1433,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        UUID beastId = stableUuid("beast-production-owner");
-        SemionGame beastGame = startedSinglePlayerGame(
-                context,
-                beastId,
-                TeamId.RED,
-                ResourceLocation.fromNamespaceAndPath("semion-td", "beast_tamer")
-        );
-        List<ProductionTowerCatalog.CatalogEntry> beastEntries = ProductionTowerService.availableTowers(beastGame, beastId);
-        if (!assertTrue(context, beastEntries.isEmpty(), "Faction jobs should show no production towers while the catalog is empty.")) {
-            return;
-        }
         context.succeed();
     }
 
     @GameTest
     public void towerBuildButtonLabelsColorUnaffordableTowersRed(GameTestHelper context) {
-        ProductionTowerCatalog.CatalogEntry entry = productionFixtureEntry(TowerFaction.VILLAGER);
+        ProductionTowerCatalog.CatalogEntry entry = productionFixtureEntry();
         Component affordable = SemionDialogService.towerButtonLabel(entry, true);
         Component unaffordable = SemionDialogService.towerButtonLabel(entry, false);
 
@@ -1488,10 +1461,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
-    private static ProductionTowerCatalog.CatalogEntry productionFixtureEntry(TowerFaction faction) {
+    private static ProductionTowerCatalog.CatalogEntry productionFixtureEntry() {
         return new ProductionTowerCatalog.CatalogEntry(
                 productionFixtureType("manual_fixture_entry", List.of()),
-                productionFixtureBehavior(faction),
                 null,
                 1
         );
@@ -1503,7 +1475,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         TowerType type = productionFixtureType("manual_fixture_custom_runtime", List.of());
         ProductionTowerCatalog.CatalogEntry entry = new ProductionTowerCatalog.CatalogEntry(
                 type,
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 FixtureSupportTower::new,
                 1
         );
@@ -1535,7 +1506,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         kim.biryeong.semiontd.game.GridPosition position = new kim.biryeong.semiontd.game.GridPosition(0, 64, 0);
         FixtureSupportTower sourceTower = new FixtureSupportTower(
                 sourceType,
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1548,7 +1518,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         FixtureSupportTower targetTower = new FixtureSupportTower(
                 targetType,
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1588,34 +1557,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
     }
 
-    private static kim.biryeong.semiontd.tower.ProductionTowerBehavior productionFixtureBehavior(TowerFaction faction) {
-        return productionFixtureBehavior(faction, 0.0, 0.0);
-    }
-
-    private static kim.biryeong.semiontd.tower.ProductionTowerBehavior productionFixtureBehavior(
-            TowerFaction faction,
-            double splashRadius,
-            double splashDamageMultiplier
-    ) {
-        return new kim.biryeong.semiontd.tower.ProductionTowerBehavior(
-                faction,
-                faction.name(),
-                splashRadius,
-                splashDamageMultiplier,
-                8,
-                0.05,
-                0.0,
-                true,
-                false,
-                0.0,
-                0.0
-        );
-    }
-
     @GameTest
     public void selectedJobPlaceholderShowsActivePlayerJob(GameTestHelper context) {
         var player = context.makeMockServerPlayerInLevel();
-        ResourceLocation jobId = ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer");
+        ResourceLocation jobId = JobRegistry.defaultJob().id();
         SemionGame game = startedSinglePlayerGame(context, player.getUUID(), TeamId.RED, jobId);
         SemionGameManager manager = new SemionGameManager();
         setField(manager, "activeGame", game);
@@ -1629,7 +1574,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, display.isValid(), "Selected job display placeholder should resolve for a player.")) {
             return;
         }
-        if (!assertEquals(context, "주민 기술자", display.text().getString(), "Selected job placeholder should show the chosen job display name.")) {
+        if (!assertEquals(context, JobRegistry.defaultJob().displayName().getString(), display.text().getString(), "Selected job placeholder should show the chosen job display name.")) {
             return;
         }
 
@@ -1649,10 +1594,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void jobSelectionDialogUsesPathCommandButtons(GameTestHelper context) {
-        SemionJob job = JobRegistry.find(ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")).orElseThrow();
+        SemionJob job = JobRegistry.defaultJob();
         if (!assertEquals(
                 context,
-                "/semiontd job select villager_engineer",
+                "/semiontd job select " + job.id().getPath(),
                 SemionDialogService.jobSelectionCommand(job),
                 "Job selection buttons should send path-only job ids instead of namespaced identifiers."
         )) {
@@ -1683,8 +1628,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(
                 context,
                 playerId,
-                TeamId.RED,
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+                TeamId.RED
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
@@ -1704,7 +1648,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(new ProductionTower(
                 starterType,
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1728,8 +1671,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(
                 context,
                 playerId,
-                TeamId.RED,
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+                TeamId.RED
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
@@ -1754,7 +1696,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(new FixtureSupportTower(
                 starterType,
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1787,8 +1728,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(
                 context,
                 playerId,
-                TeamId.RED,
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+                TeamId.RED
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
@@ -1812,7 +1752,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         lane.addTower(new ProductionTower(
                 starterType,
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 playerId,
                 TeamId.RED,
                 1,
@@ -1836,8 +1775,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(
                 context,
                 playerId,
-                TeamId.RED,
-                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("semion-td", "villager_engineer")
+                TeamId.RED
         );
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
@@ -1848,7 +1786,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                         new TowerType("manual_fixture_non_owner_target", "Manual Fixture Non Owner Target", TowerCategory.DIRECT, 0, 80.0, 8.0, 8.0, 20, 0),
                         0
                 ))),
-                productionFixtureBehavior(TowerFaction.VILLAGER),
                 ownerId,
                 TeamId.RED,
                 1,
@@ -1872,86 +1809,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         context.succeed();
-    }
-
-    @GameTest(maxTicks = 120)
-    public void productionSplashTowerDamagesPackedMonsters(GameTestHelper context) {
-        UUID playerId = stableUuid("red-production-splash-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-        BlockPos towerPos = towerPlacementPos(lane);
-        lane.addTower(new ProductionTower(
-                productionFixtureType("manual_fixture_splash", List.of()),
-                productionFixtureBehavior(TowerFaction.UNDEAD, 2.0, 0.8),
-                playerId,
-                TeamId.RED,
-                1,
-                new kim.biryeong.semiontd.game.GridPosition(towerPos.getX(), towerPos.getY(), towerPos.getZ())
-        ));
-
-        for (int i = 0; i < 3; i++) {
-            lane.enqueueWaveMonster(new WaveMonsterEntry(
-                    "packed-target-" + i,
-                    80.0,
-                    0.0,
-                    0.0,
-                    AttackKind.MELEE,
-                    "minecraft:zombie",
-                    null,
-                    1
-            ));
-        }
-        lane.tick(context.getLevel().getServer());
-        lane.tick(context.getLevel().getServer());
-        lane.tick(context.getLevel().getServer());
-
-        context.runAfterDelay(100, () -> {
-            long damagedCount = lane.activeMonsters().stream()
-                    .filter(monster -> monster.health() < 80.0)
-                    .count();
-            if (!assertTrue(context, damagedCount >= 2, "Splash tower should damage multiple packed monsters.")) {
-                return;
-            }
-            context.succeed();
-        });
-    }
-
-    @GameTest(maxTicks = 120)
-    public void productionTowerMechanicStacksAfterCombat(GameTestHelper context) {
-        UUID playerId = stableUuid("red-production-stack-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-        BlockPos towerPos = towerPlacementPos(lane);
-        ProductionTower tower = new ProductionTower(
-                productionFixtureType("manual_fixture_stack", List.of()),
-                productionFixtureBehavior(TowerFaction.VILLAGER, 0.0, 0.0),
-                playerId,
-                TeamId.RED,
-                1,
-                new kim.biryeong.semiontd.game.GridPosition(towerPos.getX(), towerPos.getY(), towerPos.getZ())
-        );
-        lane.addTower(tower);
-        lane.enqueueWaveMonster(new WaveMonsterEntry(
-                "stack-target",
-                120.0,
-                0.0,
-                0.0,
-                AttackKind.MELEE,
-                "minecraft:zombie",
-                null,
-                1
-        ));
-        lane.tick(context.getLevel().getServer());
-
-        context.runAfterDelay(100, () -> {
-            if (!assertTrue(context, tower.mechanicStacks() > 0, "Villager production tower should gain Emerald stacks after combat.")) {
-                return;
-            }
-            if (!assertTrue(context, tower.damageMultiplier() > 1.0, "Emerald stacks should increase tower damage multiplier.")) {
-                return;
-            }
-            context.succeed();
-        });
     }
 
     @GameTest
@@ -5021,7 +4878,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         private FixtureSupportTower(
                 TowerType type,
-                kim.biryeong.semiontd.tower.ProductionTowerBehavior behavior,
                 UUID ownerPlayer,
                 TeamId teamId,
                 int laneId,

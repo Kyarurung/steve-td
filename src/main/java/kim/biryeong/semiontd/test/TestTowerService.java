@@ -11,9 +11,6 @@ import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.SemionTeam;
 import kim.biryeong.semiontd.game.TowerPlacementResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
-import kim.biryeong.semiontd.job.JobContext;
-import kim.biryeong.semiontd.job.JobRegistry;
-import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.tower.Tower;
@@ -39,16 +36,7 @@ public final class TestTowerService {
             return TowerPlacementResult.OCCUPIED;
         }
 
-        JobContext jobContext = new JobContext(game, laneContext.player);
-        SemionJob job = laneContext.player.job().orElse(JobRegistry.defaultJob());
-        if (!job.canUseTower(jobContext, TestTowerTypes.TEST_DIRECT)) {
-            return TowerPlacementResult.TOWER_NOT_ALLOWED_BY_JOB;
-        }
-        long mineralCost = Math.max(0, job.modifyTowerMineralCost(
-                jobContext,
-                TestTowerTypes.TEST_DIRECT,
-                TestTowerTypes.TEST_DIRECT.mineralCost()
-        ));
+        long mineralCost = Math.max(0, TestTowerTypes.TEST_DIRECT.mineralCost());
         if (!laneContext.player.economy().spendMineral(mineralCost)) {
             return TowerPlacementResult.NOT_ENOUGH_MINERAL;
         }
@@ -61,7 +49,6 @@ public final class TestTowerService {
         );
         tower.recordPlacementEconomy(mineralCost, game.currentRound());
         laneContext.lane.addTower(tower);
-        job.onTowerPlaced(jobContext, laneContext.lane, TestTowerTypes.TEST_DIRECT);
         return TowerPlacementResult.SUCCESS;
     }
 
@@ -105,12 +92,7 @@ public final class TestTowerService {
 
         var targetType = upgrade.targetType();
 
-        JobContext jobContext = new JobContext(game, laneContext.player);
-        SemionJob job = laneContext.player.job().orElse(JobRegistry.defaultJob());
-        if (!job.canUseTower(jobContext, targetType)) {
-            return TowerUpgradeResult.TOWER_NOT_ALLOWED_BY_JOB;
-        }
-        long mineralCost = Math.max(0, job.modifyTowerMineralCost(jobContext, targetType, upgrade.mineralCost()));
+        long mineralCost = Math.max(0, upgrade.mineralCost());
         if (!laneContext.player.economy().spendMineral(mineralCost)) {
             return TowerUpgradeResult.NOT_ENOUGH_MINERAL;
         }
@@ -128,7 +110,6 @@ public final class TestTowerService {
             laneContext.player.economy().addMineral(mineralCost);
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
-        job.onTowerPlaced(jobContext, laneContext.lane, targetType);
         return TowerUpgradeResult.SUCCESS;
     }
 
@@ -161,7 +142,7 @@ public final class TestTowerService {
             case PLAYER_NOT_IN_GAME -> TowerUpgradeResult.PLAYER_NOT_IN_GAME;
             case PLAYER_TEAM_ELIMINATED -> TowerUpgradeResult.PLAYER_TEAM_ELIMINATED;
             case UNKNOWN_LANE -> TowerUpgradeResult.UNKNOWN_LANE;
-            case OUTSIDE_LANE_AREA, OCCUPIED, TOWER_NOT_ALLOWED_BY_JOB, NOT_ENOUGH_MINERAL, SUCCESS -> throw new IllegalStateException(
+            case UNKNOWN_TOWER, OUTSIDE_LANE_AREA, OCCUPIED, NOT_ENOUGH_MINERAL, SUCCESS -> throw new IllegalStateException(
                     "Unexpected placement-only failure " + result
             );
         };
