@@ -259,10 +259,19 @@ public final class PlayerLane {
         List<GridPosition> slots = laneLayout.finalDefenseTowerSlots();
         for (int i = 0; i < towers.size(); i++) {
             Tower tower = towers.get(i);
-            GridPosition finalDefensePosition = slots.get(Math.min(i, slots.size() - 1));
+            GridPosition finalDefensePosition = finalDefenseTowerPosition(slots.get(Math.min(i, slots.size() - 1)));
             tower.moveToFinalDefense(this, finalDefensePosition);
         }
         towersMovedToFinalDefense = true;
+    }
+
+    private GridPosition finalDefenseTowerPosition(GridPosition slot) {
+        BlockPos slotPos = new BlockPos(slot.x(), slot.y(), slot.z());
+        BlockPos below = slotPos.below();
+        if (arenaWorld.getBlockState(slotPos).isAir() && !arenaWorld.getBlockState(below).isAir()) {
+            return GridPosition.from(below);
+        }
+        return slot;
     }
 
     private void syncTowerStates() {

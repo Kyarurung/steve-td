@@ -14,8 +14,8 @@ public class VillagerSplashTower extends SplashTower {
     private static final float T2_BONUS_PER_ROUND = 0.05f;
     private static final float T3_BONUS_PER_ROUND = 0.075f;
     private static final int MAX_BONUS_SCALING = 6;
-    private static final float T2_SPLASH_RADIUS = 0.75f;
-    private static final float T3_SPLASH_RADIUS = 1.25f;
+    private static final float T2_SPLASH_RADIUS = 1.25f;
+    private static final float T3_SPLASH_RADIUS = 1.75f;
     private int attackAttempt = 0;
     private int survivalBouns = 0;
     private final boolean isT3;

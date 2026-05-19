@@ -5,7 +5,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import java.util.UUID;
 
-public abstract class SupportTower extends Tower {
+public abstract class SupportTower extends EntityBackedTower {
     protected SupportTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
     }

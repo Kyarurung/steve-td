@@ -185,6 +185,11 @@ public final class SemionCommands {
                 .then(literal("ui")
                         .executes(context -> statusDialog(context.getSource(), gameManager))));
 
+        dispatcher.register(literal("직업")
+                .executes(context -> jobDialog(context.getSource(), gameManager)));
+        dispatcher.register(literal("준비")
+                .executes(context -> ready(context.getSource(), gameManager)));
+
         dispatcher.register(literal("semiontd-debug")
                 .requires(source -> source.hasPermission(2))
                 .then(literal("towerui")

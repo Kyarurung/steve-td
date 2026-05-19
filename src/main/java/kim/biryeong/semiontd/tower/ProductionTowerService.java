@@ -16,7 +16,6 @@ import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 
 public final class ProductionTowerService {
     private ProductionTowerService() {
@@ -32,23 +31,12 @@ public final class ProductionTowerService {
         if (entry.isEmpty() || !entry.get().starter()) {
             return TowerPlacementResult.UNKNOWN_TOWER;
         }
-        ServerLevel arenaLevel = laneContext.lane.arenaWorld();
-
-        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-        while(pos.getY() > 0) {
-            if (arenaLevel.getBlockState(pos).isAir()) {
-                pos.setY(pos.getY() - 1);
-            }
-            break;
-        }
-
-        blockPos = pos.immutable();
-
-        if (!laneContext.lane.canPlaceTowerAt(blockPos)) {
+        Optional<BlockPos> placementPos = TowerPlacementPositions.resolve(laneContext.lane, blockPos);
+        if (placementPos.isEmpty()) {
             return TowerPlacementResult.OUTSIDE_LANE_AREA;
         }
 
-        GridPosition position = GridPosition.from(blockPos);
+        GridPosition position = GridPosition.from(placementPos.get());
         if (laneContext.lane.hasTowerAt(position)) {
             return TowerPlacementResult.OCCUPIED;
         }
@@ -75,7 +63,13 @@ public final class ProductionTowerService {
     }
 
     public static SaleResult sellTower(SemionGame game, UUID playerId, BlockPos blockPos) {
-        return sellTower(game, playerId, GridPosition.from(blockPos));
+        LaneContext laneContext = resolveActiveLaneContext(game, playerId);
+        if (laneContext.failureResult != null) {
+            return SaleResult.failure(mapSellFailure(laneContext.failureResult));
+        }
+        return TowerPlacementPositions.resolveGrid(laneContext.lane, blockPos)
+                .map(position -> sellTower(laneContext, playerId, position))
+                .orElseGet(() -> SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION));
     }
 
     public static SaleResult sellTower(SemionGame game, UUID playerId, GridPosition position) {
@@ -83,7 +77,10 @@ public final class ProductionTowerService {
         if (laneContext.failureResult != null) {
             return SaleResult.failure(mapSellFailure(laneContext.failureResult));
         }
+        return sellTower(laneContext, playerId, position);
+    }
 
+    private static SaleResult sellTower(LaneContext laneContext, UUID playerId, GridPosition position) {
         Tower tower = laneContext.lane.towerAt(position);
         if (tower == null) {
             return SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION);
@@ -112,7 +109,13 @@ public final class ProductionTowerService {
     }
 
     public static List<TowerUpgradeOption> availableUpgrades(SemionGame game, UUID playerId, BlockPos blockPos) {
-        return availableUpgrades(game, playerId, GridPosition.from(blockPos));
+        LaneContext laneContext = resolveLaneContext(game, playerId);
+        if (laneContext.failureResult != null) {
+            return List.of();
+        }
+        return TowerPlacementPositions.resolveGrid(laneContext.lane, blockPos)
+                .map(position -> availableUpgrades(game, laneContext, playerId, position))
+                .orElseGet(List::of);
     }
 
     public static List<TowerUpgradeOption> availableUpgrades(SemionGame game, UUID playerId, GridPosition position) {
@@ -120,7 +123,10 @@ public final class ProductionTowerService {
         if (laneContext.failureResult != null) {
             return List.of();
         }
+        return availableUpgrades(game, laneContext, playerId, position);
+    }
 
+    private static List<TowerUpgradeOption> availableUpgrades(SemionGame game, LaneContext laneContext, UUID playerId, GridPosition position) {
         Tower tower = laneContext.lane.towerAt(position);
         if (tower == null || !tower.ownerPlayer().equals(playerId)) {
             return List.of();
@@ -131,7 +137,13 @@ public final class ProductionTowerService {
     }
 
     public static TowerUpgradeResult upgradeTower(SemionGame game, UUID playerId, BlockPos blockPos, String upgradeId) {
-        return upgradeTower(game, playerId, GridPosition.from(blockPos), upgradeId);
+        LaneContext laneContext = resolveLaneContext(game, playerId);
+        if (laneContext.failureResult != null) {
+            return mapPlacementFailure(laneContext.failureResult);
+        }
+        return TowerPlacementPositions.resolveGrid(laneContext.lane, blockPos)
+                .map(position -> upgradeTower(game, laneContext, playerId, position, upgradeId))
+                .orElse(TowerUpgradeResult.NO_TOWER_AT_POSITION);
     }
 
     public static TowerUpgradeResult upgradeTower(SemionGame game, UUID playerId, GridPosition position, String upgradeId) {
@@ -139,7 +151,10 @@ public final class ProductionTowerService {
         if (laneContext.failureResult != null) {
             return mapPlacementFailure(laneContext.failureResult);
         }
+        return upgradeTower(game, laneContext, playerId, position, upgradeId);
+    }
 
+    private static TowerUpgradeResult upgradeTower(SemionGame game, LaneContext laneContext, UUID playerId, GridPosition position, String upgradeId) {
         Tower tower = laneContext.lane.towerAt(position);
         if (tower == null) {
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;

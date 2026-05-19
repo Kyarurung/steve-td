@@ -23,7 +23,7 @@ public final class VillagerTowers {
             40,
             5.5,
             5,
-            20,
+            10,
             0,
             VillagerVisual.builder().profession(VillagerProfession.NITWIT).build(),
             List.of("<gray>기본 주민 원거리 타워입니다.</gray>")
@@ -36,13 +36,13 @@ public final class VillagerTowers {
             60,
             7,
             8,
-            15,
+            10,
             5,
             VillagerVisual.builder().profession(VillagerProfession.LIBRARIAN).build(),
             List.of(
                     "<gray>무난한 초반 타워입니다.<gray>",
                     "<green>+ 생존한 라운드마다 피해, 공격 속도가 5% 씩 증가합니다. 최대 30% </green>",
-                    "<green>+ 스플래시가 존재합니다. 0.75블록, 75% 피해"
+                    "<green>+ 스플래시가 존재합니다. 1.25블록, 75% 피해"
                     )
     );
 
@@ -53,13 +53,13 @@ public final class VillagerTowers {
             80,
             7,
             10,
-            12,
+            10,
             10,
             VillagerVisual.builder().profession(VillagerProfession.CLERIC).build(),
             List.of(
                     "<gray> 초중반용 스플래시 타워입니다. </green>",
                     "<green> + 생존한 라운드마다 피해, 공격 속도가 7.5% 씩 증가합니다. 최대 45%",
-                    "<green> + 스플래시가 존재합니다. 1.25블록, 75% 피해 </green>",
+                    "<green> + 스플래시가 존재합니다. 1.75블록, 75% 피해 </green>",
                     "<green> + 3번 공격 시 1번 추가로 공격을 가합니다.</green>"
                     )
     );
@@ -70,7 +70,7 @@ public final class VillagerTowers {
             "t1_golem_tower",
             "눈 골렘 타워",
             100,
-            85,
+            120,
             2,
             5,
             20,
@@ -83,14 +83,14 @@ public final class VillagerTowers {
             "t2_golem_tower",
             "라마 타워",
             180,
-            140,
+            200,
             2,
             8,
             20,
             50,
             byId(EntityType.TRADER_LLAMA),
             List.of("<gray>구리 골렘이 있는 줄 알고 만들다가 없는거 알고 급하게 바꾼 타워입니다.</gray>",
-                    "<green> + 피격 시 3 범위 적에게 10 데미지를 입힙니다. (쿨타임 : 5초)</green>",
+                    "<green> + 피격 시 1 범위 적에게 10 데미지를 입힙니다. (쿨타임 : 2초)</green>",
                     "<green> + 생존한 라운드 마다 체력이 10% 증가합니다. (최대 : 50%)"
                     )
     );
@@ -99,14 +99,14 @@ public final class VillagerTowers {
             "t3_golem_tower",
             "철 골렘 타워",
             350,
-            250,
+            300,
             3,
             10,
             20,
             80,
             byId(EntityType.IRON_GOLEM),
             List.of(
-                    "<green> + 피격 시 4 범위 적에게 15 데미지를 입힙니다. ( 쿨타임 : 4초 ) </green>",
+                    "<green> + 피격 시 2 범위 적에게 10 데미지를 입힙니다. ( 쿨타임 : 1.5초 ) </green>",
                     "<green> + 생존한 라운드 마다 체력이 20% 증가합니다. ( 최대 : 100 % ) "
             )
     );
@@ -140,7 +140,8 @@ public final class VillagerTowers {
             -5,
             byId(EntityType.ALLAY),
             List.of(
-                    "<green> + 5초마다 주위 3블록에 있는 타워의 체력을 20 회복시킵니다. (회복 받은 대상은 5초간 회복받지 않음)"            )
+                    "<green> + 5초마다 주위 3블록에 있는 타워의 체력을 20 회복시킵니다. (회복 받은 대상은 5초간 회복받지 않음)"
+            )
     );
 
     public static final TowerType T2_WEAPON_SMITH_TOWER = tower(
@@ -199,7 +200,7 @@ public final class VillagerTowers {
             50,
             10,
             10,
-            20,
+            15,
             5,
             byId(EntityType.OCELOT),
             List.of(
@@ -214,7 +215,7 @@ public final class VillagerTowers {
             50,
             12,
             20,
-            20,
+            15,
             5,
             CatVisual.builder().variant(CatVariants.ALL_BLACK).tame(true).build(),
             List.of(
@@ -231,7 +232,7 @@ public final class VillagerTowers {
             50,
             10,
             15,
-            20,
+            15,
             5,
             CatVisual.builder().variant(CatVariants.WHITE).tame(true).build(),
             List.of(

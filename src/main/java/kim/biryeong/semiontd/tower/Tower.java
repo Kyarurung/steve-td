@@ -86,6 +86,10 @@ public abstract class Tower {
         return maxHealth;
     }
 
+    public double currentMaxHealth() {
+        return maxHealth;
+    }
+
     public double health() {
         return health;
     }
@@ -267,7 +271,7 @@ public abstract class Tower {
     public void resetForRound(PlayerLane lane) {
         cooldownTicks = 0;
         currentPosition = originalPosition;
-        health = maxHealth;
+        health = currentMaxHealth();
         deployedAtFinalDefense = false;
         onStateChanged(lane);
     }
@@ -279,7 +283,7 @@ public abstract class Tower {
     }
 
     public void syncHealth(double health) {
-        this.health = Math.max(0.0, Math.min(maxHealth, health));
+        this.health = Math.max(0.0, Math.min(currentMaxHealth(), health));
     }
 
     public void syncPosition(GridPosition position) {

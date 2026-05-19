@@ -14,6 +14,7 @@ import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import net.minecraft.core.BlockPos;
 
@@ -27,11 +28,12 @@ public final class TestTowerService {
             return laneContext.failureResult;
         }
 
-        if (!laneContext.lane.canPlaceTowerAt(blockPos)) {
+        Optional<BlockPos> placementPos = TowerPlacementPositions.resolve(laneContext.lane, blockPos);
+        if (placementPos.isEmpty()) {
             return TowerPlacementResult.OUTSIDE_LANE_AREA;
         }
 
-        GridPosition position = GridPosition.from(blockPos);
+        GridPosition position = GridPosition.from(placementPos.get());
         if (laneContext.lane.hasTowerAt(position)) {
             return TowerPlacementResult.OCCUPIED;
         }
@@ -58,7 +60,9 @@ public final class TestTowerService {
             return List.of();
         }
 
-        Tower tower = laneContext.lane.towerAt(GridPosition.from(blockPos));
+        Tower tower = TowerPlacementPositions.resolveGrid(laneContext.lane, blockPos)
+                .map(laneContext.lane::towerAt)
+                .orElse(null);
         if (!(tower instanceof TestTower testTower)) {
             return List.of();
         }
@@ -71,7 +75,9 @@ public final class TestTowerService {
             return mapPlacementFailure(laneContext.failureResult);
         }
 
-        Tower tower = laneContext.lane.towerAt(GridPosition.from(blockPos));
+        Tower tower = TowerPlacementPositions.resolveGrid(laneContext.lane, blockPos)
+                .map(laneContext.lane::towerAt)
+                .orElse(null);
         if (!(tower instanceof TestTower testTower)) {
             return tower == null ? TowerUpgradeResult.NO_TOWER_AT_POSITION : TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
         }

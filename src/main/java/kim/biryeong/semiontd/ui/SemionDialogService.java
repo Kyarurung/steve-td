@@ -10,8 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.DamageType;
-import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
@@ -19,9 +20,11 @@ import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.summon.SummonTier;
 import kim.biryeong.semiontd.summon.SummonAbilityActivation;
+import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.ui.dialog.body.HeaderMessage;
 import net.minecraft.ChatFormatting;
@@ -184,13 +187,14 @@ public final class SemionDialogService {
                 .append("</gold>\n\n");
 
         Tower selectedTower = game.playerLane(player.getUUID())
-                .map(lane -> lane.towerAt(GridPosition.from(player.blockPosition())))
+                .flatMap(lane -> TowerPlacementPositions.resolveGrid(lane, player.blockPosition())
+                        .map(lane::towerAt))
                 .orElse(null);
         if (selectedTower != null) {
             body.append("<yellow>현재 위치 타워</yellow> <white>").append(selectedTower.type().displayName()).append("</white>\n");
             body.append("<gray>레벨</gray> <white>").append(selectedTower.level()).append("</white>");
             body.append(" <gray>체력</gray> <red>").append(Math.round(selectedTower.health())).append("</red>");
-            body.append("<dark_gray>/</dark_gray><red>").append(Math.round(selectedTower.maxHealth())).append("</red>");
+            body.append("<dark_gray>/</dark_gray><red>").append(Math.round(selectedTower.currentMaxHealth())).append("</red>");
             body.append(" <gray>판매 환불</gray> <gold>").append(selectedTower.sellRefundAmount()).append("</gold>\n\n");
         }
 
@@ -241,6 +245,17 @@ public final class SemionDialogService {
         boolean sameLane = semionPlayer != null
                 && semionPlayer.teamId() == tower.teamId()
                 && semionPlayer.laneId() == tower.laneId();
+        Optional<SemionTowerEntity> towerEntity = towerEntity(game, tower);
+        double currentDamage = towerEntity
+                .map(entity -> entity.attackDamageAmount(null))
+                .orElseGet(() -> tower.modifyAttackDamage(null, null, tower.type().damage()));
+        double currentRange = towerEntity
+                .map(SemionTowerEntity::attackRange)
+                .orElse(tower.type().range());
+        int currentAttackIntervalTicks = towerEntity
+                .map(SemionTowerEntity::attackIntervalTicks)
+                .orElseGet(() -> tower.adjustAttackInterval(tower.type().attackIntervalTicks()));
+        double currentMaxHealth = tower.currentMaxHealth();
 
         StringBuilder body = new StringBuilder();
         body.append("<gradient:#facc15:#22d3ee><bold>타워 상세 정보</bold></gradient>\n");
@@ -253,12 +268,20 @@ public final class SemionDialogService {
                 .append(tower.position().z()).append("</white>");
         body.append(" <dark_gray>|</dark_gray> <gray>⭐ 레벨</gray> <gold>").append(tower.level()).append("</gold>\n");
         body.append("<red>❤ 체력 ").append(Math.round(tower.health())).append("</red>");
-        body.append("<dark_gray>/</dark_gray><red>").append(Math.round(tower.maxHealth())).append("</red>");
+        body.append("<dark_gray>/</dark_gray><red>").append(Math.round(currentMaxHealth)).append("</red>")
+                .append(statDeltaSuffix(tower.type().maxHealth(), currentMaxHealth, true));
         body.append(" <yellow>🧲 어그로 ").append(tower.type().aggroPriority()).append("</yellow>\n");
-        body.append("<dark_red>⚔ 피해 ").append(oneDecimal(tower.type().damage())).append("</dark_red>");
-        body.append(" <light_purple>🎯 사거리 ").append(oneDecimal(tower.type().range())).append("</light_purple>\n");
-        body.append("<green>⚡ 공속 ").append(attacksPerSecond(tower.type().attackIntervalTicks())).append("/초</green>");
-        body.append(" <dark_gray>(</dark_gray><gray>").append(tower.type().attackIntervalTicks()).append("틱</gray><dark_gray>)</dark_gray>\n");
+        body.append("<dark_red>⚔ 피해 ").append(oneDecimal(currentDamage)).append("</dark_red>")
+                .append(statDeltaSuffix(tower.type().damage(), currentDamage, true));
+        body.append(" <light_purple>🎯 사거리 ").append(oneDecimal(currentRange)).append("</light_purple>")
+                .append(statDeltaSuffix(tower.type().range(), currentRange, true))
+                .append('\n');
+        double baseAttacksPerSecond = 20.0 / Math.max(1, tower.type().attackIntervalTicks());
+        double currentAttacksPerSecond = 20.0 / Math.max(1, currentAttackIntervalTicks);
+        body.append("<green>⚡ 공속 ").append(oneDecimal(currentAttacksPerSecond)).append("/초</green>")
+                .append(statDeltaSuffix(baseAttacksPerSecond, currentAttacksPerSecond, true));
+        body.append(" <dark_gray>(</dark_gray><gray>").append(currentAttackIntervalTicks).append("틱</gray><dark_gray>)</dark_gray>\n");
+        towerEntity.ifPresent(entity -> appendTowerTimedEffects(body, entity));
         body.append("<aqua>💎 판매 환불 ").append(tower.sellRefundAmount()).append(" 다이아</aqua>\n");
         appendTowerDescription(body, tower.type().description());
         if (!ownedByPlayer) {
@@ -356,6 +379,64 @@ public final class SemionDialogService {
         showActions(player, "세미온 TD 소환", body.toString(), actions, 5);
     }
 
+    private static Optional<SemionTowerEntity> towerEntity(SemionGame game, Tower tower) {
+        if (game == null || !(tower instanceof EntityBackedTower entityBackedTower) || entityBackedTower.entityId().isEmpty()) {
+            return Optional.empty();
+        }
+        SemionTeam team = game.teams().get(tower.teamId());
+        if (team == null) {
+            return Optional.empty();
+        }
+        return team.laneGroup()
+                .lane(tower.laneId())
+                .map(lane -> lane.arenaWorld().getEntity(entityBackedTower.entityId().getAsInt()))
+                .filter(SemionTowerEntity.class::isInstance)
+                .map(SemionTowerEntity.class::cast);
+    }
+
+    private static void appendTowerTimedEffects(StringBuilder body, SemionTowerEntity entity) {
+        double incomingDamageReduction = entity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION);
+        if (incomingDamageReduction > 0.0) {
+            body.append("<blue>🛡 받는 피해 ")
+                    .append(oneDecimal((1.0 - incomingDamageReduction) * 100.0))
+                    .append("%</blue>")
+                    .append(" <dark_gray>(</dark_gray><green>-")
+                    .append(percent(incomingDamageReduction))
+                    .append("</green><dark_gray>)</dark_gray>\n");
+        }
+
+        StringBuilder effects = new StringBuilder();
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_DAMAGE_BONUS, "<green>⚔ 피해 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_ATTACK_SPEED_BONUS, "<green>⚡ 공속 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_RANGE_BONUS, "<green>🎯 사거리 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_DAMAGE_REDUCTION, "<blue>🛡 받피 감소 +", "</blue>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION, "<red>⚡ 공속 감소 -", "</red>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_RANGE_REDUCTION, "<red>🎯 사거리 감소 -", "</red>");
+        if (effects.length() > 0) {
+            body.append("<yellow>✨ 활성 효과</yellow>\n").append(effects);
+        }
+    }
+
+    private static void appendTimedEffect(
+            StringBuilder body,
+            SemionTowerEntity entity,
+            TimedEffectType type,
+            String prefix,
+            String suffix
+    ) {
+        double magnitude = entity.activeTimedEffectMagnitude(type);
+        int ticks = entity.activeTimedEffectTicks(type);
+        if (magnitude <= 0.0 || ticks <= 0) {
+            return;
+        }
+        body.append("<dark_gray>-</dark_gray> ")
+                .append(prefix)
+                .append(percent(magnitude))
+                .append(suffix)
+                .append(" <gray>")
+                .append(oneDecimal(ticks / 20.0))
+                .append("초</gray>\n");
+    }
 
     private void show(ServerPlayer player, String title, String body) {
         show(player, title, miniMessage(body));
@@ -723,6 +804,23 @@ public final class SemionDialogService {
 
     private static String attacksPerSecond(int attackIntervalTicks) {
         return oneDecimal(20.0 / Math.max(1, attackIntervalTicks));
+    }
+
+    private static String statDeltaSuffix(double baseValue, double currentValue, boolean higherBetter) {
+        if (Math.abs(baseValue - currentValue) < 0.005) {
+            return "";
+        }
+        String color = (currentValue > baseValue) == higherBetter ? "green" : "red";
+        String sign = currentValue > baseValue ? "+" : "";
+        String delta = Math.abs(baseValue) < 0.0001
+                ? sign + oneDecimal(currentValue - baseValue)
+                : sign + percent((currentValue - baseValue) / baseValue);
+        return " <dark_gray>(기본 " + oneDecimal(baseValue)
+                + ", </dark_gray><" + color + ">" + delta + "</" + color + "><dark_gray>)</dark_gray>";
+    }
+
+    private static String percent(double value) {
+        return oneDecimal(value * 100.0) + "%";
     }
 
     private static String oneDecimal(double value) {

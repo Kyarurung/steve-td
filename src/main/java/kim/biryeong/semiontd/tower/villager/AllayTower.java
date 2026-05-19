@@ -145,7 +145,7 @@ public class AllayTower extends SupportTower {
             }
             return healed;
         }
-        if (target.health() > 0.0 && target.health() < target.maxHealth()) {
+        if (target.health() > 0.0 && target.health() < target.currentMaxHealth()) {
             double before = target.health();
             target.syncHealth(before + amount);
             return target.health() > before;

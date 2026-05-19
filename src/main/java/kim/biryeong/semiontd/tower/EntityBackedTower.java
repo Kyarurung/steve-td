@@ -111,6 +111,7 @@ public abstract class EntityBackedTower extends Tower {
 
     @Override
     public void tick(PlayerLane lane) {
+        super.tick(lane);
     }
 
     @Override

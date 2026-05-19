@@ -49,6 +49,7 @@ import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.game.AssignedParticipant;
 import kim.biryeong.semiontd.game.EconomyService;
+import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.MatchParticipantResult;
 import kim.biryeong.semiontd.game.MatchResult;
 import kim.biryeong.semiontd.game.MatchMode;
@@ -101,6 +102,7 @@ import kim.biryeong.semiontd.tower.villager.AllayTower;
 import kim.biryeong.semiontd.tower.villager.AntiTankerCatTower;
 import kim.biryeong.semiontd.tower.villager.LaneClearCatTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
+import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.ui.SemionDialogService;
@@ -115,6 +117,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -1907,6 +1910,51 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void placingTestTowerFromAirUsesGroundedLaneBlock(GameTestHelper context) {
+        UUID playerId = stableUuid("red-air-placement-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos laneColumn = towerPlacementPos(lane);
+        BlockPos floorPos = new BlockPos(
+                laneColumn.getX(),
+                lane.laneLayout().laneArea().min().getY() - 1,
+                laneColumn.getZ()
+        );
+        BlockPos sourcePos = floorPos.above(8);
+        context.getLevel().setBlock(floorPos, Blocks.STONE.defaultBlockState(), 3);
+
+        TowerPlacementResult result = TestTowerService.placeTestTower(game, playerId, sourcePos);
+
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                result,
+                "Tower placement from air above lane_path should resolve to the ground block."
+        )) {
+            return;
+        }
+        TestTower tower = (TestTower) lane.towers().getFirst();
+        if (!assertEquals(
+                context,
+                GridPosition.from(floorPos),
+                tower.position(),
+                "Placed tower should store the grounded block position instead of the air source."
+        )) {
+            return;
+        }
+        SemionTowerEntity entity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().orElseThrow());
+        if (!assertEquals(
+                context,
+                floorPos.getY() + 1.0,
+                entity.getY(),
+                "Placed tower entity should stand on top of the grounded block."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void sellingTowerBeforeWaveRefundsFullCost(GameTestHelper context) {
         UUID playerId = stableUuid("red-tower-sell-full");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
@@ -2344,6 +2392,66 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         });
     }
 
+    @GameTest(maxTicks = 60)
+    public void towerEntityPrioritizesInRangeMonsterBeforeFarProgressTarget(GameTestHelper context) {
+        UUID playerId = stableUuid("red-tower-range-priority-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos towerPos = towerPlacementPos(lane);
+        TowerType towerType = new TowerType("range_priority_test", "Range Priority Test", TowerCategory.DIRECT, 0, 50.0, 3.5, 10.0, 100, 0);
+        lane.addTower(new TestTower(towerType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
+
+        TestTower tower = (TestTower) lane.towers().getFirst();
+        if (!assertTrue(context, tower.entityId().isPresent(), "Range priority tower entity should exist.")) {
+            return;
+        }
+
+        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().getAsInt());
+        Vec3 towerPosition = towerEntity.position();
+        SemionMonsterEntity nearTarget = spawnRoleMonsterEntity(
+                context,
+                "near-range-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                towerPosition.add(2.0, 0.0, 0.0),
+                40.0,
+                List.of(SummonRole.RUSH)
+        );
+        SemionMonsterEntity farProgressTarget = spawnRoleMonsterEntity(
+                context,
+                "far-progress-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                towerPosition.add(8.0, 0.0, 0.0),
+                40.0,
+                List.of(SummonRole.SIEGE)
+        );
+        nearTarget.runtimeMonster().syncLaneProgress(0.1);
+        farProgressTarget.runtimeMonster().syncLaneProgress(0.95);
+        nearTarget.setNoAi(true);
+        farProgressTarget.setNoAi(true);
+
+        context.runAfterDelay(20, () -> {
+            if (!assertTrue(
+                    context,
+                    nearTarget.getHealth() < 40.0F,
+                    "Tower should attack an in-range monster before chasing a farther high-progress target."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    nearTarget.getHealth() < farProgressTarget.getHealth(),
+                    "In-range target should take priority over a farther high-progress target."
+            )) {
+                return;
+            }
+            context.succeed();
+        });
+    }
+
     @GameTest(maxTicks = 120)
     public void testTowerMovesTowardOutOfRangeMonster(GameTestHelper context) {
         UUID playerId = stableUuid("red-tower-anchor-owner");
@@ -2380,41 +2488,129 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
             monsterEntity.setNoAi(true);
-        });
-
-        Vec3 anchorPosition = new Vec3(towerPos.getX() + 0.5, towerPos.getY(), towerPos.getZ() + 0.5);
-        context.runAfterDelay(40, () -> {
-            if (!assertTrue(
-                    context,
-                    lane.arenaWorld().getEntity(monsterEntityId) instanceof SemionMonsterEntity,
-                    "Anchor test monster entity should still exist."
-            )) {
-                return;
-            }
 
             TestTower tower = (TestTower) lane.towers().getFirst();
             if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should still exist.")) {
                 return;
             }
+            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+                context.fail(Component.literal("Tower entity should still be present in the arena world."));
+                return;
+            }
+            Vec3 initialTowerPosition = towerEntity.position();
+            double initialDistance = initialTowerPosition.distanceTo(monsterEntity.position());
+
+            context.runAfterDelay(40, () -> {
+                if (!assertTrue(
+                        context,
+                        lane.arenaWorld().getEntity(monsterEntityId) instanceof SemionMonsterEntity,
+                        "Anchor test monster entity should still exist."
+                )) {
+                    return;
+                }
+                SemionMonsterEntity currentMonsterEntity = (SemionMonsterEntity) lane.arenaWorld().getEntity(monsterEntityId);
+
+                if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
+                    context.fail(Component.literal("Tower entity should still be present in the arena world."));
+                    return;
+                }
+                Vec3 currentTowerPos = currentTowerEntity.position();
+                if (!assertTrue(
+                        context,
+                        currentTowerPos.distanceTo(initialTowerPosition) > 0.1,
+                        "Tower entity should move away from its initial position toward a live target that starts out of range."
+                )) {
+                    return;
+                }
+                if (!assertTrue(
+                        context,
+                        currentTowerPos.distanceTo(currentMonsterEntity.position()) < initialDistance,
+                        "Tower entity should get closer to the out-of-range target."
+                )) {
+                    return;
+                }
+                context.succeed();
+            });
+        });
+    }
+
+    @GameTest(maxTicks = 100)
+    public void finalDefenseTowerDoesNotChaseOutOfRangeMonster(GameTestHelper context) {
+        UUID playerId = stableUuid("red-final-defense-anchor-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                TestTowerService.placeTestTower(game, playerId, towerPlacementPos(lane)),
+                "Test tower placement should succeed before final defense anchor validation."
+        )) {
+            return;
+        }
+
+        GridPosition finalDefenseSlot = lane.laneLayout().finalDefenseTowerSlots().getFirst();
+        BlockPos finalDefenseAirPos = new BlockPos(finalDefenseSlot.x(), finalDefenseSlot.y(), finalDefenseSlot.z());
+        context.getLevel().setBlock(finalDefenseAirPos.below(), Blocks.STONE.defaultBlockState(), 3);
+        context.getLevel().setBlock(finalDefenseAirPos, Blocks.AIR.defaultBlockState(), 3);
+
+        game.teams().get(TeamId.RED).resetForRound();
+        game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
+
+        TestTower tower = (TestTower) lane.towers().getFirst();
+        if (!assertTrue(context, tower.deployedAtFinalDefense(), "Tower should be deployed at final defense before chase validation.")) {
+            return;
+        }
+        if (!assertTrue(context, tower.entityId().isPresent(), "Final defense tower entity should exist before chase validation.")) {
+            return;
+        }
+        if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            context.fail(Component.literal("Final defense tower entity should be available."));
+            return;
+        }
+
+        Vec3 initialTowerPosition = towerEntity.position();
+        SemionMonsterEntity outOfRangeTarget = spawnRoleMonsterEntity(
+                context,
+                "final-defense-anchor-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                initialTowerPosition.add(5.0, 0.0, 0.0),
+                100.0,
+                List.of(SummonRole.RUSH)
+        );
+        outOfRangeTarget.setNoAi(true);
+
+        context.runAfterDelay(40, () -> {
+            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
+                context.fail(Component.literal("Final defense tower entity should still be available."));
+                return;
+            }
+
+            Vec3 currentTowerPosition = currentTowerEntity.position();
+            double horizontalMovement = Math.hypot(
+                    currentTowerPosition.x - initialTowerPosition.x,
+                    currentTowerPosition.z - initialTowerPosition.z
+            );
             if (!assertTrue(
                     context,
-                    lane.arenaWorld().getEntity(tower.entityId().getAsInt()) != null,
-                    "Tower entity should still be present in the arena world."
+                    horizontalMovement < 0.05,
+                    "Final defense tower should not chase targets outside its attack range."
             )) {
                 return;
             }
-            SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().getAsInt());
-            Vec3 currentTowerPos = towerEntity.position();
             if (!assertTrue(
                     context,
-                    currentTowerPos.distanceTo(anchorPosition) > 0.01,
-                    "Tower entity should move toward a live target that starts out of range."
+                    lane.laneLayout().isInsideFinalDefenseTowerArea(currentTowerPosition),
+                    "Final defense tower should stay inside the final defense tower area."
             )) {
                 return;
             }
             context.succeed();
         });
     }
+
     @GameTest(maxTicks = 160)
     public void laneMonsterDamagesTestTowerEntity(GameTestHelper context) {
         UUID playerId = stableUuid("red-tower-defense-owner");
@@ -2559,6 +2755,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
+        GridPosition finalDefenseSlot = lane.laneLayout().finalDefenseTowerSlots().getFirst();
+        BlockPos finalDefenseAirPos = new BlockPos(
+                finalDefenseSlot.x(),
+                finalDefenseSlot.y(),
+                finalDefenseSlot.z()
+        );
+        BlockPos finalDefenseFloorPos = finalDefenseAirPos.below();
+        context.getLevel().setBlock(finalDefenseFloorPos, Blocks.STONE.defaultBlockState(), 3);
+        context.getLevel().setBlock(finalDefenseAirPos, Blocks.AIR.defaultBlockState(), 3);
+
         game.teams().get(TeamId.RED).resetForRound();
         game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
 
@@ -2568,13 +2774,24 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         if (!assertEquals(
                 context,
-                new BlockPos(
-                        lane.laneLayout().finalDefenseTowerSlots().getFirst().x(),
-                        lane.laneLayout().finalDefenseTowerSlots().getFirst().y(),
-                        lane.laneLayout().finalDefenseTowerSlots().getFirst().z()
-                ),
+                finalDefenseFloorPos,
                 BlockPos.containing(tower.position().x(), tower.position().y(), tower.position().z()),
-                "Tower should move to the final defense position when the lane is cleared."
+                "Tower runtime position should use the final defense floor block when the slot itself is air."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, tower.entityId().isPresent(), "Final defense tower entity should exist.")) {
+            return;
+        }
+        if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            context.fail(Component.literal("Final defense tower entity should be available."));
+            return;
+        }
+        if (!assertEquals(
+                context,
+                finalDefenseAirPos.getY(),
+                BlockPos.containing(towerEntity.position()).getY(),
+                "Tower entity should stand at the final defense slot height instead of one block above it."
         )) {
             return;
         }
@@ -4164,6 +4381,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 new kim.biryeong.semiontd.game.GridPosition(base.getX() + 5, base.getY(), base.getZ())
         );
         lane.addTower(allayTower);
+        if (!assertTrue(context, allayTower.entityId().isPresent(), "Allay support tower should spawn a visible tower entity.")) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                lane.arenaWorld().getEntity(allayTower.entityId().getAsInt()) instanceof SemionTowerEntity allayEntity
+                        && allayEntity.getPolymerEntityType(null) == EntityType.ALLAY,
+                "Allay support tower should render through an Allay polymer entity."
+        )) {
+            return;
+        }
         lane.addTower(nearbyTower);
         lane.addTower(farTower);
         nearbyTower.syncHealth(30.0);
@@ -4182,6 +4410,45 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             allayTower.tick(lane);
         }
         if (!assertEquals(context, 40.0, nearbyTower.health(), "Allay tower should not re-heal the same target inside the block window.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void golemTowerSurvivalBonusIncreasesCurrentMaxHealth(GameTestHelper context) {
+        UUID playerId = stableUuid("golem-health-bonus-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+        VillagerThornTower tower = new VillagerThornTower(
+                VillagerTowers.T2_GOLEM_TOWER,
+                playerId,
+                TeamId.RED,
+                1,
+                new GridPosition(base.getX(), base.getY(), base.getZ())
+        );
+        lane.addTower(tower);
+
+        lane.resetForRound();
+
+        double expectedMaxHealth = VillagerTowers.T2_GOLEM_TOWER.maxHealth() * 1.10;
+        if (!assertEquals(context, expectedMaxHealth, tower.currentMaxHealth(), "Golem survival bonus should increase current max health.")) {
+            return;
+        }
+        if (!assertEquals(context, expectedMaxHealth, tower.health(), "Golem round reset should refill to current max health.")) {
+            return;
+        }
+        if (!(lane.arenaWorld().getEntity(tower.entityId().orElseThrow()) instanceof SemionTowerEntity towerEntity)) {
+            context.fail(Component.literal("Golem tower entity should exist after reset."));
+            return;
+        }
+        if (!assertEquals(
+                context,
+                expectedMaxHealth,
+                towerEntity.getAttributeValue(Attributes.MAX_HEALTH),
+                "Golem tower entity max health attribute should match current max health."
+        )) {
             return;
         }
         context.succeed();

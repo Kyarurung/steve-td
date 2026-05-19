@@ -30,6 +30,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -70,7 +71,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         super(entityType, level);
         setSilent(true);
         setPersistenceRequired();
-        setNoGravity(true);
+        setNoGravity(false);
     }
 
     @Override
@@ -91,6 +92,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         aggroPriority = tower.aggroPriority();
         finalDefense = tower.deployedAtFinalDefense();
         finalDefenseAnchorPosition = finalDefense ? towerAnchorPosition(tower.position()) : null;
+        setNoGravity(false);
         visual = tower.type().visual();
         blockbenchModelId = visual.blockbenchModel().orElse(null);
         setPolymerEntityType(visual.entityTypeId());
@@ -98,7 +100,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         moveSpeed = DEFAULT_MOVE_SPEED;
         setCustomName(Component.literal(tower.type().displayName()));
         setCustomNameVisible(true);
-        getAttribute(Attributes.MAX_HEALTH).setBaseValue(tower.maxHealth());
+        getAttribute(Attributes.MAX_HEALTH).setBaseValue(tower.currentMaxHealth());
         getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(attackDamage);
         getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(targetAcquireRange);
         getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(moveSpeed);
@@ -182,6 +184,10 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     public double chaseSpeedModifier() {
         return moveSpeed;
+    }
+
+    public boolean deployedAtFinalDefense() {
+        return finalDefense;
     }
 
     public boolean needsFinalDefenseReturn() {
@@ -330,6 +336,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         } else if (!finalDefense) {
             finalDefenseAnchorPosition = null;
         }
+        getAttribute(Attributes.MAX_HEALTH).setBaseValue(tower.currentMaxHealth());
         if (Math.abs(getHealth() - tower.health()) > 0.01F) {
             setHealth((float) tower.health());
         }
@@ -347,7 +354,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     @Override
     public boolean canReceiveHealing() {
-        return runtimeTower != null && runtimeTower.health() > 0.0 && runtimeTower.health() < runtimeTower.maxHealth();
+        return runtimeTower != null && runtimeTower.health() > 0.0 && runtimeTower.health() < runtimeTower.currentMaxHealth();
     }
 
     @Override
@@ -355,7 +362,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         if (runtimeTower == null) {
             return 0.0;
         }
-        return Math.max(0.0, runtimeTower.maxHealth() - runtimeTower.health());
+        return Math.max(0.0, runtimeTower.currentMaxHealth() - runtimeTower.health());
     }
 
     @Override
@@ -455,6 +462,31 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         getNavigation().moveTo(targetPosition.x, targetPosition.y, targetPosition.z, speedModifier);
         getMoveControl().setWantedPosition(targetPosition.x, targetPosition.y, targetPosition.z, speedModifier);
         getLookControl().setLookAt(targetPosition.x, targetPosition.y, targetPosition.z);
+
+        Vec3 offset = new Vec3(targetPosition.x - getX(), 0.0, targetPosition.z - getZ());
+        double distance = offset.length();
+        if (distance <= 0.05) {
+            getNavigation().stop();
+            Vec3 velocity = getDeltaMovement();
+            setDeltaMovement(0.0, velocity.y, 0.0);
+            return;
+        }
+
+        Vec3 velocity = getDeltaMovement();
+        Vec3 step = offset.normalize().scale(Math.min(speedModifier, distance));
+        move(MoverType.SELF, step);
+        clampToFinalDefenseAreaIfNeeded();
+        setDeltaMovement(0.0, velocity.y, 0.0);
+    }
+
+    private void clampToFinalDefenseAreaIfNeeded() {
+        if (!finalDefense || laneLayout == null || laneLayout.isInsideFinalDefenseTowerArea(position())) {
+            return;
+        }
+
+        Vec3 clampedPosition = laneLayout.clampToFinalDefenseTowerArea(position());
+        teleportTo(clampedPosition.x, clampedPosition.y, clampedPosition.z);
+        getNavigation().stop();
     }
 
     private static Vec3 towerAnchorPosition(GridPosition position) {
