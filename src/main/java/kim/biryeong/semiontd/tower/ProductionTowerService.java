@@ -105,7 +105,7 @@ public final class ProductionTowerService {
         if (tower == null || !tower.ownerPlayer().equals(playerId)) {
             return List.of();
         }
-        return tower.type().upgradeOptions();
+        return ProductionTowerCatalog.upgrades(tower.type());
     }
 
     public static TowerUpgradeResult upgradeTower(SemionGame game, UUID playerId, BlockPos blockPos, String upgradeId) {
@@ -125,14 +125,11 @@ public final class ProductionTowerService {
         if (!tower.ownerPlayer().equals(playerId)) {
             return TowerUpgradeResult.TOWER_NOT_OWNED;
         }
-        if (!tower.type().hasUpgradeOptions()) {
+        if (!ProductionTowerCatalog.hasUpgrades(tower.type())) {
             return TowerUpgradeResult.TOWER_NOT_UPGRADABLE;
         }
 
-        TowerUpgradeOption upgrade = tower.type().upgradeOptions().stream()
-                .filter(option -> option.id().equalsIgnoreCase(upgradeId))
-                .findFirst()
-                .orElse(null);
+        TowerUpgradeOption upgrade = ProductionTowerCatalog.upgrade(tower.type(), upgradeId).orElse(null);
         if (upgrade == null) {
             return TowerUpgradeResult.UNKNOWN_UPGRADE;
         }

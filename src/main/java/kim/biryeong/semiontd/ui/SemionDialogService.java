@@ -466,9 +466,10 @@ public final class SemionDialogService {
 
     private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
         var type = entry.type();
-        String upgradeSummary = type.upgradeOptions().isEmpty()
+        List<TowerUpgradeOption> upgrades = ProductionTowerCatalog.upgrades(type);
+        String upgradeSummary = upgrades.isEmpty()
                 ? "업그레이드 없음"
-                : type.upgradeOptions().stream()
+                : upgrades.stream()
                 .map(option -> option.displayName() + " -> " + option.targetType().displayName())
                 .collect(Collectors.joining(" / "));
         MutableComponent tooltip = Component.literal(type.displayName())
