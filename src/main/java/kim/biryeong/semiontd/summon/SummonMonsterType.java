@@ -33,29 +33,6 @@ public abstract class SummonMonsterType {
     private final List<SummonAbilityActivation> abilityActivations;
     private final List<String> description;
 
-    protected SummonMonsterType(SummonDefinition definition) {
-        this(
-                definition.id(),
-                definition.displayName(),
-                definition.gasCost(),
-                definition.incomeGain(),
-                definition.maxHealth(),
-                definition.armor(),
-                definition.attackDamage(),
-                definition.attackKind(),
-                definition.entityTypeId(),
-                definition.blockbenchModelId(),
-                definition.dimensions(),
-                definition.damageType(),
-                definition.resistance(),
-                definition.tier(),
-                definition.roles(),
-                definition.abilityActivations(),
-                definition.description(),
-                definition.mineralReward()
-        );
-    }
-
     protected SummonMonsterType(
             String id,
             String displayName,
