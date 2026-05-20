@@ -3,7 +3,6 @@ package kim.biryeong.semiontd.ui;
 import de.tomalbrc.avatarrenderer.AvatarRendererMod;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,7 +17,6 @@ import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
 import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonShop;
-import kim.biryeong.semiontd.summon.SummonTier;
 import kim.biryeong.semiontd.summon.SummonAbilityActivation;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
@@ -59,6 +57,7 @@ public final class SemionDialogService {
     private static final int BUTTON_WIDTH = 180;
     private static final int COMPACT_BUTTON_WIDTH = 118;
     private static final int SUMMON_BUTTON_WIDTH = 82;
+    private static final int SUMMON_COLUMNS = 5;
     private static final int SUMMON_PAGE_SIZE = 25;
 
     public void showGameStatus(ServerPlayer player, SemionGame game) {
@@ -186,6 +185,11 @@ public final class SemionDialogService {
         body.append(" <dark_gray>|</dark_gray> <gray>다음 인컴 업글</gray> <gold>")
                 .append(nextGasUpgradeCost >= 0 ? nextGasUpgradeCost : "최대")
                 .append("</gold>\n\n");
+        body.append("<gray>보조 기능</gray>\n");
+        body.append(commandLink("인컴 업그레이드", "/semiontd emeraldup", "green"));
+        body.append("  ");
+        body.append(commandLink("상태 보기", "/semiontd ui", "aqua"));
+        body.append("\n\n<dark_gray>────────────────────────</dark_gray>\n\n");
 
         Tower selectedTower = game.playerLane(player.getUUID())
                 .flatMap(lane -> TowerPlacementPositions.resolveGrid(lane, player.blockPosition())
@@ -230,8 +234,6 @@ public final class SemionDialogService {
                 ));
             }
         }
-        actions.add(actionButton("인컴 업그레이드", "/semiontd emeraldup", "에메랄드 생산량을 올립니다."));
-        actions.add(actionButton("상태 보기", "/semiontd ui", "현재 경기 상태를 엽니다."));
         showActions(player, "세미온 TD 타워", body.toString(), actions, 3);
     }
 
@@ -306,7 +308,6 @@ public final class SemionDialogService {
                         COMPACT_BUTTON_WIDTH
                 ));
             }
-            padActionRow(actions, 2);
             actions.add(actionButton(
                     "판매",
                     "/semiontd tower sell "
@@ -348,8 +349,9 @@ public final class SemionDialogService {
         StringBuilder body = new StringBuilder();
         body.append("<gradient:#f472b6:#a78bfa><bold>견제 몹 소환</bold></gradient>\n");
         body.append("<gray>페이지</gray> <yellow>").append(safePage).append("</yellow><gray>/</gray><yellow>").append(pageCount).append("</yellow>");
-        body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>\n\n");
-        body.append(summonTierTable(game.summonShop().all()));
+        body.append(" <dark_gray>|</dark_gray> <gray>소환 후보</gray> <yellow>").append(summons.size()).append("</yellow>");
+        body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>");
+        appendSummonNavigation(body, "/semiontd summonui ", safePage, pageCount);
 
         ArrayList<ActionButton> actions = summons.stream()
                 .skip((long) (safePage - 1) * SUMMON_PAGE_SIZE)
@@ -361,8 +363,7 @@ public final class SemionDialogService {
                         SUMMON_BUTTON_WIDTH
                 ))
                 .collect(Collectors.toCollection(ArrayList::new));
-        addSummonPageActions(actions, "/semiontd summonui ", safePage, pageCount);
-        showActions(player, "세미온 TD 소환", body.toString(), actions, 5);
+        showActions(player, "세미온 TD 소환", body.toString(), actions, SUMMON_COLUMNS);
     }
 
     public void showDebugSummonShop(ServerPlayer player) {
@@ -377,8 +378,9 @@ public final class SemionDialogService {
         StringBuilder body = new StringBuilder();
         body.append("<gradient:#f472b6:#a78bfa><bold>견제 몹 소환</bold></gradient>\n");
         body.append("<gray>페이지</gray> <yellow>").append(safePage).append("</yellow><gray>/</gray><yellow>").append(pageCount).append("</yellow>");
-        body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>\n\n");
-        body.append(summonTierTable(summonShop.all()));
+        body.append(" <dark_gray>|</dark_gray> <gray>소환 후보</gray> <yellow>").append(summons.size()).append("</yellow>");
+        body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>");
+        appendSummonNavigation(body, "/semiontd-debug summonui ", safePage, pageCount);
 
         ArrayList<ActionButton> actions = summons.stream()
                 .skip((long) (safePage - 1) * SUMMON_PAGE_SIZE)
@@ -390,15 +392,13 @@ public final class SemionDialogService {
                         SUMMON_BUTTON_WIDTH
                 ))
                 .collect(Collectors.toCollection(ArrayList::new));
-        addSummonPageActions(actions, "/semiontd-debug summonui ", safePage, pageCount);
-        showActions(player, "세미온 TD 소환", body.toString(), actions, 5);
+        showActions(player, "세미온 TD 소환", body.toString(), actions, SUMMON_COLUMNS);
     }
 
     private static List<SummonMonsterType> sortedSummons(java.util.Collection<SummonMonsterType> summons) {
         return summons.stream()
-                .sorted(Comparator.comparing(SummonMonsterType::tier)
+                .sorted(Comparator.comparingLong(SummonMonsterType::gasCost)
                         .thenComparing(type -> primaryRole(type).ordinal())
-                        .thenComparingLong(SummonMonsterType::gasCost)
                         .thenComparing(SummonMonsterType::displayName))
                 .toList();
     }
@@ -411,12 +411,24 @@ public final class SemionDialogService {
         return Math.max(1, Math.min(Math.max(1, pageCount), page));
     }
 
-    private static void addSummonPageActions(ArrayList<ActionButton> actions, String commandPrefix, int page, int pageCount) {
+    private static void appendSummonNavigation(StringBuilder body, String commandPrefix, int page, int pageCount) {
         if (pageCount <= 1) {
             return;
         }
-        actions.add(actionButton("이전", page > 1 ? commandPrefix + (page - 1) : "", Component.literal("이전 페이지를 엽니다."), SUMMON_BUTTON_WIDTH));
-        actions.add(actionButton("다음", page < pageCount ? commandPrefix + (page + 1) : "", Component.literal("다음 페이지를 엽니다."), SUMMON_BUTTON_WIDTH));
+        body.append("\n\n<dark_gray>────────────────────────</dark_gray>\n");
+        body.append("<gray>페이지 이동</gray> ");
+        if (page > 1) {
+            body.append(commandLink("이전", commandPrefix + (page - 1), "aqua"));
+        } else {
+            body.append("<dark_gray>이전</dark_gray>");
+        }
+        body.append(" <dark_gray>|</dark_gray> ");
+        if (page < pageCount) {
+            body.append(commandLink("다음", commandPrefix + (page + 1), "aqua"));
+        } else {
+            body.append("<dark_gray>다음</dark_gray>");
+        }
+        body.append("\n<dark_gray>────────────────────────</dark_gray>");
     }
 
     private static Optional<SemionTowerEntity> towerEntity(SemionGame game, Tower tower) {
@@ -563,24 +575,8 @@ public final class SemionDialogService {
         );
     }
 
-    private static void padActionRow(List<ActionButton> actions, int columns) {
-        if (actions.isEmpty() || columns < 2) {
-            return;
-        }
-        int remainder = actions.size() % columns;
-        if (remainder == 0) {
-            return;
-        }
-        for (int i = remainder; i < columns; i++) {
-            actions.add(actionSpacer(COMPACT_BUTTON_WIDTH));
-        }
-    }
-
-    private static ActionButton actionSpacer(int width) {
-        return new ActionButton(
-                new CommonButtonData(Component.literal(" "), Optional.empty(), width),
-                Optional.empty()
-        );
+    private static String commandLink(String label, String command, String color) {
+        return "<click:run_command:'" + command + "'><hover:show_text:'" + label + "'><" + color + ">[" + label + "]</" + color + "></hover></click>";
     }
 
     private static ActionButton towerButton(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
@@ -666,48 +662,8 @@ public final class SemionDialogService {
         return tooltip;
     }
 
-    private static String summonTierTable(java.util.Collection<SummonMonsterType> summons) {
-        Map<SummonTier, Map<SummonRole, List<SummonMonsterType>>> grouped = new EnumMap<>(SummonTier.class);
-        for (SummonTier tier : SummonTier.values()) {
-            grouped.put(tier, new EnumMap<>(SummonRole.class));
-        }
-        for (SummonMonsterType type : summons) {
-            grouped.get(type.tier())
-                    .computeIfAbsent(primaryRole(type), ignored -> new ArrayList<>())
-                    .add(type);
-        }
-
-        SummonRole[] columns = {SummonRole.SWARM, SummonRole.RUSH, SummonRole.TANK, SummonRole.SIEGE, SummonRole.SUPPORT, SummonRole.DISRUPTOR};
-        StringBuilder table = new StringBuilder();
-        table.append("<dark_gray>|</dark_gray> <gray>티어</gray> ");
-        for (SummonRole role : columns) {
-            table.append("<dark_gray>|</dark_gray> <aqua>").append(roleLabel(role)).append("</aqua> ");
-        }
-        table.append("<dark_gray>|</dark_gray>\n");
-        for (SummonTier tier : SummonTier.values()) {
-            Map<SummonRole, List<SummonMonsterType>> row = grouped.getOrDefault(tier, Map.of());
-            boolean hasAny = row.values().stream().anyMatch(list -> !list.isEmpty());
-            if (!hasAny) {
-                continue;
-            }
-            table.append("<dark_gray>|</dark_gray> <gold>").append(tier.name()).append("</gold> ");
-            for (SummonRole role : columns) {
-                List<SummonMonsterType> values = row.getOrDefault(role, List.of());
-                table.append("<dark_gray>|</dark_gray> ");
-                if (values.isEmpty()) {
-                    table.append("<gray>-</gray> ");
-                } else {
-                    table.append("<white>").append(values.size()).append("</white>");
-                    table.append("<gray>x</gray> ");
-                }
-            }
-            table.append("<dark_gray>|</dark_gray>\n");
-        }
-        return table.toString();
-    }
-
     private static Component summonButtonLabel(SummonMonsterType type, boolean affordable) {
-        return Component.literal(type.tier().name() + " " + type.displayName().split("\\s+", 2)[0])
+        return Component.literal(type.displayName().split("\\s+", 2)[0])
                 .withStyle(style -> style
                         .withColor(affordable ? ChatFormatting.GREEN : ChatFormatting.RED)
                         .withBold(true));
@@ -716,8 +672,7 @@ public final class SemionDialogService {
     private static Component summonTooltip(SummonMonsterType type, boolean affordable) {
         MutableComponent tooltip = mutableMiniMessage(
                 "<white><bold>" + type.displayName() + "</bold></white>\n"
-                        + "<gray>🏷 역할</gray> <yellow>" + roleList(type) + "</yellow> "
-                        + "<dark_gray>|</dark_gray> <gray>티어</gray> <gold>" + type.tier().name() + "</gold>\n"
+                        + "<gray>🏷 역할</gray> <yellow>" + roleList(type) + "</yellow>\n"
                         + "<green>◆ 비용 " + type.gasCost() + " 에메랄드</green>"
                         + (affordable ? "" : " <red>(부족)</red>")
                         + " <dark_gray>|</dark_gray> <yellow>📈 인컴 +" + type.incomeGain() + "</yellow>\n"

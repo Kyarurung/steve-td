@@ -788,8 +788,7 @@ public final class SemionCommands {
         for (ProductionTowerCatalog.CatalogEntry entry : entries) {
             success(source, " - " + entry.type().id()
                     + " => " + entry.type().displayName()
-                    + " 다이아비용=" + entry.type().mineralCost()
-                    + ", 티어=" + entry.tier());
+                    + " 다이아비용=" + entry.type().mineralCost());
         }
         return entries.size();
     }

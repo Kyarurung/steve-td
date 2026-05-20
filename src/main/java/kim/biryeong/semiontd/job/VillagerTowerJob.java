@@ -36,7 +36,7 @@ public final class VillagerTowerJob extends SemionJob {
                 Component.literal("주민 빌더"),
                 List.of(
                         SemionText.mini("<gray>초반부터 최대한의 타워를 생존시켜 강해지는 형태의 빌더입니다.</gray>"),
-                        SemionText.mini("<gray>각 타워의 티어를 올려야 생존 및 처치 보너스를 받기 때문에 업그레이드를 우선하는 것을 권장합니다.</gray>")
+                        SemionText.mini("<gray>각 타워를 업그레이드해야 생존 및 처치 보너스를 받기 때문에 업그레이드를 우선하는 것을 권장합니다.</gray>")
                 )
         );
     }
