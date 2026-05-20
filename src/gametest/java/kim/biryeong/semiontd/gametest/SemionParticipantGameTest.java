@@ -37,6 +37,7 @@ import kim.biryeong.semiontd.entity.boss.goal.BossAttackLaneMonsterGoal;
 import kim.biryeong.semiontd.entity.defender.DefenderEntity;
 import kim.biryeong.semiontd.entity.defender.DefenderEntityState;
 import kim.biryeong.semiontd.entity.goal.AreaAllyHealGoal;
+import kim.biryeong.semiontd.entity.goal.ApplyMonsterTimedEffectGoal;
 import kim.biryeong.semiontd.entity.goal.ApplyTowerTimedEffectGoal;
 import kim.biryeong.semiontd.entity.goal.SiegeTrueDamageGoal;
 import kim.biryeong.semiontd.entity.goal.SingleAllyHealGoal;
@@ -3800,23 +3801,26 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void summonDescriptionsIncludeAbilityNumbers(GameTestHelper context) {
         SummonConfig config = SummonConfig.defaultConfig();
-        SummonConfig.SummonDefinition wolf = config.summons().get("wolf");
+        SummonConfig.SummonDefinition bogged = config.summons().get("bogged");
         SummonConfig.SummonDefinition allay = config.summons().get("allay");
+        SummonConfig.SummonDefinition chicken = config.summons().get("chicken");
         SummonConfig.SummonDefinition warden = config.summons().get("warden");
-        if (!assertTrue(context, wolf.description().stream().anyMatch(line -> line.contains("공격 속도") && line.contains("10%"))
-                && wolf.description().stream().anyMatch(line -> line.contains("3초") && line.contains("4초")), "Wolf description should include tower debuff values.")) {
+        if (!assertTrue(context, bogged.description().stream().anyMatch(line -> line.equals("반경 6블록 내 가까운 타워 최대 1기의 공격속도를 5초간 12% 감소시킵니다. (4.5초 쿨타임)")), "Bogged description should be a concise tower debuff ability line.")) {
             return;
         }
-        if (!assertTrue(context, allay.description().stream().anyMatch(line -> line.contains("8 회복"))
-                && allay.description().stream().anyMatch(line -> line.contains("6초")), "Allay description should include heal amount and cooldown.")) {
+        if (!assertTrue(context, allay.description().stream().anyMatch(line -> line.equals("반경 6블록 내 아군 유닛 최대 6기를 8 회복시킵니다. (6초 쿨타임)")), "Allay description should describe only its healing ability.")) {
             return;
         }
-        if (!assertTrue(context, warden.description().stream().anyMatch(line -> line.contains("70%") && line.contains("50")), "Warden description should include siege threshold and true damage.")) {
+        if (!assertTrue(context, chicken.description().isEmpty(), "Summons without abilities should not get filler description lines.")) {
+            return;
+        }
+        if (!assertTrue(context, warden.description().stream().anyMatch(line -> line.equals("라인 진행도 70% 이상이거나 보스를 공격할 때 방어 대상에게 50 고정 피해를 줍니다. (4.5초 쿨타임)")), "Warden description should be a concise siege ability line.")) {
             return;
         }
         if (!assertTrue(context, config.summons().values().stream()
                 .flatMap(definition -> definition.description().stream())
-                .noneMatch(line -> line.contains("T1") || line.contains("T2") || line.contains("T3") || line.contains("T4") || line.contains("T5")), "Summon descriptions should not expose tier labels.")) {
+                .noneMatch(line -> line.contains("T1") || line.contains("T2") || line.contains("T3") || line.contains("T4") || line.contains("T5")
+                        || line.contains("역할") || line.contains("경제") || line.contains("전투") || line.contains("인컴 유닛")), "Summon descriptions should not expose tier, category, or income-only wording.")) {
             return;
         }
         context.succeed();
@@ -3936,7 +3940,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionMonsterEntity caster = spawnSummonEntity(context, "manual_support", TeamId.RED, TeamId.BLUE, 1, origin, 80.0, 0.0);
         SemionMonsterEntity lightInjury = spawnSummonEntity(context, "light_injury", TeamId.RED, TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), 100.0, 10.0);
         SemionMonsterEntity heavyInjury = spawnSummonEntity(context, "heavy_injury", TeamId.RED, TeamId.BLUE, 1, origin.add(2.0, 0.0, 0.0), 100.0, 25.0);
-        SemionMonsterEntity enemy = spawnSummonEntity(context, "enemy_injury", TeamId.GREEN, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), 100.0, 25.0);
+        SemionMonsterEntity waveInjury = spawnRoleMonsterEntity(context, "wave_injury", Optional.empty(), TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+        waveInjury.runtimeMonster().damage(35.0, DamageType.TRUE);
+        waveInjury.setHealth((float) waveInjury.runtimeMonster().health());
+        SemionMonsterEntity wrongTarget = spawnSummonEntity(context, "wrong_target_injury", TeamId.GREEN, TeamId.RED, 1, origin.add(4.0, 0.0, 0.0), 100.0, 35.0);
 
         new SingleAllyHealGoal<>(caster, SemionMonsterEntity.class, 8.0, 12.0, 80, 10).tick();
 
@@ -3946,40 +3953,83 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 90.0, lightInjury.runtimeMonster().health(), "Single heal should not heal the less injured friendly summon.")) {
             return;
         }
-        if (!assertEquals(context, 87.0, heavyInjury.runtimeMonster().health(), "Single heal should heal the most injured friendly summon.")) {
+        if (!assertEquals(context, 75.0, heavyInjury.runtimeMonster().health(), "Single heal should not heal the less injured friendly summon.")) {
             return;
         }
-        if (!assertEquals(context, 75.0, enemy.runtimeMonster().health(), "Single heal should not heal another sender team's summon.")) {
+        if (!assertEquals(context, 77.0, waveInjury.runtimeMonster().health(), "Single heal should heal the most injured same target-lane wave unit.")) {
+            return;
+        }
+        if (!assertEquals(context, 65.0, wrongTarget.runtimeMonster().health(), "Single heal should ignore units attacking another target team.")) {
             return;
         }
         context.succeed();
     }
 
     @GameTest
-    public void areaAllyHealGoalHealsNearbyFriendliesUpToTargetCap(GameTestHelper context) {
+    public void areaAllyHealGoalHealsNearbyTargetLaneUnits(GameTestHelper context) {
         Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
         SemionMonsterEntity caster = spawnSummonEntity(context, "manual_area_support", TeamId.RED, TeamId.BLUE, 1, origin, 80.0, 0.0);
         SemionMonsterEntity first = spawnSummonEntity(context, "area_first", TeamId.RED, TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), 100.0, 10.0);
         SemionMonsterEntity second = spawnSummonEntity(context, "area_second", TeamId.RED, TeamId.BLUE, 1, origin.add(2.0, 0.0, 0.0), 100.0, 10.0);
-        SemionMonsterEntity third = spawnSummonEntity(context, "area_third", TeamId.RED, TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), 100.0, 10.0);
+        SemionMonsterEntity wave = spawnRoleMonsterEntity(context, "area_wave", Optional.empty(), TeamId.BLUE, 1, origin.add(3.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+        wave.runtimeMonster().damage(10.0, DamageType.TRUE);
+        wave.setHealth((float) wave.runtimeMonster().health());
         SemionMonsterEntity far = spawnSummonEntity(context, "area_far", TeamId.RED, TeamId.BLUE, 1, origin.add(8.0, 0.0, 0.0), 100.0, 10.0);
-        SemionMonsterEntity enemy = spawnSummonEntity(context, "area_enemy", TeamId.GREEN, TeamId.BLUE, 1, origin.add(1.0, 0.0, 1.0), 100.0, 10.0);
+        SemionMonsterEntity wrongLane = spawnSummonEntity(context, "area_wrong_lane", TeamId.GREEN, TeamId.BLUE, 2, origin.add(1.0, 0.0, 1.0), 100.0, 10.0);
 
-        new AreaAllyHealGoal<>(caster, SemionMonsterEntity.class, 5.0, 5.0, 2, 100, 10).tick();
+        new AreaAllyHealGoal<>(caster, SemionMonsterEntity.class, 5.0, 5.0, 4, 100, 10).tick();
 
-        int healedNearbyFriendlies = 0;
-        for (SemionMonsterEntity entity : List.of(first, second, third)) {
-            if (entity.runtimeMonster().health() == 95.0) {
-                healedNearbyFriendlies++;
-            }
+        if (!assertEquals(context, 95.0, first.runtimeMonster().health(), "Area heal should heal nearby same sender units.")) {
+            return;
         }
-        if (!assertEquals(context, 2, healedNearbyFriendlies, "Area heal should heal nearby friendlies only up to the target cap.")) {
+        if (!assertEquals(context, 95.0, second.runtimeMonster().health(), "Area heal should heal multiple same target-lane units.")) {
+            return;
+        }
+        if (!assertEquals(context, 95.0, wave.runtimeMonster().health(), "Area heal should heal nearby same target-lane wave units.")) {
             return;
         }
         if (!assertEquals(context, 90.0, far.runtimeMonster().health(), "Area heal should ignore friendlies outside radius.")) {
             return;
         }
-        if (!assertEquals(context, 90.0, enemy.runtimeMonster().health(), "Area heal should ignore another sender team's summon.")) {
+        if (!assertEquals(context, 90.0, wrongLane.runtimeMonster().health(), "Area heal should ignore units attacking another lane.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void monsterTimedEffectsTargetSameLaneWaveUnits(GameTestHelper context) {
+        Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
+        SemionMonsterEntity caster = spawnRoleMonsterEntity(context, "effect_caster", Optional.of(TeamId.RED), TeamId.BLUE, 1, origin, 100.0, List.of(SummonRole.SUPPORT));
+        SemionMonsterEntity summon = spawnRoleMonsterEntity(context, "effect_summon", Optional.of(TeamId.RED), TeamId.BLUE, 1, origin.add(1.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+        SemionMonsterEntity wave = spawnRoleMonsterEntity(context, "effect_wave", Optional.empty(), TeamId.BLUE, 1, origin.add(2.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+        SemionMonsterEntity wrongLane = spawnRoleMonsterEntity(context, "effect_wrong_lane", Optional.empty(), TeamId.BLUE, 2, origin.add(3.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+        SemionMonsterEntity wrongTarget = spawnRoleMonsterEntity(context, "effect_wrong_target", Optional.of(TeamId.GREEN), TeamId.RED, 1, origin.add(4.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+
+        new ApplyMonsterTimedEffectGoal(
+                caster,
+                TimedEffectType.MONSTER_ATTACK_DAMAGE_BONUS,
+                0.25,
+                6.0,
+                80,
+                60,
+                10,
+                4
+        ).tick();
+
+        if (!assertEquals(context, 0.25, caster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_BONUS), "Caster should count as a same target-lane buff target.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.25, summon.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_BONUS), "Summoned units on the same target lane should receive monster buffs.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.25, wave.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_BONUS), "Wave units on the same target lane should receive monster buffs.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.0, wrongLane.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_BONUS), "Monster buffs should ignore another lane.")) {
+            return;
+        }
+        if (!assertEquals(context, 0.0, wrongTarget.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_BONUS), "Monster buffs should ignore another target team.")) {
             return;
         }
         context.succeed();

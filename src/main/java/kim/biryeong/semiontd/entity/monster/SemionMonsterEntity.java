@@ -199,9 +199,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
                 || runtimeMonster == null || monsterEntity.runtimeMonster == null) {
             return false;
         }
-        return runtimeMonster.senderTeam().isPresent()
-                && runtimeMonster.senderTeam().equals(monsterEntity.runtimeMonster.senderTeam())
-                && runtimeMonster.targetTeam() == monsterEntity.runtimeMonster.targetTeam()
+        return runtimeMonster.targetTeam() == monsterEntity.runtimeMonster.targetTeam()
                 && runtimeMonster.targetLaneId() == monsterEntity.runtimeMonster.targetLaneId();
     }
 

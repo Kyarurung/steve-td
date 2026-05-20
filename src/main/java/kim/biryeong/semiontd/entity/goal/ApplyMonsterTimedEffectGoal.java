@@ -61,7 +61,7 @@ public final class ApplyMonsterTimedEffectGoal extends CooldownAbilityGoal {
                 .filter(SemionMonsterEntity.class::isInstance)
                 .map(SemionMonsterEntity.class::cast)
                 .filter(target -> caster.distanceToSqr(target) <= radiusSqr)
-                .filter(this::sameSummonSide)
+                .filter(this::sameTargetLane)
                 .sorted(Comparator.comparingDouble(caster::distanceToSqr))
                 .toList()) {
             target.applyTimedEffect(effectType, magnitude, durationTicks);
@@ -70,20 +70,18 @@ public final class ApplyMonsterTimedEffectGoal extends CooldownAbilityGoal {
                 break;
             }
         }
-        if (sameSummonSide(caster) && applied < maxTargets) {
+        if (sameTargetLane(caster) && applied < maxTargets) {
             caster.applyTimedEffect(effectType, magnitude, durationTicks);
             applied++;
         }
         return applied > 0;
     }
 
-    private boolean sameSummonSide(SemionMonsterEntity target) {
+    private boolean sameTargetLane(SemionMonsterEntity target) {
         Monster casterMonster = caster.runtimeMonster();
         Monster targetMonster = target.runtimeMonster();
         return casterMonster != null
                 && targetMonster != null
-                && casterMonster.senderTeam().isPresent()
-                && casterMonster.senderTeam().equals(targetMonster.senderTeam())
                 && casterMonster.targetTeam() == targetMonster.targetTeam()
                 && casterMonster.targetLaneId() == targetMonster.targetLaneId();
     }
