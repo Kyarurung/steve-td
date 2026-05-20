@@ -3798,6 +3798,31 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void summonDescriptionsIncludeAbilityNumbers(GameTestHelper context) {
+        SummonConfig config = SummonConfig.defaultConfig();
+        SummonConfig.SummonDefinition wolf = config.summons().get("wolf");
+        SummonConfig.SummonDefinition allay = config.summons().get("allay");
+        SummonConfig.SummonDefinition warden = config.summons().get("warden");
+        if (!assertTrue(context, wolf.description().stream().anyMatch(line -> line.contains("공격 속도") && line.contains("10%"))
+                && wolf.description().stream().anyMatch(line -> line.contains("3초") && line.contains("4초")), "Wolf description should include tower debuff values.")) {
+            return;
+        }
+        if (!assertTrue(context, allay.description().stream().anyMatch(line -> line.contains("8 회복"))
+                && allay.description().stream().anyMatch(line -> line.contains("6초")), "Allay description should include heal amount and cooldown.")) {
+            return;
+        }
+        if (!assertTrue(context, warden.description().stream().anyMatch(line -> line.contains("70%") && line.contains("50")), "Warden description should include siege threshold and true damage.")) {
+            return;
+        }
+        if (!assertTrue(context, config.summons().values().stream()
+                .flatMap(definition -> definition.description().stream())
+                .noneMatch(line -> line.contains("T1") || line.contains("T2") || line.contains("T3") || line.contains("T4") || line.contains("T5")), "Summon descriptions should not expose tier labels.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void monsterDamageTypesUseArmorResistanceAndTrueDamage(GameTestHelper context) {
         Monster monster = new Monster(
                 "damage-policy",

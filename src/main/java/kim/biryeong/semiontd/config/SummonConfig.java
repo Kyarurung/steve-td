@@ -7,6 +7,7 @@ import java.util.Map;
 import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.MonsterDimensions;
 import kim.biryeong.semiontd.summon.SummonAbilityActivation;
+import kim.biryeong.semiontd.summon.SummonDescriptionFactory;
 import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonTier;
 
@@ -100,7 +101,7 @@ public record SummonConfig(Map<String, SummonDefinition> summons) {
             Map<String, Double> abilityValues,
             String description
     ) {
-        return new SummonDefinition(
+        SummonDefinition definition = new SummonDefinition(
                 id,
                 displayName,
                 true,
@@ -122,6 +123,7 @@ public record SummonConfig(Map<String, SummonDefinition> summons) {
                 List.of(description),
                 abilityValues
         );
+        return definition.withDescription(SummonDescriptionFactory.describe(definition));
     }
 
     private static void add(LinkedHashMap<String, SummonDefinition> summons, SummonDefinition definition) {
@@ -197,6 +199,31 @@ public record SummonConfig(Map<String, SummonDefinition> summons) {
             if (this.id.equals(id)) {
                 return this;
             }
+            return new SummonDefinition(
+                    id,
+                    displayName,
+                    enabled,
+                    emeraldCost,
+                    incomeGain,
+                    maxHealth,
+                    armor,
+                    resistance,
+                    attackDamage,
+                    attackKind,
+                    damageType,
+                    entityTypeId,
+                    blockbenchModelId,
+                    dimensions,
+                    diamondReward,
+                    tier,
+                    roles,
+                    abilityActivations,
+                    description,
+                    abilityValues
+            );
+        }
+
+        public SummonDefinition withDescription(List<String> description) {
             return new SummonDefinition(
                     id,
                     displayName,

@@ -24,7 +24,7 @@ public class BasicIncomeSummon extends SummonMonsterType {
                 definition.tier(),
                 definition.roles(),
                 definition.abilityActivations(),
-                definition.description(),
+                SummonDescriptionFactory.describe(definition),
                 definition.diamondReward()
         );
         this.abilityValues = definition.abilityValues();
