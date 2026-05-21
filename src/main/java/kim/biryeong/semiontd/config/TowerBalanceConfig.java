@@ -153,18 +153,18 @@ public record TowerBalanceConfig(
         ));
         putAbilities(abilities, UndeadTowers.T2_ZOMBIE_TOWER.id(), Map.of(
                 "lifeStealRatio", 0.30,
-                "damageBoostOnHit", 2.0,
+                "damageBoostOnHit", 3.0,
                 "damageBoostTicks", 100.0,
-                "thornRadius", 2.0,
-                "thornCooldownTicks", 160.0,
+                "thornRadius", 3.0,
+                "thornCooldownTicks", 80.0,
                 "thornHealPerHit", 2.0
         ));
         putAbilities(abilities, UndeadTowers.T3_ZOMBIE_TOWER.id(), Map.of(
                 "lifeStealRatio", 0.30,
-                "damageBoostOnHit", 3.0,
+                "damageBoostOnHit", 4.0,
                 "damageBoostTicks", 100.0,
-                "thornRadius", 2.0,
-                "thornCooldownTicks", 80.0,
+                "thornRadius", 4.0,
+                "thornCooldownTicks", 40.0,
                 "thornHealPerHit", 2.0,
                 "lastStandTicks", 60.0
         ));
