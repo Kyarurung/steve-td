@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "BezierInterpolatorMixin",
+    "PlayerListMixin",
     "accessor.AxolotlAccessor",
     "accessor.CatAccessor",
     "accessor.ChickenAccessor",

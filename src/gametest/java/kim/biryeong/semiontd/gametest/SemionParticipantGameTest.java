@@ -511,6 +511,41 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void gameReadyRosterAllowsPlayersAboveActiveCap(GameTestHelper context) {
+        SemionGame game = new SemionGame(EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(), testArena(context));
+        List<StartCandidate> candidates = java.util.stream.IntStream.rangeClosed(1, 30)
+                .mapToObj(index -> candidate("ready-roster-over-cap-" + index))
+                .toList();
+
+        for (StartCandidate candidate : candidates) {
+            if (!assertTrue(context, game.markReady(candidate.uuid()), "Players above the active cap should still be able to ready.")) {
+                return;
+            }
+        }
+        if (!assertEquals(context, 30, game.readyPlayerCount(), "Ready roster should keep every ready player, even above active cap.")) {
+            return;
+        }
+
+        Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.selectReady(
+                candidates,
+                game.readyPlayerIds(),
+                MatchMode.NORMAL
+        );
+        if (!assertPresent(context, plan, "Expected normal mode to select from the over-cap ready roster.")) {
+            return;
+        }
+
+        ParticipantSelectionPlan value = plan.get();
+        if (!assertEquals(context, 25, value.activePlayerCount(), "Only 25 ready players should enter the match as active players.")) {
+            return;
+        }
+        if (!assertEquals(context, 5, value.spectatorCount(), "Ready players above 25 should be assigned as spectators at start selection.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void lateSpectatorsDoNotPolluteResultSpectators(GameTestHelper context) {
         UUID redId = stableUuid("late-spectator-red");
         UUID blueId = stableUuid("late-spectator-blue");

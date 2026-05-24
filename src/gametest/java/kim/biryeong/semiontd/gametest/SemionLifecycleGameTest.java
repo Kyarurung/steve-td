@@ -387,6 +387,67 @@ public final class SemionLifecycleGameTest implements CustomTestMethodInvoker {
         context.succeed();
     }
 
+    @GameTest
+    public void gameParticipantsBypassServerPlayerLimit(GameTestHelper context) {
+        MinecraftServer server = context.getLevel().getServer();
+        UUID redId = playerId("limit-bypass-red");
+        UUID blueId = playerId("limit-bypass-blue");
+        UUID spectatorId = playerId("limit-bypass-spectator");
+        UUID strangerId = playerId("limit-bypass-stranger");
+        SemionGame game = new SemionGame(EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(), SyntheticArenaFactory.create(
+                context.getLevel(),
+                context.absolutePos(BlockPos.ZERO)
+        ));
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+
+        game.markReady(redId);
+        if (!assertTrue(context, manager.canBypassPlayerLimit(redId), "Ready players should bypass the server player limit while waiting for a match.")) {
+            return;
+        }
+        if (!assertTrue(context, !manager.canBypassPlayerLimit(strangerId), "Unselected players should not bypass the server player limit.")) {
+            return;
+        }
+
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redId, "limit-bypass-red", TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "limit-bypass-blue", TeamId.BLUE, 1)
+                ),
+                Set.of(spectatorId),
+                2
+        );
+        if (!assertEquals(
+                context,
+                SemionGameManager.StartCountdownResult.SCHEDULED,
+                manager.scheduleStart(server, plan),
+                "Manager should schedule the selected participant plan."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, manager.canBypassPlayerLimit(redId), "Selected active participants should bypass the limit during start countdown.")) {
+            return;
+        }
+        if (!assertTrue(context, manager.canBypassPlayerLimit(spectatorId), "Selected match spectators should bypass the limit during start countdown.")) {
+            return;
+        }
+
+        for (int i = 0; i < SemionGameManager.START_COUNTDOWN_TICKS; i++) {
+            manager.tick(server);
+        }
+        if (!assertTrue(context, manager.canBypassPlayerLimit(redId), "Active participants should bypass the limit after the roster locks.")) {
+            return;
+        }
+        if (!assertTrue(context, manager.canBypassPlayerLimit(spectatorId), "Match spectators should bypass the limit after the roster locks.")) {
+            return;
+        }
+        if (!assertTrue(context, !manager.canBypassPlayerLimit(strangerId), "Late unrelated players should still respect the server player limit.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 700)
     public void actualArenaSupportsMinimumPlayableActionLoop(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();

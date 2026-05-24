@@ -7,6 +7,7 @@ import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.SemionPolymerEntityDataWarmup;
 import kim.biryeong.semiontd.game.SemionGameManager;
+import kim.biryeong.semiontd.game.SemionPlayerLimitBypassService;
 import kim.biryeong.semiontd.music.SemionMusicLibrary;
 import kim.biryeong.semiontd.music.SemionMusicResourcePack;
 import kim.biryeong.semiontd.music.SemionMusicService;
@@ -59,6 +60,7 @@ public class SemionTd implements ModInitializer {
                 configDir.resolve("profiles.json")
         );
         gameManager.configureMusic(new SemionMusicService(musicLibrary));
+        SemionPlayerLimitBypassService.configure(gameManager);
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 SemionCommands.register(dispatcher, gameManager));

@@ -291,6 +291,24 @@ public final class SemionGameManager {
         return Optional.ofNullable(activeGame);
     }
 
+    public boolean canBypassPlayerLimit(UUID playerId) {
+        if (playerId == null) {
+            return false;
+        }
+        ParticipantSelectionPlan pendingPlan = pendingStartPlan;
+        if (pendingPlan != null && isSelectedForPendingMatch(pendingPlan, playerId)) {
+            return true;
+        }
+        SemionGame game = activeGame;
+        if (game == null || game.phase() == RoundPhase.ENDED) {
+            return false;
+        }
+        if (game.rosterLocked()) {
+            return game.isActiveParticipant(playerId) || game.isMatchSpectator(playerId);
+        }
+        return game.isReady(playerId);
+    }
+
     public boolean startCountdownActive() {
         return pendingStartPlan != null;
     }
@@ -300,6 +318,11 @@ public final class SemionGameManager {
             return 0;
         }
         return Math.max(1, (startCountdownTicks + 19) / 20);
+    }
+
+    private static boolean isSelectedForPendingMatch(ParticipantSelectionPlan plan, UUID playerId) {
+        return plan.spectatorIds().contains(playerId)
+                || plan.activeParticipants().stream().anyMatch(participant -> participant.uuid().equals(playerId));
     }
 
     public StartCountdownResult scheduleStart(MinecraftServer server, ParticipantSelectionPlan plan) {
