@@ -84,6 +84,7 @@ import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.job.UndeadTowerJob;
 import kim.biryeong.semiontd.job.VillagerTowerJob;
+import kim.biryeong.semiontd.job.WarlockTowerJob;
 import kim.biryeong.semiontd.map.ArenaLayout;
 import kim.biryeong.semiontd.music.SemionMusicLibrary;
 import kim.biryeong.semiontd.music.SemionMusicResourcePack;
@@ -130,6 +131,9 @@ import kim.biryeong.semiontd.tower.villager.LaneClearCatTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
+import kim.biryeong.semiontd.tower.warlock.WarlockSacrificeTower;
+import kim.biryeong.semiontd.tower.warlock.WarlockTower;
+import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
@@ -5268,6 +5272,30 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void warlockTowerDescriptionsRenderConfiguredAbilityValues(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> abilities = new java.util.LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> rangedAbilities = new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
+        rangedAbilities.put("lowHealthSacrificeThreshold", 0.25);
+        rangedAbilities.put("splashRadiusPerStep", 3.0);
+        abilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), rangedAbilities);
+
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+        try {
+            TowerType resolved = TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER);
+            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("체력이 25% 미만")), "Warlock description should render configured absorb threshold.")) {
+                return;
+            }
+            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("3블록의 스플래시")), "Warlock description should render configured splash radius.")) {
+                return;
+            }
+        } finally {
+            TowerBalanceRuntime.apply(defaults);
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void builtInCatalogReloadRegistersTowerJobs(GameTestHelper context) {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
 
@@ -5280,7 +5308,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(AnimalTowerJob.ID), "Built-in reload should register the animal tower job.")) {
             return;
         }
-        if (!assertEquals(context, 10L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose villager, undead, and animal starter families.")) {
+        if (!assertPresent(context, JobRegistry.find(WarlockTowerJob.ID), "Built-in reload should register the warlock tower job.")) {
+            return;
+        }
+        if (!assertEquals(context, 13L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose villager, undead, animal, and warlock starter families.")) {
             return;
         }
         context.succeed();
@@ -5377,6 +5408,249 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 Set.of(AnimalTowers.T2_RABBIT_TOWER.id()),
                 upgradeIds,
                 "Animal rabbit starter should connect only to the rabbit upgrade."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void warlockTowerJobLimitsCoreToOneAndAllowsSacrifices(GameTestHelper context) {
+        UUID playerId = stableUuid("warlock-job-tower-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos towerPos = towerPlacementPos(lane);
+        BlockPos secondTowerPos = nearbyTowerPlacementPos(lane, towerPos);
+
+        Set<String> starterIds = ProductionTowerService.availableTowers(game, playerId).stream()
+                .map(entry -> entry.type().id())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!assertEquals(
+                context,
+                Set.of(
+                        WarlockTowers.BASE_WARLOCK_TOWER.id(),
+                        WarlockTowers.T1_SLAVE.id(),
+                        WarlockTowers.T1_RANGED_SLAVE.id()
+                ),
+                starterIds,
+                "Warlock job should expose only the core and sacrifice starter towers."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                ProductionTowerService.placeTower(game, playerId, towerPos, WarlockTowers.BASE_WARLOCK_TOWER.id()),
+                "Warlock job should be allowed to place the first core tower."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, lane.towers().getFirst() instanceof WarlockTower, "Placed warlock core should use WarlockTower runtime behavior.")) {
+            return;
+        }
+        Set<String> upgradeIds = ProductionTowerService.availableUpgrades(game, playerId, towerPos).stream()
+                .map(TowerUpgradeOption::targetType)
+                .map(TowerType::id)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!assertEquals(
+                context,
+                Set.of(WarlockTowers.RANGED_WARLOCK_TOWER.id(), WarlockTowers.MELEE_WARLOCK_TOWER.id()),
+                upgradeIds,
+                "Base warlock core should branch to ranged and melee cores."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.TOWER_NOT_ALLOWED,
+                ProductionTowerService.placeTower(game, playerId, secondTowerPos, WarlockTowers.BASE_WARLOCK_TOWER.id()),
+                "Warlock job should reject a second core tower."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(game, playerId, towerPos, "ranged_warlock_tower"),
+                "Warlock core should upgrade to the ranged branch."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.TOWER_NOT_ALLOWED,
+                ProductionTowerService.placeTower(game, playerId, secondTowerPos, WarlockTowers.BASE_WARLOCK_TOWER.id()),
+                "Upgraded warlock core should still block an extra core tower."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                ProductionTowerService.placeTower(game, playerId, secondTowerPos, WarlockTowers.T1_SLAVE.id()),
+                "Warlock sacrifice towers should still be placeable while one core exists."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void rangedWarlockAbsorbsLowPriorityTowerAndGainsConfiguredStats(GameTestHelper context) {
+        UUID playerId = stableUuid("warlock-ranged-absorb-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos corePos = towerPlacementPos(lane);
+        WarlockTower core = new WarlockTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(corePos)
+        );
+        lane.addTower(core);
+        BlockPos t1Pos = nearbyTowerPlacementPos(lane, corePos);
+        WarlockSacrificeTower t1Ranged = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T1_RANGED_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(t1Pos)
+        );
+        lane.addTower(t1Ranged);
+        BlockPos t3Pos = nearbyTowerPlacementPos(lane, t1Pos);
+        WarlockSacrificeTower t3Ranged = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T3_RANGED_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(t3Pos)
+        );
+        lane.addTower(t3Ranged);
+
+        SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
+        core.syncHealth(10.0);
+        coreEntity.setHealth(10.0F);
+        core.onAttack(coreEntity, null, 0.0, false);
+
+        if (!assertTrue(context, lane.towers().contains(t1Ranged), "Ranged warlock should leave the higher-numbered aggro tower alive after absorbing lowest priority.")) {
+            return;
+        }
+        if (!assertTrue(context, !lane.towers().contains(t3Ranged), "Ranged warlock should absorb the lowest aggro priority tower first.")) {
+            return;
+        }
+        if (!assertClose(context, 105.5, core.currentMaxHealth(), "Ranged warlock should gain round, permanent, and surviving-pet health bonuses.")) {
+            return;
+        }
+        if (!assertClose(context, 16.9625, core.modifyAttackDamage(null, null, 8.0), "Ranged warlock should gain round, permanent, and surviving-pet damage bonuses.")) {
+            return;
+        }
+        if (!assertEquals(context, 14, core.adjustAttackInterval(20), "Ranged warlock should gain attack interval reduction from absorbed faster tower.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void meleeWarlockAbsorbsHighPriorityTowerAndGainsConfiguredStats(GameTestHelper context) {
+        UUID playerId = stableUuid("warlock-melee-absorb-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos corePos = towerPlacementPos(lane);
+        WarlockTower core = new WarlockTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.MELEE_WARLOCK_TOWER),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(corePos)
+        );
+        lane.addTower(core);
+        BlockPos t1Pos = nearbyTowerPlacementPos(lane, corePos);
+        WarlockSacrificeTower t1Melee = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T1_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(t1Pos)
+        );
+        lane.addTower(t1Melee);
+        BlockPos t3Pos = nearbyTowerPlacementPos(lane, t1Pos);
+        WarlockSacrificeTower t3Melee = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T3_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(t3Pos)
+        );
+        lane.addTower(t3Melee);
+
+        SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
+        core.syncHealth(20.0);
+        coreEntity.setHealth(20.0F);
+        core.onDamaged(coreEntity, null, 80.0, 100.0, 20.0);
+
+        if (!assertTrue(context, lane.towers().contains(t1Melee), "Melee warlock should leave the lower-priority sacrifice tower alive.")) {
+            return;
+        }
+        if (!assertTrue(context, !lane.towers().contains(t3Melee), "Melee warlock should absorb the highest aggro priority tower first.")) {
+            return;
+        }
+        if (!assertClose(context, 212.5, core.currentMaxHealth(), "Melee warlock should gain round, permanent, and surviving-sacrifice health bonuses.")) {
+            return;
+        }
+        if (!assertClose(context, 11.8125, core.modifyAttackDamage(null, null, 5.0), "Melee warlock should gain round, permanent, and surviving-sacrifice damage bonuses.")) {
+            return;
+        }
+        if (!assertClose(context, 100.0, core.modifyIncomingDamage(null, null, 100.0), "Melee warlock should not reduce incoming damage before five absorbed towers.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void warlockSacrificeSlaveDeathAppliesMonsterEffect(GameTestHelper context) {
+        UUID playerId = stableUuid("warlock-slave-death-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos towerPos = towerPlacementPos(lane);
+        WarlockSacrificeTower tower = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T2_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(towerPos)
+        );
+        lane.addTower(tower);
+        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().orElseThrow());
+        SemionMonsterEntity monster = spawnSummonEntity(
+                context,
+                "warlock-slave-death-target",
+                TeamId.BLUE,
+                TeamId.RED,
+                1,
+                towerEntity.position().add(1.0, 0.0, 0.0),
+                100.0,
+                0.0
+        );
+
+        towerEntity.setHealth(0.0F);
+        lane.tick(context.getLevel().getServer());
+
+        if (!assertTrue(context, lane.towers().isEmpty(), "Destroyed sacrifice tower should be removed from the lane.")) {
+            return;
+        }
+        if (!assertClose(
+                context,
+                0.05,
+                monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS),
+                "Sacrifice tower death should apply configured monster damage-taken bonus."
+        )) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                monster.activeTimedEffectTicks(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS) > 0,
+                "Sacrifice tower death effect should have a positive duration."
         )) {
             return;
         }
@@ -5898,6 +6172,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     private static BlockPos towerPlacementPos(PlayerLane lane) {
         return BlockPos.containing(lane.laneLayout().positionAt(0.35));
+    }
+
+    private static BlockPos nearbyTowerPlacementPos(PlayerLane lane, BlockPos origin) {
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dz = -4; dz <= 4; dz++) {
+                BlockPos candidate = origin.offset(dx, 0, dz);
+                if (!candidate.equals(origin) && lane.canPlaceTowerAt(candidate) && !lane.hasTowerAt(GridPosition.from(candidate))) {
+                    return candidate;
+                }
+            }
+        }
+        throw new IllegalStateException("Could not find nearby tower placement position.");
     }
 
     private static SemionMonsterEntity spawnSummonEntity(
