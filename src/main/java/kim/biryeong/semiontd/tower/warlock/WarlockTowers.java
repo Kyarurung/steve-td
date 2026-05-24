@@ -188,17 +188,27 @@ public final class WarlockTowers {
         ));
         TowerDescriptionRegistry.registerTemplate(RANGED_WARLOCK_TOWER, List.of(
                 "<gray>흑마법사 핵심 타워입니다.</gray>",
-                "<gray>원거리 희생 타워가 살아있을 때 강해지는 흑마법사 타워입니다.</gray>",
+                "<gray>체력이 {ability.lowHealthSacrificeThreshold:percent} 미만일 때 주위 타워를 흡수합니다. 흡수된 타워의 체력과 공격력의 {ability.roundStatRatio:percent}를 이번 라운드 동안 획득합니다.</gray>",
+                "<red> 흡수할 타워는 낮은 공격 우선순위를 가진 타워부터 흡수됩니다.</red>",
+                "<gray>또한 흡수한 대상의 공격속도가 이 타워의 기본 공격속도보다 빠를 경우 이번 라운드 동안 그 차이만큼 획득합니다. (최대 {ability.roundIntervalReductionCap:integer} 감소)",
+                "<green>흡수한 타워마다 해당 타워의 체력 {ability.permanentHealthRatio:percent}, 공격력의 {ability.permanentDamageRatio:percent}를 영구적으로 얻습니다.</green>",
+                "<green>이 게임동안 흡수를 {ability.lifeStealEvery:integer}번 할때마다, {ability.lifeStealPerStep:percent}의 생명력 흡수를 얻습니다. (최대 {ability.lifeStealCap:percent})</green>",
+                "<green>이 게임동안 흡수를 {ability.splashEvery:integer}번 할 때마다 {ability.splashRadiusPerStep:blocks}의 스플래시 범위를 얻습니다. {ability.splashDamageRatio:percent} 피해</green>",
+                "<green>이 타워가 한 라운드에 흡수한 타워가 {ability.roundAbsorbDefenseThreshold:integer}기가 넘어갈 경우, 이 타워가 받는 피해량이 {ability.roundDamageReduction:percent} 감소합니다.",
                 "<green>생존 중인 애완 타워마다 체력이 {ability.healthBonusPerStack:percent}, 공격력이 {ability.damageBonusPerStack:percent} 증가합니다.</green>",
-                "<green>최대 체력 {ability.maxHealthBonus:percent}, 공격력 {ability.maxDamageBonus:percent}까지 증가합니다.</green>",
-                "<gray>기본 흑마법사 타워가 희생으로 얻은 영구 스탯은 업그레이드 후에도 유지됩니다.</gray>"
+                "<green>최대 체력 {ability.maxHealthBonus:percent}, 공격력 {ability.maxDamageBonus:percent}까지 증가합니다.</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(MELEE_WARLOCK_TOWER, List.of(
                 "<gray>흑마법사 핵심 타워입니다.</gray>",
-                "<gray>근접 희생 타워가 살아있을 때 강해지는 흑마법사 타워입니다.</gray>",
+                "<red><bold>피격 시 체력이 {ability.lowHealthSacrificeThreshold:percent} 미만일 경우 주위 {ability.sacrificeRadius:blocks} 이내의 아군 하나를 희생</bold></red><gray>합니다.</gray>",
+                "<green>희생되는 타워는 공격 우선순위가 높은 타워일수록 먼저 희생됩니다.</green>",
+                "<gray>타워를 희생할 경우 이번 라운드 동안 해당 타워의 체력과 공격력의 {ability.roundStatRatio:percent}를 얻습니다.</gray>",
+                "<green>이번 라운드에서 희생되는 타워당 스플래시 범위가 {ability.roundSplashRadiusPerSacrifice:blocks} 증가합니다.",
+                "<green>흡수한 타워마다 해당 타워의 체력 {ability.permanentHealthRatio:percent}, 공격력의 {ability.permanentDamageRatio:percent}를 추가로 얻습니다.</green>",
+                "<green>이번 게임에서 타워를 {ability.damageReductionEvery:integer}기 흡수할 때 마다, 받는 피해가 {ability.damageReductionPerStep:percent} 감소하고 최대 {ability.damageReductionCap:percent}까지 감소합니다.",
+                "<green>이번 게임에서 타워를 흡수할 때 마다 생명력 흡수를 {ability.lifeStealPerSacrifice:percent}씩 얻습니다. (최대 {ability.lifeStealCap:percent})",
                 "<green>생존 중인 희생양마다 체력이 {ability.healthBonusPerStack:percent}, 공격력이 {ability.damageBonusPerStack:percent} 증가합니다.</green>",
-                "<green>최대 체력 {ability.maxHealthBonus:percent}, 공격력 {ability.maxDamageBonus:percent}까지 증가합니다.</green>",
-                "<gray>기본 흑마법사 타워가 희생으로 얻은 영구 스탯은 업그레이드 후에도 유지됩니다.</gray>"
+                "<green>최대 체력 {ability.maxHealthBonus:percent}, 공격력 {ability.maxDamageBonus:percent}까지 증가합니다.</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_SLAVE, List.of(
                 "<gray>흑마법사가 데려온 양입니다. 이 양은 더 희귀하데요.<gray>",
