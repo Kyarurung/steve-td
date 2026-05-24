@@ -21,6 +21,8 @@ import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.test.TestTowerService;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
+import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.ui.SemionText;
 import java.util.ArrayList;
@@ -35,6 +37,12 @@ import net.minecraft.server.level.ServerPlayer;
 
 public final class SemionCommands {
     private SemionCommands() {
+    }
+
+    private enum DebugBuildGuideView {
+        LIST,
+        DETAIL,
+        TOWER_UI
     }
 
     private static void success(CommandSourceStack source, String message) {
@@ -197,6 +205,67 @@ public final class SemionCommands {
                 .executes(context -> jobDialog(context.getSource(), gameManager)));
         dispatcher.register(literal("준비")
                 .executes(context -> ready(context.getSource(), gameManager)));
+        dispatcher.register(literal("빌드")
+                .then(literal("기록")
+                        .then(argument("title", StringArgumentType.greedyString())
+                                .executes(context -> publishBuild(
+                                        context.getSource(),
+                                        gameManager,
+                                        StringArgumentType.getString(context, "title")
+                                ))))
+                .then(literal("목록")
+                        .executes(context -> buildListDialog(context.getSource(), gameManager))));
+
+        dispatcher.register(literal("semiontd-internal")
+                .then(literal("build")
+                        .then(literal("list")
+                                .then(argument("publicPage", IntegerArgumentType.integer(1))
+                                        .then(argument("myPage", IntegerArgumentType.integer(1))
+                                                .executes(context -> buildListDialog(
+                                                        context.getSource(),
+                                                        gameManager,
+                                                        IntegerArgumentType.getInteger(context, "publicPage"),
+                                                        IntegerArgumentType.getInteger(context, "myPage")
+                                                )))))
+                        .then(literal("track")
+                                .then(argument("code", StringArgumentType.word())
+                                        .executes(context -> trackBuild(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "code")
+                                        ))))
+                        .then(literal("detail")
+                                .then(argument("code", StringArgumentType.word())
+                                        .executes(context -> showBuildDetails(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "code")
+                                        ))))
+                        .then(literal("public")
+                                .then(argument("code", StringArgumentType.word())
+                                        .executes(context -> setBuildVisibility(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "code"),
+                                                BuildGuide.VISIBILITY_PUBLIC
+                                        ))))
+                        .then(literal("private")
+                                .then(argument("code", StringArgumentType.word())
+                                        .executes(context -> setBuildVisibility(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "code"),
+                                                BuildGuide.VISIBILITY_PRIVATE
+                                        ))))
+                        .then(literal("delete")
+                                .then(argument("code", StringArgumentType.word())
+                                        .executes(context -> deleteBuild(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "code")
+                                        ))))
+                        .then(literal("clear")
+                                .executes(context -> clearTrackedBuild(context.getSource(), gameManager)))));
 
         dispatcher.register(literal("semiontd-debug")
                 .requires(source -> source.hasPermission(2))
@@ -221,7 +290,15 @@ public final class SemionCommands {
                                                 context.getSource(),
                                                 gameManager,
                                                 IntegerArgumentType.getInteger(context, "page")
-                                        ))))));
+                                        )))))
+                .then(literal("buildguide")
+                        .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.LIST))
+                        .then(literal("list")
+                                .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.LIST)))
+                        .then(literal("detail")
+                                .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.DETAIL)))
+                        .then(literal("towerui")
+                                .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.TOWER_UI)))));
     }
 
     private static int createGame(CommandSourceStack source, SemionGameManager gameManager) {
@@ -821,7 +898,7 @@ public final class SemionCommands {
             failure(source, "진행 중인 게임이 없습니다.");
             return 0;
         }
-        gameManager.dialogService().showTowerControl(source.getPlayerOrException(), game);
+        gameManager.dialogService().showTowerControl(source.getPlayerOrException(), game, gameManager.buildGuideService());
         success(source, "타워 관리 창을 열었습니다.");
         return 1;
     }
@@ -978,6 +1055,239 @@ public final class SemionCommands {
             throws CommandSyntaxException {
         gameManager.dialogService().showDebugSummonShop(source.getPlayerOrException(), page);
         success(source, "디버그 견제 소환 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int debugBuildGuideVisual(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            DebugBuildGuideView view
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = gameManager.activeGame().orElse(null);
+        SemionPlayer semionPlayer = game == null ? null : game.players().get(player.getUUID());
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        boolean liveParticipant = game != null && semionPlayer != null && lane != null;
+
+        int currentRound = liveParticipant ? game.currentRound() : 1;
+        String jobId = liveParticipant
+                ? semionPlayer.job().map(job -> job.id().toString()).orElse("")
+                : "semion-td:debug";
+        List<BuildAction> actions = liveParticipant
+                ? debugBuildGuideActions(game, player.getUUID(), lane, debugTargetPosition(lane, player.blockPosition()))
+                : debugBuildGuideActions(currentRound, GridPosition.from(player.blockPosition()));
+        BuildGuide guide = saveDebugBuildGuideSamples(gameManager, player, jobId, currentRound, actions);
+        gameManager.trackBuild(source.getServer(), player, guide.code());
+        if (liveParticipant) {
+            gameManager.buildGuideService().onPreparePhaseStarted(source.getServer(), game, game.currentRound());
+        }
+
+        if (view == DebugBuildGuideView.DETAIL) {
+            gameManager.dialogService().showBuildGuideDetails(player, guide);
+            success(source, "임시 빌드 상세 UI를 열었습니다. 코드=" + guide.code());
+        } else if (view == DebugBuildGuideView.TOWER_UI) {
+            if (liveParticipant) {
+                gameManager.dialogService().showTowerControl(player, game, gameManager.buildGuideService());
+                success(source, "디버그 빌드 가이드를 추적하고 타워 UI를 열었습니다. 추천 버튼은 파란색으로 표시됩니다. 코드=" + guide.code());
+            } else {
+                gameManager.dialogService().showDebugTowerControl(player);
+                success(source, "경기 밖이라 디버그 타워 UI를 열었습니다. 빌드 목록/상세 임시 데이터도 준비했습니다. 코드=" + guide.code());
+            }
+        } else {
+            gameManager.showDebugBuildList(player);
+            String suffix = liveParticipant ? " 파티클/라운드 안내도 표시했습니다." : "";
+            success(source, "임시 데이터가 들어간 빌드 목록 UI를 열었습니다." + suffix + " 코드=" + guide.code());
+        }
+        return 1;
+    }
+
+    private static BuildGuide saveDebugBuildGuideSamples(
+            SemionGameManager gameManager,
+            ServerPlayer player,
+            String jobId,
+            int currentRound,
+            List<BuildAction> primaryActions
+    ) {
+        BuildGuide primary = gameManager.buildGuideService().saveDebugGuide(
+                "DEBUG1",
+                "디버그 추천 빌드",
+                player.getUUID(),
+                player.getGameProfile().getName(),
+                jobId,
+                currentRound + 3,
+                primaryActions
+        );
+        gameManager.buildGuideService().saveDebugGuide(
+                "DEBUG2",
+                "초반 인컴 압박 빌드",
+                player.getUUID(),
+                player.getGameProfile().getName(),
+                jobId,
+                currentRound + 5,
+                List.of(
+                        BuildAction.towerPlace(currentRound, "sample_income_tower", new GridPosition(2, 64, 2), 75),
+                        BuildAction.summon(currentRound, "chicken", 20, 1, currentRound, "BLUE", 1),
+                        BuildAction.emeraldProductionUpgrade(currentRound + 1, 2, 50, 1),
+                        BuildAction.towerUpgrade(currentRound + 2, "sample_upgrade", new GridPosition(2, 64, 2), 120)
+                )
+        );
+        gameManager.buildGuideService().saveDebugGuide(
+                "DEBUG3",
+                "방어 안정화 빌드",
+                player.getUUID(),
+                player.getGameProfile().getName(),
+                jobId,
+                currentRound + 7,
+                List.of(
+                        BuildAction.towerPlace(currentRound, "sample_guard_tower", new GridPosition(-2, 64, -2), 100),
+                        BuildAction.towerPlace(currentRound + 1, "sample_support_tower", new GridPosition(-1, 64, -2), 90),
+                        BuildAction.towerUpgrade(currentRound + 2, "sample_guard_upgrade", new GridPosition(-2, 64, -2), 160),
+                        BuildAction.summon(currentRound + 3, "piglin", 80, 5, currentRound + 3, "GREEN", 1)
+                )
+        );
+        return primary;
+    }
+
+    private static GridPosition debugTargetPosition(PlayerLane lane, BlockPos playerPos) {
+        return TowerPlacementPositions.resolveGrid(lane, playerPos)
+                .or(() -> TowerPlacementPositions.resolveGrid(lane, BlockPos.containing(lane.laneLayout().positionAt(0.35))))
+                .orElseGet(() -> GridPosition.from(BlockPos.containing(lane.laneLayout().positionAt(0.35))));
+    }
+
+    private static List<BuildAction> debugBuildGuideActions(
+            SemionGame game,
+            UUID playerId,
+            PlayerLane lane,
+            GridPosition targetPosition
+    ) {
+        ArrayList<BuildAction> actions = new ArrayList<>();
+        Tower tower = lane.towerAt(targetPosition);
+        if (tower == null) {
+            ProductionTowerService.availableTowers(game, playerId).stream()
+                    .findFirst()
+                    .ifPresentOrElse(
+                            entry -> actions.add(BuildAction.towerPlace(
+                                    game.currentRound(),
+                                    entry.type().id(),
+                                    targetPosition,
+                                    entry.type().mineralCost()
+                            )),
+                            () -> actions.add(BuildAction.towerPlace(game.currentRound(), "debug_tower", targetPosition, 0))
+                    );
+        } else {
+            ProductionTowerService.availableUpgrades(game, playerId, tower.position()).stream()
+                    .findFirst()
+                    .ifPresent(option -> actions.add(BuildAction.towerUpgrade(
+                            game.currentRound(),
+                            option.id(),
+                            tower.position(),
+                            option.mineralCost()
+                    )));
+        }
+        game.summonShop().all().stream()
+                .findFirst()
+                .ifPresent(type -> actions.add(BuildAction.summon(
+                        game.currentRound(),
+                        type.id(),
+                        type.gasCost(),
+                        type.incomeGain(),
+                        game.currentRound(),
+                        "",
+                        0
+                )));
+        actions.add(BuildAction.emeraldProductionUpgrade(game.currentRound(), 1, 0, 1));
+        return actions;
+    }
+
+    private static List<BuildAction> debugBuildGuideActions(int currentRound, GridPosition targetPosition) {
+        return List.of(
+                BuildAction.towerPlace(currentRound, "debug_tower", targetPosition, 100),
+                BuildAction.summon(currentRound, "chicken", 20, 1, currentRound, "BLUE", 1),
+                BuildAction.emeraldProductionUpgrade(currentRound, 1, 50, 1),
+                BuildAction.towerUpgrade(currentRound + 1, "debug_upgrade", targetPosition, 125)
+        );
+    }
+
+    private static int publishBuild(CommandSourceStack source, SemionGameManager gameManager, String title)
+            throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        Optional<BuildGuide> guide = gameManager.publishLastBuild(player, title);
+        if (guide.isEmpty()) {
+            failure(source, "저장할 수 있는 마지막 경기 빌드 기록이 없습니다. 경기 종료 후 실제 행동 기록이 있어야 합니다.");
+            return 0;
+        }
+        success(source, "빌드를 비공개로 저장했습니다: " + guide.get().title() + " 코드=" + guide.get().code() + " /빌드 목록에서 공개로 전환할 수 있습니다.");
+        return 1;
+    }
+
+    private static int buildListDialog(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        gameManager.showBuildList(source.getPlayerOrException());
+        success(source, "빌드 목록 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int buildListDialog(CommandSourceStack source, SemionGameManager gameManager, int publicPage, int myPage)
+            throws CommandSyntaxException {
+        gameManager.showBuildList(source.getPlayerOrException(), publicPage, myPage);
+        success(source, "빌드 목록 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int trackBuild(CommandSourceStack source, SemionGameManager gameManager, String code)
+            throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        Optional<BuildGuide> guide = gameManager.trackBuild(source.getServer(), player, code);
+        if (guide.isEmpty()) {
+            failure(source, "빌드 코드를 찾을 수 없습니다: " + code);
+            return 0;
+        }
+        success(source, "빌드 추적을 시작했습니다: " + guide.get().title() + " 코드=" + guide.get().code());
+        gameManager.showBuildList(player);
+        return 1;
+    }
+
+    private static int clearTrackedBuild(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        gameManager.clearTrackedBuild(player);
+        success(source, "현재 추적 중인 빌드를 해제했습니다.");
+        gameManager.showBuildList(player);
+        return 1;
+    }
+
+    private static int showBuildDetails(CommandSourceStack source, SemionGameManager gameManager, String code)
+            throws CommandSyntaxException {
+        if (!gameManager.showBuildDetails(source.getPlayerOrException(), code)) {
+            failure(source, "빌드 코드를 찾을 수 없습니다: " + code);
+            return 0;
+        }
+        success(source, "빌드 상세 창을 열었습니다: " + code);
+        return 1;
+    }
+
+    private static int setBuildVisibility(CommandSourceStack source, SemionGameManager gameManager, String code, String visibility)
+            throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        Optional<BuildGuide> guide = gameManager.setBuildVisibility(player, code, visibility);
+        if (guide.isEmpty()) {
+            failure(source, "내 빌드가 아니거나 빌드 코드를 찾을 수 없습니다: " + code);
+            return 0;
+        }
+        success(source, guide.get().isPublic() ? "빌드를 공개했습니다: " + guide.get().title() : "빌드를 비공개로 전환했습니다: " + guide.get().title());
+        gameManager.dialogService().showBuildGuideDetails(player, guide.get());
+        return 1;
+    }
+
+    private static int deleteBuild(CommandSourceStack source, SemionGameManager gameManager, String code)
+            throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (!gameManager.deleteBuild(player, code)) {
+            failure(source, "내 빌드가 아니거나 빌드 코드를 찾을 수 없습니다: " + code);
+            return 0;
+        }
+        success(source, "빌드를 삭제했습니다: " + code);
+        gameManager.showBuildList(player);
         return 1;
     }
 
@@ -1170,7 +1480,7 @@ public final class SemionCommands {
 
     private static String summonFailureMessage(SummonResultType result) {
         return switch (result) {
-            case INVALID_PHASE -> "준비/소환 단계에서만 소환할 수 있습니다";
+            case INVALID_PHASE -> "준비 단계 또는 웨이브 중에만 구매할 수 있습니다";
             case PLAYER_NOT_IN_GAME -> "현재 경기 참가자가 아닙니다";
             case PLAYER_TEAM_ELIMINATED -> "소속 팀이 탈락했습니다";
             case UNKNOWN_SUMMON -> "알 수 없는 소환 ID입니다";

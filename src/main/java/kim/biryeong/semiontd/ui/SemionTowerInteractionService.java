@@ -41,7 +41,7 @@ public final class SemionTowerInteractionService {
             return InteractionResult.PASS;
         }
 
-        gameManager.dialogService().showTowerDetails(serverPlayer, game, towerEntity.runtimeTower());
+        gameManager.dialogService().showTowerDetails(serverPlayer, game, towerEntity.runtimeTower(), gameManager.buildGuideService());
         return InteractionResult.SUCCESS;
     }
 }

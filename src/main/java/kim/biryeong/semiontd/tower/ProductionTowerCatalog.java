@@ -91,6 +91,16 @@ public final class ProductionTowerCatalog {
                 .findFirst();
     }
 
+    public static Optional<TowerUpgradeOption> findUpgrade(String upgradeId) {
+        if (upgradeId == null) {
+            return Optional.empty();
+        }
+        return UPGRADES.values().stream()
+                .flatMap(List::stream)
+                .filter(option -> option.id().equalsIgnoreCase(upgradeId))
+                .findFirst();
+    }
+
     public static CatalogEntry register(TowerType type, TowerFactory factory, int tier) {
         CatalogEntry entry = new CatalogEntry(type, factory, tier);
         CatalogEntry previous = ENTRIES.putIfAbsent(type.id(), entry);

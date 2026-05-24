@@ -33,6 +33,12 @@ public final class ProgressionService {
         return store.putProfile(playerId, updated);
     }
 
+    public SemionPlayerProfile rememberRecentBuildCode(MinecraftServer server, UUID playerId, String playerName, String code) {
+        SemionPlayerProfile updated = store.getOrCreateProfile(playerId, playerName)
+                .rememberRecentBuildCode(playerName, code);
+        return store.putProfile(playerId, updated);
+    }
+
     public Map<UUID, MatchProgressionReward> applyMatchResult(MinecraftServer server, MatchResult matchResult) {
         Map<UUID, MatchProgressionReward> rewards = new LinkedHashMap<>();
         for (MatchParticipantResult participant : matchResult.participants()) {

@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kim.biryeong.semiontd.SemionTd;
+import kim.biryeong.semiontd.buildguide.BuildGuide;
+import kim.biryeong.semiontd.buildguide.BuildGuideService;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.MapConfig;
 import kim.biryeong.semiontd.config.ProgressionConfig;
@@ -34,6 +36,8 @@ import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.util.Scheduler;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -46,6 +50,7 @@ public final class SemionGameManager {
     private static final int STARTUP_LOBBY_LOAD_DELAY_TICKS = 20;
     public static final int START_COUNTDOWN_TICKS = 5 * 20;
     public static final int MATCH_RESULT_DELAY_TICKS = 5 * 20;
+    public static final int MATCH_RESULT_DIALOG_AFTER_LOBBY_DELAY_TICKS = 2 * 20;
 
     private EconomyConfig economyConfig = EconomyConfig.defaultConfig();
     private WaveConfig waveConfig = WaveConfig.defaultConfig();
@@ -59,6 +64,7 @@ public final class SemionGameManager {
     private SemionMusicService musicService = SemionMusicService.disabled();
     private final SemionDialogService dialogService = new SemionDialogService();
     private final SemionDisplayHudService displayHudService = new SemionDisplayHudService();
+    private final BuildGuideService buildGuideService = new BuildGuideService(null);
     private MatchMode matchMode = MatchMode.NORMAL;
     private SemionGame activeGame;
     private LobbyWorld lobbyWorld;
@@ -66,6 +72,9 @@ public final class SemionGameManager {
     private final Set<UUID> nextMatchPriorityPlayerIds = new HashSet<>();
     private SemionGame pendingFinishedGame;
     private int pendingFinishDelayTicks;
+    private MatchResult pendingMatchResultDialog;
+    private Map<UUID, MatchProgressionReward> pendingMatchResultRewards = Map.of();
+    private int pendingMatchResultDialogDelayTicks;
     private ParticipantSelectionPlan pendingStartPlan;
     private int startCountdownTicks;
     private int nextStartCountdownAnnouncementSecond;
@@ -138,6 +147,7 @@ public final class SemionGameManager {
         this.progressionStorePath = progressionStorePath;
         this.configDir = progressionStorePath == null ? null : progressionStorePath.getParent();
         this.progressionService = new ProgressionService(progressionConfig, progressionStorePath);
+        this.buildGuideService.configure(this.configDir == null ? null : this.configDir.resolve("build_guides.json"));
         ProductionTowerCatalogs.reloadBuiltIns(this.towerBalanceConfig);
         IncomeSummons.reloadBuiltIns(this.summonConfig);
     }
@@ -211,6 +221,83 @@ public final class SemionGameManager {
         return displayHudService;
     }
 
+    public BuildGuideService buildGuideService() {
+        return buildGuideService;
+    }
+
+    public Optional<BuildGuide> publishLastBuild(ServerPlayer player, String title) {
+        if (player == null || lastMatchResult == null) {
+            return Optional.empty();
+        }
+        return buildGuideService.publishLastRecording(player.getUUID(), title);
+    }
+
+    public void showBuildList(ServerPlayer player) {
+        showBuildList(player, 1, 1);
+    }
+
+    public void showBuildList(ServerPlayer player, int publicPage, int myPage) {
+        showBuildList(player, false, publicPage, myPage);
+    }
+
+    public void showDebugBuildList(ServerPlayer player) {
+        showBuildList(player, true, 1, 1);
+    }
+
+    private void showBuildList(ServerPlayer player, boolean includeDebugGuides, int publicPage, int myPage) {
+        SemionPlayerProfile profile = progressionService.profile(
+                player.getServer(),
+                player.getUUID(),
+                player.getGameProfile().getName()
+        );
+        if (includeDebugGuides) {
+            dialogService.showDebugBuildGuides(player, buildGuideService, profile);
+        } else {
+            dialogService.showBuildGuides(player, buildGuideService, profile, publicPage, myPage);
+        }
+    }
+
+    public boolean showBuildDetails(ServerPlayer player, String code) {
+        Optional<BuildGuide> guide = player == null ? Optional.empty() : buildGuideService.findViewable(code, player.getUUID());
+        if (player == null || guide.isEmpty()) {
+            return false;
+        }
+        dialogService.showBuildGuideDetails(player, guide.get());
+        return true;
+    }
+
+    public Optional<BuildGuide> trackBuild(MinecraftServer server, ServerPlayer player, String code) {
+        if (player == null || code == null) {
+            return Optional.empty();
+        }
+        if (!buildGuideService.track(player.getUUID(), code)) {
+            return Optional.empty();
+        }
+        Optional<BuildGuide> guide = buildGuideService.find(code);
+        if (guide.isEmpty()) {
+            return Optional.empty();
+        }
+        progressionService.rememberRecentBuildCode(server, player.getUUID(), player.getGameProfile().getName(), guide.get().code());
+        return guide;
+    }
+
+    public void clearTrackedBuild(ServerPlayer player) {
+        if (player != null) {
+            buildGuideService.clearTracked(player.getUUID());
+        }
+    }
+
+    public Optional<BuildGuide> setBuildVisibility(ServerPlayer player, String code, String visibility) {
+        if (player == null) {
+            return Optional.empty();
+        }
+        return buildGuideService.setVisibility(player.getUUID(), code, visibility);
+    }
+
+    public boolean deleteBuild(ServerPlayer player, String code) {
+        return player != null && buildGuideService.delete(player.getUUID(), code);
+    }
+
     public void sendAllPlayersToLobby(MinecraftServer server) throws ArenaLoadException {
         ensureLobby(server);
         for (ServerPlayer player : List.copyOf(server.getPlayerList().getPlayers())) {
@@ -261,9 +348,10 @@ public final class SemionGameManager {
         }
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
+        clearPendingMatchResultDialog();
 
         GameArena arena = GameArenaLoader.load(server, mapConfig);
-        activeGame = new SemionGame(economyConfig, waveConfig, arena);
+        activeGame = new SemionGame(economyConfig, waveConfig, arena, buildGuideService);
         applyPersistedJobSelections(server, activeGame);
         lastMatchResult = null;
         VanillaTeamBridge.ensureTeams(server);
@@ -282,6 +370,7 @@ public final class SemionGameManager {
         }
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
+        clearPendingMatchResultDialog();
         lastMatchResult = null;
         displayHudService.clear(server);
         return hadActiveGame;
@@ -356,6 +445,7 @@ public final class SemionGameManager {
 
     public void tick(MinecraftServer server) {
         musicService.tick(server, activeGame);
+        tickPendingMatchResultDialog(server);
         if (activeGame == null) {
             clearStartCountdown();
             return;
@@ -436,6 +526,7 @@ public final class SemionGameManager {
         clearStartCountdown();
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
+        clearPendingMatchResultDialog();
         if (lobbyWorld != null) {
             lobbyWorld.unload();
             lobbyWorld = null;
@@ -589,12 +680,13 @@ public final class SemionGameManager {
         Optional<MatchResult> result = finishedGame.matchResult();
         if (result.isPresent()) {
             lastMatchResult = result.get();
+            buildGuideService.finishMatch(finishedGame, result.get().finalRound());
             nextMatchPriorityPlayerIds.addAll(result.get().spectatorIds());
             Map<UUID, MatchProgressionReward> rewards = progressionService.applyMatchResult(server, result.get());
-            announceMatchResult(server, result.get(), rewards);
-            showMatchResultDialogs(server, result.get(), rewards);
+            queueMatchResultDialog(result.get(), rewards);
         } else {
             lastMatchResult = null;
+            clearPendingMatchResultDialog();
         }
 
         try {
@@ -604,6 +696,33 @@ public final class SemionGameManager {
         }
 
         closeActiveGameSafely(finishedGame, "finishing match");
+    }
+
+    private void queueMatchResultDialog(MatchResult matchResult, Map<UUID, MatchProgressionReward> rewards) {
+        pendingMatchResultDialog = matchResult;
+        pendingMatchResultRewards = rewards == null ? Map.of() : Map.copyOf(rewards);
+        pendingMatchResultDialogDelayTicks = MATCH_RESULT_DIALOG_AFTER_LOBBY_DELAY_TICKS;
+    }
+
+    private void tickPendingMatchResultDialog(MinecraftServer server) {
+        if (pendingMatchResultDialog == null) {
+            return;
+        }
+        if (pendingMatchResultDialogDelayTicks > 0) {
+            pendingMatchResultDialogDelayTicks--;
+            return;
+        }
+        MatchResult matchResult = pendingMatchResultDialog;
+        Map<UUID, MatchProgressionReward> rewards = pendingMatchResultRewards;
+        clearPendingMatchResultDialog();
+        announceMatchResult(server, matchResult, rewards);
+        showMatchResultDialogs(server, matchResult, rewards);
+    }
+
+    private void clearPendingMatchResultDialog() {
+        pendingMatchResultDialog = null;
+        pendingMatchResultRewards = Map.of();
+        pendingMatchResultDialogDelayTicks = 0;
     }
 
     private void clearPriorityForActiveParticipants(ParticipantSelectionPlan plan) {
@@ -626,11 +745,15 @@ public final class SemionGameManager {
         );
 
         for (MatchParticipantResult participant : matchResult.participants()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(participant.playerId());
+            if (player != null) {
+                player.sendSystemMessage(buildGuideSavePrompt());
+            }
+
             MatchProgressionReward reward = rewards.get(participant.playerId());
             if (reward == null) {
                 continue;
             }
-            ServerPlayer player = server.getPlayerList().getPlayer(participant.playerId());
             if (player == null) {
                 continue;
             }
@@ -642,6 +765,14 @@ public final class SemionGameManager {
                             + " <gray>보유</gray> <aqua>" + reward.profile().cosmeticCurrency() + "</aqua>"
             ));
         }
+    }
+
+    private static Component buildGuideSavePrompt() {
+        return SemionText.prefixed(Component.empty()
+                .append(Component.literal("이번 게임 빌드를 저장하시겠어요? ").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal("저장하시려면 ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("/빌드 기록 <제목>").withStyle(ChatFormatting.AQUA))
+                .append(Component.literal(" 를 입력해서 저장해주세요!").withStyle(ChatFormatting.GRAY)));
     }
 
     private void showMatchResultDialogs(

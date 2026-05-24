@@ -4,10 +4,11 @@ import eu.pb4.mapcanvas.api.font.DefaultFonts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
+import kim.biryeong.semiontd.ui.rp.SemionUiFont;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.resources.ResourceLocation;
 
 public final class TextUncenterer {
@@ -19,11 +20,19 @@ public final class TextUncenterer {
     }
 
     public static List<Component> getLeftAligned(Component text, int width, String language) {
-        return getAligned(text, width, language, MutableComponent::append);
+        return getAligned(text, width, language, (value, filler) -> Component.empty().append(value).append(filler));
     }
 
     public static List<Component> getRightAligned(Component text, int width, String language) {
         return getAligned(text, width, language, (value, filler) -> Component.empty().append(filler).append(value));
+    }
+
+    public static List<Component> getLeftAlignedNoWrap(Component text, int width, String language) {
+        return getExplicitLineAligned(text, width, language, (value, filler) -> Component.empty().append(value).append(filler));
+    }
+
+    public static List<Component> getRightAlignedNoWrap(Component text, int width, String language) {
+        return getExplicitLineAligned(text, width, language, (value, filler) -> Component.empty().append(filler).append(value));
     }
 
     public static List<Component> splitLines(Component text, int width, String language) {
@@ -34,7 +43,7 @@ public final class TextUncenterer {
             Component text,
             int width,
             String language,
-            BiFunction<MutableComponent, Component, Component> merger
+            Merger merger
     ) {
         // Kept for API parity with upstream body signature; 1.21.8 backport does not apply locale shaping here.
         if (language == null || language.isEmpty()) {
@@ -42,19 +51,40 @@ public final class TextUncenterer {
         }
 
         int normalizedWidth = Math.max(0, width);
-        List<MutableComponent> splitLines = splitStyledLines(text);
-        List<Component> result = new ArrayList<>(splitLines.size());
+        List<Component> result = new ArrayList<>();
+        LineBuilder line = new LineBuilder();
 
-        for (MutableComponent line : splitLines) {
-            int lineWidth = getWidth(line);
-            int fillerWidth = Math.max(0, normalizedWidth - lineWidth);
-            result.add(merger.apply(line, filler(fillerWidth)));
-        }
+        text.visit((style, string) -> {
+            acceptStyledText(result, line, style, string, normalizedWidth, merger);
+            return Optional.empty();
+        }, Style.EMPTY);
 
+        flushLine(result, line, normalizedWidth, merger, false);
         return List.copyOf(result);
     }
 
-    private static List<MutableComponent> splitStyledLines(Component text) {
+    private static List<Component> getExplicitLineAligned(
+            Component text,
+            int width,
+            String language,
+            Merger merger
+    ) {
+        // Kept for API parity with upstream body signature; 1.21.8 backport does not apply locale shaping here.
+        if (language == null || language.isEmpty()) {
+            language = "en_us";
+        }
+
+        int normalizedWidth = Math.max(0, width);
+        List<MutableComponent> splitLines = splitExplicitLines(text);
+        List<Component> result = new ArrayList<>(splitLines.size());
+        for (MutableComponent line : splitLines) {
+            int fillerWidth = Math.max(0, normalizedWidth - getWidth(line));
+            result.add(merger.apply(line, filler(fillerWidth)));
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<MutableComponent> splitExplicitLines(Component text) {
         List<MutableComponent> lines = new ArrayList<>();
         lines.add(Component.empty());
 
@@ -83,6 +113,62 @@ public final class TextUncenterer {
         return lines;
     }
 
+    private static void acceptStyledText(
+            List<Component> result,
+            LineBuilder line,
+            Style style,
+            String string,
+            int width,
+            Merger merger
+    ) {
+        int newLine = string.indexOf('\n');
+        String text = newLine == -1 ? string : string.substring(0, newLine);
+        if (!text.isEmpty()) {
+            appendWrappedText(result, line, style, text, width, merger);
+        }
+
+        if (newLine != -1) {
+            flushLine(result, line, width, merger, true);
+            acceptStyledText(result, line, style, string.substring(newLine + 1), width, merger);
+        }
+    }
+
+    private static void appendWrappedText(
+            List<Component> result,
+            LineBuilder line,
+            Style style,
+            String text,
+            int width,
+            Merger merger
+    ) {
+        MutableComponent component = Component.literal(text).setStyle(style);
+        if (getWidth(Component.empty().append(line.component).append(component)) <= width) {
+            line.component.append(component);
+            return;
+        }
+
+        int spaceIndex = text.indexOf(' ');
+        if (spaceIndex != -1) {
+            String remaining = text;
+            while (spaceIndex != -1) {
+                appendWrappedText(result, line, style, remaining.substring(0, spaceIndex), width, merger);
+                if (!line.component.getSiblings().isEmpty()) {
+                    line.component.append(Component.literal(" ").setStyle(style));
+                }
+                remaining = remaining.substring(spaceIndex + 1);
+                spaceIndex = remaining.indexOf(' ');
+            }
+            appendWrappedText(result, line, style, remaining, width, merger);
+            return;
+        }
+
+        if (!line.component.getSiblings().isEmpty()) {
+            trimTrailingSpace(line.component);
+            flushLine(result, line, width, merger, false);
+        }
+        line.component.append(component);
+    }
+
     private static int getWidth(Component text) {
         final int[] totalWidth = {0};
         text.visit((style, string) -> {
@@ -104,8 +190,33 @@ public final class TextUncenterer {
             return Component.empty();
         }
 
-        int spaceWidth = Math.max(1, DefaultFonts.REGISTRY.getDefaultedFont(DEFAULT_FONT_ID).getTextWidth(" ", FONT_SIZE));
-        int spaces = (int) Math.ceil((double) width / spaceWidth);
-        return Component.literal(" ".repeat(spaces));
+        return SemionUiFont.space(width);
+    }
+
+    private static void flushLine(List<Component> result, LineBuilder line, int width, Merger merger, boolean includeEmptyLine) {
+        trimTrailingSpace(line.component);
+        if (!includeEmptyLine && line.component.getSiblings().isEmpty()) {
+            return;
+        }
+
+        int fillerWidth = Math.max(0, width - getWidth(line.component));
+        result.add(merger.apply(line.component, filler(fillerWidth)));
+        line.component = Component.empty();
+    }
+
+    private static void trimTrailingSpace(MutableComponent line) {
+        if (!line.getSiblings().isEmpty()
+                && line.getSiblings().getLast().getContents() instanceof PlainTextContents contents
+                && contents.text().equals(" ")) {
+            line.getSiblings().removeLast();
+        }
+    }
+
+    private static final class LineBuilder {
+        private MutableComponent component = Component.empty();
+    }
+
+    private interface Merger {
+        Component apply(MutableComponent text, Component filler);
     }
 }

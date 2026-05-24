@@ -10,6 +10,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import kim.biryeong.semiontd.buildguide.BuildGuideService;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.RoundWaveConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
@@ -49,6 +50,7 @@ public final class SemionGame {
     private final GameArena arena;
     private final EconomyService economyService;
     private final SummonShop summonShop;
+    private final BuildGuideService buildGuideService;
     private final Random random = new Random();
     private final Map<TeamId, SemionTeam> teams = new EnumMap<>(TeamId.class);
     private final Map<UUID, SemionPlayer> players = new java.util.HashMap<>();
@@ -66,11 +68,16 @@ public final class SemionGame {
     private boolean finalDefenseForcedThisRound;
 
     public SemionGame(EconomyConfig economyConfig, WaveConfig waveConfig, GameArena arena) {
+        this(economyConfig, waveConfig, arena, null);
+    }
+
+    public SemionGame(EconomyConfig economyConfig, WaveConfig waveConfig, GameArena arena, BuildGuideService buildGuideService) {
         this.economyConfig = economyConfig;
         this.waveConfig = waveConfig;
         this.arena = arena;
         this.economyService = new EconomyService(economyConfig, this);
         this.summonShop = new SummonShop();
+        this.buildGuideService = buildGuideService;
         for (TeamId teamId : TeamId.values()) {
             teams.put(teamId, new SemionTeam(teamId));
         }
@@ -106,6 +113,10 @@ public final class SemionGame {
 
     public SummonShop summonShop() {
         return summonShop;
+    }
+
+    public Optional<BuildGuideService> buildGuideService() {
+        return Optional.ofNullable(buildGuideService);
     }
 
     public GameArena arena() {
@@ -294,6 +305,9 @@ public final class SemionGame {
         placeSpectators(server, plan.spectatorIds());
         rosterLocked = true;
         notifyMatchStarted();
+        if (buildGuideService != null) {
+            buildGuideService.startMatch(this);
+        }
         startPreparePhase(server);
         return true;
     }
@@ -378,6 +392,18 @@ public final class SemionGame {
         } else {
             targetLane.get().enqueueSummonedMonster(monster);
         }
+        if (buildGuideService != null) {
+            buildGuideService.recordSummon(
+                    this,
+                    playerId,
+                    summonId,
+                    gasCost,
+                    incomeGain,
+                    targetTeam.get().id(),
+                    targetLane.get().laneId(),
+                    scheduledRound
+            );
+        }
         return SummonResult.success(summonId, targetTeam.get().id(), targetLane.get().laneId(), scheduledRound);
     }
 
@@ -387,7 +413,33 @@ public final class SemionGame {
             return false;
         }
         SemionTeam team = teams.get(player.teamId());
-        return economyService.upgradeGasProduction(player, team);
+        PlayerEconomy economy = player.economy();
+        long emeraldPerSecBefore = economy.emeraldPerSec();
+        int upgradeCountBefore = economy.emeraldProductionUpgradeCount();
+        long cost = economyConfig.gasProduction().upgradeCost(upgradeCountBefore);
+        boolean upgraded = economyService.upgradeGasProduction(player, team);
+        if (upgraded && buildGuideService != null) {
+            buildGuideService.recordEmeraldProductionUpgrade(
+                    this,
+                    playerId,
+                    economy.emeraldProductionUpgradeCount(),
+                    cost,
+                    Math.max(0L, economy.emeraldPerSec() - emeraldPerSecBefore)
+            );
+        }
+        return upgraded;
+    }
+
+    public void recordTowerPlacement(UUID playerId, String towerId, GridPosition position, long cost) {
+        if (buildGuideService != null) {
+            buildGuideService.recordTowerPlacement(this, playerId, towerId, position, cost);
+        }
+    }
+
+    public void recordTowerUpgrade(UUID playerId, String upgradeId, GridPosition position, long cost) {
+        if (buildGuideService != null) {
+            buildGuideService.recordTowerUpgrade(this, playerId, upgradeId, position, cost);
+        }
     }
 
     public boolean killBoss(TeamId teamId) {
@@ -569,6 +621,9 @@ public final class SemionGame {
         }
         prepareActivePlayers(server);
         notifyRoundStarted(currentRound);
+        if (buildGuideService != null) {
+            buildGuideService.onPreparePhaseStarted(server, this, currentRound);
+        }
     }
 
     private void enqueueWave(SemionTeam team) {

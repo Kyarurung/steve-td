@@ -55,7 +55,7 @@ public final class SemionHotbarService {
 
         ItemStack stack = serverPlayer.getItemInHand(hand);
         if (isTowerTool(stack)) {
-            gameManager.dialogService().showTowerControl(serverPlayer, game);
+            gameManager.dialogService().showTowerControl(serverPlayer, game, gameManager.buildGuideService());
             return InteractionResult.SUCCESS;
         }
         if (isSummonTool(stack)) {

@@ -1,13 +1,20 @@
 package kim.biryeong.semiontd.ui;
 
 import de.tomalbrc.avatarrenderer.AvatarRendererMod;
+import de.tomalbrc.avatarrenderer.impl.AvatarRenderer;
+import de.tomalbrc.avatarrenderer.impl.SkinLoader;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import kim.biryeong.semiontd.buildguide.BuildGuide;
+import kim.biryeong.semiontd.buildguide.BuildGuideService;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.DamageType;
@@ -36,6 +43,9 @@ import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.SemionTeam;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.progression.MatchProgressionReward;
+import kim.biryeong.semiontd.progression.SemionPlayerProfile;
+import kim.biryeong.semiontd.ui.dialog.body.AlignedMessage;
+import kim.biryeong.semiontd.ui.dialog.body.SplitAlignedMessage;
 import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.core.Holder;
 import net.minecraft.server.dialog.CommonButtonData;
@@ -53,12 +63,16 @@ import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
 
 public final class SemionDialogService {
-    private static final int BODY_WIDTH = 360;
+    private static final int BODY_WIDTH = 256;
+    private static final int TITLE_HEADER_WIDTH = 200;
+    private static final int PARTICIPANT_AVATAR_STEP = 18;
     private static final int BUTTON_WIDTH = 180;
     private static final int COMPACT_BUTTON_WIDTH = 118;
     private static final int SUMMON_BUTTON_WIDTH = 82;
     private static final int SUMMON_COLUMNS = 5;
     private static final int SUMMON_PAGE_SIZE = 25;
+    private static final int BUILD_GUIDE_PAGE_SIZE = 4;
+    private static final ConcurrentMap<SmallAvatarKey, Component> SMALL_AVATAR_CACHE = new ConcurrentHashMap<>();
 
     public void showGameStatus(ServerPlayer player, SemionGame game) {
         StringBuilder body = new StringBuilder();
@@ -104,50 +118,44 @@ public final class SemionDialogService {
             MatchResult matchResult,
             Map<UUID, MatchProgressionReward> rewards
     ) {
-        MutableComponent body = mutableMiniMessage("<gradient:#facc15:#22d3ee><bold>경기 결과</bold></gradient>\n")
-                .append(miniMessage("<gray>최종 라운드</gray> <white>" + matchResult.finalRound() + "</white>\n"))
-                .append(miniMessage("<gray>승리 팀</gray> <gold>" + teamList(matchResult.winningTeams()) + "</gold>\n\n"));
-
         List<MatchParticipantResult> orderedParticipants = matchResult.participants().stream()
                 .sorted(participantComparator())
                 .toList();
 
-        body = body.append(miniMessage("<yellow><bold>참가자 기록</bold></yellow>\n"));
+        ArrayList<DialogBody> bodies = new ArrayList<>();
+        bodies.add(new HeaderMessage(miniMessage("<gradient:#facc15:#22d3ee><bold>경기 결과</bold></gradient>"), TITLE_HEADER_WIDTH));
+        bodies.add(new AlignedMessage(
+                miniMessage("<gray>최종 라운드</gray> <white>" + matchResult.finalRound() + "</white>\n"
+                        + "<gray>승리 팀</gray> " + teamListMarkup(matchResult.winningTeams())),
+                BODY_WIDTH,
+                AlignedMessage.Align.LEFT
+        ));
+
+        bodies.add(new HeaderMessage(miniMessage("<yellow><bold>참가자 기록</bold></yellow>"), BODY_WIDTH));
         int avatarOffset = 0;
         for (MatchParticipantResult participant : orderedParticipants) {
-            var stats = participant.stats();
-            body = body.append(avatarComponent(participant, avatarOffset++));
-            body = body.append(miniMessage(" <white>" + participant.playerName() + "</white>"
-                    + " <dark_gray>[</dark_gray>"
-                    + (participant.winner() ? "<gold>승리</gold>" : "<gray>패배</gray>")
-                    + " <aqua>" + participant.teamId().name() + "</aqua>"
-                    + "<dark_gray>]</dark_gray>"
-                    + " <gray>처치</gray> <red>" + stats.monsterKills() + "</red>"
-                    + " <gray>수입</gray> <green>" + stats.finalIncome() + "</green>"
-                    + " <gray>소환</gray> <light_purple>" + stats.summonedMonsters() + "</light_purple>"
-                    + " <gray>처치다이아</gray> <aqua>" + stats.killMinerals() + "</aqua>"));
-            MatchProgressionReward reward = rewards.get(participant.playerId());
-            if (reward != null) {
-                body = body.append(miniMessage(" <gray>꾸미기재화</gray> <gold>+" + reward.currencyAwarded() + "</gold>"));
-            }
-            body = body.append(Component.literal("\n"));
+            bodies.add(new PlainMessage(participantResultBody(participant, rewards.get(participant.playerId()), avatarOffset++), BODY_WIDTH));
+            bodies.add(new PlainMessage(Component.literal(" "), BODY_WIDTH));
         }
 
         List<MatchParticipantResult> losers = matchResult.participants().stream()
                 .filter(participant -> !participant.winner())
                 .sorted(participantComparator())
                 .toList();
-        body = body.append(miniMessage("\n<red><bold>탈락 플레이어</bold></red>\n"));
+        bodies.add(new HeaderMessage(miniMessage("<red><bold>탈락 플레이어</bold></red>"), BODY_WIDTH));
         if (losers.isEmpty()) {
-            body = body.append(miniMessage("<gray>- 없음</gray>\n"));
+            bodies.add(new AlignedMessage(miniMessage("<gray>- 없음</gray>"), BODY_WIDTH, AlignedMessage.Align.LEFT));
         } else {
             for (MatchParticipantResult participant : losers) {
-                body = body.append(miniMessage("<gray>- </gray><white>" + participant.playerName() + "</white>"
-                        + " <dark_gray>[</dark_gray><aqua>" + participant.teamId().name() + "</aqua><dark_gray>]</dark_gray>\n"));
+                bodies.add(new AlignedMessage(miniMessage("<gray>- </gray><white>" + participant.playerName() + "</white>"
+                        + " <dark_gray>[</dark_gray>" + teamMarkup(participant.teamId()) + "<dark_gray>]</dark_gray>"),
+                        BODY_WIDTH,
+                        AlignedMessage.Align.LEFT
+                ));
             }
         }
 
-        show(player, "세미온 TD 결과", body);
+        showActions(player, "세미온 TD 결과", bodies, List.of(), 1);
     }
 
     public void showLastResult(ServerPlayer player, MatchResult matchResult) {
@@ -168,6 +176,10 @@ public final class SemionDialogService {
     }
 
     public void showTowerControl(ServerPlayer player, SemionGame game) {
+        showTowerControl(player, game, null);
+    }
+
+    public void showTowerControl(ServerPlayer player, SemionGame game, BuildGuideService buildGuideService) {
         var semionPlayer = game.players().get(player.getUUID());
         if (semionPlayer == null) {
             show(player, "세미온 TD 타워", "<red>현재 게임 참가자가 아닙니다.</red>");
@@ -222,14 +234,19 @@ public final class SemionDialogService {
         if (selectedTower == null) {
             for (ProductionTowerCatalog.CatalogEntry entry : entries) {
                 long mineralCost = Math.max(0, entry.type().mineralCost());
-                actions.add(towerButton(entry, mineralCost, economy.diamond() >= mineralCost));
+                boolean recommended = buildGuideService != null && TowerPlacementPositions.resolveGrid(game.playerLane(player.getUUID()).orElse(null), player.blockPosition())
+                        .map(position -> buildGuideService.isRecommendedTower(game, player.getUUID(), game.currentRound(), position, entry.type().id()))
+                        .orElse(false);
+                actions.add(towerButton(entry, mineralCost, economy.diamond() >= mineralCost, recommended));
             }
         } else {
             for (TowerUpgradeOption option : upgrades) {
+                boolean recommended = buildGuideService != null
+                        && buildGuideService.isRecommendedUpgrade(game, player.getUUID(), game.currentRound(), selectedTower.position(), option.id());
                 actions.add(actionButton(
-                        option.displayName(),
+                        upgradeButtonLabel(option, economy.diamond() >= option.mineralCost(), recommended),
                         "/semiontd tower upgrade " + option.id(),
-                        upgradeTooltip(option),
+                        upgradeTooltip(option, economy.diamond() >= option.mineralCost(), recommended),
                         COMPACT_BUTTON_WIDTH
                 ));
             }
@@ -238,6 +255,10 @@ public final class SemionDialogService {
     }
 
     public void showTowerDetails(ServerPlayer player, SemionGame game, Tower tower) {
+        showTowerDetails(player, game, tower, null);
+    }
+
+    public void showTowerDetails(ServerPlayer player, SemionGame game, Tower tower, BuildGuideService buildGuideService) {
         if (tower == null) {
             show(player, "세미온 TD 타워", "<red>타워 정보를 찾을 수 없습니다.</red>");
             return;
@@ -297,14 +318,16 @@ public final class SemionDialogService {
         if (ownedByPlayer && sameLane) {
             List<TowerUpgradeOption> upgrades = ProductionTowerService.availableUpgrades(game, player.getUUID(), tower.position());
             for (TowerUpgradeOption option : upgrades) {
+                boolean recommended = buildGuideService != null
+                        && buildGuideService.isRecommendedUpgrade(game, player.getUUID(), game.currentRound(), tower.position(), option.id());
                 actions.add(actionButton(
-                        option.displayName(),
+                        upgradeButtonLabel(option, semionPlayer.economy().diamond() >= option.mineralCost(), recommended),
                         "/semiontd tower upgrade "
                                 + option.id() + " "
                                 + tower.position().x() + " "
                                 + tower.position().y() + " "
                                 + tower.position().z(),
-                        upgradeTooltip(option),
+                        upgradeTooltip(option, semionPlayer.economy().diamond() >= option.mineralCost(), recommended),
                         COMPACT_BUTTON_WIDTH
                 ));
             }
@@ -331,9 +354,130 @@ public final class SemionDialogService {
 
         List<ActionButton> actions = ProductionTowerCatalog.all().stream()
                 .filter(ProductionTowerCatalog.CatalogEntry::starter)
-                .map(entry -> towerButton(entry, entry.type().mineralCost(), true))
+                .map(entry -> towerButton(entry, entry.type().mineralCost(), true, false))
                 .toList();
         showActions(player, "세미온 TD 타워", body.toString(), actions, 3);
+    }
+
+    public void showBuildGuides(ServerPlayer player, BuildGuideService buildGuideService, SemionPlayerProfile profile) {
+        showBuildGuides(player, buildGuideService, profile, 1, 1, false);
+    }
+
+    public void showBuildGuides(ServerPlayer player, BuildGuideService buildGuideService, SemionPlayerProfile profile, int publicPage, int myPage) {
+        showBuildGuides(player, buildGuideService, profile, publicPage, myPage, false);
+    }
+
+    public void showDebugBuildGuides(ServerPlayer player, BuildGuideService buildGuideService, SemionPlayerProfile profile) {
+        showBuildGuides(player, buildGuideService, profile, 1, 1, true);
+    }
+
+    private void showBuildGuides(ServerPlayer player, BuildGuideService buildGuideService, SemionPlayerProfile profile, int publicPage, int myPage, boolean includeDebugGuides) {
+        Optional<BuildGuide> tracked = buildGuideService.trackedGuide(player.getUUID())
+                .filter(guide -> includeDebugGuides || !BuildGuideService.isDebugGuide(guide));
+        List<BuildGuide> allPublicGuides = includeDebugGuides ? buildGuideService.debugPublicGuides() : buildGuideService.publicGuides();
+        List<BuildGuide> allMyGuides = includeDebugGuides
+                ? allPublicGuides.stream().filter(guide -> guide.ownedBy(player.getUUID())).toList()
+                : buildGuideService.myGuides(player.getUUID());
+        int publicPageCount = buildGuidePageCount(allPublicGuides.size());
+        int myPageCount = buildGuidePageCount(allMyGuides.size());
+        int safePublicPage = clampPage(publicPage, publicPageCount);
+        int safeMyPage = clampPage(myPage, myPageCount);
+        List<BuildGuide> publicGuides = buildGuidePage(allPublicGuides, safePublicPage);
+        List<BuildGuide> myGuides = buildGuidePage(allMyGuides, safeMyPage);
+        List<BuildGuide> recentGuides = (includeDebugGuides ? buildGuideService.debugRecentGuides(profile.recentBuildCodes()) : buildGuideService.recentGuides(player.getUUID(), profile.recentBuildCodes()))
+                .stream()
+                .limit(5)
+                .toList();
+
+        ArrayList<DialogBody> bodies = new ArrayList<>();
+        bodies.add(new HeaderMessage(miniMessage("<gradient:#60a5fa:#22c55e><bold>빌드 공유</bold></gradient>"), TITLE_HEADER_WIDTH));
+        bodies.add(new AlignedMessage(
+                miniMessage("<gray>공개 빌드, 최근 본 빌드, 현재 추적 빌드를 선택합니다.</gray>"),
+                BODY_WIDTH,
+                AlignedMessage.Align.LEFT
+        ));
+        bodies.add(new HeaderMessage(miniMessage("<aqua>현재 추적</aqua>"), BODY_WIDTH));
+        appendBuildGuideBody(bodies, tracked.orElse(null), "없음", true);
+        bodies.add(new HeaderMessage(miniMessage("<light_purple>내 빌드 " + safeMyPage + "/" + myPageCount + "</light_purple>"), BODY_WIDTH));
+        appendBuildGuideBodies(bodies, myGuides, "없음");
+        bodies.add(new HeaderMessage(miniMessage("<yellow>공개 빌드 " + safePublicPage + "/" + publicPageCount + "</yellow>"), BODY_WIDTH));
+        appendBuildGuideBodies(bodies, publicGuides, "없음");
+        bodies.add(new HeaderMessage(miniMessage("<green>최근 본 빌드</green>"), BODY_WIDTH));
+        appendBuildGuideBodies(bodies, recentGuides, "없음");
+
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        if (!includeDebugGuides) {
+            if (safeMyPage > 1) {
+                actions.add(actionButton("내 이전", buildListCommand(safePublicPage, safeMyPage - 1), Component.literal("내 빌드 이전 페이지"), COMPACT_BUTTON_WIDTH));
+            }
+            if (safeMyPage < myPageCount) {
+                actions.add(actionButton("내 다음", buildListCommand(safePublicPage, safeMyPage + 1), Component.literal("내 빌드 다음 페이지"), COMPACT_BUTTON_WIDTH));
+            }
+            if (safePublicPage > 1) {
+                actions.add(actionButton("공개 이전", buildListCommand(safePublicPage - 1, safeMyPage), Component.literal("공개 빌드 이전 페이지"), COMPACT_BUTTON_WIDTH));
+            }
+            if (safePublicPage < publicPageCount) {
+                actions.add(actionButton("공개 다음", buildListCommand(safePublicPage + 1, safeMyPage), Component.literal("공개 빌드 다음 페이지"), COMPACT_BUTTON_WIDTH));
+            }
+        }
+        showActions(player, "세미온 TD 빌드", bodies, actions, 2);
+    }
+
+    public void showBuildGuideDetails(ServerPlayer player, BuildGuide guide) {
+        ArrayList<DialogBody> bodies = new ArrayList<>();
+        bodies.add(new HeaderMessage(miniMessage("<gradient:#60a5fa:#22c55e><bold>" + guide.title() + "</bold></gradient>"), BODY_WIDTH));
+        bodies.add(new SplitAlignedMessage(
+                miniMessage("<blue><bold>" + guide.code() + "</bold></blue>"
+                        + " <dark_gray>|</dark_gray> <gray>작성자</gray> <yellow>" + guide.authorName() + "</yellow>\n"
+                        + "<gray>직업</gray> <white>" + guide.jobId() + "</white>"
+                        + " <dark_gray>|</dark_gray> <gray>최종 라운드</gray> <aqua>" + guide.finalRound() + "</aqua>"
+                        + " <dark_gray>|</dark_gray> <gray>행동</gray> <green>" + guide.actions().size() + "</green>"
+                        + " <dark_gray>|</dark_gray> <gray>상태</gray> " + visibilityMarkup(guide)),
+                miniMessage(commandLink("추적", "/semiontd-internal build track " + guide.code(), "blue")),
+                BODY_WIDTH
+        ));
+
+        Map<Integer, List<kim.biryeong.semiontd.buildguide.BuildAction>> byRound = guide.actions().stream()
+                .collect(Collectors.groupingBy(
+                        kim.biryeong.semiontd.buildguide.BuildAction::round,
+                        java.util.TreeMap::new,
+                        Collectors.toList()
+                ));
+        if (byRound.isEmpty()) {
+            bodies.add(new HeaderMessage(miniMessage("<gray>행동</gray>"), BODY_WIDTH));
+            bodies.add(new AlignedMessage(miniMessage("<gray>기록된 행동이 없습니다.</gray>"), BODY_WIDTH, AlignedMessage.Align.LEFT));
+        } else {
+            for (Map.Entry<Integer, List<kim.biryeong.semiontd.buildguide.BuildAction>> entry : byRound.entrySet()) {
+                bodies.add(new HeaderMessage(miniMessage("<yellow>라운드 " + entry.getKey() + "</yellow>"), BODY_WIDTH));
+                for (kim.biryeong.semiontd.buildguide.BuildAction action : entry.getValue()) {
+                    bodies.add(buildActionBody(action));
+                }
+            }
+        }
+
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        if (guide.ownedBy(player.getUUID())) {
+            boolean visible = guide.isPublic();
+            actions.add(actionButton(
+                    Component.literal(visible ? "비공개" : "공개").withStyle(visible ? ChatFormatting.GRAY : ChatFormatting.GREEN),
+                    "/semiontd-internal build " + (visible ? "private " : "public ") + guide.code(),
+                    Component.literal(visible ? "내 빌드를 비공개로 전환합니다." : "내 빌드를 공개 목록에 올립니다."),
+                    COMPACT_BUTTON_WIDTH
+            ));
+            actions.add(actionButton(
+                    Component.literal("삭제").withStyle(ChatFormatting.RED),
+                    "/semiontd-internal build delete " + guide.code(),
+                    Component.literal("내 빌드를 삭제합니다."),
+                    COMPACT_BUTTON_WIDTH
+            ));
+        }
+        actions.add(actionButton(
+                Component.literal("목록").withStyle(ChatFormatting.AQUA),
+                "/빌드 목록",
+                Component.literal("빌드 목록으로 돌아갑니다."),
+                BUTTON_WIDTH
+        ));
+        showActions(player, "세미온 TD 빌드 상세", bodies, actions, 2);
     }
 
     public void showSummonShop(ServerPlayer player, SemionGame game) {
@@ -407,8 +551,25 @@ public final class SemionDialogService {
         return Math.max(1, (int) Math.ceil((double) Math.max(0, size) / SUMMON_PAGE_SIZE));
     }
 
+    private static int buildGuidePageCount(int size) {
+        return Math.max(1, (int) Math.ceil((double) Math.max(0, size) / BUILD_GUIDE_PAGE_SIZE));
+    }
+
+    private static List<BuildGuide> buildGuidePage(List<BuildGuide> guides, int page) {
+        if (guides == null || guides.isEmpty()) {
+            return List.of();
+        }
+        int from = Math.min(guides.size(), Math.max(0, page - 1) * BUILD_GUIDE_PAGE_SIZE);
+        int to = Math.min(guides.size(), from + BUILD_GUIDE_PAGE_SIZE);
+        return guides.subList(from, to);
+    }
+
     private static int clampPage(int page, int pageCount) {
         return Math.max(1, Math.min(Math.max(1, pageCount), page));
+    }
+
+    private static String buildListCommand(int publicPage, int myPage) {
+        return "/semiontd-internal build list " + publicPage + " " + myPage;
     }
 
     private static void appendSummonNavigation(StringBuilder body, String commandPrefix, int page, int pageCount) {
@@ -536,6 +697,40 @@ public final class SemionDialogService {
         player.connection.send(new ClientboundShowDialogPacket(Holder.direct(dialog)));
     }
 
+    private void showActions(ServerPlayer player, String title, List<DialogBody> bodies, List<ActionButton> actions, int columns) {
+        if (actions.isEmpty()) {
+            Dialog dialog = new NoticeDialog(
+                    new CommonDialogData(
+                            Component.literal(title),
+                            Optional.empty(),
+                            true,
+                            false,
+                            DialogAction.CLOSE,
+                            bodies,
+                            List.of()
+                    ),
+                    NoticeDialog.DEFAULT_ACTION
+            );
+            player.connection.send(new ClientboundShowDialogPacket(Holder.direct(dialog)));
+            return;
+        }
+        Dialog dialog = new MultiActionDialog(
+                new CommonDialogData(
+                        Component.literal(title),
+                        Optional.empty(),
+                        true,
+                        false,
+                        DialogAction.CLOSE,
+                        bodies,
+                        List.of()
+                ),
+                actions,
+                Optional.of(actionButton("닫기", "", "창을 닫습니다.")),
+                columns
+        );
+        player.connection.send(new ClientboundShowDialogPacket(Holder.direct(dialog)));
+    }
+
     private static List<DialogBody> actionDialogBodies(String body) {
         if (body == null || body.isBlank()) {
             return List.of();
@@ -579,11 +774,11 @@ public final class SemionDialogService {
         return "<click:run_command:'" + command + "'><hover:show_text:'" + label + "'><" + color + ">[" + label + "]</" + color + "></hover></click>";
     }
 
-    private static ActionButton towerButton(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
+    private static ActionButton towerButton(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable, boolean recommended) {
         return actionButton(
-                towerButtonLabel(entry, affordable),
+                towerButtonLabel(entry, affordable, recommended),
                 "/semiontd tower build " + entry.type().id(),
-                towerTooltip(entry, mineralCost, affordable),
+                towerTooltip(entry, mineralCost, affordable, recommended),
                 COMPACT_BUTTON_WIDTH
         );
     }
@@ -620,17 +815,26 @@ public final class SemionDialogService {
     }
 
     public static Component towerButtonLabel(ProductionTowerCatalog.CatalogEntry entry, boolean affordable) {
+        return towerButtonLabel(entry, affordable, false);
+    }
+
+    public static Component towerButtonLabel(ProductionTowerCatalog.CatalogEntry entry, boolean affordable, boolean recommended) {
         return Component.literal(entry.type().displayName())
                 .withStyle(style -> style
-                        .withColor(affordable ? ChatFormatting.GREEN : ChatFormatting.RED)
+                        .withColor(recommended ? ChatFormatting.BLUE : (affordable ? ChatFormatting.GREEN : ChatFormatting.RED))
                         .withBold(true));
     }
 
     private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
+        return towerTooltip(entry, mineralCost, affordable, false);
+    }
+
+    private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable, boolean recommended) {
         var type = entry.type();
         MutableComponent tooltip = mutableMiniMessage(
                 "<white><bold>" + type.displayName() + "</bold></white>\n"
-                        + "<aqua>💎 " + mineralCost + " 다이아</aqua>" + (affordable ? "" : " <red>(부족)</red>") + "\n"
+                        + (recommended ? "<blue>빌드 추천</blue>\n" : "")
+                        + "<aqua>💎 " + mineralCost + " 다이아</aqua>" + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
                         + "<red>❤ 체력 " + Math.round(type.maxHealth()) + "</red> "
                         + "<yellow>🧲 어그로 " + type.aggroPriority() + "</yellow>\n"
                         + "<dark_red>⚔ 피해 " + oneDecimal(type.damage()) + "</dark_red> "
@@ -642,6 +846,10 @@ public final class SemionDialogService {
     }
 
     private static Component upgradeTooltip(TowerUpgradeOption option) {
+        return upgradeTooltip(option, true, false);
+    }
+
+    private static Component upgradeTooltip(TowerUpgradeOption option, boolean affordable, boolean recommended) {
         Optional<ProductionTowerCatalog.CatalogEntry> target = ProductionTowerCatalog.entry(option.targetType());
         if (target.isEmpty()) {
             return Component.literal("대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아");
@@ -650,8 +858,10 @@ public final class SemionDialogService {
         var type = entry.type();
         MutableComponent tooltip = mutableMiniMessage(
                 "<yellow><bold>" + option.displayName() + "</bold></yellow>\n"
+                        + (recommended ? "<blue>빌드 추천</blue>\n" : "")
                         + "<gray>대상</gray> <white>" + type.displayName() + "</white>\n"
-                        + "<aqua>💎 " + option.mineralCost() + " 다이아</aqua>\n"
+                        + "<aqua>💎 " + option.mineralCost() + " 다이아</aqua>"
+                        + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
                         + "<red>❤ 체력 " + Math.round(type.maxHealth()) + "</red> "
                         + "<yellow>🧲 어그로 " + type.aggroPriority() + "</yellow>\n"
                         + "<dark_red>⚔ 피해 " + oneDecimal(type.damage()) + "</dark_red> "
@@ -660,6 +870,88 @@ public final class SemionDialogService {
         );
         appendTowerDescription(tooltip, type.description());
         return tooltip;
+    }
+
+    public static Component upgradeButtonLabel(TowerUpgradeOption option, boolean affordable, boolean recommended) {
+        return Component.literal(option.displayName())
+                .withStyle(style -> style
+                        .withColor(recommended ? ChatFormatting.BLUE : (affordable ? ChatFormatting.GREEN : ChatFormatting.RED))
+                        .withBold(true));
+    }
+
+    private static void appendBuildGuideBodies(List<DialogBody> bodies, List<BuildGuide> guides, String emptyText) {
+        if (guides.isEmpty()) {
+            bodies.add(new AlignedMessage(miniMessage("<gray>" + emptyText + "</gray>"), BODY_WIDTH, AlignedMessage.Align.LEFT));
+            return;
+        }
+        for (BuildGuide guide : guides) {
+            appendBuildGuideBody(bodies, guide, emptyText, false);
+        }
+    }
+
+    private static void appendBuildGuideBody(List<DialogBody> bodies, BuildGuide guide, String emptyText, boolean trackedRow) {
+        if (guide == null) {
+            bodies.add(new AlignedMessage(miniMessage("<gray>" + emptyText + "</gray>"), BODY_WIDTH, AlignedMessage.Align.LEFT));
+            return;
+        }
+        Component description = miniMessage(
+                "<blue><bold>" + guide.code() + "</bold></blue> <white>" + guide.title() + "</white>\n"
+                        + "<gray>작성자</gray> <yellow>" + guide.authorName() + "</yellow>"
+                        + " <dark_gray>|</dark_gray> <gray>라운드</gray> <aqua>" + guide.finalRound() + "</aqua>"
+                        + " <dark_gray>|</dark_gray> <gray>행동</gray> <green>" + guide.actions().size() + "</green>"
+                        + " <dark_gray>|</dark_gray> <gray>상태</gray> " + visibilityMarkup(guide)
+        );
+        bodies.add(new SplitAlignedMessage(description, miniMessage(buildGuideLinks(guide, trackedRow)), BODY_WIDTH));
+    }
+
+    private static String visibilityMarkup(BuildGuide guide) {
+        return guide != null && guide.isPublic() ? "<green>공개</green>" : "<gray>비공개</gray>";
+    }
+
+    private static String buildGuideLinks(BuildGuide guide, boolean trackedRow) {
+        String detail = commandLink("상세보기", "/semiontd-internal build detail " + guide.code(), "aqua");
+        if (trackedRow) {
+            return detail + "<dark_gray>|</dark_gray>" + commandLink("추적해제", "/semiontd-internal build clear", "red");
+        }
+        return detail + "<dark_gray>|</dark_gray>" + commandLink("추적", "/semiontd-internal build track " + guide.code(), "blue");
+    }
+
+    private static DialogBody buildActionBody(kim.biryeong.semiontd.buildguide.BuildAction action) {
+        return new AlignedMessage(buildActionDescription(action), BODY_WIDTH, AlignedMessage.Align.LEFT);
+    }
+
+    private static Component buildActionDescription(kim.biryeong.semiontd.buildguide.BuildAction action) {
+        String line = switch (action.type()) {
+            case TOWER_PLACE -> "<blue>타워 설치</blue> <white>" + BuildGuideService.subjectDisplayName(action) + "</white>"
+                    + " <gray>" + buildPositionLabel(action) + "</gray>"
+                    + " <dark_gray>|</dark_gray> <aqua>💎 " + action.cost() + "</aqua>";
+            case TOWER_UPGRADE -> "<blue>타워 업그레이드</blue> <white>" + BuildGuideService.subjectDisplayName(action) + "</white>"
+                    + " <gray>" + buildPositionLabel(action) + "</gray>"
+                    + " <dark_gray>|</dark_gray> <aqua>💎 " + action.cost() + "</aqua>";
+            case SUMMON -> "<light_purple>견제 소환</light_purple> <white>" + BuildGuideService.subjectDisplayName(action) + "</white>"
+                    + " <dark_gray>|</dark_gray> <green>◆ " + action.cost() + "</green>"
+                    + " <dark_gray>|</dark_gray> <yellow>인컴 +" + action.incomeGain() + "</yellow>"
+                    + " <dark_gray>|</dark_gray> <gray>예약 " + action.scheduledRound() + "R</gray>";
+            case EMERALD_PRODUCTION_UPGRADE -> "<green>에메랄드 생산 업그레이드</green>"
+                    + " <dark_gray>|</dark_gray> <gray>" + BuildGuideService.subjectDisplayName(action) + "</gray>"
+                    + " <dark_gray>|</dark_gray> <yellow>+" + action.incomeGain() + "/초</yellow>";
+        };
+        return miniMessage(line);
+    }
+
+    private static String buildPositionLabel(kim.biryeong.semiontd.buildguide.BuildAction action) {
+        if (action == null) {
+            return "";
+        }
+        String label = buildPositionLabel(action.position());
+        return action.hasLaneRelativePosition() && !label.isEmpty() ? "라인 상대 " + label : label;
+    }
+
+    private static String buildPositionLabel(kim.biryeong.semiontd.game.GridPosition position) {
+        if (position == null) {
+            return "";
+        }
+        return "(" + position.x() + ", " + position.y() + ", " + position.z() + ")";
     }
 
     private static Component summonButtonLabel(SummonMonsterType type, boolean affordable) {
@@ -838,9 +1130,145 @@ public final class SemionDialogService {
         }
     }
 
+    private static Component participantResultBody(
+            MatchParticipantResult participant,
+            MatchProgressionReward reward,
+            int avatarIndex
+    ) {
+        var stats = participant.stats();
+        MutableComponent body = Component.empty()
+                .append(avatarComponent(participant, avatarIndex))
+                .append(miniMessage(" <white>" + participant.playerName() + "</white>"
+                        + " <dark_gray>[</dark_gray>"
+                        + (participant.winner() ? "<gold>승리</gold>" : "<gray>패배</gray>")
+                        + " " + teamMarkup(participant.teamId())
+                        + "<dark_gray>]</dark_gray>\n"
+                        + "  <gray>처치</gray> <red>" + stats.monsterKills() + "</red>"
+                        + " <dark_gray>|</dark_gray> <gray>수입</gray> <green>" + stats.finalIncome() + "</green>"
+                        + " <dark_gray>|</dark_gray> <gray>소환</gray> <light_purple>" + stats.summonedMonsters() + "</light_purple>\n"
+                        + "  <gray>처치다이아</gray> <aqua>+" + stats.killMinerals() + "</aqua>"));
+        if (reward != null) {
+            body.append(miniMessage(" <dark_gray>|</dark_gray> <gray>꾸미기</gray> <gold>+" + reward.currencyAwarded() + "</gold>"));
+        }
+        return body;
+    }
+
     private static Component avatarComponent(MatchParticipantResult participant, int offset) {
-        Component avatar = AvatarRendererMod.computeNow(participant.playerName(), offset, false);
-        return avatar == null ? Component.empty() : avatar;
+        int yOffset = Math.min(239, Math.max(0, offset) * PARTICIPANT_AVATAR_STEP);
+        SmallAvatarKey key = new SmallAvatarKey(participant.playerName(), yOffset);
+        Component cached = SMALL_AVATAR_CACHE.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
+        try {
+            Optional<BufferedImage> skin = SkinLoader.load(participant.playerName());
+            if (skin.isPresent()) {
+                Component avatar = AvatarRenderer.asTextComponent(smallAvatarImage(skin.get()), yOffset);
+                SMALL_AVATAR_CACHE.putIfAbsent(key, avatar);
+                return avatar;
+            }
+        } catch (RuntimeException exception) {
+            // Fall back to the bundled Steve skin below.
+        }
+
+        SmallAvatarKey defaultKey = new SmallAvatarKey("Steve", yOffset);
+        return SMALL_AVATAR_CACHE.computeIfAbsent(defaultKey, SemionDialogService::defaultSmallAvatar);
+    }
+
+    private static Component defaultSmallAvatar(SmallAvatarKey key) {
+        try (var stream = AvatarRendererMod.class.getResourceAsStream("/steve.png")) {
+            if (stream == null) {
+                return Component.empty();
+            }
+            BufferedImage skin = javax.imageio.ImageIO.read(stream);
+            if (skin == null) {
+                return Component.empty();
+            }
+            return AvatarRenderer.asTextComponent(smallAvatarImage(skin), key.yOffset());
+        } catch (java.io.IOException exception) {
+            return Component.empty();
+        }
+    }
+
+    private static BufferedImage smallAvatarImage(BufferedImage skin) {
+        BufferedImage face = new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+                int color = skinPixel(skin, 8 + x, 8 + y);
+                int overlay = skinPixel(skin, 40 + x, 8 + y);
+                if ((overlay >>> 24) > 16) {
+                    color = overlay;
+                }
+                fill(face, 1 + x * 2, 1 + y * 2, color);
+            }
+        }
+
+        BufferedImage outlined = new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < face.getHeight(); y++) {
+            for (int x = 0; x < face.getWidth(); x++) {
+                if ((face.getRGB(x, y) >>> 24) == 0) {
+                    continue;
+                }
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        int ox = x + dx;
+                        int oy = y + dy;
+                        if (ox >= 0 && ox < outlined.getWidth() && oy >= 0 && oy < outlined.getHeight()
+                                && (outlined.getRGB(ox, oy) >>> 24) == 0) {
+                            outlined.setRGB(ox, oy, 0xFF000000);
+                        }
+                    }
+                }
+            }
+        }
+        for (int y = 0; y < face.getHeight(); y++) {
+            for (int x = 0; x < face.getWidth(); x++) {
+                int color = face.getRGB(x, y);
+                if ((color >>> 24) != 0) {
+                    outlined.setRGB(x, y, color);
+                }
+            }
+        }
+        return outlined;
+    }
+
+    private static void fill(BufferedImage image, int x, int y, int color) {
+        if ((color >>> 24) == 0) {
+            return;
+        }
+        image.setRGB(x, y, color);
+        image.setRGB(x + 1, y, color);
+        image.setRGB(x, y + 1, color);
+        image.setRGB(x + 1, y + 1, color);
+    }
+
+    private static int skinPixel(BufferedImage skin, int x, int y) {
+        if (x < 0 || y < 0 || x >= skin.getWidth() || y >= skin.getHeight()) {
+            return 0;
+        }
+        return skin.getRGB(x, y);
+    }
+
+    private static String teamListMarkup(java.util.Set<TeamId> teams) {
+        if (teams.isEmpty()) {
+            return "<gray>없음</gray>";
+        }
+        return teams.stream()
+                .sorted()
+                .map(SemionDialogService::teamMarkup)
+                .collect(Collectors.joining("<dark_gray>, </dark_gray>"));
+    }
+
+    private static String teamMarkup(TeamId teamId) {
+        String color = switch (teamId) {
+            case RED -> "red";
+            case BLUE -> "blue";
+            case GREEN -> "green";
+            case YELLOW -> "yellow";
+            case PURPLE -> "light_purple";
+        };
+        return "<" + color + ">" + teamId.name() + "</" + color + ">";
     }
 
     private static long nextGasUpgradeCost(SemionGame game, PlayerEconomy economy) {
@@ -871,5 +1299,8 @@ public final class SemionDialogService {
             case ROUND_PAYOUT -> "정산";
             case ENDED -> "종료";
         };
+    }
+
+    private record SmallAvatarKey(String playerName, int yOffset) {
     }
 }

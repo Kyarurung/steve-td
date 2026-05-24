@@ -20,7 +20,9 @@ import kim.biryeong.semiontd.ui.dialog.body.AlignedItemBody;
 import kim.biryeong.semiontd.ui.dialog.body.AlignedMessage;
 import kim.biryeong.semiontd.ui.dialog.body.HeaderMessage;
 import kim.biryeong.semiontd.ui.dialog.body.ImageBody;
+import kim.biryeong.semiontd.ui.dialog.body.SplitAlignedMessage;
 import kim.biryeong.semiontd.ui.rp.ImageHandler;
+import kim.biryeong.semiontd.ui.rp.SemionUiFont;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -73,7 +75,9 @@ public class SemionTd implements ModInitializer {
         Registry.register(BuiltInRegistries.DIALOG_BODY_TYPE, ResourceLocation.fromNamespaceAndPath("ttt", "aligned_item"), AlignedItemBody.MAP_CODEC);
         Registry.register(BuiltInRegistries.DIALOG_BODY_TYPE, ResourceLocation.fromNamespaceAndPath("ttt", "header_message"), HeaderMessage.MAP_CODEC);
         Registry.register(BuiltInRegistries.DIALOG_BODY_TYPE, ResourceLocation.fromNamespaceAndPath("ttt", "image"), ImageBody.MAP_CODEC);
+        Registry.register(BuiltInRegistries.DIALOG_BODY_TYPE, ResourceLocation.fromNamespaceAndPath("ttt", "split_aligned_message"), SplitAlignedMessage.MAP_CODEC);
         ImageHandler.init();
+        SemionUiFont.init();
         LOGGER.info("Semion TD initialized.");
     }
 }

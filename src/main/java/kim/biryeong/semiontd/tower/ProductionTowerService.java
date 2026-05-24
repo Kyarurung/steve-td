@@ -62,6 +62,7 @@ public final class ProductionTowerService {
         );
         tower.recordPlacementEconomy(mineralCost, game.currentRound());
         laneContext.lane.addTower(tower);
+        game.recordTowerPlacement(playerId, towerType.id(), position, mineralCost);
         return TowerPlacementResult.SUCCESS;
     }
 
@@ -200,6 +201,7 @@ public final class ProductionTowerService {
             laneContext.player.economy().addMineral(mineralCost);
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
+        game.recordTowerUpgrade(playerId, upgradeId, position, mineralCost);
         return TowerUpgradeResult.SUCCESS;
     }
 
