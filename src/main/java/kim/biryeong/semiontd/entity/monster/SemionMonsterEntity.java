@@ -271,7 +271,8 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
 
     public int attackIntervalTicks() {
         double speedBonus = timedEffects.magnitude(TimedEffectType.MONSTER_ATTACK_SPEED_BONUS);
-        return Math.max(1, (int) Math.ceil(DEFAULT_ATTACK_INTERVAL_TICKS / (1.0 + speedBonus)));
+        double speedReduction = timedEffects.magnitude(TimedEffectType.MONSTER_ATTACK_SPEED_REDUCTION);
+        return Math.max(1, (int) Math.ceil(DEFAULT_ATTACK_INTERVAL_TICKS / Math.max(0.01, 1.0 + speedBonus - speedReduction)));
     }
 
     public double attackDamageAmount() {

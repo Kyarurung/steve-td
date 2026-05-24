@@ -209,6 +209,9 @@ public abstract class Tower {
     public void onRemoved(PlayerLane lane) {
     }
 
+    public void onDeath(PlayerLane lane) {
+    }
+
     public void onStateChanged(PlayerLane lane) {
     }
 

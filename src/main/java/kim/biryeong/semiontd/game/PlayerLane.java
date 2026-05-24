@@ -161,6 +161,15 @@ public final class PlayerLane {
         return true;
     }
 
+    public boolean killTower(Tower tower) {
+        if (!towers.remove(tower)) {
+            return false;
+        }
+        tower.onDeath(this);
+        tower.onRemoved(this);
+        return true;
+    }
+
     public void markWaveStarted(int currentRound) {
         for (Tower tower : towers) {
             tower.markWaveStarted(currentRound);
@@ -179,8 +188,10 @@ public final class PlayerLane {
         spawnQueuedMonster(waveMonsterSpawnQueue);
         spawnQueuedMonster(summonedMonsterSpawnQueue);
 
-        for (Tower tower : towers) {
-            tower.tick(this);
+        for (Tower tower : List.copyOf(towers)) {
+            if (towers.contains(tower)) {
+                tower.tick(this);
+            }
         }
         syncTowerStates();
 
@@ -298,8 +309,14 @@ public final class PlayerLane {
     }
 
     private void syncTowerStates() {
-        for (Tower tower : towers) {
-            tower.isDestroyed(this);
+        Iterator<Tower> iterator = towers.iterator();
+        while (iterator.hasNext()) {
+            Tower tower = iterator.next();
+            if (tower.isDestroyed(this)) {
+                iterator.remove();
+                tower.onDeath(this);
+                tower.onRemoved(this);
+            }
         }
     }
 
