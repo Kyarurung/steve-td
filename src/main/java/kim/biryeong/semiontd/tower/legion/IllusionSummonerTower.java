@@ -9,15 +9,15 @@ import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.SummonerTower;
+import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 
 public abstract class IllusionSummonerTower extends SummonerTower {
-    private static final int CLONE_AGGRO_PRIORITY_BONUS = 5;
-
     private final List<CloneInstance> clones = new ArrayList<>();
 
     protected IllusionSummonerTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
@@ -48,10 +48,7 @@ public abstract class IllusionSummonerTower extends SummonerTower {
             offsets = defaultSpawnOffsets(profile);
         }
 
-        for (int index = 0; index < profile.cloneCount(); index++) {
-            Vec3 offset = offsets.get(index % offsets.size());
-            spawnClone(lane, profile, offset);
-        }
+        spawnClones(lane, this, profile, offsets);
     }
 
     @Override
@@ -101,7 +98,7 @@ public abstract class IllusionSummonerTower extends SummonerTower {
         return defaultSpawnOffsets(profile);
     }
 
-    protected void onCloneSpawned(PlayerLane lane, SemionTowerEntity cloneEntity, IllusionRuntimeTower cloneTower) {
+    protected void onCloneSpawned(PlayerLane lane, SemionTowerEntity cloneEntity, Tower cloneTower) {
     }
 
     @Override
@@ -109,20 +106,32 @@ public abstract class IllusionSummonerTower extends SummonerTower {
         return false;
     }
 
-    private void spawnClone(PlayerLane lane, IllusionProfile profile, Vec3 offset) {
+    protected final void spawnClones(PlayerLane lane, Tower sourceTower, IllusionProfile profile) {
+        List<Vec3> offsets = spawnOffsets(profile);
+        if (offsets == null || offsets.isEmpty()) {
+            offsets = defaultSpawnOffsets(profile);
+        }
+        spawnClones(lane, sourceTower, profile, offsets);
+    }
+
+    private void spawnClones(PlayerLane lane, Tower sourceTower, IllusionProfile profile, List<Vec3> offsets) {
+        if (sourceTower == null || profile.cloneCount() <= 0 || sourceTower.health() <= 0.0) {
+            return;
+        }
+        for (int index = 0; index < profile.cloneCount(); index++) {
+            Vec3 offset = offsets.get(index % offsets.size());
+            spawnClone(lane, sourceTower, profile, offset);
+        }
+    }
+
+    private void spawnClone(PlayerLane lane, Tower sourceTower, IllusionProfile profile, Vec3 offset) {
         Vec3 spawnPosition = new Vec3(
-                position().x() + 0.5 + offset.x,
-                position().y() + 1.0 + offset.y,
-                position().z() + 0.5 + offset.z
+                sourceTower.position().x() + 0.5 + offset.x,
+                sourceTower.position().y() + 1.0 + offset.y,
+                sourceTower.position().z() + 0.5 + offset.z
         );
         GridPosition clonePosition = GridPosition.from(BlockPos.containing(spawnPosition.x, spawnPosition.y - 1.0, spawnPosition.z));
-        IllusionRuntimeTower cloneTower = new IllusionRuntimeTower(
-                cloneType(profile),
-                ownerPlayer(),
-                teamId(),
-                laneId(),
-                clonePosition
-        );
+        Tower cloneTower = createCloneTower(sourceTower, profile, clonePosition);
 
         SemionTowerEntity entity = new SemionTowerEntity(SemionEntityTypes.TOWER, lane.arenaWorld());
         entity.configure(cloneTower, lane.laneLayout());
@@ -134,21 +143,59 @@ public abstract class IllusionSummonerTower extends SummonerTower {
         }
     }
 
-    private TowerType cloneType(IllusionProfile profile) {
-        TowerType source = type();
+    private Tower createCloneTower(Tower sourceTower, IllusionProfile profile, GridPosition clonePosition) {
+        TowerType cloneType = cloneType(sourceTower, profile);
+        return ProductionTowerCatalog.entry(sourceTower.type())
+                .map(entry -> entry.factory().create(
+                        cloneType,
+                        sourceTower.ownerPlayer(),
+                        sourceTower.teamId(),
+                        sourceTower.laneId(),
+                        clonePosition,
+                        clonePosition
+                ))
+                .orElseGet(() -> new IllusionRuntimeTower(
+                        fallbackCloneType(sourceTower, profile),
+                        sourceTower.ownerPlayer(),
+                        sourceTower.teamId(),
+                        sourceTower.laneId(),
+                        clonePosition
+                ));
+    }
+
+    private TowerType cloneType(Tower sourceTower, IllusionProfile profile) {
+        TowerType source = sourceTower.type();
         return new TowerType(
-                source.id() + "#illusion",
+                source.id(),
                 source.displayName(),
                 source.category() == null ? TowerCategory.DIRECT : source.category(),
                 0,
-                Math.max(0.01, currentMaxHealth() * profile.healthRatio()),
+                Math.max(0.01, sourceTower.currentMaxHealth() * profile.healthRatio()),
                 Math.max(0.0, source.range() * profile.rangeRatio()),
                 Math.max(0.0, source.damage() * profile.damageRatio()),
                 Math.max(1, (int) Math.ceil(source.attackIntervalTicks() * profile.attackIntervalMultiplier())),
-                aggroPriority() + CLONE_AGGRO_PRIORITY_BONUS,
+                sourceTower.aggroPriority() + profile.aggroPriorityBonus(),
                 source.description(),
                 source.visual(),
                 List.of()
+        );
+    }
+
+    private TowerType fallbackCloneType(Tower sourceTower, IllusionProfile profile) {
+        TowerType cloneType = cloneType(sourceTower, profile);
+        return new TowerType(
+                sourceTower.type().id() + "#illusion",
+                cloneType.displayName(),
+                cloneType.category(),
+                cloneType.mineralCost(),
+                cloneType.maxHealth(),
+                cloneType.range(),
+                cloneType.damage(),
+                cloneType.attackIntervalTicks(),
+                cloneType.aggroPriority(),
+                cloneType.description(),
+                cloneType.visual(),
+                cloneType.upgradeOptions()
         );
     }
 
@@ -164,7 +211,7 @@ public abstract class IllusionSummonerTower extends SummonerTower {
         return offsets;
     }
 
-    private void tickClones(PlayerLane lane) {
+    protected final void tickClones(PlayerLane lane) {
         for (int index = clones.size() - 1; index >= 0; index--) {
             CloneInstance clone = clones.get(index);
             var entity = lane.arenaWorld().getEntity(clone.entityId());
@@ -177,6 +224,20 @@ public abstract class IllusionSummonerTower extends SummonerTower {
                 clones.remove(index);
                 continue;
             }
+            Tower cloneTower = towerEntity.runtimeTower();
+            if (cloneTower == null || cloneTower.health() <= 0.0) {
+                towerEntity.discard();
+                clones.remove(index);
+                continue;
+            }
+            cloneTower.syncHealth(towerEntity.getHealth());
+            cloneTower.syncPosition(GridPosition.from(BlockPos.containing(
+                    towerEntity.getX(),
+                    towerEntity.getY() - 1.0,
+                    towerEntity.getZ()
+            )));
+            cloneTower.tick(lane);
+            towerEntity.syncTowerState(cloneTower);
             if (clone.durationTicks() <= 0) {
                 continue;
             }
@@ -205,7 +266,8 @@ public abstract class IllusionSummonerTower extends SummonerTower {
             if (!(entity instanceof SemionTowerEntity towerEntity) || towerEntity.isRemoved() || !towerEntity.isAlive()) {
                 continue;
             }
-            if (!(towerEntity.runtimeTower() instanceof IllusionRuntimeTower cloneTower)) {
+            Tower cloneTower = towerEntity.runtimeTower();
+            if (cloneTower == null) {
                 continue;
             }
 
@@ -233,7 +295,7 @@ public abstract class IllusionSummonerTower extends SummonerTower {
         return slot;
     }
 
-    private void cleanupClones(PlayerLane lane) {
+    protected final void cleanupClones(PlayerLane lane) {
         for (CloneInstance clone : clones) {
             var entity = lane.arenaWorld().getEntity(clone.entityId());
             if (entity != null) {
