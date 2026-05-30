@@ -53,6 +53,7 @@ import kim.biryeong.semiontd.rating.RatingMatchResult;
 import kim.biryeong.semiontd.rating.RatingService;
 import kim.biryeong.semiontd.summon.IncomeSummons;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
+import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
@@ -672,6 +673,7 @@ public final class SemionGameManager {
     }
 
     public void tick(MinecraftServer server) {
+        IllusionCloneSpawnQueue.tick();
         musicService.tick(server, activeGame);
         tickPendingRatingRetry(server);
         tickPendingMatchResultDialog(server);
@@ -748,6 +750,7 @@ public final class SemionGameManager {
     }
 
     public void shutdown() {
+        IllusionCloneSpawnQueue.clear();
         if (activeGame != null) {
             activeGame.close();
             activeGame = null;
@@ -867,6 +870,7 @@ public final class SemionGameManager {
         if (game == null) {
             return;
         }
+        IllusionCloneSpawnQueue.clear();
         if (activeGame == game) {
             activeGame = null;
             clearStartCountdown();
