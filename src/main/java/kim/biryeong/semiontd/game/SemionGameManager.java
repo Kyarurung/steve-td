@@ -677,6 +677,7 @@ public final class SemionGameManager {
         sidebarHudService.clear(server);
         sendAllPlayersToLobby(server);
         if (activeGame != null) {
+            finalizeBuildGuideRecording(activeGame, activeGame.matchResult());
             closeActiveGameSafely(activeGame, "resetting match to lobby");
         }
         pendingFinishedGame = null;
@@ -980,12 +981,23 @@ public final class SemionGameManager {
     private void beginDelayedMatchResult(MinecraftServer server, SemionGame finishedGame) {
         pendingFinishedGame = finishedGame;
         pendingFinishDelayTicks = MATCH_RESULT_DELAY_TICKS;
-        finishedGame.matchResult().ifPresent(result -> buildGuideService.finishMatch(finishedGame, result.finalRound()));
+        Optional<MatchResult> result = finishedGame.matchResult();
+        finalizeBuildGuideRecording(finishedGame, result);
         sidebarHudService.clear(server);
         server.getPlayerList().broadcastSystemMessage(
                 SemionText.prefixedMini("<gold>경기 종료.</gold> 결과를 집계하는 중입니다..."),
                 false
         );
+    }
+
+    void finalizeBuildGuideRecording(SemionGame finishedGame, Optional<MatchResult> result) {
+        if (finishedGame == null || !finishedGame.rosterLocked()) {
+            return;
+        }
+        int finalRound = result
+                .map(MatchResult::finalRound)
+                .orElseGet(() -> Math.max(1, finishedGame.currentRound()));
+        buildGuideService.finishMatch(finishedGame, finalRound);
     }
 
     private void finishActiveGame(MinecraftServer server, SemionGame finishedGame) {
@@ -996,7 +1008,7 @@ public final class SemionGameManager {
             lastMatchResult = result.get();
             matchResultRepository.saveMatchResult(result.get());
             ratingResult = applyRatingOrQueueRetry(server, result.get());
-            buildGuideService.finishMatch(finishedGame, result.get().finalRound());
+            finalizeBuildGuideRecording(finishedGame, result);
             nextMatchPriorityPlayerIds.addAll(result.get().spectatorIds());
             Map<UUID, MatchProgressionReward> rewards = progressionService.applyMatchResult(server, result.get());
             queueMatchResultDialog(result.get(), rewards);
