@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntUnaryOperator;
 import java.util.function.LongSupplier;
 import kim.biryeong.semiontd.game.RoundPhase;
 import kim.biryeong.semiontd.game.SemionGame;
@@ -25,8 +26,10 @@ public final class SemionMusicService {
 
     private final SemionMusicLibrary library;
     private final LongSupplier interTrackGapTicks;
+    private final IntUnaryOperator nextTrackSelector;
     private final Map<UUID, PlayerMusicState> playerStates = new HashMap<>();
     private final List<ScheduleSegment> schedule = new ArrayList<>();
+    private final Set<Integer> playedTrackIndices = new HashSet<>();
     private long musicTick;
     private boolean active;
 
@@ -35,8 +38,17 @@ public final class SemionMusicService {
     }
 
     public SemionMusicService(SemionMusicLibrary library, LongSupplier interTrackGapTicks) {
+        this(library, interTrackGapTicks, bound -> ThreadLocalRandom.current().nextInt(bound));
+    }
+
+    public SemionMusicService(
+            SemionMusicLibrary library,
+            LongSupplier interTrackGapTicks,
+            IntUnaryOperator nextTrackSelector
+    ) {
         this.library = library;
         this.interTrackGapTicks = interTrackGapTicks;
+        this.nextTrackSelector = nextTrackSelector;
     }
 
     public static SemionMusicService disabled() {
@@ -146,8 +158,10 @@ public final class SemionMusicService {
 
     private void extendSchedule(long currentMusicTick) {
         if (schedule.isEmpty()) {
-            SemionMusicTrack first = library.tracks().getFirst();
-            schedule.add(ScheduleSegment.track(0, first, 0L));
+            int firstTrackIndex = firstTrackIndex();
+            SemionMusicTrack first = library.tracks().get(firstTrackIndex);
+            schedule.add(ScheduleSegment.track(firstTrackIndex, first, 0L));
+            markTrackPlayed(firstTrackIndex);
         }
         while (schedule.getLast().endTick() <= currentMusicTick) {
             ScheduleSegment previous = schedule.getLast();
@@ -155,11 +169,56 @@ public final class SemionMusicService {
                 long gapTicks = clampInterTrackGap(interTrackGapTicks.getAsLong());
                 schedule.add(ScheduleSegment.gap(previous.trackIndex(), previous.endTick(), gapTicks));
             } else {
-                int nextTrackIndex = (previous.trackIndex() + 1) % library.tracks().size();
+                int nextTrackIndex = nextTrackIndexAfter(previous.trackIndex());
                 SemionMusicTrack nextTrack = library.tracks().get(nextTrackIndex);
                 schedule.add(ScheduleSegment.track(nextTrackIndex, nextTrack, previous.endTick()));
+                markTrackPlayed(nextTrackIndex);
             }
         }
+    }
+
+    private int firstTrackIndex() {
+        int trackCount = library.tracks().size();
+        if (trackCount <= 1 || playedTrackIndices.isEmpty()) {
+            return 0;
+        }
+        List<Integer> candidates = unplayedTrackIndices();
+        if (candidates.isEmpty()) {
+            playedTrackIndices.clear();
+            candidates = unplayedTrackIndices();
+        }
+        int candidateIndex = Math.floorMod(nextTrackSelector.applyAsInt(candidates.size()), candidates.size());
+        return candidates.get(candidateIndex);
+    }
+
+    private int nextTrackIndexAfter(int previousTrackIndex) {
+        int trackCount = library.tracks().size();
+        if (trackCount <= 1) {
+            return 0;
+        }
+
+        List<Integer> candidates = unplayedTrackIndices();
+        if (candidates.isEmpty()) {
+            playedTrackIndices.clear();
+            candidates = unplayedTrackIndices();
+            candidates.remove(Integer.valueOf(previousTrackIndex));
+        }
+        int candidateIndex = Math.floorMod(nextTrackSelector.applyAsInt(candidates.size()), candidates.size());
+        return candidates.get(candidateIndex);
+    }
+
+    private List<Integer> unplayedTrackIndices() {
+        List<Integer> candidates = new ArrayList<>();
+        for (int trackIndex = 0; trackIndex < library.tracks().size(); trackIndex++) {
+            if (!playedTrackIndices.contains(trackIndex)) {
+                candidates.add(trackIndex);
+            }
+        }
+        return candidates;
+    }
+
+    private void markTrackPlayed(int trackIndex) {
+        playedTrackIndices.add(trackIndex);
     }
 
     private static long clampInterTrackGap(long requestedTicks) {

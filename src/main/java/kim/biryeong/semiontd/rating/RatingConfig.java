@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.rating;
 
 public record RatingConfig(
         boolean enabled,
+        boolean teamEloMatchmakingEnabled,
         double eloKFactor,
         int initialDisplayElo,
         double initialMu,
@@ -29,6 +30,7 @@ public record RatingConfig(
     ) {
         this(
                 enabled,
+                true,
                 eloKFactor,
                 initialDisplayElo,
                 initialMu,
@@ -43,6 +45,43 @@ public record RatingConfig(
                 0.25,
                 0.20,
                 0.15
+        );
+    }
+
+    public RatingConfig(
+            boolean enabled,
+            double eloKFactor,
+            int initialDisplayElo,
+            double initialMu,
+            double initialSigma,
+            int leaderboardLimit,
+            int minimumParticipants,
+            boolean excludeSpectators,
+            boolean contributionWeightingEnabled,
+            double contributionMultiplierMin,
+            double contributionMultiplierMax,
+            double defenseContributionWeight,
+            double pressureContributionWeight,
+            double economyContributionWeight,
+            double assistContributionWeight
+    ) {
+        this(
+                enabled,
+                true,
+                eloKFactor,
+                initialDisplayElo,
+                initialMu,
+                initialSigma,
+                leaderboardLimit,
+                minimumParticipants,
+                excludeSpectators,
+                contributionWeightingEnabled,
+                contributionMultiplierMin,
+                contributionMultiplierMax,
+                defenseContributionWeight,
+                pressureContributionWeight,
+                economyContributionWeight,
+                assistContributionWeight
         );
     }
 
@@ -88,8 +127,30 @@ public record RatingConfig(
         }
     }
 
+    public RatingConfig withTeamEloMatchmakingEnabled(boolean enabled) {
+        return new RatingConfig(
+                this.enabled,
+                enabled,
+                eloKFactor,
+                initialDisplayElo,
+                initialMu,
+                initialSigma,
+                leaderboardLimit,
+                minimumParticipants,
+                excludeSpectators,
+                contributionWeightingEnabled,
+                contributionMultiplierMin,
+                contributionMultiplierMax,
+                defenseContributionWeight,
+                pressureContributionWeight,
+                economyContributionWeight,
+                assistContributionWeight
+        );
+    }
+
     public static RatingConfig defaultConfig() {
         return new RatingConfig(
+                true,
                 true,
                 EloRatingCalculator.DEFAULT_K_FACTOR,
                 PlayerRatingProfile.INITIAL_DISPLAY_ELO,
@@ -97,7 +158,14 @@ public record RatingConfig(
                 PlayerRatingProfile.INITIAL_SIGMA,
                 10,
                 2,
-                true
+                true,
+                true,
+                0.85,
+                1.15,
+                0.40,
+                0.25,
+                0.20,
+                0.15
         );
     }
 }

@@ -20,7 +20,10 @@ public final class AnimalTowerJob extends SemionJob {
             AnimalTowers.T3_WOLF_DPS_TOWER.id(),
             AnimalTowers.T1_RABBIT_TOWER.id(),
             AnimalTowers.T2_RABBIT_TOWER.id(),
-            AnimalTowers.T3_RABBIT_TOWER.id()
+            AnimalTowers.T3_RABBIT_TOWER.id(),
+            AnimalTowers.T1_FOX_TOWER.id(),
+            AnimalTowers.T2_FOX_TOWER.id(),
+            AnimalTowers.T3_FOX_TOWER.id()
     );
 
     public AnimalTowerJob() {

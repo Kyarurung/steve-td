@@ -751,6 +751,10 @@ public final class SemionGameManager {
         return matchMode;
     }
 
+    public boolean teamEloMatchmakingEnabled() {
+        return ratingConfig.teamEloMatchmakingEnabled();
+    }
+
     public void setMatchMode(MatchMode matchMode) {
         this.matchMode = matchMode;
     }

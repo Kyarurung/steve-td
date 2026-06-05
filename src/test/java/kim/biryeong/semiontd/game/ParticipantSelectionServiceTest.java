@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +35,32 @@ final class ParticipantSelectionServiceTest {
                 ));
         assertEquals(2900, eloByTeam.get(TeamId.RED));
         assertEquals(2900, eloByTeam.get(TeamId.BLUE));
+    }
+
+    @Test
+    void teamAssignmentCanDisableDisplayEloBalancing() {
+        StartCandidate strongest = candidate("disabled-strongest", 2000);
+        StartCandidate strong = candidate("disabled-strong", 1900);
+        StartCandidate weak = candidate("disabled-weak", 1000);
+        StartCandidate weakest = candidate("disabled-weakest", 900);
+
+        Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.selectReady(
+                List.of(strongest, strong, weak, weakest),
+                Set.of(strongest.uuid(), strong.uuid(), weak.uuid(), weakest.uuid()),
+                MatchMode.NORMAL,
+                Set.of(),
+                false,
+                new Random(0)
+        );
+
+        assertTrue(plan.isPresent());
+        Map<TeamId, Integer> eloByTeam = plan.get().activeParticipants().stream()
+                .collect(Collectors.groupingBy(
+                        AssignedParticipant::teamId,
+                        Collectors.summingInt(participant -> eloFor(participant.uuid(), strongest, strong, weak, weakest))
+                ));
+        assertEquals(2800, eloByTeam.get(TeamId.RED));
+        assertEquals(3000, eloByTeam.get(TeamId.BLUE));
     }
 
     @Test

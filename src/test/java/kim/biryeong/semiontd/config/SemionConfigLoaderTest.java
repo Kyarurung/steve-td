@@ -38,6 +38,7 @@ final class SemionConfigLoaderTest {
         Files.writeString(tempDir.resolve("rating.json"), """
                 {
                   "enabled": true,
+                  "teamEloMatchmakingEnabled": false,
                   "eloKFactor": 48.0,
                   "initialDisplayElo": 1200,
                   "initialMu": 1200.0,
@@ -60,7 +61,38 @@ final class SemionConfigLoaderTest {
         assertEquals(48.0, configs.rating().eloKFactor());
         assertEquals(1200, configs.rating().initialDisplayElo());
         assertEquals(25, configs.rating().leaderboardLimit());
+        assertEquals(false, configs.rating().teamEloMatchmakingEnabled());
         assertEquals(false, configs.rating().contributionWeightingEnabled());
+    }
+
+    @Test
+    void loadBackfillsRatingTeamEloMatchmakingDefault() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("rating.json"), """
+                {
+                  "enabled": true,
+                  "eloKFactor": 32.0,
+                  "initialDisplayElo": 1500,
+                  "initialMu": 1500.0,
+                  "initialSigma": 350.0,
+                  "leaderboardLimit": 10,
+                  "minimumParticipants": 2,
+                  "excludeSpectators": true,
+                  "contributionWeightingEnabled": true,
+                  "contributionMultiplierMin": 0.85,
+                  "contributionMultiplierMax": 1.15,
+                  "defenseContributionWeight": 0.4,
+                  "pressureContributionWeight": 0.25,
+                  "economyContributionWeight": 0.2,
+                  "assistContributionWeight": 0.15
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertEquals(true, configs.rating().teamEloMatchmakingEnabled());
+        String written = Files.readString(tempDir.resolve("rating.json"));
+        assertTrue(written.contains("teamEloMatchmakingEnabled"));
     }
 
     @Test
@@ -191,6 +223,59 @@ final class SemionConfigLoaderTest {
         assertEquals(IncomeLaneRoutingConfig.defaultConfig(), configs.incomeLaneRouting());
         assertEquals(true, configs.incomeLaneRouting().enabled());
         assertEquals(IncomeLaneRoutingConfig.Mode.LEAST_THREAT_PRESSURE, configs.incomeLaneRouting().mode());
+    }
+
+    @Test
+    void loadCreatesIncomeLaneRoutingConfigFileForExistingLegacyConfigDirectory() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("rating.json"), """
+                {
+                  "enabled": true,
+                  "teamEloMatchmakingEnabled": true,
+                  "eloKFactor": 32.0,
+                  "initialDisplayElo": 1500,
+                  "initialMu": 1500.0,
+                  "initialSigma": 350.0,
+                  "leaderboardLimit": 10,
+                  "minimumParticipants": 2,
+                  "excludeSpectators": true,
+                  "contributionWeightingEnabled": true,
+                  "contributionMultiplierMin": 0.85,
+                  "contributionMultiplierMax": 1.15,
+                  "defenseContributionWeight": 0.4,
+                  "pressureContributionWeight": 0.25,
+                  "economyContributionWeight": 0.2,
+                  "assistContributionWeight": 0.15
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(Files.exists(tempDir.resolve("income_lane_routing.json")));
+        assertEquals(IncomeLaneRoutingConfig.defaultConfig(), configs.incomeLaneRouting());
+    }
+
+    @Test
+    void loadBackfillsIncomeLaneRoutingConfigDefaults() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("income_lane_routing.json"), """
+                {
+                  "mode": "RANDOM"
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertEquals(true, configs.incomeLaneRouting().enabled());
+        assertEquals(IncomeLaneRoutingConfig.Mode.RANDOM, configs.incomeLaneRouting().mode());
+        assertEquals(IncomeLaneRoutingConfig.defaultConfig().queuedThreatWeight(), configs.incomeLaneRouting().queuedThreatWeight(), 0.0001);
+        assertEquals(IncomeLaneRoutingConfig.defaultConfig().nextRoundQueuedThreatWeight(), configs.incomeLaneRouting().nextRoundQueuedThreatWeight(), 0.0001);
+        assertEquals(IncomeLaneRoutingConfig.defaultConfig().tieBreakMode(), configs.incomeLaneRouting().tieBreakMode());
+        String written = Files.readString(tempDir.resolve("income_lane_routing.json"));
+        assertTrue(written.contains("enabled"));
+        assertTrue(written.contains("queuedThreatWeight"));
+        assertTrue(written.contains("nextRoundQueuedThreatWeight"));
+        assertTrue(written.contains("tieBreakMode"));
     }
 
     @Test

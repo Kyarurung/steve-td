@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,16 +27,38 @@ public final class ParticipantSelectionService {
             MatchMode mode,
             Set<UUID> priorityPlayerIds
     ) {
-        List<StartCandidate> shuffledCandidates = prioritizedRandomCandidates(candidates, priorityPlayerIds);
+        return select(candidates, mode, priorityPlayerIds, true);
+    }
+
+    public static Optional<ParticipantSelectionPlan> select(
+            List<StartCandidate> candidates,
+            MatchMode mode,
+            Set<UUID> priorityPlayerIds,
+            boolean teamEloMatchmakingEnabled
+    ) {
+        return select(candidates, mode, priorityPlayerIds, teamEloMatchmakingEnabled, new Random());
+    }
+
+    static Optional<ParticipantSelectionPlan> select(
+            List<StartCandidate> candidates,
+            MatchMode mode,
+            Set<UUID> priorityPlayerIds,
+            boolean teamEloMatchmakingEnabled,
+            Random random
+    ) {
+        List<StartCandidate> shuffledCandidates = prioritizedRandomCandidates(candidates, priorityPlayerIds, random);
 
         SelectionShape shape = shapeFor(shuffledCandidates.size(), mode);
         if (shape == null) {
             return Optional.empty();
         }
 
-        List<StartCandidate> activeCandidates = shuffledCandidates.subList(0, shape.activePlayerCount()).stream()
-                .sorted((left, right) -> Integer.compare(right.displayElo(), left.displayElo()))
-                .toList();
+        List<StartCandidate> activeCandidates = new ArrayList<>(shuffledCandidates.subList(0, shape.activePlayerCount()));
+        if (teamEloMatchmakingEnabled) {
+            activeCandidates = activeCandidates.stream()
+                    .sorted((left, right) -> Integer.compare(right.displayElo(), left.displayElo()))
+                    .toList();
+        }
         List<TeamId> activeTeams = TEAM_ORDER.subList(0, shape.activeTeamCount());
         Map<TeamId, Integer> capacities = capacitiesByTeam(activeTeams, shape.teamCapacities());
         Map<TeamId, List<StartCandidate>> assigned = new EnumMap<>(TeamId.class);
@@ -44,7 +67,9 @@ public final class ParticipantSelectionService {
         }
 
         for (StartCandidate candidate : activeCandidates) {
-            Optional<TeamId> targetTeam = lowestEloAvailableTeam(assigned, capacities, activeTeams);
+            Optional<TeamId> targetTeam = teamEloMatchmakingEnabled
+                    ? lowestEloAvailableTeam(assigned, capacities, activeTeams)
+                    : smallestAvailableTeam(assigned, capacities, activeTeams);
             if (targetTeam.isEmpty()) {
                 break;
             }
@@ -88,19 +113,42 @@ public final class ParticipantSelectionService {
             MatchMode matchMode,
             Set<UUID> priorityPlayerIds
     ) {
+        return selectReady(candidates, readyPlayerIds, matchMode, priorityPlayerIds, true);
+    }
+
+    public static Optional<ParticipantSelectionPlan> selectReady(
+            List<StartCandidate> candidates,
+            Set<UUID> readyPlayerIds,
+            MatchMode matchMode,
+            Set<UUID> priorityPlayerIds,
+            boolean teamEloMatchmakingEnabled
+    ) {
+        return selectReady(candidates, readyPlayerIds, matchMode, priorityPlayerIds, teamEloMatchmakingEnabled, new Random());
+    }
+
+    public static Optional<ParticipantSelectionPlan> selectReady(
+            List<StartCandidate> candidates,
+            Set<UUID> readyPlayerIds,
+            MatchMode matchMode,
+            Set<UUID> priorityPlayerIds,
+            boolean teamEloMatchmakingEnabled,
+            Random random
+    ) {
         if (readyPlayerIds == null || readyPlayerIds.isEmpty()) {
             return Optional.empty();
         }
         return select(candidates.stream()
                 .filter(candidate -> readyPlayerIds.contains(candidate.uuid()))
-                .toList(), matchMode, priorityPlayerIds);
+                .toList(), matchMode, priorityPlayerIds, teamEloMatchmakingEnabled, random);
     }
 
     private static List<StartCandidate> prioritizedRandomCandidates(
             List<StartCandidate> candidates,
-            Set<UUID> priorityPlayerIds
+            Set<UUID> priorityPlayerIds,
+            Random random
     ) {
         Set<UUID> priorities = priorityPlayerIds == null ? Set.of() : priorityPlayerIds;
+        Random candidateRandom = random == null ? new Random() : random;
         List<StartCandidate> priorityCandidates = new ArrayList<>();
         List<StartCandidate> regularCandidates = new ArrayList<>();
         for (StartCandidate candidate : candidates) {
@@ -111,8 +159,8 @@ public final class ParticipantSelectionService {
             }
         }
 
-        Collections.shuffle(priorityCandidates);
-        Collections.shuffle(regularCandidates);
+        Collections.shuffle(priorityCandidates, candidateRandom);
+        Collections.shuffle(regularCandidates, candidateRandom);
 
         List<StartCandidate> shuffledCandidates = new ArrayList<>(candidates.size());
         shuffledCandidates.addAll(priorityCandidates);
@@ -146,6 +194,27 @@ public final class ParticipantSelectionService {
             if (teamElo < bestElo || (teamElo == bestElo && currentSize < bestSize)) {
                 bestTeam = teamId;
                 bestElo = teamElo;
+                bestSize = currentSize;
+            }
+        }
+        return Optional.ofNullable(bestTeam);
+    }
+
+    private static Optional<TeamId> smallestAvailableTeam(
+            Map<TeamId, List<StartCandidate>> assigned,
+            Map<TeamId, Integer> capacities,
+            List<TeamId> activeTeams
+    ) {
+        TeamId bestTeam = null;
+        int bestSize = Integer.MAX_VALUE;
+        for (TeamId teamId : activeTeams) {
+            int currentSize = assigned.get(teamId).size();
+            int capacity = capacities.get(teamId);
+            if (currentSize >= capacity) {
+                continue;
+            }
+            if (currentSize < bestSize) {
+                bestTeam = teamId;
                 bestSize = currentSize;
             }
         }

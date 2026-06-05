@@ -63,10 +63,9 @@ public final class SemionConfigLoader {
                 ProgressionConfig.class,
                 logger
         );
-        RatingConfig rating = loadOrCreate(
+        RatingConfig rating = loadOrCreateRating(
                 configDir.resolve("rating.json"),
                 RatingConfig.defaultConfig(),
-                RatingConfig.class,
                 logger
         );
         SemionPersistenceConfig persistence = loadOrCreate(
@@ -91,10 +90,9 @@ public final class SemionConfigLoader {
                 LeaderTargetingConfig.class,
                 logger
         );
-        IncomeLaneRoutingConfig incomeLaneRouting = loadOrCreate(
+        IncomeLaneRoutingConfig incomeLaneRouting = loadOrCreateIncomeLaneRouting(
                 configDir.resolve("income_lane_routing.json"),
                 IncomeLaneRoutingConfig.defaultConfig(),
-                IncomeLaneRoutingConfig.class,
                 logger
         );
         return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting);
@@ -124,6 +122,28 @@ public final class SemionConfigLoader {
         }
         write(preferred, defaults, logger);
         return defaults;
+    }
+
+    private static RatingConfig loadOrCreateRating(Path path, RatingConfig defaults, Logger logger) {
+        if (Files.notExists(path)) {
+            write(path, defaults, logger);
+            return defaults;
+        }
+
+        try {
+            String json = Files.readString(path);
+            RatingConfig loaded = GSON.fromJson(json, RatingConfig.class);
+            RatingConfig value = loaded == null ? defaults : loaded;
+            boolean teamEloMatchmakingMissing = !hasObjectProperty(json, "teamEloMatchmakingEnabled");
+            if (teamEloMatchmakingMissing) {
+                value = value.withTeamEloMatchmakingEnabled(defaults.teamEloMatchmakingEnabled());
+                write(path, value, logger);
+            }
+            return value;
+        } catch (IOException | JsonParseException | IllegalArgumentException exception) {
+            logger.warn("Failed to load config {}; using defaults.", path, exception);
+            return defaults;
+        }
     }
 
     private static EconomyConfig loadOrCreateEconomy(Path path, EconomyConfig defaults, Logger logger) {
@@ -164,6 +184,43 @@ public final class SemionConfigLoader {
             return value;
         } catch (IOException | JsonParseException | IllegalArgumentException exception) {
             logger.warn("Failed to load config {}; using defaults.", path, exception);
+            return defaults;
+        }
+    }
+
+    private static IncomeLaneRoutingConfig loadOrCreateIncomeLaneRouting(
+            Path path,
+            IncomeLaneRoutingConfig defaults,
+            Logger logger
+    ) {
+        if (Files.notExists(path)) {
+            write(path, defaults, logger);
+            return defaults;
+        }
+
+        try {
+            String json = Files.readString(path);
+            IncomeLaneRoutingConfig loaded = GSON.fromJson(json, IncomeLaneRoutingConfig.class);
+            IncomeLaneRoutingConfig value = loaded == null ? defaults : loaded;
+            boolean enabledMissing = !hasObjectProperty(json, "enabled");
+            boolean modeMissing = !hasObjectProperty(json, "mode");
+            boolean queuedThreatWeightMissing = !hasObjectProperty(json, "queuedThreatWeight");
+            boolean nextRoundQueuedThreatWeightMissing = !hasObjectProperty(json, "nextRoundQueuedThreatWeight");
+            boolean tieBreakModeMissing = !hasObjectProperty(json, "tieBreakMode");
+            if (enabledMissing || modeMissing || queuedThreatWeightMissing || nextRoundQueuedThreatWeightMissing || tieBreakModeMissing) {
+                value = new IncomeLaneRoutingConfig(
+                        enabledMissing ? defaults.enabled() : value.enabled(),
+                        modeMissing ? defaults.mode() : value.mode(),
+                        queuedThreatWeightMissing ? defaults.queuedThreatWeight() : value.queuedThreatWeight(),
+                        nextRoundQueuedThreatWeightMissing ? defaults.nextRoundQueuedThreatWeight() : value.nextRoundQueuedThreatWeight(),
+                        tieBreakModeMissing ? defaults.tieBreakMode() : value.tieBreakMode()
+                );
+                write(path, value, logger);
+            }
+            return value;
+        } catch (IOException | JsonParseException | IllegalArgumentException exception) {
+            logger.warn("Failed to load config {}; using defaults.", path, exception);
+            write(path, defaults, logger);
             return defaults;
         }
     }

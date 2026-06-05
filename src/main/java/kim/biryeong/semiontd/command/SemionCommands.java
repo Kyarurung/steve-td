@@ -1587,7 +1587,8 @@ public final class SemionCommands {
                 candidates,
                 game.readyPlayerIds(),
                 gameManager.matchMode(),
-                gameManager.nextMatchPriorityPlayerIds()
+                gameManager.nextMatchPriorityPlayerIds(),
+                gameManager.teamEloMatchmakingEnabled()
         );
     }
 

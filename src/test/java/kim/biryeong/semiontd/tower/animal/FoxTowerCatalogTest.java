@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.job.AnimalTowerJob;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.AfterEach;
@@ -43,6 +44,15 @@ class FoxTowerCatalogTest {
 
         assertEquals(170, config.upgradeCost(AnimalTowers.T1_FOX_TOWER.id(), AnimalTowers.T2_FOX_TOWER.id(), -1));
         assertEquals(320, config.upgradeCost(AnimalTowers.T2_FOX_TOWER.id(), AnimalTowers.T3_FOX_TOWER.id(), -1));
+    }
+
+    @Test
+    void animalTowerJobAllowsFoxTowersForConstructionAndUpgrades() {
+        AnimalTowerJob job = new AnimalTowerJob();
+
+        assertTrue(job.canUseTower(null, AnimalTowers.T1_FOX_TOWER));
+        assertTrue(job.canUseTower(null, AnimalTowers.T2_FOX_TOWER));
+        assertTrue(job.canUseTower(null, AnimalTowers.T3_FOX_TOWER));
     }
 
     @Test

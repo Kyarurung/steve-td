@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -650,6 +651,45 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, 2900, teamElo.get(TeamId.BLUE), "Blue team should combine high and low ELO players.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void participantSelectionCanDisableDisplayEloBalancing(GameTestHelper context) {
+        StartCandidate strongest = candidate("elo-disabled-strongest", 2000);
+        StartCandidate strong = candidate("elo-disabled-strong", 1900);
+        StartCandidate weak = candidate("elo-disabled-weak", 1000);
+        StartCandidate weakest = candidate("elo-disabled-weakest", 900);
+
+        Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.selectReady(
+                List.of(strongest, strong, weak, weakest),
+                Set.of(strongest.uuid(), strong.uuid(), weak.uuid(), weakest.uuid()),
+                MatchMode.NORMAL,
+                Set.of(),
+                false,
+                new Random(0)
+        );
+        if (!assertPresent(context, plan, "Expected participant selection plan with ELO matchmaking disabled.")) {
+            return;
+        }
+
+        Map<TeamId, Integer> teamElo = plan.get().activeParticipants().stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        AssignedParticipant::teamId,
+                        java.util.stream.Collectors.summingInt(participant -> eloFor(
+                                participant.uuid(),
+                                strongest,
+                                strong,
+                                weak,
+                                weakest
+                        ))
+                ));
+        if (!assertEquals(context, 2800, teamElo.get(TeamId.RED), "Disabled ELO matchmaking should keep randomized roster order for team assignment.")) {
+            return;
+        }
+        if (!assertEquals(context, 3000, teamElo.get(TeamId.BLUE), "Disabled ELO matchmaking should not rebalance team ELO sums.")) {
             return;
         }
         context.succeed();
@@ -2095,6 +2135,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void animalTowerBuildListIncludesFoxStarterForAnimalJob(GameTestHelper context) {
+        ProductionTowerCatalog.clearForTesting();
+        AnimalTowerCatalogs.register();
+        UUID playerId = stableUuid("animal-fox-build-ui-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AnimalTowerJob.ID);
+
+        boolean includesFoxStarter = ProductionTowerService.availableTowers(game, playerId).stream()
+                .anyMatch(entry -> AnimalTowers.T1_FOX_TOWER.id().equals(entry.type().id()));
+        if (!assertTrue(context, includesFoxStarter, "Animal tower build UI should include the T1 fox tower starter.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void towerBuildButtonLabelsColorUnaffordableTowersRed(GameTestHelper context) {
         ProductionTowerCatalog.CatalogEntry entry = productionFixtureEntry();
         Component affordable = SemionDialogService.towerButtonLabel(entry, true);
@@ -3430,7 +3485,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 ResourceLocation.fromNamespaceAndPath("semion-td", "music/second"),
                 60L
         );
-        SemionMusicService service = new SemionMusicService(new SemionMusicLibrary(List.of(first, second)), () -> 100L);
+        SemionMusicTrack third = new SemionMusicTrack(
+                "third",
+                fakeSource,
+                ResourceLocation.fromNamespaceAndPath("semion-td", "music.third"),
+                ResourceLocation.fromNamespaceAndPath("semion-td", "music/third"),
+                50L
+        );
+        SemionMusicService service = new SemionMusicService(new SemionMusicLibrary(List.of(first, second, third)), () -> 100L, bound -> 1);
         UUID playerId = stableUuid("music-player");
 
         SemionMusicService.PlaybackDecision initial = service.decisionFor(playerId, 0L, true);
@@ -3452,7 +3514,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, SemionMusicService.PlaybackAction.START_TRACK, nextTrack.action(), "Stopped clients should resume when the next track boundary arrives.")) {
             return;
         }
-        if (!assertEquals(context, second.eventId(), nextTrack.track().eventId(), "The next music boundary should advance to the next configured track.")) {
+        if (!assertEquals(context, third.eventId(), nextTrack.track().eventId(), "The next music boundary should choose an unplayed randomized track instead of always advancing sequentially.")) {
+            return;
+        }
+        SemionMusicService.PlaybackDecision lastUnplayedTrack = service.decisionFor(playerId, 290L, true);
+        if (!assertEquals(context, SemionMusicService.PlaybackAction.START_TRACK, lastUnplayedTrack.action(), "Music should keep picking unplayed tracks before repeating the playlist.")) {
+            return;
+        }
+        if (!assertEquals(context, second.eventId(), lastUnplayedTrack.track().eventId(), "Music should play every configured track once before any track repeats.")) {
             return;
         }
         context.succeed();
