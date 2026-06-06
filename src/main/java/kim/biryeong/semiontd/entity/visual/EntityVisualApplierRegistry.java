@@ -12,6 +12,7 @@ import kim.biryeong.semiontd.mixin.accessor.FoxAccessor;
 import kim.biryeong.semiontd.mixin.accessor.FrogAccessor;
 import kim.biryeong.semiontd.mixin.accessor.HorseAccessor;
 import kim.biryeong.semiontd.mixin.accessor.LlamaAccessor;
+import kim.biryeong.semiontd.mixin.accessor.MoobloomAccessor;
 import kim.biryeong.semiontd.mixin.accessor.MushroomCowAccessor;
 import kim.biryeong.semiontd.mixin.accessor.ParrotAccessor;
 import kim.biryeong.semiontd.mixin.accessor.PigAccessor;
@@ -51,6 +52,8 @@ import net.minecraft.world.entity.npc.VillagerType;
 import net.minecraft.world.item.DyeColor;
 
 public final class EntityVisualApplierRegistry {
+    private static final ResourceLocation FRIENDS_AND_FOES_MOOBLOOM = ResourceLocation.fromNamespaceAndPath("friendsandfoes", "moobloom");
+
     private EntityVisualApplierRegistry() {
     }
 
@@ -67,7 +70,24 @@ public final class EntityVisualApplierRegistry {
         applyVillagerData(visual, entityType, registryAccess, data);
         applyHolderVariants(visual, entityType, registryAccess, data);
         applyIntegerVariants(visual, entityType, data);
+        applyMoobloomVariant(visual, entityType, data);
         applyTamableState(visual, entityType, data);
+    }
+
+    private static void applyMoobloomVariant(
+            EntityVisual visual,
+            EntityType<?> entityType,
+            List<SynchedEntityData.DataValue<?>> data
+    ) {
+        if (!FRIENDS_AND_FOES_MOOBLOOM.equals(BuiltInRegistries.ENTITY_TYPE.getKey(entityType))) {
+            return;
+        }
+        Optional<String> variant = visual.property(EntityVisualProperties.MOOBLOOM_VARIANT)
+                .or(() -> visual.property("variant"));
+        if (variant.isEmpty()) {
+            return;
+        }
+        put(data, MoobloomAccessor.semiontd$dataVariant(), variant.get());
     }
 
     private static void applyVillagerData(

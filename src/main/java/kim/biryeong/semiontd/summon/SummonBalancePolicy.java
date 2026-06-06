@@ -10,6 +10,7 @@ public final class SummonBalancePolicy {
     public static final double MAX_MONSTER_DAMAGE_REDUCTION = 0.35;
     public static final double MAX_MONSTER_TOWER_DAMAGE_TAKEN_BONUS = 1.00;
     public static final double MAX_MONSTER_MOVE_SPEED_BONUS = 0.30;
+    public static final double MAX_MONSTER_MOVE_SPEED_REDUCTION = 0.50;
     public static final double MAX_MONSTER_ATTACK_DAMAGE_BONUS = 0.50;
     public static final double MAX_MONSTER_ATTACK_DAMAGE_REDUCTION = 0.50;
     public static final double MAX_MONSTER_ATTACK_SPEED_BONUS = 0.50;

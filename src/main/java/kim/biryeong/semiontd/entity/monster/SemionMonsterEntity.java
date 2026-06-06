@@ -304,7 +304,9 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     }
 
     public double movementSpeedMultiplier() {
-        return 1.0 + timedEffects.magnitude(TimedEffectType.MONSTER_MOVE_SPEED_BONUS);
+        double speedBonus = timedEffects.magnitude(TimedEffectType.MONSTER_MOVE_SPEED_BONUS);
+        double speedReduction = timedEffects.magnitude(TimedEffectType.MONSTER_MOVE_SPEED_REDUCTION);
+        return Math.max(0.01, 1.0 + speedBonus - speedReduction);
     }
 
     public double towerDamageTaken(double baseDamage) {

@@ -15,7 +15,9 @@ import kim.biryeong.semiontd.entity.model.SemionBilModelCache;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.entity.visual.EntityVisualApplierRegistry;
+import kim.biryeong.semiontd.entity.visual.MoobloomVisual;
 import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
+import kim.biryeong.semiontd.mixin.accessor.MoobloomAccessor;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
@@ -30,8 +32,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
+import com.faboslav.friendsandfoes.common.entity.MoobloomEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.level.Level;
@@ -66,6 +70,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     private final TimedEffectSet timedEffects = new TimedEffectSet();
     private LivingEntityHolder<SemionTowerEntity> holder;
     private EntityAttachment holderAttachment;
+    private MoobloomEntity moobloomVisualEntity;
     private SemionTowerEntity attackTargetSource;
     private SemionMonsterEntity currentAttackTarget;
 
@@ -178,6 +183,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         super.aiStep();
         invulnerableTime = 0;
         timedEffects.tick();
+        syncMoobloomVisualEntity();
         returnToFinalDefenseAreaIfNeeded();
     }
 
@@ -447,11 +453,17 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         if (blockbenchModelId != null) {
             return AnimatedEntity.super.getPolymerEntityType(context);
         }
+        if (usesMoobloomOverlayVisual()) {
+            return EntityType.INTERACTION;
+        }
         return polymerEntityType;
     }
 
     @Override
     public void modifyRawTrackedData(List<SynchedEntityData.DataValue<?>> data, ServerPlayer player, boolean initial) {
+        if (usesMoobloomOverlayVisual()) {
+            return;
+        }
         EntityVisualApplierRegistry.apply(visual, polymerEntityType, level().registryAccess(), data);
     }
 
@@ -467,6 +479,12 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     @Override
     public void knockback(double strength, double x, double z) {
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        discardMoobloomVisualEntity();
+        super.remove(reason);
     }
 
     @Override
@@ -491,6 +509,53 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             runtimeTower.syncHealth(currentHealth);
             runtimeTower.onDamaged(this, damageSource, damageAmount, previousHealth, currentHealth);
         }
+    }
+
+    private boolean usesMoobloomOverlayVisual() {
+        return blockbenchModelId == null && MoobloomVisual.matches(visual);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void syncMoobloomVisualEntity() {
+        if (!(level() instanceof ServerLevel serverLevel) || !usesMoobloomOverlayVisual()) {
+            discardMoobloomVisualEntity();
+            return;
+        }
+        if (moobloomVisualEntity == null || moobloomVisualEntity.isRemoved() || moobloomVisualEntity.level() != serverLevel) {
+            moobloomVisualEntity = new MoobloomEntity((EntityType<? extends MoobloomEntity>) polymerEntityType, serverLevel);
+            moobloomVisualEntity.setNoAi(true);
+            moobloomVisualEntity.setNoGravity(true);
+            moobloomVisualEntity.setSilent(true);
+            moobloomVisualEntity.setInvulnerable(true);
+            moobloomVisualEntity.setPersistenceRequired();
+            serverLevel.addFreshEntity(moobloomVisualEntity);
+        }
+        applyMoobloomVisualVariant();
+        moobloomVisualEntity.setCustomName(getCustomName());
+        moobloomVisualEntity.setCustomNameVisible(isCustomNameVisible());
+        moobloomVisualEntity.setYRot(getYRot());
+        moobloomVisualEntity.setXRot(getXRot());
+        moobloomVisualEntity.setYHeadRot(getYHeadRot());
+        moobloomVisualEntity.setYBodyRot(yBodyRot);
+        moobloomVisualEntity.teleportTo(getX(), getY(), getZ());
+    }
+
+    private void applyMoobloomVisualVariant() {
+        if (moobloomVisualEntity == null) {
+            return;
+        }
+        String variant = MoobloomVisual.variant(visual);
+        if (variant == null || variant.isBlank()) {
+            return;
+        }
+        moobloomVisualEntity.getEntityData().set(MoobloomAccessor.semiontd$dataVariant(), variant);
+    }
+
+    private void discardMoobloomVisualEntity() {
+        if (moobloomVisualEntity != null && !moobloomVisualEntity.isRemoved()) {
+            moobloomVisualEntity.discard();
+        }
+        moobloomVisualEntity = null;
     }
 
     private void setPolymerEntityType(String entityTypeId) {

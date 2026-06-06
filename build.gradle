@@ -17,6 +17,10 @@ repositories {
         url 'https://maven.nucleoid.xyz'
     }
     maven {
+        name 'Xander Maven'
+        url 'https://maven.isxander.dev/releases'
+    }
+    maven {
         url "https://repo.biryeong.kim/releases/"
     }
 
@@ -30,6 +34,10 @@ repositories {
     maven {
         url 'https://kneelawk.com/maven/'
         name 'Kneelawk Maven'
+    }
+    maven {
+        url 'https://maven.resourcefulbees.com/repository/maven-public/'
+        name 'Resourceful Bees Maven'
     }
     maven {
         // For LibNetworkStack, if using 'syncing' module
@@ -90,6 +98,18 @@ dependencies {
     modImplementation include("kim.biryeong:danta-shader:1.0.2+1.21.8")
     modImplementation include("kim.biryeong:GCB-server:1.0.1+1.21.8")
     modImplementation include("eu.pb4:player-data-api:0.8.0+1.21.6")
+    modImplementation("com.teamresourceful.resourcefullib:resourcefullib-fabric-1.21.6:${project.resourceful_lib_version}") {
+        transitive = false
+    }
+    modImplementation "eu.pb4:factorytools:${project.factorytools_version}"
+    modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+    modImplementation "maven.modrinth:friends-and-foes:${project.friends_and_foes_version}"
+    modImplementation "maven.modrinth:friends-and-foes-flowery-mooblooms-fabric:${project.flowery_mooblooms_version}"
+    modLocalRuntime files(fileTree("run/mods") {
+        include "friends-and-foes-patch-*.jar"
+        include "flowery-mooblooms-polymer-patch-*.jar"
+    })
+
     modLocalRuntime("maven.modrinth:carpet:1.4.177")
 
     implementation include("io.hypersistence:hypersistence-tsid:2.1.4")

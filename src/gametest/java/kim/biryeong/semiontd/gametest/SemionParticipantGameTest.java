@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import com.faboslav.friendsandfoes.common.entity.MoobloomEntity;
 import eu.pb4.polymer.resourcepack.api.ResourcePackBuilder;
 import eu.pb4.placeholders.api.PlaceholderContext;
 import eu.pb4.placeholders.api.PlaceholderResult;
@@ -60,7 +61,9 @@ import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.monster.goal.MonsterAttackTargetGoal;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.entity.visual.EntityVisualApplierRegistry;
+import kim.biryeong.semiontd.entity.visual.MoobloomVisual;
 import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
+import kim.biryeong.semiontd.mixin.accessor.MoobloomAccessor;
 import kim.biryeong.semiontd.entity.visual.SlimeVisual;
 import kim.biryeong.semiontd.mixin.accessor.SlimeAccessor;
 import kim.biryeong.semiontd.config.WaveConfig;
@@ -95,6 +98,7 @@ import kim.biryeong.semiontd.game.VanillaTeamBridge;
 import kim.biryeong.semiontd.job.AnimalTowerJob;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.LegionTowerJob;
+import kim.biryeong.semiontd.job.ResonanceTowerJob;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.job.UndeadTowerJob;
 import kim.biryeong.semiontd.job.VillagerTowerJob;
@@ -153,6 +157,8 @@ import kim.biryeong.semiontd.tower.legion.LegionParrotTower;
 import kim.biryeong.semiontd.tower.legion.LegionSlimeTower;
 import kim.biryeong.semiontd.tower.legion.LegionTowerCatalogs;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.resonance.ResonanceTower;
+import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.villager.AllayTower;
 import kim.biryeong.semiontd.tower.villager.AntiTankerCatTower;
 import kim.biryeong.semiontd.tower.villager.LaneClearCatTower;
@@ -182,6 +188,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import org.slf4j.LoggerFactory;
@@ -207,6 +214,58 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         context.succeed();
+    }
+
+    @GameTest
+    public void moobloomTowerSpawnsRealMoobloomOverlayVisual(GameTestHelper context) {
+        UUID playerId = UUID.nameUUIDFromBytes("gametest-moobloom-visual".getBytes(StandardCharsets.UTF_8));
+        BlockPos anchor = context.absolutePos(BlockPos.ZERO);
+        TowerType type = new TowerType(
+                "moobloom_visual_probe",
+                "Moobloom Visual Probe",
+                TowerCategory.DIRECT,
+                0,
+                50.0,
+                4.0,
+                1.0,
+                20,
+                0,
+                MoobloomVisual.builder().variant("dandelion").build(),
+                List.of()
+        );
+        SemionTowerEntity towerEntity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+        towerEntity.configure(new TestTower(type, playerId, TeamId.RED, 1, GridPosition.from(anchor)), null);
+        towerEntity.setNoAi(true);
+        towerEntity.setPos(anchor.getX() + 0.5, anchor.getY(), anchor.getZ() + 0.5);
+        context.getLevel().addFreshEntity(towerEntity);
+
+        context.runAfterDelay(2, () -> {
+            List<MoobloomEntity> visuals = context.getLevel().getEntitiesOfClass(
+                    MoobloomEntity.class,
+                    new AABB(anchor).inflate(2.0)
+            );
+            if (!assertEquals(context, 1, visuals.size(), "Moobloom tower should spawn one real Moobloom visual overlay entity.")) {
+                return;
+            }
+            MoobloomEntity visual = visuals.getFirst();
+            if (!assertEquals(context, "dandelion", visual.getEntityData().get(MoobloomAccessor.semiontd$dataVariant()), "Moobloom visual should carry the tower variant for the Polymer patch.")) {
+                return;
+            }
+            if (!assertTrue(context, visual.isNoAi() && visual.isInvulnerable(), "Moobloom visual should be passive cosmetic state only.")) {
+                return;
+            }
+            towerEntity.discard();
+            context.runAfterDelay(1, () -> {
+                List<MoobloomEntity> remaining = context.getLevel().getEntitiesOfClass(
+                        MoobloomEntity.class,
+                        new AABB(anchor).inflate(2.0)
+                );
+                if (!assertTrue(context, remaining.isEmpty(), "Removing the tower should also remove its Moobloom visual overlay entity.")) {
+                    return;
+                }
+                context.succeed();
+            });
+        });
     }
 
     private static kim.biryeong.semiontd.map.GameArena testArena(GameTestHelper context) {
@@ -6520,7 +6579,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         ProductionTowerCatalog.clearForTesting();
         AnimalTowerCatalogs.register();
 
-        if (!assertEquals(context, 3L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Animal catalog should expose pig, wolf, and rabbit starter families.")) {
+        if (!assertEquals(context, 4L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Animal catalog should expose pig, wolf, rabbit, and fox starter families.")) {
             return;
         }
         if (!assertEquals(context, 1, ProductionTowerCatalog.upgrades(AnimalTowers.T1_PIG_TOWER).size(), "Pig starter should link to T2 pig tower.")) {
@@ -6548,6 +6607,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_RABBIT_TOWER).orElseThrow().create(stableUuid("rabbit-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof RabbitTower, "Rabbit catalog entry should create RabbitTower.")) {
+            return;
+        }
+        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_FOX_TOWER).orElseThrow().create(stableUuid("fox-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof FoxTower, "Fox catalog entry should create FoxTower.")) {
             return;
         }
         context.succeed();
@@ -6694,7 +6756,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(LegionTowerJob.ID), "Built-in reload should register the legion tower job.")) {
             return;
         }
-        if (!assertEquals(context, 18L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose villager, undead, animal, warlock, and legion starter families.")) {
+        if (!assertPresent(context, JobRegistry.find(ResonanceTowerJob.ID), "Built-in reload should register the resonance tower job.")) {
+            return;
+        }
+        if (!assertEquals(context, 23L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose villager, undead, animal, warlock, legion, and resonance starter families.")) {
             return;
         }
         context.succeed();
@@ -6737,6 +6802,85 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 upgradeIds,
                 "Legion chicken starter should branch to both chicken upgrades."
         )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void resonanceTowerJobUsesResonanceStartersAndRuntimeLinks(GameTestHelper context) {
+        UUID playerId = stableUuid("resonance-job-tower-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, ResonanceTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos focusPos = towerPlacementPos(lane);
+        game.players().get(playerId).economy().addMineral(1_000);
+
+        Set<String> starterIds = ProductionTowerService.availableTowers(game, playerId).stream()
+                .map(entry -> entry.type().id())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!assertEquals(
+                context,
+                Set.of(
+                        ResonanceTowers.FOCUS_CRYSTAL.id(),
+                        ResonanceTowers.WAVE_CRYSTAL.id(),
+                        ResonanceTowers.FROST_CRYSTAL.id(),
+                        ResonanceTowers.AMPLIFY_CRYSTAL.id()
+                ),
+                starterIds,
+                "Resonance job should expose only resonance starter towers."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.TOWER_NOT_ALLOWED,
+                ProductionTowerService.placeTower(game, playerId, focusPos, AnimalTowers.T1_PIG_TOWER.id()),
+                "Resonance job should reject non-resonance starter placement."
+        )) {
+            return;
+        }
+        if (!assertEquals(context, TowerPlacementResult.SUCCESS, ProductionTowerService.placeTower(game, playerId, focusPos, ResonanceTowers.FOCUS_CRYSTAL.id()), "Resonance job should place focus crystal.")) {
+            return;
+        }
+        Set<String> focusUpgradeIds = ProductionTowerService.availableUpgrades(game, playerId, focusPos).stream()
+                .map(option -> option.targetType().id())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!assertEquals(
+                context,
+                Set.of(ResonanceTowers.FOCUS_PRISM.id()),
+                focusUpgradeIds,
+                "Focus crystal should upgrade into the T2 focus prism."
+        )) {
+            return;
+        }
+        addResonanceTower(lane, playerId, ResonanceTowers.WAVE_CRYSTAL, focusPos.offset(1, 0, 0));
+        addResonanceTower(lane, playerId, ResonanceTowers.FROST_CRYSTAL, focusPos.offset(-1, 0, 0));
+        addResonanceTower(lane, playerId, ResonanceTowers.AMPLIFY_CRYSTAL, focusPos.offset(0, 0, 1));
+        addResonanceTower(lane, playerId, ResonanceTowers.WAVE_PRISM, focusPos.offset(0, 0, -1));
+        addResonanceTower(lane, playerId, ResonanceTowers.FROST_PRISM, focusPos.offset(1, 0, 1));
+        addResonanceTower(lane, playerId, ResonanceTowers.AMPLIFY_PRISM, focusPos.offset(-1, 0, -1));
+        if (!assertTrue(context, lane.towers().get(0) instanceof ResonanceTower, "Placed focus crystal should use ResonanceTower runtime.")) {
+            return;
+        }
+        ResonanceTower focus = (ResonanceTower) lane.towerAt(GridPosition.from(focusPos));
+        if (!assertEquals(context, 1, focus.resonanceLevel(), "T1 focus should cap at resonance level 1 with six nearby different species.")) {
+            return;
+        }
+        if (!assertEquals(context, 6, focus.resonanceLinks(), "Focus should count six nearby different species within one tile.")) {
+            return;
+        }
+        if (!assertEquals(context, TowerUpgradeResult.SUCCESS, ProductionTowerService.upgradeTower(game, playerId, focusPos, ResonanceTowers.FOCUS_PRISM.id()), "Focus crystal should upgrade into T2 focus prism.")) {
+            return;
+        }
+        focus = (ResonanceTower) lane.towerAt(GridPosition.from(focusPos));
+        if (!assertEquals(context, 2, focus.resonanceLevel(), "T2 focus should unlock resonance level 2 with four or more nearby different species.")) {
+            return;
+        }
+        if (!assertEquals(context, TowerUpgradeResult.SUCCESS, ProductionTowerService.upgradeTower(game, playerId, focusPos, ResonanceTowers.FOCUS_CORE.id()), "Focus prism should upgrade into T3 focus core.")) {
+            return;
+        }
+        focus = (ResonanceTower) lane.towerAt(GridPosition.from(focusPos));
+        if (!assertEquals(context, 3, focus.resonanceLevel(), "T3 focus should unlock resonance level 3 with six nearby different species.")) {
             return;
         }
         context.succeed();
@@ -6895,7 +7039,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 Set.of(
                         AnimalTowers.T1_PIG_TOWER.id(),
                         AnimalTowers.T1_WOLF_TOWER.id(),
-                        AnimalTowers.T1_RABBIT_TOWER.id()
+                        AnimalTowers.T1_RABBIT_TOWER.id(),
+                        AnimalTowers.T1_FOX_TOWER.id()
                 ),
                 starterIds,
                 "Animal job should expose only animal starter towers."
@@ -7895,6 +8040,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     private static BlockPos towerPlacementPos(PlayerLane lane) {
         return BlockPos.containing(lane.laneLayout().positionAt(0.35));
+    }
+
+    private static void addResonanceTower(PlayerLane lane, UUID playerId, TowerType type, BlockPos position) {
+        GridPosition gridPosition = GridPosition.from(position);
+        lane.addTower(new ResonanceTower(
+                TowerBalanceRuntime.resolve(type),
+                playerId,
+                lane.teamId(),
+                lane.laneId(),
+                gridPosition,
+                gridPosition
+        ));
     }
 
     private static BlockPos nearbyTowerPlacementPos(PlayerLane lane, BlockPos origin) {
