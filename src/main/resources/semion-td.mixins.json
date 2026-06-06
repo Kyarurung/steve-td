@@ -14,6 +14,7 @@
     "accessor.FrogAccessor",
     "accessor.HorseAccessor",
     "accessor.LlamaAccessor",
+    "accessor.MoobloomAccessor",
     "accessor.MushroomCowAccessor",
     "accessor.ParrotAccessor",
     "accessor.PigAccessor",

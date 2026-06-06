@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.entity;
 
 import eu.pb4.polymer.common.impl.entity.InternalEntityHelpers;
+import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import kim.biryeong.semiontd.config.RoundWaveConfig;
@@ -15,6 +16,10 @@ import net.minecraft.world.entity.EntityType;
 import org.slf4j.Logger;
 
 public final class SemionPolymerEntityDataWarmup {
+    private static final Set<ResourceLocation> KNOWN_POLYMER_OVERLAY_ENTITY_TYPES = Set.of(
+            ResourceLocation.fromNamespaceAndPath("friendsandfoes", "moobloom")
+    );
+
     private SemionPolymerEntityDataWarmup() {
     }
 
@@ -27,15 +32,21 @@ public final class SemionPolymerEntityDataWarmup {
         warmBilModels(configs, logger);
 
         int warmed = 0;
+        int skippedPolymerOverlays = 0;
         for (EntityType<?> entityType : entityTypes) {
+            ResourceLocation entityTypeId = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+            if (KNOWN_POLYMER_OVERLAY_ENTITY_TYPES.contains(entityTypeId) || PolymerEntityUtils.isPolymerEntityType(entityType)) {
+                skippedPolymerOverlays++;
+                continue;
+            }
             try {
                 InternalEntityHelpers.getExampleTrackedDataOfEntityType(entityType);
                 warmed++;
             } catch (RuntimeException exception) {
-                logger.warn("Failed to warm Polymer tracked data for {}.", BuiltInRegistries.ENTITY_TYPE.getKey(entityType), exception);
+                logger.warn("Failed to warm Polymer tracked data for {}.", entityTypeId, exception);
             }
         }
-        logger.info("Warmed Polymer tracked data for {} entity types.", warmed);
+        logger.info("Warmed Polymer tracked data for {} entity types; skipped {} Polymer overlay entity types.", warmed, skippedPolymerOverlays);
     }
 
     private static void warmBilModels(LoadedConfigs configs, Logger logger) {

@@ -6,6 +6,8 @@ import java.util.Map;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
+import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -89,6 +91,18 @@ public record TowerBalanceConfig(
         addTower(towers, LegionTowers.T1_PARROT_TOWER);
         addTower(towers, LegionTowers.T2_PARROT_TOWER);
         addTower(towers, LegionTowers.ILLUSION_TOWER);
+        addTower(towers, ResonanceTowers.FOCUS_CRYSTAL);
+        addTower(towers, ResonanceTowers.FOCUS_PRISM);
+        addTower(towers, ResonanceTowers.FOCUS_CORE);
+        addTower(towers, ResonanceTowers.WAVE_CRYSTAL);
+        addTower(towers, ResonanceTowers.WAVE_PRISM);
+        addTower(towers, ResonanceTowers.WAVE_CORE);
+        addTower(towers, ResonanceTowers.FROST_CRYSTAL);
+        addTower(towers, ResonanceTowers.FROST_PRISM);
+        addTower(towers, ResonanceTowers.FROST_CORE);
+        addTower(towers, ResonanceTowers.AMPLIFY_CRYSTAL);
+        addTower(towers, ResonanceTowers.AMPLIFY_PRISM);
+        addTower(towers, ResonanceTowers.AMPLIFY_CORE);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -131,6 +145,14 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, LegionTowers.T1_SLIME_TOWER, LegionTowers.T2_SLIME_TOWER.id(), 85);
         putUpgrade(upgradeCosts, LegionTowers.T1_PENGUIN, LegionTowers.T2_PENGUIN.id(), 225);
         putUpgrade(upgradeCosts, LegionTowers.T1_PARROT_TOWER, LegionTowers.T2_PARROT_TOWER.id(), 225);
+        putUpgrade(upgradeCosts, ResonanceTowers.FOCUS_CRYSTAL, ResonanceTowers.FOCUS_PRISM.id(), 180);
+        putUpgrade(upgradeCosts, ResonanceTowers.FOCUS_PRISM, ResonanceTowers.FOCUS_CORE.id(), 320);
+        putUpgrade(upgradeCosts, ResonanceTowers.WAVE_CRYSTAL, ResonanceTowers.WAVE_PRISM.id(), 160);
+        putUpgrade(upgradeCosts, ResonanceTowers.WAVE_PRISM, ResonanceTowers.WAVE_CORE.id(), 300);
+        putUpgrade(upgradeCosts, ResonanceTowers.FROST_CRYSTAL, ResonanceTowers.FROST_PRISM.id(), 150);
+        putUpgrade(upgradeCosts, ResonanceTowers.FROST_PRISM, ResonanceTowers.FROST_CORE.id(), 280);
+        putUpgrade(upgradeCosts, ResonanceTowers.AMPLIFY_CRYSTAL, ResonanceTowers.AMPLIFY_PRISM.id(), 200);
+        putUpgrade(upgradeCosts, ResonanceTowers.AMPLIFY_PRISM, ResonanceTowers.AMPLIFY_CORE.id(), 350);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, VillagerTowers.T2_LIBRARIAN_TOWER.id(), Map.of(
@@ -536,6 +558,18 @@ public record TowerBalanceConfig(
                 Map.entry("cloneSpawnRadius", 1.5),
                 Map.entry("cloneAggroPriorityBonus", 5.0)
         ));
+        putAbilities(abilities, ResonanceTowers.FOCUS_CRYSTAL.id(), resonanceAbilities(1, ResonanceAspect.FOCUS));
+        putAbilities(abilities, ResonanceTowers.FOCUS_PRISM.id(), resonanceAbilities(2, ResonanceAspect.FOCUS));
+        putAbilities(abilities, ResonanceTowers.FOCUS_CORE.id(), resonanceAbilities(3, ResonanceAspect.FOCUS));
+        putAbilities(abilities, ResonanceTowers.WAVE_CRYSTAL.id(), resonanceAbilities(1, ResonanceAspect.WAVE));
+        putAbilities(abilities, ResonanceTowers.WAVE_PRISM.id(), resonanceAbilities(2, ResonanceAspect.WAVE));
+        putAbilities(abilities, ResonanceTowers.WAVE_CORE.id(), resonanceAbilities(3, ResonanceAspect.WAVE));
+        putAbilities(abilities, ResonanceTowers.FROST_CRYSTAL.id(), resonanceAbilities(1, ResonanceAspect.FROST));
+        putAbilities(abilities, ResonanceTowers.FROST_PRISM.id(), resonanceAbilities(2, ResonanceAspect.FROST));
+        putAbilities(abilities, ResonanceTowers.FROST_CORE.id(), resonanceAbilities(3, ResonanceAspect.FROST));
+        putAbilities(abilities, ResonanceTowers.AMPLIFY_CRYSTAL.id(), resonanceAbilities(1, ResonanceAspect.AMPLIFY));
+        putAbilities(abilities, ResonanceTowers.AMPLIFY_PRISM.id(), resonanceAbilities(2, ResonanceAspect.AMPLIFY));
+        putAbilities(abilities, ResonanceTowers.AMPLIFY_CORE.id(), resonanceAbilities(3, ResonanceAspect.AMPLIFY));
 
         return new TowerBalanceConfig(towers, upgradeCosts, abilities, IllusionCloneQueueConfig.defaultConfig());
     }
@@ -616,6 +650,66 @@ public record TowerBalanceConfig(
 
     private static void putAbilities(Map<String, Map<String, Double>> abilities, String towerId, Map<String, Double> values) {
         abilities.put(towerId, values);
+    }
+
+    private static Map<String, Double> resonanceAbilities(int maxResonanceLevel, ResonanceAspect aspect) {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("linkRange", 1.0);
+        values.put("maxLinksPerTower", 6.0);
+        values.put("maxResonanceLevel", (double) Math.max(1, Math.min(3, maxResonanceLevel)));
+        values.put("level1RequiredLinks", 2.0);
+        values.put("level2RequiredLinks", 4.0);
+        values.put("level3RequiredLinks", 6.0);
+        switch (aspect) {
+            case FOCUS -> {
+                values.put("focusLevel1AttackSpeedBonus", 0.08);
+                values.put("focusLevel2AttackSpeedBonus", 0.10);
+                values.put("focusLevel2DamageBonus", 0.12);
+                values.put("focusLevel3AttackSpeedBonus", 0.12);
+                values.put("focusLevel3DamageBonus", 0.16);
+                values.put("focusStrikeEveryAttacks", 5.0);
+                values.put("focusStrikeDamageRatio", 0.45);
+            }
+            case WAVE -> {
+                values.put("waveLevel1AttackSpeedBonus", 0.06);
+                values.put("waveLevel2SplashRadius", 1.25);
+                values.put("waveLevel2SplashDamageRatio", 0.25);
+                values.put("waveLevel3SplashRadius", 1.5);
+                values.put("waveLevel3SplashDamageRatio", 0.30);
+                values.put("wavePulseEveryAttacks", 5.0);
+                values.put("wavePulseRadius", 2.0);
+                values.put("wavePulseDamageRatio", 0.35);
+            }
+            case FROST -> {
+                values.put("frostLevel1SlowMagnitude", 0.10);
+                values.put("frostLevel1SlowTicks", 20.0);
+                values.put("frostLevel2SlowMagnitude", 0.15);
+                values.put("frostLevel2SlowTicks", 30.0);
+                values.put("frostLevel2DamageVsSlowedBonus", 0.08);
+                values.put("frostLevel3SlowMagnitude", 0.20);
+                values.put("frostLevel3SlowTicks", 40.0);
+                values.put("frostLevel3DamageVsSlowedBonus", 0.10);
+                values.put("frostPulseEveryAttacks", 5.0);
+                values.put("frostPulseRadius", 1.75);
+                values.put("frostPulseDamageRatio", 0.20);
+                values.put("frostPulseSlowMagnitude", 0.25);
+                values.put("frostPulseSlowTicks", 40.0);
+            }
+            case AMPLIFY -> {
+                values.put("bloomLevel1DamageReduction", 0.08);
+                values.put("bloomLevel2DamageReduction", 0.12);
+                values.put("bloomLevel2AuraAttackSpeedBonus", 0.05);
+                values.put("bloomLevel3DamageReduction", 0.16);
+                values.put("bloomLevel3AuraAttackSpeedBonus", 0.08);
+                values.put("bloomAuraRange", 1.0);
+                values.put("bloomProtectEveryAttacks", 5.0);
+                values.put("bloomProtectRadius", 1.0);
+                values.put("bloomProtectHealRatio", 0.50);
+                values.put("bloomProtectDamageReduction", 0.08);
+                values.put("bloomProtectTicks", 60.0);
+            }
+        }
+        return values;
     }
 
     private static Map<String, TowerStats> copyTowerStats(Map<String, TowerStats> values) {
