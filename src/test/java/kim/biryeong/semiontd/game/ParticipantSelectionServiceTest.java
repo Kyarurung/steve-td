@@ -38,6 +38,25 @@ final class ParticipantSelectionServiceTest {
     }
 
     @Test
+    void selectionPlanCarriesDisplayEloForRuntimeLeaderSelection() {
+        StartCandidate high = candidate("leader-high-elo", 1800);
+        StartCandidate low = candidate("leader-low-elo", 1200);
+
+        Optional<ParticipantSelectionPlan> plan = ParticipantSelectionService.selectReady(
+                List.of(high, low),
+                Set.of(high.uuid(), low.uuid()),
+                MatchMode.TEST
+        );
+
+        assertTrue(plan.isPresent());
+        assertEquals(1800, plan.get().activeParticipants().stream()
+                .filter(participant -> participant.uuid().equals(high.uuid()))
+                .findFirst()
+                .orElseThrow()
+                .displayElo());
+    }
+
+    @Test
     void teamAssignmentCanDisableDisplayEloBalancing() {
         StartCandidate strongest = candidate("disabled-strongest", 2000);
         StartCandidate strong = candidate("disabled-strong", 1900);

@@ -83,7 +83,7 @@ public final class ParticipantSelectionService {
             List<StartCandidate> teamCandidates = assigned.get(teamId);
             for (int i = 0; i < teamCandidates.size(); i++) {
                 StartCandidate candidate = teamCandidates.get(i);
-                activeParticipants.add(new AssignedParticipant(candidate.uuid(), candidate.name(), teamId, i + 1));
+                activeParticipants.add(new AssignedParticipant(candidate.uuid(), candidate.name(), teamId, i + 1, candidate.displayElo()));
             }
         }
 

@@ -998,7 +998,8 @@ public final class SemionGame {
             activeParticipants.stream()
                     .filter(participant -> participant.teamId() == team.id())
                     .filter(participant -> players.containsKey(participant.uuid()))
-                    .min(Comparator.comparingInt(AssignedParticipant::laneId))
+                    .min(Comparator.comparingInt(AssignedParticipant::displayElo).reversed()
+                            .thenComparingInt(AssignedParticipant::laneId))
                     .ifPresent(participant -> team.setLeader(participant.uuid()));
         }
     }

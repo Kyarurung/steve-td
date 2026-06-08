@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 final class SemionGameTeamLeaderTest {
     @Test
-    void lowestLaneParticipantBecomesTeamLeader() {
+    void highestEloParticipantBecomesTeamLeader() {
         SemionGame game = newGame();
         UUID laneTwo = UUID.nameUUIDFromBytes("red-lane-2".getBytes());
         UUID laneOne = UUID.nameUUIDFromBytes("red-lane-1".getBytes());
@@ -26,8 +26,25 @@ final class SemionGameTeamLeaderTest {
         game.players().put(laneOne, player(laneOne, TeamId.RED, 1));
 
         game.assignTeamLeadersFromParticipants(List.of(
-                new AssignedParticipant(laneTwo, "red2", TeamId.RED, 2),
-                new AssignedParticipant(laneOne, "red1", TeamId.RED, 1)
+                new AssignedParticipant(laneTwo, "red2", TeamId.RED, 2, 1700),
+                new AssignedParticipant(laneOne, "red1", TeamId.RED, 1, 1600)
+        ));
+
+        assertEquals(laneTwo, game.teams().get(TeamId.RED).leaderPlayerId().orElseThrow());
+    }
+
+    @Test
+    void equalEloLeaderSelectionFallsBackToLowestLane() {
+        SemionGame game = newGame();
+        UUID laneTwo = UUID.nameUUIDFromBytes("equal-elo-red-lane-2".getBytes());
+        UUID laneOne = UUID.nameUUIDFromBytes("equal-elo-red-lane-1".getBytes());
+        game.teams().get(TeamId.RED).activate();
+        game.players().put(laneTwo, player(laneTwo, TeamId.RED, 2));
+        game.players().put(laneOne, player(laneOne, TeamId.RED, 1));
+
+        game.assignTeamLeadersFromParticipants(List.of(
+                new AssignedParticipant(laneTwo, "red2", TeamId.RED, 2, 1600),
+                new AssignedParticipant(laneOne, "red1", TeamId.RED, 1, 1600)
         ));
 
         assertEquals(laneOne, game.teams().get(TeamId.RED).leaderPlayerId().orElseThrow());

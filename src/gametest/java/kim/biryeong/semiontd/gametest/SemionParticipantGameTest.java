@@ -2117,6 +2117,36 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
+    @GameTest
+    public void startAssignsHighestEloParticipantAsTeamLeader(GameTestHelper context) {
+        UUID redLaneOne = stableUuid("leader-elo-red-lane-one");
+        UUID redLaneTwo = stableUuid("leader-elo-red-lane-two");
+        UUID blue = stableUuid("leader-elo-blue");
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                testArena(context)
+        );
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redLaneOne, "red-low", TeamId.RED, 1, 1200),
+                        new AssignedParticipant(redLaneTwo, "red-high", TeamId.RED, 2, 1800),
+                        new AssignedParticipant(blue, "blue", TeamId.BLUE, 1, 1500)
+                ),
+                Set.of(),
+                2
+        );
+
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Game should start with a two-player RED team.")) {
+            return;
+        }
+        if (!assertEquals(context, redLaneTwo, game.teams().get(TeamId.RED).leaderPlayerId().orElseThrow(), "Highest ELO RED player should become team leader even outside lane 1.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 700)
     public void preparePhaseTeleportsPlayerAndGrantsHotbarTools(GameTestHelper context) {
         var player = context.makeMockServerPlayerInLevel();
