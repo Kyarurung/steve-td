@@ -1446,17 +1446,14 @@ public final class SemionCommands {
             int currentRound,
             int scheduledRound
     ) {
-        return summonSuccessMarkup(summonId, summonTargetOwnerMarkup(game, result), currentRound, scheduledRound);
+        String incomeName = game.summonShop().find(summonId)
+                .map(SummonMonsterType::displayName)
+                .orElse(summonId);
+        return summonSuccessMarkup(incomeName, summonTargetOwnerMarkup(game, result), currentRound, scheduledRound);
     }
 
-    static String summonSuccessMarkup(String summonId, String targetOwnerMarkup, int currentRound, int scheduledRound) {
-        String escapedSummonId = MINI_MESSAGE.escapeTags(summonId);
-        if (scheduledRound > currentRound) {
-            return "다음 라운드에 소환 예약했습니다: " + escapedSummonId
-                    + ", 대상=" + targetOwnerMarkup
-                    + ", 라운드=" + scheduledRound;
-        }
-        return "소환했습니다: " + escapedSummonId + ", 대상=" + targetOwnerMarkup;
+    static String summonSuccessMarkup(String incomeName, String targetOwnerMarkup, int currentRound, int scheduledRound) {
+        return MINI_MESSAGE.escapeTags(incomeName) + " 이(가) " + targetOwnerMarkup + " 의 라인으로 공격합니다!";
     }
 
     private static String summonTargetOwnerMarkup(SemionGame game, SummonResult result) {

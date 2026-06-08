@@ -5406,7 +5406,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 game.currentRound(),
                 result.scheduledRound().orElse(game.currentRound())
         );
-        if (!assertEquals(context, "소환했습니다: chicken, 대상=<blue>blue</blue>", markup, "Income summon feedback should use the target lane owner's colored nickname.")) {
+        if (!assertEquals(context, "Chicken 이(가) <blue>blue</blue> 의 라인으로 공격합니다!", markup, "Income summon feedback should use the income name and target lane owner's colored nickname.")) {
             return;
         }
         if (!assertTrue(context, !markup.contains("팀=") && !markup.contains("라인="), "Income summon feedback should not expose team/lane labels.")) {
@@ -5432,6 +5432,19 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, Optional.of(2), result.scheduledRound(), "Wave phase summon should be scheduled for the next round.")) {
+            return;
+        }
+        String markup = SemionCommands.summonSuccessMarkup(
+                game,
+                result,
+                "chicken",
+                game.currentRound(),
+                result.scheduledRound().orElse(game.currentRound())
+        );
+        if (!assertEquals(context, "Chicken 이(가) <blue>blue</blue> 의 라인으로 공격합니다!", markup, "Reserved summon feedback should use the fallback attack message.")) {
+            return;
+        }
+        if (!assertTrue(context, !markup.contains("예약") && !markup.contains("팀=") && !markup.contains("라인="), "Reserved summon feedback should not expose reservation or team/lane labels.")) {
             return;
         }
         if (!assertEquals(context, gasBeforeSummon - 20, game.players().get(redId).economy().gas(), "Wave phase summon should spend emerald immediately.")) {

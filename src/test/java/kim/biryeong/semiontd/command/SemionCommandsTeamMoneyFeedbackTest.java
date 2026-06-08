@@ -13,21 +13,22 @@ final class SemionCommandsTeamMoneyFeedbackTest {
     }
 
     @Test
-    void summonSuccessFeedbackUsesTargetOwnerInsteadOfTeamAndLane() {
-        String message = SemionCommands.summonSuccessMarkup("chicken", "<blue>blue-owner</blue>", 1, 1);
+    void summonSuccessFeedbackUsesIncomeNameAndTargetOwnerInsteadOfTeamAndLane() {
+        String message = SemionCommands.summonSuccessMarkup("Chicken", "<blue>blue-owner</blue>", 1, 1);
 
-        assertEquals("소환했습니다: chicken, 대상=<blue>blue-owner</blue>", message);
+        assertEquals("Chicken 이(가) <blue>blue-owner</blue> 의 라인으로 공격합니다!", message);
         assertFalse(message.contains("팀="));
         assertFalse(message.contains("라인="));
     }
 
     @Test
-    void reservedSummonSuccessFeedbackUsesTargetOwnerInsteadOfTeamAndLane() {
-        String message = SemionCommands.summonSuccessMarkup("chicken", "<blue>blue-owner</blue>", 1, 2);
+    void reservedSummonFallbackFeedbackUsesSameAttackMessage() {
+        String message = SemionCommands.summonSuccessMarkup("Chicken", "<blue>blue-owner</blue>", 1, 2);
 
-        assertEquals("다음 라운드에 소환 예약했습니다: chicken, 대상=<blue>blue-owner</blue>, 라운드=2", message);
+        assertEquals("Chicken 이(가) <blue>blue-owner</blue> 의 라인으로 공격합니다!", message);
         assertFalse(message.contains("팀="));
         assertFalse(message.contains("라인="));
+        assertFalse(message.contains("예약"));
     }
 
     @Test
