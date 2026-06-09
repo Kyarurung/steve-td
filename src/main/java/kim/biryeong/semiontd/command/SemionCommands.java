@@ -932,7 +932,7 @@ public final class SemionCommands {
 
     private static int statusDialog(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
-        SemionGame game = gameManager.activeGame().orElse(null);
+        SemionGame game = gameManager.playableGame(player.getUUID()).or(() -> gameManager.activeGame()).orElse(null);
         if (game != null) {
             gameManager.dialogService().showGameStatus(player, game);
             success(source, "상태 창을 열었습니다.");
@@ -980,9 +980,9 @@ public final class SemionCommands {
             int amount
     ) throws CommandSyntaxException {
         ServerPlayer requesterPlayer = source.getPlayerOrException();
-        SemionGame game = gameManager.activeGame().orElse(null);
+        SemionGame game = gameManager.playableGame(requesterPlayer.getUUID()).orElse(null);
         if (game == null) {
-            failure(source, "진행 중인 게임이 없습니다.");
+            failure(source, "진행 중인 게임 또는 샌드박스가 없습니다. /semiontd sandbox start를 사용하세요.");
             return 0;
         }
 
@@ -1009,9 +1009,9 @@ public final class SemionCommands {
             String requestId
     ) throws CommandSyntaxException {
         ServerPlayer senderPlayer = source.getPlayerOrException();
-        SemionGame game = gameManager.activeGame().orElse(null);
+        SemionGame game = gameManager.playableGame(senderPlayer.getUUID()).orElse(null);
         if (game == null) {
-            failure(source, "진행 중인 게임이 없습니다.");
+            failure(source, "진행 중인 게임 또는 샌드박스가 없습니다. /semiontd sandbox start를 사용하세요.");
             return 0;
         }
 
@@ -1099,13 +1099,12 @@ public final class SemionCommands {
             int amount,
             ServerPlayer targetPlayer
     ) throws CommandSyntaxException {
-        SemionGame game = gameManager.activeGame().orElse(null);
+        ServerPlayer target = targetPlayer == null ? source.getPlayerOrException() : targetPlayer;
+        SemionGame game = gameManager.playableGame(target.getUUID()).orElse(null);
         if (game == null) {
-            failure(source, "진행 중인 게임이 없습니다.");
+            failure(source, "대상 플레이어의 진행 중인 게임 또는 샌드박스가 없습니다: " + target.getGameProfile().getName());
             return 0;
         }
-
-        ServerPlayer target = targetPlayer == null ? source.getPlayerOrException() : targetPlayer;
         SemionPlayer semionPlayer = game.players().get(target.getUUID());
         if (semionPlayer == null) {
             failure(source, "현재 게임 참가자가 아닙니다: " + target.getGameProfile().getName());

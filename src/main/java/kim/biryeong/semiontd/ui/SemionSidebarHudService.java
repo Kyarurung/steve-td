@@ -21,18 +21,29 @@ public final class SemionSidebarHudService {
     private int updateTicker;
 
     public void tick(MinecraftServer server, SemionGame game, MatchMode matchMode) {
+        tick(server, game, matchMode, Set.of());
+    }
+
+    public void tick(MinecraftServer server, SemionGame game, MatchMode matchMode, Set<UUID> protectedPlayerIds) {
         updateTicker++;
         if (updateTicker % UPDATE_INTERVAL_TICKS != 0) {
             return;
         }
 
-        refreshNow(server, game, matchMode);
+        refreshNow(server, game, matchMode, protectedPlayerIds);
     }
 
     public void refreshNow(MinecraftServer server, SemionGame game, MatchMode matchMode) {
+        refreshNow(server, game, matchMode, Set.of());
+    }
+
+    public void refreshNow(MinecraftServer server, SemionGame game, MatchMode matchMode, Set<UUID> protectedPlayerIds) {
         Set<UUID> onlinePlayerIds = new HashSet<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             onlinePlayerIds.add(player.getUUID());
+            if (protectedPlayerIds.contains(player.getUUID())) {
+                continue;
+            }
             List<Component> lines = SemionHudTextService.sidebarLinesFor(player, game, matchMode, server);
             if (lines.isEmpty()) {
                 remove(player);
@@ -42,6 +53,25 @@ public final class SemionSidebarHudService {
             }
         }
         sidebars.keySet().removeIf(playerId -> !onlinePlayerIds.contains(playerId));
+    }
+
+    public void refreshPlayersNow(MinecraftServer server, SemionGame game, MatchMode matchMode, Set<UUID> playerIds) {
+        if (playerIds == null || playerIds.isEmpty()) {
+            return;
+        }
+        for (UUID playerId : playerIds) {
+            ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+            if (player == null) {
+                continue;
+            }
+            List<Component> lines = SemionHudTextService.sidebarLinesFor(player, game, matchMode, server);
+            if (lines.isEmpty()) {
+                remove(player);
+            } else {
+                update(player, lines);
+                updateActionbar(player, game);
+            }
+        }
     }
 
     public void clear(MinecraftServer server) {

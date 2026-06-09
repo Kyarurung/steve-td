@@ -70,6 +70,7 @@ public final class SemionGame {
     private final Map<String, TeamMoneyTransferRequest> teamMoneyRequests = new java.util.LinkedHashMap<>();
     private final Map<UUID, Integer> lastTeamMoneyReceivedRound = new java.util.HashMap<>();
     private final List<TeamEliminationRecord> eliminationOrder = new ArrayList<>();
+    private boolean selfTargetIncomeSummons;
     private MatchId matchId = MatchId.newId();
     private long startedAtEpochMillis;
     private long endedAtEpochMillis;
@@ -170,6 +171,10 @@ public final class SemionGame {
 
     public SummonShop summonShop() {
         return summonShop;
+    }
+
+    public void enableSelfTargetIncomeSummons() {
+        selfTargetIncomeSummons = true;
     }
 
     public Optional<BuildGuideService> buildGuideService() {
@@ -1082,6 +1087,9 @@ public final class SemionGame {
 
     Optional<SemionTeam> targetTeamForSummon(TeamId senderTeam) {
         SemionTeam team = teams.get(senderTeam);
+        if (selfTargetIncomeSummons && team != null && team.active() && !team.eliminated()) {
+            return Optional.of(team);
+        }
         if (team != null) {
             Optional<LeaderTargetingState> leaderTargeting = team.leaderTargeting();
             if (leaderTargeting.isPresent() && leaderTargeting.get().targetTeamId().isPresent()) {

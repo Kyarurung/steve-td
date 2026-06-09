@@ -775,6 +775,7 @@ public final class SemionGameManager {
                 arena,
                 null
         );
+        sandbox.enableSelfTargetIncomeSummons();
         kim.biryeong.semiontd.job.JobRegistry.all().stream()
                 .filter(job -> !job.id().equals(kim.biryeong.semiontd.job.JobRegistry.defaultJob().id()))
                 .findFirst()
@@ -868,8 +869,10 @@ public final class SemionGameManager {
     }
 
     private void tickSandboxGames(MinecraftServer server) {
-        for (SemionGame sandbox : sandboxGames.values()) {
+        for (Map.Entry<UUID, SemionGame> entry : sandboxGames.entrySet()) {
+            SemionGame sandbox = entry.getValue();
             sandbox.tick(server);
+            sidebarHudService.refreshPlayersNow(server, sandbox, MatchMode.TEST, Set.of(entry.getKey()));
         }
     }
 
@@ -972,7 +975,7 @@ public final class SemionGameManager {
 
         if (pendingStartPlan != null) {
             tickStartCountdown(server);
-            sidebarHudService.tick(server, activeGame, matchMode);
+            sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
             return;
         }
 
@@ -982,7 +985,7 @@ public final class SemionGameManager {
             return;
         }
         if (activeGame != null) {
-            sidebarHudService.tick(server, activeGame, matchMode);
+            sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
         }
     }
 
@@ -1016,7 +1019,7 @@ public final class SemionGameManager {
             try {
                 sendPlayerToLobby(server, player);
                 if (activeGame != null && activeGame.canConfigureRoster()) {
-                    sidebarHudService.refreshNow(server, activeGame, matchMode);
+                    sidebarHudService.refreshNow(server, activeGame, matchMode, sandboxGames.keySet());
                 }
             } catch (ArenaLoadException exception) {
                 SemionTd.LOGGER.warn("Failed to send player {} to lobby.", player.getGameProfile().getName(), exception);
@@ -1125,7 +1128,7 @@ public final class SemionGameManager {
         clearPriorityForActiveParticipants(plan);
         server.getPlayerList().broadcastSystemMessage(SemionText.prefixedMini("<green><bold>게임을 시작합니다.</bold></green>"), false);
         activeGame.announceTeamLeaders(server);
-        sidebarHudService.refreshNow(server, activeGame, matchMode);
+        sidebarHudService.refreshNow(server, activeGame, matchMode, sandboxGames.keySet());
     }
 
     private void announceStartCountdown(MinecraftServer server, int secondsRemaining) {

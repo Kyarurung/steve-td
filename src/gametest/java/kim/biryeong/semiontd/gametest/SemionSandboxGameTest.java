@@ -24,11 +24,17 @@ import kim.biryeong.semiontd.map.GameArena;
 import kim.biryeong.semiontd.summon.SummonResult;
 import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
+import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 
 public final class SemionSandboxGameTest {
     @GameTest
@@ -110,7 +116,10 @@ public final class SemionSandboxGameTest {
             if (!assertEquals(context, SummonResultType.SUCCESS, summon.type(), "Sandbox income summon should use the sandbox game only.")) {
                 return;
             }
-            if (!assertTrue(context, summon.targetTeam().filter(TeamId.BLUE::equals).isPresent(), "Sandbox income should target the sandbox dummy enemy team.")) {
+            if (!assertTrue(context, summon.targetTeam().filter(TeamId.RED::equals).isPresent(), "Sandbox income should route back to the sandbox owner's own team.")) {
+                return;
+            }
+            if (!assertEquals(context, sandboxOwnerId, lane(sandboxGame, TeamId.RED, 1).ownerPlayer(), "Sandbox self-routed income should enter the owner's own lane.")) {
                 return;
             }
             if (!assertEquals(context, activeIncomeBeforeSandboxSummon, activeGame.players().get(activeRedId).economy().income(), "Sandbox income summon must not change active match economy.")) {
@@ -146,6 +155,49 @@ public final class SemionSandboxGameTest {
         }
     }
 
+    @GameTest
+    public void sandboxHotbarToolsOpenSandboxUi(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var player = context.makeMockServerPlayerInLevel();
+            GameArena sandboxArena = SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO));
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    player.getUUID(),
+                    player.getGameProfile().getName(),
+                    sandboxArena
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Mock player should be able to start sandbox.")) {
+                return;
+            }
+            if (!assertTrue(context, player.getInventory().getItem(0).is(Items.COMPASS), "Sandbox should grant tower compass.")) {
+                return;
+            }
+            if (!assertTrue(context, player.getInventory().getItem(1).is(Items.ECHO_SHARD), "Sandbox should grant income summon item.")) {
+                return;
+            }
+
+            player.setItemInHand(InteractionHand.MAIN_HAND, player.getInventory().getItem(0));
+            InteractionResult towerResult = invokeHotbarUse(manager, player, player.level());
+            if (!assertEquals(context, InteractionResult.SUCCESS, towerResult, "Tower compass should open the sandbox tower UI.")) {
+                return;
+            }
+
+            player.setItemInHand(InteractionHand.MAIN_HAND, player.getInventory().getItem(1));
+            InteractionResult summonResult = invokeHotbarUse(manager, player, player.level());
+            if (!assertEquals(context, InteractionResult.SUCCESS, summonResult, "Income item should open the sandbox summon UI.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox hotbar UI test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
     private static void configureManager(SemionGameManager manager) throws Exception {
         Path tempDir = Files.createTempDirectory("semion-sandbox-gametest");
         manager.configure(
@@ -161,6 +213,22 @@ public final class SemionSandboxGameTest {
 
     private static UUID uuid(String name) {
         return UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static InteractionResult invokeHotbarUse(SemionGameManager manager, Player player, Level world) throws Exception {
+        java.lang.reflect.Method method = SemionHotbarService.class.getDeclaredMethod(
+                "handleUse",
+                SemionGameManager.class,
+                Player.class,
+                Level.class,
+                InteractionHand.class
+        );
+        method.setAccessible(true);
+        return (InteractionResult) method.invoke(null, manager, player, world, InteractionHand.MAIN_HAND);
+    }
+
+    private static PlayerLane lane(SemionGame game, TeamId teamId, int laneId) {
+        return game.teams().get(teamId).laneGroup().lane(laneId).orElseThrow();
     }
 
     private static boolean assertTrue(GameTestHelper context, boolean condition, String message) {
