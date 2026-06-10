@@ -198,6 +198,202 @@ public final class SemionSandboxGameTest {
         }
     }
 
+    @GameTest
+    public void sandboxStartsWithNormalEconomyAndCanGrantCurrency(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            UUID sandboxOwnerId = uuid("sandbox-economy-owner");
+            GameArena sandboxArena = SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO));
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    "sandbox-economy-owner",
+                    sandboxArena
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Sandbox should start for economy test.")) {
+                return;
+            }
+            SemionGame sandboxGame = manager.sandboxGame(sandboxOwnerId).orElseThrow();
+            var economy = sandboxGame.players().get(sandboxOwnerId).economy();
+            EconomyConfig defaultEconomy = EconomyConfig.defaultConfig();
+            if (!assertEquals(context, defaultEconomy.startingDiamond(), economy.diamond(), "Sandbox should use normal starting diamond, not infinite resources.")) {
+                return;
+            }
+            if (!assertEquals(context, defaultEconomy.startingEmerald(), economy.emerald(), "Sandbox should use normal starting emerald, not infinite resources.")) {
+                return;
+            }
+            if (!assertEquals(context, defaultEconomy.startingIncome(), economy.income(), "Sandbox should use normal starting income.")) {
+                return;
+            }
+
+            if (!assertTrue(context, manager.grantSandboxCurrency(sandboxOwnerId, SemionGameManager.SandboxCurrency.DIAMOND, 123), "Sandbox diamond grant command backend should succeed.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.grantSandboxCurrency(sandboxOwnerId, SemionGameManager.SandboxCurrency.EMERALD, 45), "Sandbox emerald grant command backend should succeed.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.grantSandboxCurrency(sandboxOwnerId, SemionGameManager.SandboxCurrency.INCOME, 6), "Sandbox income grant command backend should succeed.")) {
+                return;
+            }
+            if (!assertEquals(context, defaultEconomy.startingDiamond() + 123, economy.diamond(), "Sandbox diamond grant should add to the sandbox owner only.")) {
+                return;
+            }
+            if (!assertEquals(context, defaultEconomy.startingEmerald() + 45, economy.emerald(), "Sandbox emerald grant should add to the sandbox owner only.")) {
+                return;
+            }
+            if (!assertEquals(context, defaultEconomy.startingIncome() + 6, economy.income(), "Sandbox income grant should add to the sandbox owner only.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox economy test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxEliminationDoesNotSpectateOwnerOrBroadcastMatchFlow(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var player = context.makeMockServerPlayerInLevel();
+            GameArena sandboxArena = SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO));
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    player.getUUID(),
+                    player.getGameProfile().getName(),
+                    sandboxArena
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Sandbox should start for elimination test.")) {
+                return;
+            }
+            SemionGame sandboxGame = manager.sandboxGame(player.getUUID()).orElseThrow();
+            if (!assertTrue(context, player.getInventory().getItem(0).is(Items.COMPASS), "Sandbox owner should start with tower compass.")) {
+                return;
+            }
+
+            if (!assertTrue(context, sandboxGame.killBoss(server, TeamId.RED), "Sandbox owner team boss should be killable for regression setup.")) {
+                return;
+            }
+            if (!assertTrue(context, !sandboxGame.isMatchSpectator(player.getUUID()), "Sandbox owner elimination should not run real-match spectator conversion.")) {
+                return;
+            }
+            if (!assertTrue(context, player.getInventory().getItem(0).is(Items.COMPASS), "Sandbox owner should keep sandbox tools after sandbox-only elimination.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.leaveSandbox(server, player), "Sandbox should still be leaveable after a sandbox-only elimination.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.sandboxGame(player.getUUID()).isEmpty(), "Leaving should remove sandbox after elimination.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox elimination test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxCurrencyGrantDoesNotAffectActiveMatch(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            SemionGame activeGame = manager.createGame(server);
+            UUID activeRedId = uuid("sandbox-currency-active-red");
+            UUID activeBlueId = uuid("sandbox-currency-active-blue");
+            if (!assertTrue(context, activeGame.start(server, new ParticipantSelectionPlan(
+                    MatchMode.TEST,
+                    List.of(
+                            new AssignedParticipant(activeRedId, "active-red", TeamId.RED, 1),
+                            new AssignedParticipant(activeBlueId, "active-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(),
+                    2
+            )), "Active match should start for currency isolation test.")) {
+                return;
+            }
+            long activeDiamondBefore = activeGame.players().get(activeRedId).economy().diamond();
+            if (!assertTrue(context, !manager.grantSandboxCurrency(activeRedId, SemionGameManager.SandboxCurrency.DIAMOND, 999), "Active match player without sandbox should not receive sandbox currency.")) {
+                return;
+            }
+            if (!assertEquals(context, activeDiamondBefore, activeGame.players().get(activeRedId).economy().diamond(), "Failed sandbox grant must not mutate active match economy.")) {
+                return;
+            }
+
+            UUID sandboxOwnerId = uuid("sandbox-currency-owner");
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    "sandbox-currency-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(new BlockPos(100, 0, 0)))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Non-participant sandbox should start beside active match.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.grantSandboxCurrency(sandboxOwnerId, SemionGameManager.SandboxCurrency.DIAMOND, 999), "Sandbox owner should receive sandbox currency.")) {
+                return;
+            }
+            if (!assertEquals(context, activeDiamondBefore, activeGame.players().get(activeRedId).economy().diamond(), "Sandbox currency grant must not mutate active match economy.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox currency isolation test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxResetRestoresNormalEconomy(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            UUID sandboxOwnerId = uuid("sandbox-reset-economy-owner");
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    "sandbox-reset-economy-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Sandbox should start before reset.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.grantSandboxCurrency(sandboxOwnerId, SemionGameManager.SandboxCurrency.DIAMOND, 999), "Sandbox grant before reset should succeed.")) {
+                return;
+            }
+            SemionGameManager.SandboxStartResult resetResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    "sandbox-reset-economy-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(new BlockPos(200, 0, 0)))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.REPLACED, resetResult, "Starting sandbox again should replace the old session.")) {
+                return;
+            }
+            var economy = manager.sandboxGame(sandboxOwnerId).orElseThrow().players().get(sandboxOwnerId).economy();
+            if (!assertEquals(context, EconomyConfig.defaultConfig().startingDiamond(), economy.diamond(), "Reset sandbox should restore normal starting diamond instead of carrying grants.")) {
+                return;
+            }
+            if (!assertEquals(context, EconomyConfig.defaultConfig().startingEmerald(), economy.emerald(), "Reset sandbox should restore normal starting emerald.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox reset economy test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
     private static void configureManager(SemionGameManager manager) throws Exception {
         Path tempDir = Files.createTempDirectory("semion-sandbox-gametest");
         manager.configure(

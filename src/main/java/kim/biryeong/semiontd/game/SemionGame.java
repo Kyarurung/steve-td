@@ -70,6 +70,7 @@ public final class SemionGame {
     private final Map<String, TeamMoneyTransferRequest> teamMoneyRequests = new java.util.LinkedHashMap<>();
     private final Map<UUID, Integer> lastTeamMoneyReceivedRound = new java.util.HashMap<>();
     private final List<TeamEliminationRecord> eliminationOrder = new ArrayList<>();
+    private boolean sandboxMode;
     private boolean selfTargetIncomeSummons;
     private MatchId matchId = MatchId.newId();
     private long startedAtEpochMillis;
@@ -175,6 +176,11 @@ public final class SemionGame {
 
     public void enableSelfTargetIncomeSummons() {
         selfTargetIncomeSummons = true;
+    }
+
+    public void enableSandboxMode() {
+        sandboxMode = true;
+        enableSelfTargetIncomeSummons();
     }
 
     public Optional<BuildGuideService> buildGuideService() {
@@ -1290,6 +1296,10 @@ public final class SemionGame {
     }
 
     private void handleTeamEliminated(MinecraftServer server, SemionTeam team) {
+        if (sandboxMode) {
+            notifySandboxTeamEliminated(server, team);
+            return;
+        }
         for (UUID memberId : team.memberIds()) {
             matchSpectatorIds.add(memberId);
             if (server == null) {
@@ -1315,6 +1325,18 @@ public final class SemionGame {
                     SemionText.prefixedMini("<red>" + team.id().name() + "</red> 팀이 탈락했습니다."),
                     false
             );
+        }
+    }
+
+    private void notifySandboxTeamEliminated(MinecraftServer server, SemionTeam team) {
+        if (server == null) {
+            return;
+        }
+        for (UUID memberId : team.memberIds()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(memberId);
+            if (player != null) {
+                player.sendSystemMessage(SemionText.prefixedPlain("샌드박스 팀이 탈락했습니다. /semiontd sandbox reset으로 다시 시작할 수 있습니다."));
+            }
         }
     }
 

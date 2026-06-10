@@ -136,6 +136,12 @@ public final class SemionGameManager {
         FAILED
     }
 
+    public enum SandboxCurrency {
+        DIAMOND,
+        EMERALD,
+        INCOME
+    }
+
     public record ReloadConfigResult(boolean reloaded, boolean activeGameUpdated, Path configDir) {
     }
 
@@ -775,7 +781,7 @@ public final class SemionGameManager {
                 arena,
                 null
         );
-        sandbox.enableSelfTargetIncomeSummons();
+        sandbox.enableSandboxMode();
         kim.biryeong.semiontd.job.JobRegistry.all().stream()
                 .filter(job -> !job.id().equals(kim.biryeong.semiontd.job.JobRegistry.defaultJob().id()))
                 .findFirst()
@@ -793,9 +799,29 @@ public final class SemionGameManager {
             sandbox.close();
             return SandboxStartResult.FAILED;
         }
-        grantSandboxResources(sandbox, playerId);
         sandboxGames.put(playerId, sandbox);
         return replacing ? SandboxStartResult.REPLACED : SandboxStartResult.STARTED;
+    }
+
+    public boolean grantSandboxCurrency(UUID playerId, SandboxCurrency currency, long amount) {
+        if (playerId == null || currency == null || amount <= 0) {
+            return false;
+        }
+        SemionGame sandbox = sandboxGames.get(playerId);
+        if (sandbox == null) {
+            return false;
+        }
+        SemionPlayer player = sandbox.players().get(playerId);
+        if (player == null) {
+            return false;
+        }
+        PlayerEconomy economy = player.economy();
+        switch (currency) {
+            case DIAMOND -> economy.addDiamond(amount);
+            case EMERALD -> economy.addEmerald(amount);
+            case INCOME -> economy.addIncome(amount);
+        }
+        return true;
     }
 
     public boolean resetSandbox(MinecraftServer server, ServerPlayer player) {
@@ -849,13 +875,6 @@ public final class SemionGameManager {
 
     private static UUID sandboxDummyPlayerId(UUID ownerId) {
         return UUID.nameUUIDFromBytes(("semion-td-sandbox-dummy:" + ownerId).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-    }
-
-    private static void grantSandboxResources(SemionGame sandbox, UUID playerId) {
-        SemionPlayer player = sandbox.players().get(playerId);
-        if (player != null) {
-            player.economy().overrideStartingValues(999_999L, 999_999L, 999_999L, 0L);
-        }
     }
 
     private void closeSandboxesFor(ParticipantSelectionPlan plan) {

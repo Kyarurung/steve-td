@@ -8,6 +8,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import kim.biryeong.semiontd.SemionTd;
@@ -138,7 +139,9 @@ public final class SemionCommands {
                         .then(literal("reset")
                                 .executes(context -> resetSandbox(context.getSource(), gameManager)))
                         .then(literal("leave")
-                                .executes(context -> leaveSandbox(context.getSource(), gameManager))))
+                                .executes(context -> leaveSandbox(context.getSource(), gameManager)))
+                        .then(sandboxCurrencyCommand("give", gameManager))
+                        .then(sandboxCurrencyCommand("money", gameManager)))
                 .then(literal("economy")
                         .executes(context -> economy(context.getSource(), gameManager)))
                 .then(literal("money")
@@ -738,6 +741,60 @@ public final class SemionCommands {
         }
         success(source, "샌드박스 모드를 종료했습니다.");
         return 1;
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> sandboxCurrencyCommand(
+            String name,
+            SemionGameManager gameManager
+    ) {
+        return literal(name)
+                .then(literal("diamond")
+                        .then(argument("amount", IntegerArgumentType.integer(1))
+                                .executes(context -> grantSandboxCurrency(
+                                        context.getSource(),
+                                        gameManager,
+                                        SemionGameManager.SandboxCurrency.DIAMOND,
+                                        IntegerArgumentType.getInteger(context, "amount")
+                                ))))
+                .then(literal("emerald")
+                        .then(argument("amount", IntegerArgumentType.integer(1))
+                                .executes(context -> grantSandboxCurrency(
+                                        context.getSource(),
+                                        gameManager,
+                                        SemionGameManager.SandboxCurrency.EMERALD,
+                                        IntegerArgumentType.getInteger(context, "amount")
+                                ))))
+                .then(literal("income")
+                        .then(argument("amount", IntegerArgumentType.integer(1))
+                                .executes(context -> grantSandboxCurrency(
+                                        context.getSource(),
+                                        gameManager,
+                                        SemionGameManager.SandboxCurrency.INCOME,
+                                        IntegerArgumentType.getInteger(context, "amount")
+                                ))));
+    }
+
+    private static int grantSandboxCurrency(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            SemionGameManager.SandboxCurrency currency,
+            int amount
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (!gameManager.grantSandboxCurrency(player.getUUID(), currency, amount)) {
+            failure(source, "진행 중인 샌드박스가 없습니다. /semiontd sandbox start를 먼저 사용하세요.");
+            return 0;
+        }
+        success(source, "샌드박스 " + sandboxCurrencyLabel(currency) + " " + amount + "개를 지급했습니다.");
+        return 1;
+    }
+
+    private static String sandboxCurrencyLabel(SemionGameManager.SandboxCurrency currency) {
+        return switch (currency) {
+            case DIAMOND -> "다이아";
+            case EMERALD -> "에메랄드";
+            case INCOME -> "수입";
+        };
     }
 
     private static int setTestMode(CommandSourceStack source, SemionGameManager gameManager, boolean enabled) {
