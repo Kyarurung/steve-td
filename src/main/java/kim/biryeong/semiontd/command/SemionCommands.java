@@ -132,16 +132,7 @@ public final class SemionCommands {
                                         gameManager,
                                         StringArgumentType.getString(context, "team")
                                 ))))
-                .then(literal("sandbox")
-                        .executes(context -> startSandbox(context.getSource(), gameManager))
-                        .then(literal("start")
-                                .executes(context -> startSandbox(context.getSource(), gameManager)))
-                        .then(literal("reset")
-                                .executes(context -> resetSandbox(context.getSource(), gameManager)))
-                        .then(literal("leave")
-                                .executes(context -> leaveSandbox(context.getSource(), gameManager)))
-                        .then(sandboxCurrencyCommand("give", gameManager))
-                        .then(sandboxCurrencyCommand("money", gameManager)))
+                .then(sandboxCommand("sandbox", gameManager))
                 .then(literal("economy")
                         .executes(context -> economy(context.getSource(), gameManager)))
                 .then(literal("money")
@@ -304,6 +295,7 @@ public final class SemionCommands {
                                 gameManager,
                                 IntegerArgumentType.getInteger(context, "amount")
                         ))));
+        dispatcher.register(sandboxCommand("샌드박스", gameManager));
         dispatcher.register(literal("빌드")
                 .then(literal("기록")
                         .then(argument("title", StringArgumentType.greedyString())
@@ -433,6 +425,22 @@ public final class SemionCommands {
                                 .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.DETAIL)))
                         .then(literal("towerui")
                                 .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.TOWER_UI)))));
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> sandboxCommand(
+            String name,
+            SemionGameManager gameManager
+    ) {
+        return literal(name)
+                .executes(context -> startSandbox(context.getSource(), gameManager))
+                .then(literal("start")
+                        .executes(context -> startSandbox(context.getSource(), gameManager)))
+                .then(literal("reset")
+                        .executes(context -> resetSandbox(context.getSource(), gameManager)))
+                .then(literal("leave")
+                        .executes(context -> leaveSandbox(context.getSource(), gameManager)))
+                .then(sandboxCurrencyCommand("give", gameManager))
+                .then(sandboxCurrencyCommand("money", gameManager));
     }
 
     private static int createGame(CommandSourceStack source, SemionGameManager gameManager) {

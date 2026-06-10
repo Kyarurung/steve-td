@@ -27,6 +27,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -37,6 +38,42 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
 public final class SemionSandboxGameTest {
+    @GameTest
+    public void koreanSandboxAliasCommandTreeMirrorsSandboxSubcommands(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        var alias = dispatcher.getRoot().getChild("샌드박스");
+        if (!assertTrue(context, alias != null, "Expected /샌드박스 alias to be registered.")) {
+            return;
+        }
+        if (!assertTrue(context, alias.getCommand() != null, "Expected bare /샌드박스 to start sandbox like /semiontd sandbox.")) {
+            return;
+        }
+        for (String child : List.of("start", "reset", "leave", "give", "money")) {
+            if (!assertTrue(context, alias.getChild(child) != null, "Expected /샌드박스 " + child + " subcommand to be registered.")) {
+                return;
+            }
+        }
+        CommandSourceStack source = context.getLevel().getServer().createCommandSourceStack();
+        for (String command : List.of(
+                "샌드박스",
+                "샌드박스 start",
+                "샌드박스 reset",
+                "샌드박스 leave",
+                "샌드박스 give diamond 10",
+                "샌드박스 give emerald 10",
+                "샌드박스 give income 10",
+                "샌드박스 money diamond 10",
+                "샌드박스 money emerald 10",
+                "샌드박스 money income 10"
+        )) {
+            var parsed = dispatcher.parse(command, source);
+            if (!assertTrue(context, !parsed.getContext().getNodes().isEmpty() && !parsed.getReader().canRead(), "Expected command to parse completely: /" + command)) {
+                return;
+            }
+        }
+        context.succeed();
+    }
+
     @GameTest
     public void sandboxSessionRunsSeparateFromActiveGame(GameTestHelper context) {
         SemionGameManager manager = new SemionGameManager();
