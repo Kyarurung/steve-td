@@ -28,6 +28,11 @@ import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
+import kim.biryeong.semiontd.trait.SemionTrait;
+import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitRegistry;
+import kim.biryeong.semiontd.trait.TraitSelectionSession;
+import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.ui.SemionText;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -170,6 +175,7 @@ public final class SemionCommands {
                                                 gameManager,
                                                 StringArgumentType.getString(context, "id")
                                         )))))
+                .then(traitCommand("trait", gameManager))
                 .then(literal("tower")
                         .then(literal("list")
                                 .executes(context -> listProductionTowers(context.getSource(), gameManager)))
@@ -272,6 +278,7 @@ public final class SemionCommands {
 
         dispatcher.register(literal("직업")
                 .executes(context -> jobDialog(context.getSource(), gameManager)));
+        dispatcher.register(traitCommand("특성", gameManager));
         dispatcher.register(literal("레이팅")
                 .executes(context -> rating(context.getSource(), gameManager))
                 .then(literal("순위")
@@ -427,6 +434,35 @@ public final class SemionCommands {
                                 .executes(context -> debugBuildGuideVisual(context.getSource(), gameManager, DebugBuildGuideView.TOWER_UI)))));
     }
 
+    private static LiteralArgumentBuilder<CommandSourceStack> traitCommand(
+            String name,
+            SemionGameManager gameManager
+    ) {
+        return literal(name)
+                .executes(context -> traitDialog(context.getSource(), gameManager))
+                .then(literal("ui")
+                        .executes(context -> traitDialog(context.getSource(), gameManager))
+                        .then(argument("slot", StringArgumentType.word())
+                                .executes(context -> traitDialog(
+                                        context.getSource(),
+                                        gameManager,
+                                        StringArgumentType.getString(context, "slot")
+                                ))))
+                .then(literal("current")
+                        .executes(context -> currentTrait(context.getSource(), gameManager)))
+                .then(literal("list")
+                        .executes(context -> listTraits(context.getSource())))
+                .then(literal("select")
+                        .then(argument("slot", StringArgumentType.word())
+                                .then(argument("id", StringArgumentType.string())
+                                        .executes(context -> selectTrait(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "slot"),
+                                                StringArgumentType.getString(context, "id")
+                                        )))));
+    }
+
     private static LiteralArgumentBuilder<CommandSourceStack> sandboxCommand(
             String name,
             SemionGameManager gameManager
@@ -491,14 +527,14 @@ public final class SemionCommands {
         applyPlanToVanillaTeams(source, plan.get());
         assignUnreadyPlayersToSpectatorTeam(source, game, plan.get());
         String lobbyLoaded = gameManager.lobbyWorld().isPresent() ? ", lobbyLoaded=true" : ", lobbyLoaded=false";
-        success(source, "시작 카운트다운을 시작했습니다. 참가자="
+        success(source, "특성 선택 단계를 시작했습니다. 참가자="
                 + plan.get().activePlayerCount()
                 + ", 팀=" + plan.get().activeTeamCount()
                 + ", 구성=" + plan.get().compositionSummary()
                 + ", 관전자=" + plan.get().spectatorCount()
                 + ", 준비=" + game.readyPlayerCount()
                 + ", 모드=" + gameManager.matchMode()
-                + ", 카운트다운=" + gameManager.startCountdownSecondsRemaining() + "초"
+                + ", 선택시간=" + gameManager.traitSelectionSecondsRemaining() + "초"
                 + lobbyLoaded);
         return 1;
     }
@@ -717,7 +753,7 @@ public final class SemionCommands {
                 yield 1;
             }
             case PLAYER_IN_MATCH -> {
-                failure(source, "현재 경기 참가자/관전자 또는 시작 대기자로 등록되어 있어 샌드박스를 시작할 수 없습니다.");
+                failure(source, "현재 경기 참가자 또는 시작 대기자로 등록되어 있어 샌드박스를 시작할 수 없습니다.");
                 yield 0;
             }
             case FAILED -> {
@@ -735,7 +771,7 @@ public final class SemionCommands {
             return 1;
         }
         if (result == SemionGameManager.SandboxStartResult.PLAYER_IN_MATCH) {
-            failure(source, "현재 경기 참가자/관전자 또는 시작 대기자로 등록되어 있어 샌드박스를 초기화할 수 없습니다.");
+            failure(source, "현재 경기 참가자 또는 시작 대기자로 등록되어 있어 샌드박스를 초기화할 수 없습니다.");
             return 0;
         }
         failure(source, "샌드박스 초기화에 실패했습니다.");
@@ -1287,14 +1323,122 @@ public final class SemionCommands {
         return 1;
     }
 
-    private static int selectJob(CommandSourceStack source, SemionGameManager gameManager, String rawJobId)
-            throws CommandSyntaxException {
-        SemionGame game = activeWaitingGame(source, gameManager, "직업 선택");
+    private static int traitDialog(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = gameManager.activeGame().orElse(null);
         if (game == null) {
+            failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
             return 0;
         }
-        if (!game.canConfigureRoster()) {
-            failure(source, "참가자 확정 후에는 직업을 선택할 수 없습니다.");
+        gameManager.dialogService().showTraitSelection(
+                player,
+                gameManager.traitLoadoutOrDefault(player.getUUID()),
+                Math.max(0, gameManager.traitSelectionSecondsRemaining())
+        );
+        success(source, "특성 선택 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int traitDialog(CommandSourceStack source, SemionGameManager gameManager, String rawSlot) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
+            return 0;
+        }
+        TraitSlot slot;
+        try {
+            slot = parseTraitSlot(rawSlot);
+        } catch (IllegalArgumentException exception) {
+            failure(source, exception.getMessage());
+            return 0;
+        }
+        gameManager.dialogService().showTraitSelection(
+                player,
+                gameManager.traitLoadoutOrDefault(player.getUUID()),
+                Math.max(0, gameManager.traitSelectionSecondsRemaining()),
+                slot
+        );
+        success(source, slot.displayName() + " 선택 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int currentTrait(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (gameManager.activeGame().isEmpty()) {
+            failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
+            return 0;
+        }
+        TraitLoadout loadout = gameManager.traitLoadoutOrDefault(player.getUUID());
+        success(source, "현재 특성: 주특성="
+                + traitName(loadout.primaryTraitId())
+                + ", 부특성="
+                + traitName(loadout.secondaryTraitId()));
+        return 1;
+    }
+
+    private static int listTraits(CommandSourceStack source) {
+        List<String> lines = new ArrayList<>();
+        for (SemionTrait trait : TraitRegistry.all()) {
+            lines.add(trait.id() + " => " + trait.displayName().getString());
+        }
+        source.sendSuccess(() -> SemionText.prefixedPlain(String.join("\n", lines)), false);
+        return lines.isEmpty() ? 0 : 1;
+    }
+
+    private static int selectTrait(CommandSourceStack source, SemionGameManager gameManager, String rawSlot, String rawTraitId)
+            throws CommandSyntaxException {
+        if (gameManager.activeGame().isEmpty()) {
+            failure(source, "열린 로비가 없습니다. 먼저 /semiontd create를 실행하세요.");
+            return 0;
+        }
+        TraitSlot slot;
+        try {
+            slot = parseTraitSlot(rawSlot);
+        } catch (IllegalArgumentException exception) {
+            failure(source, exception.getMessage());
+            return 0;
+        }
+        ResourceLocation traitId;
+        try {
+            traitId = parseTraitId(rawTraitId);
+        } catch (IllegalArgumentException exception) {
+            failure(source, exception.getMessage());
+            return 0;
+        }
+        ServerPlayer player = source.getPlayerOrException();
+        TraitSelectionSession.SelectionResult result = gameManager.selectTrait(
+                source.getServer(),
+                player.getUUID(),
+                slot,
+                traitId
+        );
+        if (result != TraitSelectionSession.SelectionResult.SELECTED) {
+            failure(source, traitSelectionFailureMessage(result, traitId));
+            return 0;
+        }
+        TraitLoadout loadout = gameManager.traitLoadoutOrDefault(player.getUUID());
+        success(source, slot.displayName()
+                + "을 선택했습니다: "
+                + traitName(loadout.traitId(slot))
+                + " (주특성 100%, 부특성 50%)");
+        gameManager.dialogService().showTraitSelection(
+                player,
+                loadout,
+                Math.max(0, gameManager.traitSelectionSecondsRemaining())
+        );
+        return 1;
+    }
+
+    private static int selectJob(CommandSourceStack source, SemionGameManager gameManager, String rawJobId)
+            throws CommandSyntaxException {
+        SemionGame game = gameManager.activeGame().orElse(null);
+        if (game == null) {
+            failure(source, "열린 로비가 없습니다. 먼저 /semiontd create를 실행하세요.");
+            return 0;
+        }
+        if (gameManager.startCountdownActive()) {
+            failure(source, "시작 카운트다운이 이미 진행 중입니다.");
             return 0;
         }
 
@@ -1305,14 +1449,31 @@ public final class SemionCommands {
             failure(source, exception.getMessage());
             return 0;
         }
-        if (!game.selectJob(source.getPlayerOrException().getUUID(), jobId)) {
+
+        Optional<SemionJob> selectedJob = JobRegistry.find(jobId);
+        if (selectedJob.isEmpty()) {
             failure(source, "알 수 없는 직업입니다: " + jobId + ". /semiontd job list를 확인하세요.");
             return 0;
         }
 
         ServerPlayer player = source.getPlayerOrException();
-        SemionJob job = game.selectedJobOrDefault(player.getUUID());
-        gameManager.saveSelectedJob(source.getServer(), player.getUUID(), player.getGameProfile().getName(), job.id());
+        UUID playerId = player.getUUID();
+        SemionJob job;
+        if (game.canConfigureRoster()) {
+            if (!game.selectJob(playerId, jobId)) {
+                failure(source, "알 수 없는 직업입니다: " + jobId + ". /semiontd job list를 확인하세요.");
+                return 0;
+            }
+            job = game.selectedJobOrDefault(playerId);
+        } else {
+            if (game.phase() != RoundPhase.ENDED && game.isActiveParticipant(playerId)) {
+                failure(source, "진행 중인 경기 참가자는 직업을 변경할 수 없습니다. 다음 경기에 적용하려면 경기 종료 후 다시 선택하세요.");
+                return 0;
+            }
+            job = selectedJob.get();
+        }
+
+        gameManager.saveSelectedJob(source.getServer(), playerId, player.getGameProfile().getName(), job.id());
         success(source, "직업을 선택했습니다: "
                 + job.id()
                 + " => "
@@ -1944,6 +2105,42 @@ public final class SemionCommands {
             throw new IllegalArgumentException("잘못된 직업 ID입니다: " + rawJobId);
         }
         return defaulted;
+    }
+
+    private static TraitSlot parseTraitSlot(String rawSlot) {
+        return switch (rawSlot.toLowerCase()) {
+            case "primary", "main", "주특성" -> TraitSlot.PRIMARY;
+            case "secondary", "sub", "부특성" -> TraitSlot.SECONDARY;
+            default -> throw new IllegalArgumentException("잘못된 특성 슬롯입니다: " + rawSlot + ". primary 또는 secondary를 사용하세요.");
+        };
+    }
+
+    private static ResourceLocation parseTraitId(String rawTraitId) {
+        ResourceLocation parsed = ResourceLocation.tryParse(rawTraitId);
+        if (parsed != null && rawTraitId.contains(":")) {
+            return parsed;
+        }
+        ResourceLocation defaulted = ResourceLocation.tryBuild(SemionTd.MOD_ID, rawTraitId);
+        if (defaulted == null) {
+            throw new IllegalArgumentException("잘못된 특성 ID입니다: " + rawTraitId);
+        }
+        return defaulted;
+    }
+
+    private static String traitName(ResourceLocation traitId) {
+        return TraitRegistry.find(traitId)
+                .map(trait -> trait.displayName().getString())
+                .orElse(traitId.toString());
+    }
+
+    private static String traitSelectionFailureMessage(TraitSelectionSession.SelectionResult result, ResourceLocation traitId) {
+        return switch (result) {
+            case NOT_PARTICIPANT -> "현재 특성 선택 대상 참가자가 아닙니다.";
+            case UNKNOWN_TRAIT -> "알 수 없는 특성입니다: " + traitId + ". /semiontd trait list를 확인하세요.";
+            case DUPLICATE_TRAIT -> "같은 특성은 주특성/부특성에 동시에 선택할 수 없습니다: " + traitId;
+            case STARTED -> "게임 시작 후에는 특성을 변경할 수 없습니다.";
+            case SELECTED -> "특성을 선택했습니다.";
+        };
     }
 
     private static boolean ensureWaitingSetup(CommandSourceStack source, SemionGame game, String action) {

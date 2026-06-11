@@ -1,11 +1,13 @@
 package kim.biryeong.semiontd.gametest;
 
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.MapConfig;
 import kim.biryeong.semiontd.config.ProgressionConfig;
@@ -20,6 +22,7 @@ import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TowerPlacementResult;
+import kim.biryeong.semiontd.job.AnimalTowerJob;
 import kim.biryeong.semiontd.map.GameArena;
 import kim.biryeong.semiontd.summon.SummonResult;
 import kim.biryeong.semiontd.summon.SummonResultType;
@@ -193,6 +196,190 @@ public final class SemionSandboxGameTest {
     }
 
     @GameTest
+    public void sandboxSessionUsesPersistedSelectedJob(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            UUID sandboxOwnerId = uuid("sandbox-job-owner");
+            String playerName = "sandbox-job-owner";
+            manager.saveSelectedJob(server, sandboxOwnerId, playerName, AnimalTowerJob.ID);
+
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    playerName,
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Sandbox should start after saving a selected job.")) {
+                return;
+            }
+            SemionGame sandboxGame = manager.sandboxGame(sandboxOwnerId).orElseThrow();
+            var sandboxPlayer = sandboxGame.players().get(sandboxOwnerId);
+            if (!assertTrue(context, sandboxPlayer != null, "Sandbox owner should be an active sandbox player.")) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    AnimalTowerJob.ID,
+                    sandboxPlayer.job().orElseThrow().id(),
+                    "Sandbox should use the player's persisted selected job instead of a fixed built-in job."
+            )) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox job selection test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void activeMatchSpectatorCanLeaveSpectatingForSandbox(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            SemionGame activeGame = manager.createGame(server);
+            UUID activeRedId = uuid("sandbox-spectator-active-red");
+            UUID activeBlueId = uuid("sandbox-spectator-active-blue");
+            UUID spectatorId = uuid("sandbox-spectator-owner");
+            ParticipantSelectionPlan activePlan = new ParticipantSelectionPlan(
+                    MatchMode.TEST,
+                    List.of(
+                            new AssignedParticipant(activeRedId, "active-red", TeamId.RED, 1),
+                            new AssignedParticipant(activeBlueId, "active-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(spectatorId),
+                    3
+            );
+            if (!assertTrue(context, activeGame.start(server, activePlan), "Active match should start with a spectator.")) {
+                return;
+            }
+            if (!assertTrue(context, activeGame.isMatchSpectator(spectatorId), "Regression setup should register the player as an active match spectator.")) {
+                return;
+            }
+
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    spectatorId,
+                    "sandbox-spectator-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(new BlockPos(300, 0, 0)))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Active match spectator should be able to leave spectating and start sandbox.")) {
+                return;
+            }
+            SemionGame sandboxGame = manager.sandboxGame(spectatorId).orElse(null);
+            if (!assertTrue(context, sandboxGame != null, "Sandbox should be registered for the former spectator.")) {
+                return;
+            }
+            if (!assertTrue(context, !activeGame.isMatchSpectator(spectatorId), "Starting sandbox should remove the player from active match spectators.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.playableGame(spectatorId).orElseThrow() == sandboxGame, "Former spectator commands should route to sandbox after starting it.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.protectionGame(spectatorId) == sandboxGame, "Former spectator protection context should route to sandbox, not the active match.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.activeGame().orElseThrow() == activeGame, "Starting spectator sandbox must not replace the active match.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox spectator release test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void nonParticipantCanSelectStoredJobWhileMatchIsRunning(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var player = context.makeMockServerPlayerInLevel();
+            SemionGame activeGame = manager.createGame(server);
+            UUID activeRedId = uuid("running-job-red");
+            UUID activeBlueId = uuid("running-job-blue");
+            if (!assertTrue(context, activeGame.start(server, new ParticipantSelectionPlan(
+                    MatchMode.TEST,
+                    List.of(
+                            new AssignedParticipant(activeRedId, "running-job-red", TeamId.RED, 1),
+                            new AssignedParticipant(activeBlueId, "running-job-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(),
+                    2
+            )), "Active match should start before non-participant job selection.")) {
+                return;
+            }
+
+            int result = invokeSelectJob(player.createCommandSourceStack(), manager, AnimalTowerJob.ID.getPath());
+            if (!assertEquals(context, 1, result, "Non-participants should be able to select a stored job while a match is running.")) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    AnimalTowerJob.ID,
+                    manager.profile(server, player.getUUID(), player.getGameProfile().getName()).selectedJobResource().orElse(null),
+                    "Running-match non-participant job selection should persist to the player's profile."
+            )) {
+                return;
+            }
+            if (!assertTrue(context, !activeGame.players().containsKey(player.getUUID()), "Regression setup should keep the selecting player out of the active match roster.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Non-participant running job selection failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void runningMatchParticipantCannotChangeJob(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var player = context.makeMockServerPlayerInLevel();
+            SemionGame activeGame = manager.createGame(server);
+            UUID activeBlueId = uuid("running-job-block-blue");
+            if (!assertTrue(context, activeGame.start(server, new ParticipantSelectionPlan(
+                    MatchMode.TEST,
+                    List.of(
+                            new AssignedParticipant(player.getUUID(), player.getGameProfile().getName(), TeamId.RED, 1),
+                            new AssignedParticipant(activeBlueId, "running-job-block-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(),
+                    2
+            )), "Active match should start before participant job selection block.")) {
+                return;
+            }
+
+            int result = invokeSelectJob(player.createCommandSourceStack(), manager, AnimalTowerJob.ID.getPath());
+            if (!assertEquals(context, 0, result, "Active match participants should not be able to change job mid-match.")) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    manager.profile(server, player.getUUID(), player.getGameProfile().getName()).selectedJobResource().isEmpty(),
+                    "Blocked mid-match participant job selection should not update the stored profile."
+            )) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Running participant job block test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
     public void sandboxHotbarToolsOpenSandboxUi(GameTestHelper context) {
         SemionGameManager manager = new SemionGameManager();
         try {
@@ -230,6 +417,58 @@ public final class SemionSandboxGameTest {
             context.succeed();
         } catch (Exception exception) {
             context.fail(Component.literal("Sandbox hotbar UI test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void disconnectingOneSandboxOwnerDoesNotStopOtherSandboxes(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var leavingPlayer = context.makeMockServerPlayerInLevel();
+            UUID remainingOwnerId = uuid("sandbox-disconnect-remaining-owner");
+
+            SemionGameManager.SandboxStartResult leavingStart = manager.startSandbox(
+                    server,
+                    leavingPlayer.getUUID(),
+                    leavingPlayer.getGameProfile().getName(),
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, leavingStart, "Leaving player sandbox should start.")) {
+                return;
+            }
+            SemionGameManager.SandboxStartResult remainingStart = manager.startSandbox(
+                    server,
+                    remainingOwnerId,
+                    "sandbox-disconnect-remaining-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(new BlockPos(200, 0, 0)))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, remainingStart, "Second sandbox should start independently.")) {
+                return;
+            }
+            SemionGame remainingSandbox = manager.sandboxGame(remainingOwnerId).orElseThrow();
+            int phaseTicksBeforeDisconnectTick = remainingSandbox.phaseTicks();
+
+            manager.handlePlayerDisconnect(leavingPlayer);
+
+            if (!assertTrue(context, manager.sandboxGame(leavingPlayer.getUUID()).isEmpty(), "Disconnect should remove only the leaving player's sandbox.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.sandboxGame(remainingOwnerId).orElse(null) == remainingSandbox, "Other sandbox should remain registered after one owner disconnects.")) {
+                return;
+            }
+
+            manager.tick(server);
+
+            if (!assertTrue(context, remainingSandbox.phaseTicks() > phaseTicksBeforeDisconnectTick, "Remaining sandbox should keep ticking after another sandbox owner disconnects.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox disconnect isolation test failed: " + exception.getMessage()));
         } finally {
             manager.shutdown();
         }
@@ -458,6 +697,17 @@ public final class SemionSandboxGameTest {
         );
         method.setAccessible(true);
         return (InteractionResult) method.invoke(null, manager, player, world, InteractionHand.MAIN_HAND);
+    }
+
+    private static int invokeSelectJob(CommandSourceStack source, SemionGameManager manager, String rawJobId) throws Exception {
+        Method method = SemionCommands.class.getDeclaredMethod(
+                "selectJob",
+                CommandSourceStack.class,
+                SemionGameManager.class,
+                String.class
+        );
+        method.setAccessible(true);
+        return (int) method.invoke(null, source, manager, rawJobId);
     }
 
     private static PlayerLane lane(SemionGame game, TeamId teamId, int laneId) {

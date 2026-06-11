@@ -15,6 +15,7 @@ import kim.biryeong.semiontd.buildguide.BuildGuideService;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.IncomeLaneRoutingConfig;
 import kim.biryeong.semiontd.config.LeaderTargetingConfig;
+import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.RoundWaveConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.entity.monster.Monster;
@@ -31,6 +32,14 @@ import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.trait.BuiltInTraits;
+import kim.biryeong.semiontd.trait.SemionTrait;
+import kim.biryeong.semiontd.trait.TraitContext;
+import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitRegistry;
+import kim.biryeong.semiontd.trait.TraitSelectionSession;
+import kim.biryeong.semiontd.trait.TraitSelectionSnapshot;
+import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionLaneIndicatorService;
 import kim.biryeong.semiontd.ui.SemionSidebarHudService;
@@ -53,6 +62,7 @@ public final class SemionGame {
     private WaveConfig waveConfig;
     private LeaderTargetingConfig leaderTargetingConfig;
     private IncomeLaneRoutingConfig incomeLaneRoutingConfig;
+    private MonsterScalingConfig monsterScalingConfig;
     private final GameArena arena;
     private final EconomyService economyService;
     private IncomeLaneRoutingPolicy incomeLaneRoutingPolicy;
@@ -62,6 +72,7 @@ public final class SemionGame {
     private final Map<TeamId, SemionTeam> teams = new EnumMap<>(TeamId.class);
     private final Map<UUID, SemionPlayer> players = new java.util.HashMap<>();
     private final Map<UUID, SemionJob> selectedJobs = new java.util.HashMap<>();
+    private final Map<UUID, TraitLoadout> selectedTraitLoadouts = new java.util.HashMap<>();
     private final Set<UUID> readyPlayerIds = new HashSet<>();
     private final Set<UUID> initialSpectatorIds = new HashSet<>();
     private final Set<UUID> matchSpectatorIds = new HashSet<>();
@@ -88,7 +99,7 @@ public final class SemionGame {
     }
 
     public SemionGame(EconomyConfig economyConfig, WaveConfig waveConfig, GameArena arena, BuildGuideService buildGuideService) {
-        this(economyConfig, waveConfig, LeaderTargetingConfig.defaultConfig(), IncomeLaneRoutingConfig.defaultConfig(), arena, buildGuideService);
+        this(economyConfig, waveConfig, LeaderTargetingConfig.defaultConfig(), IncomeLaneRoutingConfig.defaultConfig(), MonsterScalingConfig.defaultConfig(), arena, buildGuideService);
     }
 
     public SemionGame(
@@ -97,7 +108,7 @@ public final class SemionGame {
             LeaderTargetingConfig leaderTargetingConfig,
             GameArena arena
     ) {
-        this(economyConfig, waveConfig, leaderTargetingConfig, IncomeLaneRoutingConfig.defaultConfig(), arena, null);
+        this(economyConfig, waveConfig, leaderTargetingConfig, IncomeLaneRoutingConfig.defaultConfig(), MonsterScalingConfig.defaultConfig(), arena, null);
     }
 
     public SemionGame(
@@ -107,7 +118,7 @@ public final class SemionGame {
             IncomeLaneRoutingConfig incomeLaneRoutingConfig,
             GameArena arena
     ) {
-        this(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, arena, null);
+        this(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, MonsterScalingConfig.defaultConfig(), arena, null);
     }
 
     public SemionGame(
@@ -117,7 +128,7 @@ public final class SemionGame {
             GameArena arena,
             BuildGuideService buildGuideService
     ) {
-        this(economyConfig, waveConfig, leaderTargetingConfig, IncomeLaneRoutingConfig.defaultConfig(), arena, buildGuideService);
+        this(economyConfig, waveConfig, leaderTargetingConfig, IncomeLaneRoutingConfig.defaultConfig(), MonsterScalingConfig.defaultConfig(), arena, buildGuideService);
     }
 
     public SemionGame(
@@ -125,6 +136,18 @@ public final class SemionGame {
             WaveConfig waveConfig,
             LeaderTargetingConfig leaderTargetingConfig,
             IncomeLaneRoutingConfig incomeLaneRoutingConfig,
+            GameArena arena,
+            BuildGuideService buildGuideService
+    ) {
+        this(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, MonsterScalingConfig.defaultConfig(), arena, buildGuideService);
+    }
+
+    public SemionGame(
+            EconomyConfig economyConfig,
+            WaveConfig waveConfig,
+            LeaderTargetingConfig leaderTargetingConfig,
+            IncomeLaneRoutingConfig incomeLaneRoutingConfig,
+            MonsterScalingConfig monsterScalingConfig,
             GameArena arena,
             BuildGuideService buildGuideService
     ) {
@@ -132,6 +155,7 @@ public final class SemionGame {
         this.waveConfig = waveConfig;
         this.leaderTargetingConfig = leaderTargetingConfig == null ? LeaderTargetingConfig.defaultConfig() : leaderTargetingConfig;
         this.incomeLaneRoutingConfig = incomeLaneRoutingConfig == null ? IncomeLaneRoutingConfig.defaultConfig() : incomeLaneRoutingConfig;
+        this.monsterScalingConfig = monsterScalingConfig == null ? MonsterScalingConfig.defaultConfig() : monsterScalingConfig;
         this.arena = arena;
         this.economyService = new EconomyService(economyConfig, this);
         this.incomeLaneRoutingPolicy = new IncomeLaneRoutingPolicy(this.incomeLaneRoutingConfig, random);
@@ -196,11 +220,11 @@ public final class SemionGame {
     }
 
     public void applyConfigs(EconomyConfig economyConfig, WaveConfig waveConfig) {
-        applyConfigs(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig);
+        applyConfigs(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, monsterScalingConfig);
     }
 
     public void applyConfigs(EconomyConfig economyConfig, WaveConfig waveConfig, LeaderTargetingConfig leaderTargetingConfig) {
-        applyConfigs(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig);
+        applyConfigs(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, monsterScalingConfig);
     }
 
     public void applyConfigs(
@@ -209,10 +233,21 @@ public final class SemionGame {
             LeaderTargetingConfig leaderTargetingConfig,
             IncomeLaneRoutingConfig incomeLaneRoutingConfig
     ) {
+        applyConfigs(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, monsterScalingConfig);
+    }
+
+    public void applyConfigs(
+            EconomyConfig economyConfig,
+            WaveConfig waveConfig,
+            LeaderTargetingConfig leaderTargetingConfig,
+            IncomeLaneRoutingConfig incomeLaneRoutingConfig,
+            MonsterScalingConfig monsterScalingConfig
+    ) {
         this.economyConfig = economyConfig;
         this.waveConfig = waveConfig;
         this.leaderTargetingConfig = leaderTargetingConfig == null ? LeaderTargetingConfig.defaultConfig() : leaderTargetingConfig;
         this.incomeLaneRoutingConfig = incomeLaneRoutingConfig == null ? IncomeLaneRoutingConfig.defaultConfig() : incomeLaneRoutingConfig;
+        this.monsterScalingConfig = monsterScalingConfig == null ? MonsterScalingConfig.defaultConfig() : monsterScalingConfig;
         this.incomeLaneRoutingPolicy = new IncomeLaneRoutingPolicy(this.incomeLaneRoutingConfig, random);
         this.economyService.configure(economyConfig);
     }
@@ -499,6 +534,30 @@ public final class SemionGame {
         return selectedJobs.getOrDefault(playerId, JobRegistry.defaultJob());
     }
 
+    public Map<UUID, TraitLoadout> selectedTraitLoadouts() {
+        return java.util.Collections.unmodifiableMap(selectedTraitLoadouts);
+    }
+
+    public TraitLoadout selectedTraitLoadoutOrDefault(UUID playerId) {
+        return selectedTraitLoadouts.getOrDefault(playerId, TraitLoadout.none());
+    }
+
+    public TraitSelectionSession.SelectionResult selectTrait(UUID playerId, TraitSlot slot, ResourceLocation traitId) {
+        if (!canConfigureRoster()) {
+            return TraitSelectionSession.SelectionResult.STARTED;
+        }
+        ResourceLocation normalizedTraitId = traitId == null ? BuiltInTraits.NONE_ID : traitId;
+        if (TraitRegistry.find(normalizedTraitId).isEmpty()) {
+            return TraitSelectionSession.SelectionResult.UNKNOWN_TRAIT;
+        }
+        TraitLoadout next = selectedTraitLoadoutOrDefault(playerId).with(slot, normalizedTraitId);
+        if (next.hasDuplicateNonNoneTrait()) {
+            return TraitSelectionSession.SelectionResult.DUPLICATE_TRAIT;
+        }
+        selectedTraitLoadouts.put(playerId, next);
+        return TraitSelectionSession.SelectionResult.SELECTED;
+    }
+
     public Optional<MatchResult> matchResult() {
         if (phase != RoundPhase.ENDED || !rosterLocked) {
             return Optional.empty();
@@ -530,6 +589,10 @@ public final class SemionGame {
     }
 
     public boolean start(MinecraftServer server, ParticipantSelectionPlan plan) {
+        return start(server, plan, TraitSelectionSnapshot.empty());
+    }
+
+    public boolean start(MinecraftServer server, ParticipantSelectionPlan plan, TraitSelectionSnapshot traitSnapshot) {
         if (!canConfigureRoster() || plan.activeParticipants().isEmpty()) {
             return false;
         }
@@ -555,7 +618,7 @@ public final class SemionGame {
         }
 
         for (AssignedParticipant participant : plan.activeParticipants()) {
-            if (!activateParticipant(participant)) {
+            if (!activateParticipant(participant, traitSnapshot)) {
                 return false;
             }
         }
@@ -762,6 +825,13 @@ public final class SemionGame {
         return true;
     }
 
+    public boolean removeMatchSpectator(UUID spectatorId) {
+        if (spectatorId == null || players.containsKey(spectatorId)) {
+            return false;
+        }
+        return matchSpectatorIds.remove(spectatorId);
+    }
+
     public boolean addLateSpectator(UUID spectatorId, TeamId targetTeam) {
         if (!canSpectateTeam(targetTeam)) {
             return false;
@@ -850,7 +920,7 @@ public final class SemionGame {
             finalDefenseForcedThisRound = true;
         }
         for (SemionTeam team : teams.values()) {
-            team.tick(server, economyService, players);
+            team.tick(server, economyService, players, monsterScalingConfig, phaseTicks);
             if (team.active() && team.eliminated() && announcedEliminations.add(team.id())) {
                 recordTeamEliminated(team);
                 handleTeamEliminated(server, team);
@@ -1128,7 +1198,7 @@ public final class SemionGame {
         return incomeLaneRoutingPolicy.select(lanes);
     }
 
-    private boolean activateParticipant(AssignedParticipant participant) {
+    private boolean activateParticipant(AssignedParticipant participant, TraitSelectionSnapshot traitSnapshot) {
         if (players.containsKey(participant.uuid())) {
             return false;
         }
@@ -1157,7 +1227,9 @@ public final class SemionGame {
         );
         SemionJob job = selectedJobOrDefault(participant.uuid());
         player.assignJob(job);
+        player.assignTraitLoadout(traitSnapshot.loadoutOrDefault(participant.uuid()));
         applyJobStartingEconomy(player, job);
+        applyTraitStartingEconomy(player);
         job.onSelected(new JobContext(this, player));
         if (!team.addPlayer(player, teamArena.get().world(), laneLayout.get())) {
             return false;
@@ -1351,6 +1423,27 @@ public final class SemionGame {
         );
     }
 
+    private void applyTraitStartingEconomy(SemionPlayer player) {
+        PlayerEconomy economy = player.economy();
+        TraitContext context = new TraitContext(this, player);
+        long mineral = economy.mineral();
+        long gas = economy.gas();
+        long income = economy.income();
+        long gasPerSec = economy.gasPerSec();
+        for (TraitSlot slot : TraitSlot.values()) {
+            ResourceLocation traitId = player.traitLoadout().traitId(slot);
+            Optional<SemionTrait> trait = TraitRegistry.find(traitId);
+            if (trait.isEmpty()) {
+                continue;
+            }
+            mineral = trait.get().modifyStartingMineral(context, slot, mineral);
+            gas = trait.get().modifyStartingGas(context, slot, gas);
+            income = trait.get().modifyStartingIncome(context, slot, income);
+            gasPerSec = trait.get().modifyStartingGasPerSec(context, slot, gasPerSec);
+        }
+        economy.overrideStartingValues(mineral, gas, income, gasPerSec);
+    }
+
     private void prepareActivePlayers(MinecraftServer server) {
         if (server == null) {
             return;
@@ -1390,6 +1483,7 @@ public final class SemionGame {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
                 player.job().ifPresent(job -> job.onRoundStarted(new JobContext(this, player), round));
+                notifyTraitRoundStarted(player, round);
             }
         }
     }
@@ -1399,7 +1493,24 @@ public final class SemionGame {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
                 player.job().ifPresent(job -> job.onRoundEnded(new JobContext(this, player), round));
+                notifyTraitRoundEnded(player, round);
             }
+        }
+    }
+
+    private void notifyTraitRoundStarted(SemionPlayer player, int round) {
+        TraitContext context = new TraitContext(this, player);
+        for (TraitSlot slot : TraitSlot.values()) {
+            TraitRegistry.find(player.traitLoadout().traitId(slot))
+                    .ifPresent(trait -> trait.onRoundStarted(context, slot, round));
+        }
+    }
+
+    private void notifyTraitRoundEnded(SemionPlayer player, int round) {
+        TraitContext context = new TraitContext(this, player);
+        for (TraitSlot slot : TraitSlot.values()) {
+            TraitRegistry.find(player.traitLoadout().traitId(slot))
+                    .ifPresent(trait -> trait.onRoundEnded(context, slot, round));
         }
     }
 

@@ -17,6 +17,7 @@ import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.IncomeLaneRoutingConfig;
 import kim.biryeong.semiontd.config.LeaderTargetingConfig;
 import kim.biryeong.semiontd.config.MapConfig;
+import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.ProgressionConfig;
 import kim.biryeong.semiontd.config.SemionConfigLoader;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
@@ -59,6 +60,11 @@ import kim.biryeong.semiontd.rating.RatingService;
 import kim.biryeong.semiontd.summon.IncomeSummons;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
+import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitSelectionConfig;
+import kim.biryeong.semiontd.trait.TraitSelectionSession;
+import kim.biryeong.semiontd.trait.TraitSelectionSnapshot;
+import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import kim.biryeong.semiontd.ui.SemionRatingTitleService;
@@ -92,6 +98,7 @@ public final class SemionGameManager {
     private SummonConfig summonConfig = SummonConfig.defaultConfig();
     private LeaderTargetingConfig leaderTargetingConfig = LeaderTargetingConfig.defaultConfig();
     private IncomeLaneRoutingConfig incomeLaneRoutingConfig = IncomeLaneRoutingConfig.defaultConfig();
+    private MonsterScalingConfig monsterScalingConfig = MonsterScalingConfig.defaultConfig();
     private Path configDir;
     private Path progressionStorePath;
     private ProgressionService progressionService = new ProgressionService(progressionConfig, null);
@@ -116,6 +123,8 @@ public final class SemionGameManager {
     private Map<UUID, MatchProgressionReward> pendingMatchResultRewards = Map.of();
     private int pendingMatchResultDialogDelayTicks;
     private ParticipantSelectionPlan pendingStartPlan;
+    private TraitSelectionSnapshot pendingStartTraitSnapshot = TraitSelectionSnapshot.empty();
+    private TraitSelectionSession pendingTraitSelection;
     private int startCountdownTicks;
     private int nextStartCountdownAnnouncementSecond;
     private boolean startupLobbyLoadPending;
@@ -163,6 +172,7 @@ public final class SemionGameManager {
                 SemionPersistenceConfig.defaultConfig(),
                 LeaderTargetingConfig.defaultConfig(),
                 IncomeLaneRoutingConfig.defaultConfig(),
+                MonsterScalingConfig.defaultConfig(),
                 progressionStorePath
         );
     }
@@ -186,6 +196,7 @@ public final class SemionGameManager {
                 SemionPersistenceConfig.defaultConfig(),
                 LeaderTargetingConfig.defaultConfig(),
                 IncomeLaneRoutingConfig.defaultConfig(),
+                MonsterScalingConfig.defaultConfig(),
                 progressionStorePath
         );
     }
@@ -210,6 +221,7 @@ public final class SemionGameManager {
                 SemionPersistenceConfig.defaultConfig(),
                 LeaderTargetingConfig.defaultConfig(),
                 IncomeLaneRoutingConfig.defaultConfig(),
+                MonsterScalingConfig.defaultConfig(),
                 progressionStorePath
         );
     }
@@ -235,6 +247,7 @@ public final class SemionGameManager {
                 persistenceConfig,
                 LeaderTargetingConfig.defaultConfig(),
                 IncomeLaneRoutingConfig.defaultConfig(),
+                MonsterScalingConfig.defaultConfig(),
                 progressionStorePath
         );
     }
@@ -261,6 +274,7 @@ public final class SemionGameManager {
                 persistenceConfig,
                 LeaderTargetingConfig.defaultConfig(),
                 IncomeLaneRoutingConfig.defaultConfig(),
+                MonsterScalingConfig.defaultConfig(),
                 progressionStorePath
         );
     }
@@ -276,6 +290,7 @@ public final class SemionGameManager {
             SemionPersistenceConfig persistenceConfig,
             LeaderTargetingConfig leaderTargetingConfig,
             IncomeLaneRoutingConfig incomeLaneRoutingConfig,
+            MonsterScalingConfig monsterScalingConfig,
             Path progressionStorePath
     ) {
         this.economyConfig = economyConfig;
@@ -288,6 +303,7 @@ public final class SemionGameManager {
         this.summonConfig = summonConfig == null ? SummonConfig.defaultConfig() : summonConfig;
         this.leaderTargetingConfig = leaderTargetingConfig == null ? LeaderTargetingConfig.defaultConfig() : leaderTargetingConfig;
         this.incomeLaneRoutingConfig = incomeLaneRoutingConfig == null ? IncomeLaneRoutingConfig.defaultConfig() : incomeLaneRoutingConfig;
+        this.monsterScalingConfig = monsterScalingConfig == null ? MonsterScalingConfig.defaultConfig() : monsterScalingConfig;
         this.progressionStorePath = progressionStorePath;
         this.configDir = progressionStorePath == null ? null : progressionStorePath.getParent();
         Path matchResultPath = this.configDir == null ? null : this.configDir.resolve("match-results.json");
@@ -480,11 +496,12 @@ public final class SemionGameManager {
                 configs.persistence(),
                 configs.leaderTargeting(),
                 configs.incomeLaneRouting(),
+                configs.monsterScaling(),
                 configDir.resolve("profiles.json")
         );
         boolean activeGameUpdated = activeGame != null && activeGame.phase() != RoundPhase.ENDED;
         if (activeGameUpdated) {
-            activeGame.applyConfigs(configs.economy(), configs.waves(), configs.leaderTargeting(), configs.incomeLaneRouting());
+            activeGame.applyConfigs(configs.economy(), configs.waves(), configs.leaderTargeting(), configs.incomeLaneRouting(), configs.monsterScaling());
             activeGame.refreshProductionTowerTypes();
             activeGame.refreshSummonShop();
             sidebarHudService.refreshNow(server, activeGame, matchMode);
@@ -694,7 +711,7 @@ public final class SemionGameManager {
         clearPendingMatchResultDialog();
 
         GameArena arena = GameArenaLoader.load(server, mapConfig);
-        activeGame = new SemionGame(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, arena, buildGuideService);
+        activeGame = new SemionGame(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, monsterScalingConfig, arena, buildGuideService);
         applyPersistedJobSelections(server, activeGame);
         lastMatchResult = null;
         VanillaTeamBridge.ensureTeams(server);
@@ -752,7 +769,7 @@ public final class SemionGameManager {
         if (player == null) {
             return SandboxStartResult.FAILED;
         }
-        if (isCommittedToActiveMatch(player.getUUID())) {
+        if (isBlockedFromSandbox(player.getUUID())) {
             return SandboxStartResult.PLAYER_IN_MATCH;
         }
         try {
@@ -767,25 +784,26 @@ public final class SemionGameManager {
         if (server == null || playerId == null || arena == null) {
             return SandboxStartResult.FAILED;
         }
-        if (isCommittedToActiveMatch(playerId)) {
+        if (isBlockedFromSandbox(playerId)) {
             arena.unload();
             return SandboxStartResult.PLAYER_IN_MATCH;
         }
 
+        releaseActiveMatchSpectator(playerId);
         boolean replacing = stopSandbox(playerId);
         SemionGame sandbox = new SemionGame(
                 economyConfig,
                 waveConfig,
                 leaderTargetingConfig,
                 incomeLaneRoutingConfig,
+                monsterScalingConfig,
                 arena,
                 null
         );
         sandbox.enableSandboxMode();
-        kim.biryeong.semiontd.job.JobRegistry.all().stream()
-                .filter(job -> !job.id().equals(kim.biryeong.semiontd.job.JobRegistry.defaultJob().id()))
-                .findFirst()
-                .ifPresent(job -> sandbox.selectJob(playerId, job.id()));
+        if (!applyPersistedJobSelection(server, sandbox, playerId, playerName)) {
+            applyFallbackSandboxJob(sandbox, playerId);
+        }
         ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
                 MatchMode.TEST,
                 List.of(
@@ -855,7 +873,7 @@ public final class SemionGameManager {
         return true;
     }
 
-    private boolean isCommittedToActiveMatch(UUID playerId) {
+    private boolean isBlockedFromSandbox(UUID playerId) {
         if (playerId == null) {
             return false;
         }
@@ -868,9 +886,16 @@ public final class SemionGameManager {
             return false;
         }
         if (game.rosterLocked()) {
-            return game.isActiveParticipant(playerId) || game.isMatchSpectator(playerId);
+            return game.isActiveParticipant(playerId);
         }
         return game.isReady(playerId);
+    }
+
+    private void releaseActiveMatchSpectator(UUID playerId) {
+        SemionGame game = activeGame;
+        if (game != null) {
+            game.removeMatchSpectator(playerId);
+        }
     }
 
     private static UUID sandboxDummyPlayerId(UUID ownerId) {
@@ -912,6 +937,10 @@ public final class SemionGameManager {
         if (pendingPlan != null && isSelectedForPendingMatch(pendingPlan, playerId)) {
             return true;
         }
+        TraitSelectionSession pendingSelection = pendingTraitSelection;
+        if (pendingSelection != null && isSelectedForPendingMatch(pendingSelection.plan(), playerId)) {
+            return true;
+        }
         SemionGame game = activeGame;
         if (game == null || game.phase() == RoundPhase.ENDED) {
             return false;
@@ -923,10 +952,21 @@ public final class SemionGameManager {
     }
 
     public boolean startCountdownActive() {
-        return pendingStartPlan != null;
+        return pendingStartPlan != null || pendingTraitSelection != null;
+    }
+
+    public boolean traitSelectionActive() {
+        return pendingTraitSelection != null;
+    }
+
+    public int traitSelectionSecondsRemaining() {
+        return pendingTraitSelection == null ? 0 : pendingTraitSelection.remainingSeconds();
     }
 
     public int startCountdownSecondsRemaining() {
+        if (pendingTraitSelection != null) {
+            return pendingTraitSelection.remainingSeconds();
+        }
         if (pendingStartPlan == null) {
             return 0;
         }
@@ -942,7 +982,7 @@ public final class SemionGameManager {
         if (activeGame == null) {
             return StartCountdownResult.NO_ACTIVE_GAME;
         }
-        if (pendingStartPlan != null) {
+        if (pendingStartPlan != null || pendingTraitSelection != null) {
             return StartCountdownResult.ALREADY_PENDING;
         }
         if (!activeGame.canConfigureRoster()) {
@@ -953,11 +993,49 @@ public final class SemionGameManager {
         }
 
         closeSandboxesFor(plan);
-        pendingStartPlan = plan;
-        startCountdownTicks = START_COUNTDOWN_TICKS;
-        nextStartCountdownAnnouncementSecond = startCountdownSecondsRemaining();
-        announceStartCountdown(server, nextStartCountdownAnnouncementSecond);
+        pendingTraitSelection = new TraitSelectionSession(
+                plan,
+                activeGame.selectedTraitLoadouts(),
+                TraitSelectionConfig.DEFAULT_DURATION_TICKS
+        );
+        announceTraitSelectionStarted(server, pendingTraitSelection);
+        showTraitSelectionToActiveParticipants(server, pendingTraitSelection);
+        if (pendingTraitSelection.complete()) {
+            finishTraitSelectionAndScheduleCountdown(server, false);
+        }
         return StartCountdownResult.SCHEDULED;
+    }
+
+    public TraitSelectionSession.SelectionResult selectTrait(
+            MinecraftServer server,
+            UUID playerId,
+            TraitSlot slot,
+            ResourceLocation traitId
+    ) {
+        if (activeGame == null) {
+            return TraitSelectionSession.SelectionResult.NOT_PARTICIPANT;
+        }
+        if (pendingTraitSelection != null) {
+            TraitSelectionSession.SelectionResult result = pendingTraitSelection.select(playerId, slot, traitId);
+            if (result == TraitSelectionSession.SelectionResult.SELECTED && pendingTraitSelection.complete()) {
+                finishTraitSelectionAndScheduleCountdown(server, false);
+            }
+            return result;
+        }
+        if (!activeGame.canConfigureRoster()) {
+            return TraitSelectionSession.SelectionResult.STARTED;
+        }
+        return activeGame.selectTrait(playerId, slot, traitId);
+    }
+
+    public TraitLoadout traitLoadoutOrDefault(UUID playerId) {
+        if (pendingTraitSelection != null) {
+            return pendingTraitSelection.loadoutOrDefault(playerId);
+        }
+        if (pendingStartPlan != null) {
+            return pendingStartTraitSnapshot.loadoutOrDefault(playerId);
+        }
+        return activeGame == null ? TraitLoadout.none() : activeGame.selectedTraitLoadoutOrDefault(playerId);
     }
 
     public MatchMode matchMode() {
@@ -980,6 +1058,7 @@ public final class SemionGameManager {
         tickSandboxGames(server);
         if (activeGame == null) {
             clearStartCountdown();
+            clearTraitSelection();
             return;
         }
 
@@ -994,6 +1073,12 @@ public final class SemionGameManager {
 
         if (pendingStartPlan != null) {
             tickStartCountdown(server);
+            sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
+            return;
+        }
+
+        if (pendingTraitSelection != null) {
+            tickTraitSelection(server);
             sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
             return;
         }
@@ -1046,6 +1131,13 @@ public final class SemionGameManager {
         },1);
     }
 
+    public void handlePlayerDisconnect(ServerPlayer player) {
+        if (player == null) {
+            return;
+        }
+        stopSandbox(player.getUUID());
+    }
+
     public void handlePlayerWorldChanged(ServerPlayer player) {
         musicService.handlePlayerWorldChanged(player);
     }
@@ -1058,6 +1150,7 @@ public final class SemionGameManager {
             activeGame = null;
         }
         clearStartCountdown();
+        clearTraitSelection();
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
         clearPendingMatchResultDialog();
@@ -1096,21 +1189,107 @@ public final class SemionGameManager {
         }
     }
 
-    private void applyPersistedJobSelection(MinecraftServer server, SemionGame game, ServerPlayer player) {
-        SemionPlayerProfile profile = progressionService.profile(
+    private boolean applyPersistedJobSelection(MinecraftServer server, SemionGame game, ServerPlayer player) {
+        return applyPersistedJobSelection(
                 server,
+                game,
                 player.getUUID(),
                 player.getGameProfile().getName()
         );
-        profile.selectedJobResource().ifPresent(jobId -> {
-            if (!game.selectJob(player.getUUID(), jobId)) {
-                SemionTd.LOGGER.warn(
-                        "Ignoring persisted Semion TD job {} for player {}; the job is not available.",
-                        jobId,
-                        player.getGameProfile().getName()
-                );
+    }
+
+    private boolean applyPersistedJobSelection(MinecraftServer server, SemionGame game, UUID playerId, String playerName) {
+        SemionPlayerProfile profile = progressionService.profile(
+                server,
+                playerId,
+                playerName
+        );
+        Optional<ResourceLocation> selectedJobId = profile.selectedJobResource();
+        if (selectedJobId.isEmpty()) {
+            return false;
+        }
+        ResourceLocation jobId = selectedJobId.get();
+        if (!game.selectJob(playerId, jobId)) {
+            SemionTd.LOGGER.warn(
+                    "Ignoring persisted Semion TD job {} for player {}; the job is not available.",
+                    jobId,
+                    playerName
+            );
+            return false;
+        }
+        return true;
+    }
+
+    private void applyFallbackSandboxJob(SemionGame sandbox, UUID playerId) {
+        kim.biryeong.semiontd.job.JobRegistry.all().stream()
+                .filter(job -> !job.id().equals(kim.biryeong.semiontd.job.JobRegistry.defaultJob().id()))
+                .findFirst()
+                .ifPresent(job -> sandbox.selectJob(playerId, job.id()));
+    }
+
+    private void tickTraitSelection(MinecraftServer server) {
+        if (pendingTraitSelection == null) {
+            return;
+        }
+        if (activeGame == null || !activeGame.canConfigureRoster()) {
+            clearTraitSelection();
+            return;
+        }
+        if (pendingTraitSelection.complete()) {
+            finishTraitSelectionAndScheduleCountdown(server, false);
+            return;
+        }
+        if (pendingTraitSelection.tick()) {
+            finishTraitSelectionAndScheduleCountdown(server, true);
+        }
+    }
+
+    private void finishTraitSelectionAndScheduleCountdown(MinecraftServer server, boolean timeout) {
+        TraitSelectionSession session = pendingTraitSelection;
+        if (session == null) {
+            return;
+        }
+        TraitSelectionSnapshot snapshot = session.snapshot();
+        ParticipantSelectionPlan plan = session.plan();
+        clearTraitSelection();
+        pendingStartPlan = plan;
+        pendingStartTraitSnapshot = snapshot;
+        startCountdownTicks = START_COUNTDOWN_TICKS;
+        nextStartCountdownAnnouncementSecond = startCountdownSecondsRemaining();
+        if (timeout) {
+            server.getPlayerList().broadcastSystemMessage(
+                    SemionText.prefixedPlain("특성 선택 시간이 종료되어 미선택 슬롯은 '선택 안 함'으로 적용됩니다."),
+                    false
+            );
+        } else {
+            server.getPlayerList().broadcastSystemMessage(
+                    SemionText.prefixedPlain("모든 참가자가 특성 선택을 완료했습니다."),
+                    false
+            );
+        }
+        announceStartCountdown(server, nextStartCountdownAnnouncementSecond);
+    }
+
+    private void announceTraitSelectionStarted(MinecraftServer server, TraitSelectionSession session) {
+        server.getPlayerList().broadcastSystemMessage(
+                SemionText.prefixedMini("<aqua><bold>특성 선택</bold></aqua> 단계가 시작되었습니다. <yellow>"
+                        + session.remainingSeconds()
+                        + "초</yellow> 안에 /특성 으로 주특성/부특성을 선택하세요."),
+                false
+        );
+    }
+
+    private void showTraitSelectionToActiveParticipants(MinecraftServer server, TraitSelectionSession session) {
+        for (AssignedParticipant participant : session.plan().activeParticipants()) {
+            ServerPlayer player = server.getPlayerList().getPlayer(participant.uuid());
+            if (player != null) {
+                dialogService.showTraitSelection(player, session.loadoutOrDefault(participant.uuid()), session.remainingSeconds());
             }
-        });
+        }
+    }
+
+    private void clearTraitSelection() {
+        pendingTraitSelection = null;
     }
 
     private void tickStartCountdown(MinecraftServer server) {
@@ -1135,9 +1314,10 @@ public final class SemionGameManager {
         }
 
         ParticipantSelectionPlan plan = pendingStartPlan;
+        TraitSelectionSnapshot traitSnapshot = pendingStartTraitSnapshot;
         clearStartCountdown();
         closeSandboxesFor(plan);
-        if (!activeGame.start(server, plan)) {
+        if (!activeGame.start(server, plan, traitSnapshot)) {
             server.getPlayerList().broadcastSystemMessage(
                     SemionText.prefixedPlain("시작 카운트다운이 취소되었습니다. 참가자 확정에 실패했습니다."),
                     false
@@ -1162,6 +1342,7 @@ public final class SemionGameManager {
 
     private void clearStartCountdown() {
         pendingStartPlan = null;
+        pendingStartTraitSnapshot = TraitSelectionSnapshot.empty();
         startCountdownTicks = 0;
         nextStartCountdownAnnouncementSecond = 0;
     }
@@ -1174,6 +1355,7 @@ public final class SemionGameManager {
         if (activeGame == game) {
             activeGame = null;
             clearStartCountdown();
+            clearTraitSelection();
         }
         if (pendingFinishedGame == game) {
             pendingFinishedGame = null;

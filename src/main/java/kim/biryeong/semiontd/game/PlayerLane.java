@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.defender.DefenderEntity;
@@ -201,6 +203,16 @@ public final class PlayerLane {
     }
 
     public void tick(MinecraftServer server, EconomyService economyService, Map<UUID, SemionPlayer> players) {
+        tick(server, economyService, players, MonsterScalingConfig.defaultConfig(), 0);
+    }
+
+    public void tick(
+            MinecraftServer server,
+            EconomyService economyService,
+            Map<UUID, SemionPlayer> players,
+            MonsterScalingConfig monsterScalingConfig,
+            int roundElapsedTicks
+    ) {
         spawnQueuedMonster(waveMonsterSpawnQueue, players, true);
         spawnQueuedMonster(summonedMonsterSpawnQueue, players, false);
 
@@ -214,7 +226,7 @@ public final class PlayerLane {
         Iterator<Monster> iterator = activeMonsters.iterator();
         while (iterator.hasNext()) {
             Monster monster = iterator.next();
-            syncMonsterEntityState(monster, players);
+            syncMonsterEntityState(monster, players, monsterScalingConfig, roundElapsedTicks);
             if (monster.state() == MonsterState.DEAD) {
                 if (economyService != null) {
                     economyService.awardMonsterKillReward(monster, players);
@@ -365,7 +377,12 @@ public final class PlayerLane {
         }
     }
 
-    private void syncMonsterEntityState(Monster monster, Map<UUID, SemionPlayer> players) {
+    private void syncMonsterEntityState(
+            Monster monster,
+            Map<UUID, SemionPlayer> players,
+            MonsterScalingConfig monsterScalingConfig,
+            int roundElapsedTicks
+    ) {
         if (!monster.hasMinecraftEntity()) {
             return;
         }
@@ -395,6 +412,10 @@ public final class PlayerLane {
         }
         if (monster.state() == MonsterState.REACHED_BOSS) {
             recordLaneLeak(monster, players);
+        }
+        if (monster.tickSurvivalScaling(monsterScalingConfig, roundElapsedTicks)) {
+            monsterEntity.syncAttributesFromRuntimeMonster();
+            monsterEntity.setHealth((float) Math.max(0.1, monster.health()));
         }
     }
 

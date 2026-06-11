@@ -31,6 +31,10 @@ import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
+import kim.biryeong.semiontd.trait.SemionTrait;
+import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitRegistry;
+import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.ui.dialog.body.HeaderMessage;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
@@ -175,6 +179,44 @@ public final class SemionDialogService {
         }
 
         showActions(player, "세미온 TD 직업", body, actions, 2);
+    }
+
+    public void showTraitSelection(ServerPlayer player, TraitLoadout loadout, int secondsRemaining) {
+        String body = "<gradient:#67e8f9:#a78bfa><bold>특성 선택</bold></gradient>\n"
+                + "<gray>주특성</gray> <yellow>" + traitName(loadout.primaryTraitId()) + "</yellow> <gray>(100%)</gray>\n"
+                + "<gray>부특성</gray> <yellow>" + traitName(loadout.secondaryTraitId()) + "</yellow> <gray>(50%)</gray>\n"
+                + "<gray>남은 시간</gray> <aqua>" + secondsRemaining + "초</aqua>\n"
+                + "<gray>아래 버튼으로 주특성/부특성을 각각 선택하세요.</gray>";
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        actions.add(actionButton(
+                "주특성 선택/변경",
+                "/semiontd trait ui primary",
+                "100% 효과로 적용할 주특성을 선택합니다."
+        ));
+        actions.add(actionButton(
+                "부특성 선택/변경",
+                "/semiontd trait ui secondary",
+                "50% 효과로 적용할 부특성을 선택합니다."
+        ));
+
+        showActions(player, "세미온 TD 특성", body, actions, 2);
+    }
+
+    public void showTraitSelection(ServerPlayer player, TraitLoadout loadout, int secondsRemaining, TraitSlot slot) {
+        String body = "<gradient:#67e8f9:#a78bfa><bold>" + slot.displayName() + " 선택</bold></gradient>\n"
+                + "<gray>현재 " + slot.displayName() + "</gray> <yellow>" + traitName(loadout.traitId(slot)) + "</yellow> "
+                + "<gray>(" + Math.round(slot.effectScale() * 100.0D) + "%)</gray>\n"
+                + "<gray>주특성</gray> <yellow>" + traitName(loadout.primaryTraitId()) + "</yellow> <gray>(100%)</gray>\n"
+                + "<gray>부특성</gray> <yellow>" + traitName(loadout.secondaryTraitId()) + "</yellow> <gray>(50%)</gray>\n"
+                + "<gray>남은 시간</gray> <aqua>" + secondsRemaining + "초</aqua>\n"
+                + "<gray>같은 non-none 특성은 주/부특성에 동시에 선택할 수 없습니다.</gray>";
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        for (SemionTrait trait : TraitRegistry.all()) {
+            actions.add(traitButton(trait, slot, loadout.traitId(slot).equals(trait.id())));
+        }
+        actions.add(actionButton("뒤로", "/semiontd trait ui", "특성 선택 요약으로 돌아갑니다."));
+
+        showActions(player, "세미온 TD " + slot.displayName(), body, actions, 2);
     }
 
     public void showTowerControl(ServerPlayer player, SemionGame game) {
@@ -865,8 +907,28 @@ public final class SemionDialogService {
         );
     }
 
+    private static ActionButton traitButton(SemionTrait trait, TraitSlot slot, boolean selected) {
+        return actionButton(
+                traitButtonLabel(trait, slot, selected),
+                traitSelectionCommand(trait, slot),
+                traitTooltip(trait, slot, selected),
+                BUTTON_WIDTH
+        );
+    }
+
     public static String jobSelectionCommand(SemionJob job) {
         return "/semiontd job select " + job.id().getPath();
+    }
+
+    public static String traitSelectionCommand(SemionTrait trait, TraitSlot slot) {
+        String slotName = slot == TraitSlot.PRIMARY ? "primary" : "secondary";
+        return "/semiontd trait select " + slotName + " " + trait.id().getPath();
+    }
+
+    private static String traitName(net.minecraft.resources.ResourceLocation traitId) {
+        return TraitRegistry.find(traitId)
+                .map(trait -> trait.displayName().getString())
+                .orElse(traitId.toString());
     }
 
     public static Component jobButtonLabel(SemionJob job, boolean selected) {
@@ -882,6 +944,25 @@ public final class SemionDialogService {
             tooltip.append(Component.literal("\n현재 선택된 직업입니다.").withStyle(ChatFormatting.GREEN));
         }
         for (Component line : job.description()) {
+            tooltip.append(Component.literal("\n").append(line.copy().withStyle(ChatFormatting.GRAY)));
+        }
+        return tooltip;
+    }
+
+    private static Component traitButtonLabel(SemionTrait trait, TraitSlot slot, boolean selected) {
+        String prefix = selected ? "✓ " : "";
+        return Component.literal(prefix + slot.displayName() + ": " + trait.displayName().getString())
+                .withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.WHITE);
+    }
+
+    private static Component traitTooltip(SemionTrait trait, TraitSlot slot, boolean selected) {
+        MutableComponent tooltip = Component.literal(slot.displayName() + " " + Math.round(slot.effectScale() * 100.0D) + "%")
+                .withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.AQUA)
+                .append(Component.literal("\n").append(trait.displayName().copy().withStyle(ChatFormatting.YELLOW)));
+        if (selected) {
+            tooltip.append(Component.literal("\n현재 선택된 특성입니다.").withStyle(ChatFormatting.GREEN));
+        }
+        for (Component line : trait.description()) {
             tooltip.append(Component.literal("\n").append(line.copy().withStyle(ChatFormatting.GRAY)));
         }
         return tooltip;

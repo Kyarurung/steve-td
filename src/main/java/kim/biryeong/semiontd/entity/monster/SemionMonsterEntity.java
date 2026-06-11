@@ -193,6 +193,14 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         return runtimeMonster;
     }
 
+    public void syncAttributesFromRuntimeMonster() {
+        if (runtimeMonster == null) {
+            return;
+        }
+        getAttribute(Attributes.MAX_HEALTH).setBaseValue(runtimeMonster.maxHealth());
+        getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(runtimeMonster.attackDamage());
+    }
+
     @Override
     public boolean isHealingAlly(HealingTarget other) {
         if (!(other instanceof SemionMonsterEntity monsterEntity) || monsterEntity == this

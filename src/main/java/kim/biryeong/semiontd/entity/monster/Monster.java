@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.entity.monster;
 
 import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.entity.model.SemionBilModelCache;
 import kim.biryeong.semiontd.game.TeamId;
@@ -19,10 +20,10 @@ public final class Monster {
     private final int targetLaneId;
     private final Optional<UUID> ownerPlayer;
     private final Optional<TeamId> senderTeam;
-    private final double maxHealth;
+    private double maxHealth;
     private final double armor;
     private final double resistance;
-    private final double attackDamage;
+    private double attackDamage;
     private final AttackKind attackKind;
     private final DamageType damageType;
     private final String entityTypeId;
@@ -42,6 +43,10 @@ public final class Monster {
     private KillSourceKind lastHitSourceKind = KillSourceKind.UNKNOWN;
     private boolean rewardGranted;
     private boolean laneLeakRecorded;
+    private int activeTicks;
+    private int laneBreachTicks;
+    private int survivalScalingIntervalTicks;
+    private int survivalScalingStacks;
 
     public Monster(
             String id,
@@ -373,6 +378,18 @@ public final class Monster {
         return laneLeakRecorded;
     }
 
+    public int activeTicks() {
+        return activeTicks;
+    }
+
+    public int laneBreachTicks() {
+        return laneBreachTicks;
+    }
+
+    public int survivalScalingStacks() {
+        return survivalScalingStacks;
+    }
+
     public double attributionThreat() {
         return Math.max(1.0, maxHealth + Math.max(0.0, attackDamage));
     }
@@ -444,6 +461,55 @@ public final class Monster {
             return;
         }
         health = Math.min(maxHealth, health + amount);
+    }
+
+    public boolean tickSurvivalScaling(MonsterScalingConfig config, int roundElapsedTicks) {
+        if (state != MonsterState.ALIVE && state != MonsterState.SPAWNING && state != MonsterState.REACHED_BOSS) {
+            return false;
+        }
+
+        activeTicks++;
+        if (state == MonsterState.REACHED_BOSS) {
+            laneBreachTicks++;
+        } else {
+            laneBreachTicks = 0;
+        }
+
+        MonsterScalingConfig safeConfig = config == null ? MonsterScalingConfig.defaultConfig() : config;
+        if (!safeConfig.enabled() || !scalingAppliesToSource(safeConfig)) {
+            survivalScalingIntervalTicks = 0;
+            return false;
+        }
+
+        boolean survivedLongEnough = activeTicks >= safeConfig.survivalDelayTicks();
+        boolean roundDelayReached = roundElapsedTicks >= safeConfig.survivalDelayTicks();
+        boolean breachDelayReached = laneBreachTicks >= safeConfig.laneBreachDelayTicks();
+        if (!survivedLongEnough || (!roundDelayReached && !breachDelayReached)) {
+            survivalScalingIntervalTicks = 0;
+            return false;
+        }
+
+        survivalScalingIntervalTicks++;
+        if (survivalScalingIntervalTicks < safeConfig.intervalTicks()) {
+            return false;
+        }
+
+        survivalScalingIntervalTicks = 0;
+        applySurvivalScaling(safeConfig);
+        return true;
+    }
+
+    private boolean scalingAppliesToSource(MonsterScalingConfig config) {
+        return ownerPlayer.isPresent() ? config.scaleIncomeMonsters() : config.scaleWaveMonsters();
+    }
+
+    private void applySurvivalScaling(MonsterScalingConfig config) {
+        double healthMultiplier = 1.0 + config.healthGrowthPercentPerInterval() / 100.0;
+        double attackDamageMultiplier = 1.0 + config.attackDamageGrowthPercentPerInterval() / 100.0;
+        maxHealth *= healthMultiplier;
+        health = Math.min(maxHealth, health * healthMultiplier);
+        attackDamage *= attackDamageMultiplier;
+        survivalScalingStacks++;
     }
 
     public void recordLastHit(UUID playerId, KillSourceKind sourceKind) {

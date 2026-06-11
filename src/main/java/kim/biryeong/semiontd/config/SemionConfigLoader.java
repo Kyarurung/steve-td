@@ -35,7 +35,8 @@ public final class SemionConfigLoader {
                     TowerBalanceConfig.defaultConfig(),
                     SummonConfig.defaultConfig(),
                     LeaderTargetingConfig.defaultConfig(),
-                    IncomeLaneRoutingConfig.defaultConfig()
+                    IncomeLaneRoutingConfig.defaultConfig(),
+                    MonsterScalingConfig.defaultConfig()
             );
         }
 
@@ -95,7 +96,12 @@ public final class SemionConfigLoader {
                 IncomeLaneRoutingConfig.defaultConfig(),
                 logger
         );
-        return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting);
+        MonsterScalingConfig monsterScaling = loadOrCreateMonsterScaling(
+                configDir.resolve("monster_scaling.json"),
+                MonsterScalingConfig.defaultConfig(),
+                logger
+        );
+        return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting, monsterScaling);
     }
 
     private static <T> T loadOrCreate(Path path, T defaults, Class<T> type, Logger logger) {
@@ -256,6 +262,50 @@ public final class SemionConfigLoader {
         }
     }
 
+    private static MonsterScalingConfig loadOrCreateMonsterScaling(
+            Path path,
+            MonsterScalingConfig defaults,
+            Logger logger
+    ) {
+        if (Files.notExists(path)) {
+            write(path, defaults, logger);
+            return defaults;
+        }
+
+        try {
+            String json = Files.readString(path);
+            MonsterScalingConfig loaded = GSON.fromJson(json, MonsterScalingConfig.class);
+            MonsterScalingConfig value = loaded == null ? defaults : loaded;
+            boolean enabledMissing = !hasObjectProperty(json, "enabled");
+            boolean survivalDelayMissing = !hasObjectProperty(json, "survivalDelayTicks");
+            boolean laneBreachDelayMissing = !hasObjectProperty(json, "laneBreachDelayTicks");
+            boolean intervalMissing = !hasObjectProperty(json, "intervalTicks");
+            boolean healthGrowthMissing = !hasObjectProperty(json, "healthGrowthPercentPerInterval");
+            boolean attackGrowthMissing = !hasObjectProperty(json, "attackDamageGrowthPercentPerInterval");
+            boolean waveMissing = !hasObjectProperty(json, "scaleWaveMonsters");
+            boolean incomeMissing = !hasObjectProperty(json, "scaleIncomeMonsters");
+            if (enabledMissing || survivalDelayMissing || laneBreachDelayMissing || intervalMissing
+                    || healthGrowthMissing || attackGrowthMissing || waveMissing || incomeMissing) {
+                value = new MonsterScalingConfig(
+                        enabledMissing ? defaults.enabled() : value.enabled(),
+                        survivalDelayMissing ? defaults.survivalDelayTicks() : value.survivalDelayTicks(),
+                        laneBreachDelayMissing ? defaults.laneBreachDelayTicks() : value.laneBreachDelayTicks(),
+                        intervalMissing ? defaults.intervalTicks() : value.intervalTicks(),
+                        healthGrowthMissing ? defaults.healthGrowthPercentPerInterval() : value.healthGrowthPercentPerInterval(),
+                        attackGrowthMissing ? defaults.attackDamageGrowthPercentPerInterval() : value.attackDamageGrowthPercentPerInterval(),
+                        waveMissing ? defaults.scaleWaveMonsters() : value.scaleWaveMonsters(),
+                        incomeMissing ? defaults.scaleIncomeMonsters() : value.scaleIncomeMonsters()
+                );
+                write(path, value, logger);
+            }
+            return value;
+        } catch (IOException | JsonParseException | IllegalArgumentException exception) {
+            logger.warn("Failed to load config {}; using defaults.", path, exception);
+            write(path, defaults, logger);
+            return defaults;
+        }
+    }
+
     private static EconomyConfig.TeamTransferConfig mergedTeamTransfer(
             EconomyConfig.TeamTransferConfig loaded,
             EconomyConfig.TeamTransferConfig defaults,
@@ -394,7 +444,8 @@ public final class SemionConfigLoader {
             TowerBalanceConfig towerBalance,
             SummonConfig summons,
             LeaderTargetingConfig leaderTargeting,
-            IncomeLaneRoutingConfig incomeLaneRouting
+            IncomeLaneRoutingConfig incomeLaneRouting,
+            MonsterScalingConfig monsterScaling
     ) {
     }
 }

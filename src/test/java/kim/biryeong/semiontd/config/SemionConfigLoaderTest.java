@@ -409,4 +409,35 @@ final class SemionConfigLoaderTest {
         assertEquals(0.25, configs.incomeLaneRouting().nextRoundQueuedThreatWeight(), 0.0001);
         assertEquals(IncomeLaneRoutingConfig.TieBreakMode.RANDOM, configs.incomeLaneRouting().tieBreakMode());
     }
+
+    @Test
+    void loadCreatesMonsterScalingConfigFileWithDefaults() {
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(Files.exists(tempDir.resolve("monster_scaling.json")));
+        assertEquals(MonsterScalingConfig.defaultConfig(), configs.monsterScaling());
+    }
+
+    @Test
+    void loadBackfillsMonsterScalingDefaults() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("monster_scaling.json"), """
+                {
+                  "enabled": false,
+                  "survivalDelayTicks": 100
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertEquals(false, configs.monsterScaling().enabled());
+        assertEquals(100, configs.monsterScaling().survivalDelayTicks());
+        assertEquals(MonsterScalingConfig.defaultConfig().laneBreachDelayTicks(), configs.monsterScaling().laneBreachDelayTicks());
+        assertEquals(MonsterScalingConfig.defaultConfig().intervalTicks(), configs.monsterScaling().intervalTicks());
+        assertEquals(true, configs.monsterScaling().scaleWaveMonsters());
+        assertEquals(true, configs.monsterScaling().scaleIncomeMonsters());
+        String written = Files.readString(tempDir.resolve("monster_scaling.json"));
+        assertTrue(written.contains("laneBreachDelayTicks"));
+        assertTrue(written.contains("scaleIncomeMonsters"));
+    }
 }

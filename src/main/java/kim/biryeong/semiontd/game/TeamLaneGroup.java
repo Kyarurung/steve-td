@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.boss.BossMonster;
 import kim.biryeong.semiontd.entity.boss.SemionBossEntity;
@@ -73,8 +74,18 @@ public final class TeamLaneGroup {
             EconomyService economyService,
             Map<UUID, SemionPlayer> players
     ) {
+        tick(server, economyService, players, MonsterScalingConfig.defaultConfig(), 0);
+    }
+
+    public void tick(
+            MinecraftServer server,
+            EconomyService economyService,
+            Map<UUID, SemionPlayer> players,
+            MonsterScalingConfig monsterScalingConfig,
+            int roundElapsedTicks
+    ) {
         for (PlayerLane lane : lanes) {
-            lane.tick(server, economyService, players);
+            lane.tick(server, economyService, players, monsterScalingConfig, roundElapsedTicks);
             if (lane.clearedThisRound()) {
                 lane.moveTowersToFinalDefense();
                 List<DefenderEntity> defenders = lane.releaseDefendersToFinalDefense();

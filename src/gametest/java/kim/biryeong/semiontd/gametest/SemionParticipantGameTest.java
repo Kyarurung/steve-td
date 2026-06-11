@@ -34,6 +34,7 @@ import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.IncomeLaneRoutingConfig;
 import kim.biryeong.semiontd.config.LeaderTargetingConfig;
 import kim.biryeong.semiontd.config.MapConfig;
+import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.ProgressionConfig;
 import kim.biryeong.semiontd.config.SemionConfigLoader;
 import kim.biryeong.semiontd.config.SummonConfig;
@@ -1903,6 +1904,51 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 || context.getLevel().getEntity(activeMonsterEntityId).isRemoved(), "Active monster entity should be discarded.")) {
             return;
         }
+        context.succeed();
+    }
+
+    @GameTest
+    public void survivingWaveMonsterScalesHealthAndAttackThroughLaneTick(GameTestHelper context) {
+        UUID redId = stableUuid("monster-scaling-red");
+        UUID blueId = stableUuid("monster-scaling-blue");
+        SemionGame game = startedTwoPlayerGame(context, redId, blueId);
+        PlayerLane redLane = lane(game, TeamId.RED, 1);
+        MonsterScalingConfig config = new MonsterScalingConfig(true, 0, 600, 1, 3.0, 3.0, true, true);
+
+        redLane.enqueueWaveMonster(new WaveMonsterEntry(
+                "scaling-wave",
+                100.0,
+                0.0,
+                10.0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                1,
+                1
+        ));
+        redLane.tick(context.getLevel().getServer(), null, Map.of(), config, 0);
+
+        if (!assertEquals(context, 1, redLane.activeMonsters().size(), "Scaling test should spawn one wave monster.")) {
+            return;
+        }
+        Monster monster = redLane.activeMonsters().getFirst();
+        if (!assertTrue(context, Math.abs(monster.maxHealth() - 103.0) < 0.0001, "Configured scaling should increase runtime max health by 3%. Actual=" + monster.maxHealth())) {
+            return;
+        }
+        if (!assertTrue(context, Math.abs(monster.attackDamage() - 10.3) < 0.0001, "Configured scaling should increase runtime attack damage by 3%. Actual=" + monster.attackDamage())) {
+            return;
+        }
+        if (!(context.getLevel().getEntity(monster.minecraftEntityId()) instanceof SemionMonsterEntity entity)) {
+            context.fail(Component.literal("Scaled monster entity should exist in the world."));
+            return;
+        }
+        if (!assertTrue(context, Math.abs(entity.getAttributeValue(Attributes.MAX_HEALTH) - 103.0) < 0.0001, "Entity max-health attribute should be synced after scaling. Actual=" + entity.getAttributeValue(Attributes.MAX_HEALTH))) {
+            return;
+        }
+        if (!assertTrue(context, Math.abs(entity.getAttributeValue(Attributes.ATTACK_DAMAGE) - 10.3) < 0.0001, "Entity attack-damage attribute should be synced after scaling. Actual=" + entity.getAttributeValue(Attributes.ATTACK_DAMAGE))) {
+            return;
+        }
+
         context.succeed();
     }
 

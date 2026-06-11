@@ -25,6 +25,9 @@ public final class Events {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             gameManager.handlePlayerJoin(handler.getPlayer());
         });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            gameManager.handlePlayerDisconnect(handler.getPlayer());
+        });
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
             gameManager.handlePlayerWorldChanged(player);
         });
