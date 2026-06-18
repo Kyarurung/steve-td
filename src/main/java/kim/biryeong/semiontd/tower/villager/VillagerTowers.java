@@ -221,7 +221,7 @@ public final class VillagerTowers {
             List.of(
                     "<green> + 웨이브가 아닌 대상을 공격할 때 피해를 100% 더 입힙니다. </green>",
                     "<green> + 대상이 </green><red>탱커</red><green>태그를 가질 경우 대신 200% 추가 피해를 입힙니다.</green>",
-                    "<green> + 적 처치 시 마다 공격력이 영구적으로 0.1씩 오르며, 최대 </green><yellow>10</yellow><green>까지 상승합니다. </green>"
+                    "<green> + 주위 타워/웨이브/인컴 몹 사망 시마다 공격력이 영구적으로 0.02씩 오르며, 최대 </green><yellow>10</yellow><green>까지 상승합니다. </green>"
             )
     );
 
@@ -238,7 +238,7 @@ public final class VillagerTowers {
             List.of(
                     "<green> + 웨이브를 공격 할 때 피해를 50% 더 입힙니다. </green>",
                     "<green> 적을 처치 시 적이 폭발하며 해당 적 근처 1블록 이내의 적에게 공격력과 같은 피해를 줍니다. </green>",
-                    "<green> 적을 처치 시 영구적으로 공격력이 0.125 증가하며, 최대 5까지 증가합니다. (최대 40스택) </green>",
+                    "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력이 0.025 증가하며, 최대 5까지 증가합니다. (최대 200스택) </green>",
                     "<red> 시체 폭발 피해로 처치한 적은 폭발하지 않습니다. </red>"
             )
     );
@@ -256,7 +256,7 @@ public final class VillagerTowers {
             List.of(
                     "<green> + 웨이브가 아닌 대상을 공격할 때 피해를 200% 더 입힙니다. </green>",
                     "<green> + 대상이 </green><red>탱커</red><green>태그를 가질 경우 대신 400% 추가 피해를 입힙니다.</green>",
-                    "<green> + 적 처치 시 마다 공격력이 영구적으로 2씩 오르며, 최대 </green><yellow>20</yellow><green>까지 상승합니다. </green>"
+                    "<green> + 주위 타워/웨이브/인컴 몹 사망 시마다 공격력이 영구적으로 0.04씩 오르며, 최대 </green><yellow>20</yellow><green>까지 상승합니다. </green>"
             )
     );
 
@@ -273,7 +273,7 @@ public final class VillagerTowers {
             List.of(
                     "<green> + 웨이브를 공격 할 때 피해를 75% 더 입힙니다. </green>",
                     "<green> 적을 처치 시 적이 폭발하며 해당 적 근처 1.5블록 이내의 적에게 공격력과 같은 피해를 줍니다. </green>",
-                    "<green> 적을 처치 시 영구적으로 공격력이 0.25 증가하며, 최대 20까지 증가합니다. (최대 80스택) </green>",
+                    "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력이 0.05 증가하며, 최대 20까지 증가합니다. (최대 400스택) </green>",
                     "<red> 시체 폭발 피해로 처치한 적은 폭발하지 않습니다. </red>"
             )
     );
@@ -320,23 +320,23 @@ public final class VillagerTowers {
         TowerDescriptionRegistry.registerTemplate(T2_ANTI_TANKER_CAT_TOWER, List.of(
                 "<green> + 웨이브가 아닌 대상을 공격할 때 피해를 {ability.nonWaveBonus:percent} 더 입힙니다. </green>",
                 "<green> + 대상이 </green><red>탱커</red><green>태그를 가질 경우 대신 {ability.tankBonus:percent} 추가 피해를 입힙니다.</green>",
-                "<green> + 적 처치 시 마다 공격력이 영구적으로 {ability.stackDamage:number}씩 오르며, 최대 </green><yellow>{ability.stackDamageCap:number}</yellow><green>까지 상승합니다. </green>"
+                "<green> + 주위 타워/웨이브/인컴 몹 사망 시마다 공격력이 영구적으로 {ability.stackDamage:number}씩 오르며, 최대 </green><yellow>{ability.stackDamageCap:number}</yellow><green>까지 상승합니다. </green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_LANE_CLEAR_CAT_TOWER, List.of(
                 "<green> + 웨이브를 공격 할 때 피해를 {ability.waveBonus:percent} 더 입힙니다. </green>",
                 "<green> 적을 처치 시 적이 폭발하며 해당 적 근처 {ability.explosionRadius:blocks} 이내의 적에게 공격력과 같은 피해를 줍니다. </green>",
-                "<green> 적을 처치 시 영구적으로 공격력이 {ability.stackDamage:number} 증가하며, 최대 {ability.stackDamageCap:number}까지 증가합니다. (최대 {ability.stackDamageCap/ability.stackDamage:integer}스택) </green>",
+                "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력이 {ability.stackDamage:number} 증가하며, 최대 {ability.stackDamageCap:number}까지 증가합니다. (최대 {ability.stackDamageCap/ability.stackDamage:integer}스택) </green>",
                 "<red> 시체 폭발 피해로 처치한 적은 폭발하지 않습니다. </red>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_ANTI_TANKER_CAT_TOWER, List.of(
                 "<green> + 웨이브가 아닌 대상을 공격할 때 피해를 {ability.nonWaveBonus:percent} 더 입힙니다. </green>",
                 "<green> + 대상이 </green><red>탱커</red><green>태그를 가질 경우 대신 {ability.tankBonus:percent} 추가 피해를 입힙니다.</green>",
-                "<green> + 적 처치 시 마다 공격력이 영구적으로 {ability.stackDamage:number}씩 오르며, 최대 </green><yellow>{ability.stackDamageCap:number}</yellow><green>까지 상승합니다. </green>"
+                "<green> + 주위 타워/웨이브/인컴 몹 사망 시마다 공격력이 영구적으로 {ability.stackDamage:number}씩 오르며, 최대 </green><yellow>{ability.stackDamageCap:number}</yellow><green>까지 상승합니다. </green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_LANE_CLEAR_CAT_TOWER, List.of(
                 "<green> + 웨이브를 공격 할 때 피해를 {ability.waveBonus:percent} 더 입힙니다. </green>",
                 "<green> 적을 처치 시 적이 폭발하며 해당 적 근처 {ability.explosionRadius:blocks} 이내의 적에게 공격력과 같은 피해를 줍니다. </green>",
-                "<green> 적을 처치 시 영구적으로 공격력이 {ability.stackDamage:number} 증가하며, 최대 {ability.stackDamageCap:number}까지 증가합니다. (최대 {ability.stackDamageCap/ability.stackDamage:integer}스택) </green>",
+                "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력이 {ability.stackDamage:number} 증가하며, 최대 {ability.stackDamageCap:number}까지 증가합니다. (최대 {ability.stackDamageCap/ability.stackDamage:integer}스택) </green>",
                 "<red> 시체 폭발 피해로 처치한 적은 폭발하지 않습니다. </red>"
         ));
     }

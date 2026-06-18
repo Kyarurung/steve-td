@@ -214,24 +214,24 @@ public record TowerBalanceConfig(
         putAbilities(abilities, VillagerTowers.T2_ANTI_TANKER_CAT_TOWER.id(), Map.of(
                 "nonWaveBonus", 0.5,
                 "tankBonus", 1.0,
-                "stackDamage", 0.1,
+                "stackDamage", 0.02,
                 "stackDamageCap", 10.0
         ));
         putAbilities(abilities, VillagerTowers.T3_ANTI_TANKER_CAT_TOWER.id(), Map.of(
                 "nonWaveBonus", 1.0,
                 "tankBonus", 4.0,
-                "stackDamage", 0.2,
+                "stackDamage", 0.04,
                 "stackDamageCap", 20.0
         ));
         putAbilities(abilities, VillagerTowers.T2_LANE_CLEAR_CAT_TOWER.id(), Map.of(
                 "waveBonus", 0.5,
-                "stackDamage", 0.125,
+                "stackDamage", 0.025,
                 "stackDamageCap", 5.0,
                 "explosionRadius", 1.0
         ));
         putAbilities(abilities, VillagerTowers.T3_LANE_CLEAR_CAT_TOWER.id(), Map.of(
                 "waveBonus", 0.75,
-                "stackDamage", 0.25,
+                "stackDamage", 0.05,
                 "stackDamageCap", 20.0,
                 "explosionRadius", 1.5
         ));
@@ -260,30 +260,30 @@ public record TowerBalanceConfig(
         putAbilities(abilities, UndeadTowers.T2_RANGED_SKELETON_TOWER.id(), Map.of(
                 "extraTargets", 1.0,
                 "lifeStealRatio", 0.10,
-                "stackDamage", 0.5,
+                "stackDamage", 0.1,
                 "stackDamageCap", 20.0
         ));
         putAbilities(abilities, UndeadTowers.T3_RANGED_SKELETON_TOWER.id(), Map.of(
                 "extraTargets", 2.0,
                 "lifeStealRatio", 0.15,
-                "stackDamage", 1.5,
+                "stackDamage", 0.3,
                 "stackDamageCap", 30.0
         ));
         putAbilities(abilities, UndeadTowers.T2_MELEE_TOWER.id(), Map.of(
                 "splashRadius", 1.25,
                 "splashDamageRatio", 0.80,
                 "lifeStealRatio", 0.05,
-                "damagePerStack", 0.1,
-                "healthPerStack", 1.0,
-                "stackCap", 50.0
+                "damagePerStack", 0.02,
+                "healthPerStack", 0.2,
+                "stackCap", 250.0
         ));
         putAbilities(abilities, UndeadTowers.T3_MELEE_TOWER.id(), Map.of(
                 "splashRadius", 1.75,
                 "splashDamageRatio", 0.90,
                 "lifeStealRatio", 0.07,
-                "damagePerStack", 0.15,
-                "healthPerStack", 1.5,
-                "stackCap", 100.0
+                "damagePerStack", 0.03,
+                "healthPerStack", 0.3,
+                "stackCap", 500.0
         ));
         putAbilities(abilities, UndeadTowers.T1_UNDEAD_ANIMAL_TOWER.id(), Map.of(
                 "scanIntervalTicks", 100.0,
@@ -360,7 +360,9 @@ public record TowerBalanceConfig(
                 "executeThresholdPerStack", 0.02,
                 "maxExecuteHealthThreshold", 0.40,
                 "executeDamageBonusRatio", 0.25,
-                "executeDamageBonusPerStack", 0.05
+                "executeDamageBonusPerStack", 0.05,
+                "killBonusDamage", 0.2,
+                "killBonusDamageCap", 12.0
         ));
         putAbilities(abilities, AnimalTowers.T2_FOX_TOWER.id(), Map.of(
                 "maxStacks", 4.0,
@@ -368,7 +370,9 @@ public record TowerBalanceConfig(
                 "executeThresholdPerStack", 0.025,
                 "maxExecuteHealthThreshold", 0.50,
                 "executeDamageBonusRatio", 0.50,
-                "executeDamageBonusPerStack", 0.075
+                "executeDamageBonusPerStack", 0.075,
+                "killBonusDamage", 0.4,
+                "killBonusDamageCap", 24.0
         ));
         putAbilities(abilities, AnimalTowers.T3_FOX_TOWER.id(), Map.of(
                 "maxStacks", 4.0,
@@ -376,7 +380,9 @@ public record TowerBalanceConfig(
                 "executeThresholdPerStack", 0.03,
                 "maxExecuteHealthThreshold", 0.60,
                 "executeDamageBonusRatio", 0.75,
-                "executeDamageBonusPerStack", 0.10
+                "executeDamageBonusPerStack", 0.10,
+                "killBonusDamage", 0.6,
+                "killBonusDamageCap", 36.0
         ));
         putAbilities(abilities, LegionTowers.T1_BEE_TOWER.id(), Map.of(
                 "maxSwarmStacks", 4.0,

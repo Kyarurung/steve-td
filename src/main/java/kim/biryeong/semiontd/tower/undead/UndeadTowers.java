@@ -100,7 +100,7 @@ public class UndeadTowers {
                     "<gray> 원거리 특화 타워입니다. </green>",
                     "<green> 공격 시 임의의 대상 1체를 추가로 공격합니다. </green>",
                     "<green> 공격 시 피해의 10% 를 흡수합니다. </green>",
-                    "<green> 처치 시 영구적으로 피해를 0.5 증가시킵니다. (최대 20)</green>"
+                    "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 0.1 증가시킵니다. (최대 20)</green>"
             )
     );
 
@@ -118,7 +118,7 @@ public class UndeadTowers {
                     "<gray> 근거리 특화 타워입니다. </gray>",
                     "<green> 스플래시가 존재합니다. 1.25 블록, 80% 피해 </green>",
                     "<green> 입힌 피해의 5%를 체력으로 흡수합니다. </green>",
-                    "<green> 처치 시 영구적으로 공격력을 0.1, 체력을 1 증가시킵니다. 최대 50스텍 </green>"
+                    "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력을 0.02, 체력을 0.2 증가시킵니다. 최대 250스택 </green>"
             )
     );
     public static final TowerType T3_RANGED_SKELETON_TOWER = tower(
@@ -135,7 +135,7 @@ public class UndeadTowers {
                     "<gray> 원거리 특화 타워입니다. </green>",
                     "<green> 공격 시 임의의 대상 2체를 추가로 공격합니다. </green>",
                     "<green> 공격 시 피해의 15% 를 흡수합니다. </green>",
-                    "<green> 처치 시 영구적으로 피해를 1.5 증가시킵니다. (최대 30)</green>"
+                    "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 0.3 증가시킵니다. (최대 30)</green>"
             )
     );
 
@@ -153,7 +153,7 @@ public class UndeadTowers {
                     "<gray> 근거리 특화 타워입니다. </gray>",
                     "<green> 스플래시가 존재합니다. 1.75 블록, 90% 피해 </green>",
                     "<green> 입힌 피해의 7%를 체력으로 흡수합니다. </green>",
-                    "<green> 처치 시 영구적으로 공격력을 0.15, 체력을 1.5 증가시킵니다. 최대 100스텍 </green>"
+                    "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력을 0.03, 체력을 0.3 증가시킵니다. 최대 500스택 </green>"
             )
     );
 
@@ -219,25 +219,25 @@ public class UndeadTowers {
                 "<gray> 원거리 특화 타워입니다. </green>",
                 "<green> 공격 시 임의의 대상 {ability.extraTargets:integer}체를 추가로 공격합니다. </green>",
                 "<green> 공격 시 피해의 {ability.lifeStealRatio:percent} 를 흡수합니다. </green>",
-                "<green> 처치 시 영구적으로 피해를 {ability.stackDamage:number} 증가시킵니다. (최대 {ability.stackDamageCap:number})</green>"
+                "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 {ability.stackDamage:number} 증가시킵니다. (최대 {ability.stackDamageCap:number})</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_MELEE_TOWER, List.of(
                 "<gray> 근거리 특화 타워입니다. </gray>",
                 "<green> 스플래시가 존재합니다. {ability.splashRadius:blocks}, {ability.splashDamageRatio:percent} 피해 </green>",
                 "<green> 입힌 피해의 {ability.lifeStealRatio:percent}를 체력으로 흡수합니다. </green>",
-                "<green> 처치 시 영구적으로 공격력을 {ability.damagePerStack:number}, 체력을 {ability.healthPerStack:number} 증가시킵니다. 최대 {ability.stackCap:integer}스택 </green>"
+                "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력을 {ability.damagePerStack:number}, 체력을 {ability.healthPerStack:number} 증가시킵니다. 최대 {ability.stackCap:integer}스택 </green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_RANGED_SKELETON_TOWER, List.of(
                 "<gray> 원거리 특화 타워입니다. </green>",
                 "<green> 공격 시 임의의 대상 {ability.extraTargets:integer}체를 추가로 공격합니다. </green>",
                 "<green> 공격 시 피해의 {ability.lifeStealRatio:percent} 를 흡수합니다. </green>",
-                "<green> 처치 시 영구적으로 피해를 {ability.stackDamage:number} 증가시킵니다. (최대 {ability.stackDamageCap:number})</green>"
+                "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 {ability.stackDamage:number} 증가시킵니다. (최대 {ability.stackDamageCap:number})</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_MELEE_TOWER, List.of(
                 "<gray> 근거리 특화 타워입니다. </gray>",
                 "<green> 스플래시가 존재합니다. {ability.splashRadius:blocks}, {ability.splashDamageRatio:percent} 피해 </green>",
                 "<green> 입힌 피해의 {ability.lifeStealRatio:percent}를 체력으로 흡수합니다. </green>",
-                "<green> 처치 시 영구적으로 공격력을 {ability.damagePerStack:number}, 체력을 {ability.healthPerStack:number} 증가시킵니다. 최대 {ability.stackCap:integer}스택 </green>"
+                "<green> 주위 타워/웨이브/인컴 몹 사망 시 공격력을 {ability.damagePerStack:number}, 체력을 {ability.healthPerStack:number} 증가시킵니다. 최대 {ability.stackCap:integer}스택 </green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T1_UNDEAD_ANIMAL_TOWER, List.of(
                 "<gray> 적에게 디버프를 주는 타워입니다.</gray>",

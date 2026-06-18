@@ -24,6 +24,7 @@ import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,30 +84,30 @@ class TowerRuntimeDetailsTest {
     }
 
     @Test
-    void villagerTowersShowSurvivalAndKillStacks() throws Exception {
+    void villagerTowersShowSurvivalAndDeathStacks() throws Exception {
         VillagerSplashTower librarian = new VillagerSplashTower(VillagerTowers.T2_LIBRARIAN_TOWER, OWNER, TeamId.RED, 1, POSITION);
         setFieldFromHierarchy(librarian, "survivalBouns", 2);
         AntiTankerCatTower cat = new AntiTankerCatTower(VillagerTowers.T2_ANTI_TANKER_CAT_TOWER, OWNER, TeamId.RED, 1, POSITION);
-        cat.onKill(null, null, 0.0);
-        cat.onKill(null, null, 0.0);
+        cat.onNearbyMonsterDeath(null, null, new Vec3(0.5, 1.0, 0.5));
+        cat.onNearbyMonsterDeath(null, null, new Vec3(0.5, 1.0, 0.5));
         VillagerThornTower golem = new VillagerThornTower(VillagerTowers.T2_GOLEM_TOWER, OWNER, TeamId.RED, 1, POSITION);
         setFieldFromHierarchy(golem, "survivalBonus", 1);
 
         assertContains(SemionDialogService.towerRuntimeDetailLines(librarian), "생존 스택 2/");
-        assertContains(SemionDialogService.towerRuntimeDetailLines(cat), "킬 스택");
+        assertContains(SemionDialogService.towerRuntimeDetailLines(cat), "사망 스택");
         assertContains(SemionDialogService.towerRuntimeDetailLines(cat), "공격력 +");
         assertContains(SemionDialogService.towerRuntimeDetailLines(golem), "생존 스택 1/");
     }
 
     @Test
-    void undeadKillStackTowerShowsKillStackCountAndBonus() {
+    void undeadDeathStackTowerShowsDeathStackCountAndBonus() {
         UndeadMeleeSkeletonTower skeleton = new UndeadMeleeSkeletonTower(UndeadTowers.T2_MELEE_TOWER, OWNER, TeamId.RED, 1, POSITION);
-        skeleton.onKill(null, null, 0.0);
-        skeleton.onKill(null, null, 0.0);
+        skeleton.onNearbyMonsterDeath(null, null, new Vec3(0.5, 1.0, 0.5));
+        skeleton.onNearbyTowerDeath(null, new AntiTankerCatTower(VillagerTowers.T2_ANTI_TANKER_CAT_TOWER, OWNER, TeamId.RED, 1, POSITION));
 
         List<String> lines = SemionDialogService.towerRuntimeDetailLines(skeleton);
 
-        assertContains(lines, "킬 스택 2/");
+        assertContains(lines, "사망 스택 2/");
         assertContains(lines, "공격력 +");
         assertContains(lines, "체력 +");
     }

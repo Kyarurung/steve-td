@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.phys.Vec3;
 
 public abstract class Tower {
     private TowerType type;
@@ -218,12 +219,13 @@ public abstract class Tower {
     public void onDeath(PlayerLane lane) {
     }
 
-    public final void notifyDeath(PlayerLane lane) {
+    public final boolean notifyDeath(PlayerLane lane) {
         if (deathNotifiedThisRound) {
-            return;
+            return false;
         }
         deathNotifiedThisRound = true;
         onDeath(lane);
+        return true;
     }
 
     public void onStateChanged(PlayerLane lane) {
@@ -268,6 +270,30 @@ public abstract class Tower {
     }
 
     public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    }
+
+    public void onNearbyMonsterDeath(PlayerLane lane, Monster monster, Vec3 deathPosition) {
+    }
+
+    public void onNearbyTowerDeath(PlayerLane lane, Tower destroyedTower) {
+    }
+
+    protected boolean isWithinDeathStackRange(Vec3 deathPosition) {
+        if (deathPosition == null) {
+            return false;
+        }
+        double x = position().x() + 0.5;
+        double y = position().y() + 1.0;
+        double z = position().z() + 0.5;
+        double radius = Math.max(0.0, type.range());
+        return deathPosition.distanceToSqr(x, y, z) <= radius * radius;
+    }
+
+    protected boolean isWithinDeathStackRange(GridPosition deathPosition) {
+        if (deathPosition == null) {
+            return false;
+        }
+        return isWithinDeathStackRange(new Vec3(deathPosition.x() + 0.5, deathPosition.y() + 1.0, deathPosition.z() + 0.5));
     }
 
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {

@@ -6,11 +6,13 @@ import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import net.minecraft.world.phys.Vec3;
 
 public class AntiTankerCatTower extends EntityBackedTower {
     private double killStackDamage;
@@ -38,7 +40,20 @@ public class AntiTankerCatTower extends EntityBackedTower {
 
     @Override
     public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        killStackDamage = Math.min(stackDamageCap(), killStackDamage + stackDamageStep());
+    }
+
+    @Override
+    public void onNearbyMonsterDeath(PlayerLane lane, Monster monster, Vec3 deathPosition) {
+        if (isWithinDeathStackRange(deathPosition)) {
+            incrementDeathStack();
+        }
+    }
+
+    @Override
+    public void onNearbyTowerDeath(PlayerLane lane, Tower destroyedTower) {
+        if (destroyedTower != null && isWithinDeathStackRange(destroyedTower.position())) {
+            incrementDeathStack();
+        }
     }
 
     @Override
@@ -64,7 +79,11 @@ public class AntiTankerCatTower extends EntityBackedTower {
     private String killStackLine(double damage, double step, double cap) {
         int stacks = step <= 0.0 ? 0 : (int) Math.round(damage / step);
         int maxStacks = step <= 0.0 ? 0 : (int) Math.round(cap / step);
-        return "킬 스택 " + stacks + "/" + maxStacks + " (공격력 +" + oneDecimal(damage) + ")";
+        return "사망 스택 " + stacks + "/" + maxStacks + " (공격력 +" + oneDecimal(damage) + ")";
+    }
+
+    private void incrementDeathStack() {
+        killStackDamage = Math.min(stackDamageCap(), killStackDamage + stackDamageStep());
     }
 
     private double value(String key) {

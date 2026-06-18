@@ -6,11 +6,13 @@ import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class LaneClearCatTower extends EntityBackedTower {
     private double killStackDamage;
@@ -35,8 +37,21 @@ public class LaneClearCatTower extends EntityBackedTower {
 
     @Override
     public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        incrementKillStack();
         explode(towerEntity, target, damageAmount);
+    }
+
+    @Override
+    public void onNearbyMonsterDeath(PlayerLane lane, Monster monster, Vec3 deathPosition) {
+        if (isWithinDeathStackRange(deathPosition)) {
+            incrementDeathStack();
+        }
+    }
+
+    @Override
+    public void onNearbyTowerDeath(PlayerLane lane, Tower destroyedTower) {
+        if (destroyedTower != null && isWithinDeathStackRange(destroyedTower.position())) {
+            incrementDeathStack();
+        }
     }
 
     @Override
@@ -44,7 +59,7 @@ public class LaneClearCatTower extends EntityBackedTower {
         double step = stackDamageStep();
         int stacks = step <= 0.0 ? 0 : (int) Math.round(killStackDamage / step);
         int maxStacks = step <= 0.0 ? 0 : (int) Math.round(stackDamageCap() / step);
-        return java.util.List.of("킬 스택 " + stacks + "/" + maxStacks + " (공격력 +" + oneDecimal(killStackDamage) + ")");
+        return java.util.List.of("사망 스택 " + stacks + "/" + maxStacks + " (공격력 +" + oneDecimal(killStackDamage) + ")");
     }
 
     @Override
@@ -73,13 +88,11 @@ public class LaneClearCatTower extends EntityBackedTower {
                 .filter(SemionMonsterEntity.class::isInstance)
                 .map(SemionMonsterEntity.class::cast)
                 .forEach(monster -> {
-                    if (damageTarget(towerEntity, monster, damageAmount)) {
-                        incrementKillStack();
-                    }
+                    damageTarget(towerEntity, monster, damageAmount);
                 });
     }
 
-    private void incrementKillStack() {
+    private void incrementDeathStack() {
         killStackDamage = Math.min(stackDamageCap(), killStackDamage + stackDamageStep());
     }
 

@@ -2,14 +2,16 @@ package kim.biryeong.semiontd.tower.undead;
 
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.SplashTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.Vec3;
 
 public class UndeadMeleeSkeletonTower extends SplashTower {
     private int killStacks;
@@ -41,7 +43,7 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
 
     @Override
     public java.util.List<String> runtimeDetailLines() {
-        return java.util.List.of("킬 스택 " + killStacks + "/" + stackCap()
+        return java.util.List.of("사망 스택 " + killStacks + "/" + stackCap()
                 + " (공격력 +" + oneDecimal(killStacks * damagePerStack())
                 + ", 체력 +" + oneDecimal(killStacks * healthPerStack()) + ")");
     }
@@ -64,13 +66,30 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
 
     @Override
     public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    }
+
+    @Override
+    public void onNearbyMonsterDeath(PlayerLane lane, Monster monster, Vec3 deathPosition) {
+        if (isWithinDeathStackRange(deathPosition)) {
+            incrementDeathStack(lane);
+        }
+    }
+
+    @Override
+    public void onNearbyTowerDeath(PlayerLane lane, Tower destroyedTower) {
+        if (destroyedTower != null && isWithinDeathStackRange(destroyedTower.position())) {
+            incrementDeathStack(lane);
+        }
+    }
+
+    private void incrementDeathStack(PlayerLane lane) {
         if (killStacks >= stackCap()) {
             return;
         }
         killStacks++;
-        if (towerEntity != null) {
-            towerEntity.getAttribute(Attributes.MAX_HEALTH).setBaseValue(currentMaxHealth());
-            towerEntity.receiveHealing(healthPerStack());
+        syncHealth(health() + healthPerStack());
+        if (lane != null) {
+            onStateChanged(lane);
         }
     }
 

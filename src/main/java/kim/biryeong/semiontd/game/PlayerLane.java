@@ -182,7 +182,9 @@ public final class PlayerLane {
             return false;
         }
         tower.syncHealth(0.0);
-        tower.notifyDeath(this);
+        if (tower.notifyDeath(this)) {
+            notifyNearbyTowerDeath(tower);
+        }
         tower.onRemoved(this);
         return true;
     }
@@ -231,6 +233,7 @@ public final class PlayerLane {
                 if (economyService != null) {
                     economyService.awardMonsterKillReward(monster, players);
                 }
+                notifyNearbyMonsterDeath(monster, monsterDeathPosition(monster));
                 discardMinecraftEntity(monster);
                 monster.markRemoved();
                 iterator.remove();
@@ -339,9 +342,40 @@ public final class PlayerLane {
     private void syncTowerStates() {
         for (Tower tower : towers) {
             if (tower.isDestroyed(this)) {
-                tower.notifyDeath(this);
+                if (tower.notifyDeath(this)) {
+                    notifyNearbyTowerDeath(tower);
+                }
             }
         }
+    }
+
+    private void notifyNearbyMonsterDeath(Monster monster, Vec3 deathPosition) {
+        for (Tower tower : List.copyOf(towers)) {
+            if (towers.contains(tower)) {
+                tower.onNearbyMonsterDeath(this, monster, deathPosition);
+            }
+        }
+    }
+
+    private void notifyNearbyTowerDeath(Tower destroyedTower) {
+        for (Tower tower : List.copyOf(towers)) {
+            if (tower != destroyedTower && towers.contains(tower)) {
+                tower.onNearbyTowerDeath(this, destroyedTower);
+            }
+        }
+    }
+
+    private Vec3 monsterDeathPosition(Monster monster) {
+        if (monster == null) {
+            return null;
+        }
+        if (monster.hasMinecraftEntity()) {
+            var entity = arenaWorld.getEntity(monster.minecraftEntityId());
+            if (entity != null) {
+                return entity.position();
+            }
+        }
+        return laneLayout.positionAt(monster.laneProgress());
     }
 
     private void spawnQueuedMonster(List<Monster> queue, Map<UUID, SemionPlayer> players, boolean distributeWaveSpawn) {

@@ -3931,6 +3931,58 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         });
     }
 
+    @GameTest(maxTicks = 40)
+    public void foxTowerGainsKillBonusDamageAfterNearbyMonsterDeath(GameTestHelper context) {
+        UUID playerId = stableUuid("red-fox-kill-bonus-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        Vec3 deathPosition = lane.laneLayout().positionAt(0.0);
+        BlockPos towerPos = BlockPos.containing(deathPosition.x, deathPosition.y - 1.0, deathPosition.z);
+        TowerType foxType = TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER);
+        lane.addTower(new FoxTower(foxType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
+        FoxTower foxTower = (FoxTower) lane.towers().getFirst();
+        if (!assertTrue(context, foxTower.entityId().isPresent(), "Fox tower entity should exist.")) {
+            return;
+        }
+        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(foxTower.entityId().getAsInt());
+        SemionMonsterEntity damageProbe = spawnRoleMonsterEntity(
+                context,
+                "fox-nearby-death-damage-probe",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                towerEntity.position().add(1.0, 0.0, 0.0),
+                100.0,
+                List.of(SummonRole.RUSH)
+        );
+        damageProbe.setNoAi(true);
+        damageProbe.setHealth(20.0F);
+
+        double beforeKillDamage = towerEntity.attackDamageAmount(damageProbe);
+        Monster nearbyMonster = deathStackTestMonster("fox-nearby-death-target", Optional.empty(), TeamId.RED, 1);
+        nearbyMonster.syncLaneProgress(0.0);
+        nearbyMonster.syncHealth(0.0);
+        lane.activeMonsters().add(nearbyMonster);
+        lane.tick(context.getLevel().getServer());
+        double afterKillDamage = towerEntity.attackDamageAmount(damageProbe);
+
+        if (!assertTrue(
+                context,
+                afterKillDamage > beforeKillDamage,
+                "Fox tower should gain attack damage after a monster dies nearby."
+        )) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                foxTower.runtimeDetailLines().stream().anyMatch(line -> line.contains("사망 보너스 1/60")),
+                "Fox tower runtime details should show the nearby death bonus stack."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 100)
     public void beeTowerPoisonDealsConfigDrivenRuntimeDamage(GameTestHelper context) {
         UUID playerId = stableUuid("red-bee-tower-owner");
@@ -6744,6 +6796,55 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void deathStackTowersGainStacksFromNearbyWaveIncomeAndTowerDeaths(GameTestHelper context) {
+        UUID playerId = stableUuid("death-stack-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        Vec3 deathPosition = lane.laneLayout().positionAt(0.0);
+        BlockPos towerBlock = BlockPos.containing(deathPosition.x, deathPosition.y - 1.0, deathPosition.z);
+        GridPosition stackTowerPosition = GridPosition.from(towerBlock);
+        AntiTankerCatTower catTower = new AntiTankerCatTower(
+                VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
+                playerId,
+                TeamId.RED,
+                1,
+                stackTowerPosition
+        );
+        lane.addTower(catTower);
+
+        Monster waveMonster = deathStackTestMonster("death-stack-wave", Optional.empty(), TeamId.RED, 1);
+        waveMonster.syncLaneProgress(0.0);
+        waveMonster.syncHealth(0.0);
+        lane.activeMonsters().add(waveMonster);
+        lane.tick(context.getLevel().getServer());
+
+        Monster incomeMonster = deathStackTestMonster("death-stack-income", Optional.of(TeamId.BLUE), TeamId.RED, 1);
+        incomeMonster.syncLaneProgress(0.0);
+        incomeMonster.syncHealth(0.0);
+        lane.activeMonsters().add(incomeMonster);
+        lane.tick(context.getLevel().getServer());
+
+        ProductionTower nearbyTower = new ProductionTower(
+                VillagerTowers.T1_SPLASH_TOWER,
+                stableUuid("death-stack-nearby-tower"),
+                TeamId.RED,
+                1,
+                new GridPosition(stackTowerPosition.x() + 1, stackTowerPosition.y(), stackTowerPosition.z())
+        );
+        lane.addTower(nearbyTower);
+        lane.killTower(nearbyTower);
+
+        List<String> detailLines = catTower.runtimeDetailLines();
+        if (!assertTrue(context, detailLines.stream().anyMatch(line -> line.contains("사망 스택 3/")), "Nearby wave, income, and tower deaths should each add one death stack: " + detailLines)) {
+            return;
+        }
+        if (!assertClose(context, 20.06, catTower.modifyAttackDamage(null, null, 20.0), "Three default T2 anti-tanker cat death stacks should add 0.06 attack damage.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void villagerTowerCatalogRegistersAndLinksAllFamilies(GameTestHelper context) {
         ProductionTowerCatalog.clearForTesting();
         VillagerTowerCatalogs.register();
@@ -8416,6 +8517,27 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         entity.setPos(position);
         context.getLevel().addFreshEntity(entity);
         return entity;
+    }
+
+    private static Monster deathStackTestMonster(String id, Optional<TeamId> senderTeam, TeamId targetTeam, int targetLaneId) {
+        return new Monster(
+                id,
+                targetTeam,
+                targetLaneId,
+                Optional.empty(),
+                senderTeam,
+                100.0,
+                0,
+                0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                DamageType.PHYSICAL,
+                0,
+                SummonTier.T1,
+                List.of(SummonRole.RUSH),
+                0
+        );
     }
 
     private static SemionMonsterEntity spawnRoleMonsterEntity(

@@ -192,6 +192,7 @@ public class AnimalTowers {
             List.of(
                     "<gray> 낮은 체력의 적을 노리는 동물 빌더의 마무리 타워입니다. </gray>",
                     "<green> 체력이 낮은 사거리 내 몬스터를 우선 공격하고 추가 피해를 줍니다. </green>",
+                    "<green> 사거리 내 몬스터 사망 시 공격력이 증가합니다. </green>",
                     "<green> 같은 여우 타워가 많을수록 처형 기준과 추가 피해가 증가합니다. </green>"
             )
     );
@@ -209,6 +210,7 @@ public class AnimalTowers {
             List.of(
                     "<gray> 더 이른 체력 구간부터 적을 마무리하는 여우 타워입니다. </gray>",
                     "<green> 처형 대상에게 더 큰 추가 피해를 줍니다. </green>",
+                    "<green> 사거리 내 몬스터 사망 시 공격력이 증가합니다. </green>",
                     "<green> 같은 여우 타워가 많을수록 처형 기준과 추가 피해가 증가합니다. </green>"
             )
     );
@@ -226,6 +228,7 @@ public class AnimalTowers {
             List.of(
                     "<gray> 후반 누수를 정리하는 설원의 사냥꾼입니다. </gray>",
                     "<green> 체력이 낮은 사거리 내 몬스터를 우선 공격하고 큰 추가 피해를 줍니다. </green>",
+                    "<green> 사거리 내 몬스터 사망 시 공격력이 증가합니다. </green>",
                     "<green> 같은 여우 타워가 많을수록 더 높은 체력의 적도 처형 대상으로 봅니다. </green>"
             )
     );
@@ -291,6 +294,7 @@ public class AnimalTowers {
                 "<gray> 낮은 체력의 적을 노리는 동물 빌더의 마무리 타워입니다. </gray>",
                 "<green> 체력이 {ability.executeHealthThreshold:percent} 이하인 사거리 내 몬스터를 우선 공격합니다. </green>",
                 "<green> 처형 대상에게 {ability.executeDamageBonusRatio:percent} 추가 피해를 줍니다. </green>",
+                "<green> 사거리 내 몬스터 사망 시 공격력이 {ability.killBonusDamage:number} 증가합니다. 최대 {ability.killBonusDamageCap:number}까지 증가합니다. </green>",
                 "<green> 같은 여우 타워마다 처형 기준이 {ability.executeThresholdPerStack:percent}, 추가 피해가 {ability.executeDamageBonusPerStack:percent} 증가합니다. </green>",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}회, 처형 기준 최대 : {ability.maxExecuteHealthThreshold:percent} </green>"
         ));
@@ -298,6 +302,7 @@ public class AnimalTowers {
                 "<gray> 더 이른 체력 구간부터 적을 마무리하는 여우 타워입니다. </gray>",
                 "<green> 체력이 {ability.executeHealthThreshold:percent} 이하인 사거리 내 몬스터를 우선 공격합니다. </green>",
                 "<green> 처형 대상에게 {ability.executeDamageBonusRatio:percent} 추가 피해를 줍니다. </green>",
+                "<green> 사거리 내 몬스터 사망 시 공격력이 {ability.killBonusDamage:number} 증가합니다. 최대 {ability.killBonusDamageCap:number}까지 증가합니다. </green>",
                 "<green> 같은 여우 타워마다 처형 기준이 {ability.executeThresholdPerStack:percent}, 추가 피해가 {ability.executeDamageBonusPerStack:percent} 증가합니다. </green>",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}회, 처형 기준 최대 : {ability.maxExecuteHealthThreshold:percent} </green>"
         ));
@@ -305,6 +310,7 @@ public class AnimalTowers {
                 "<gray> 후반 누수를 정리하는 설원의 사냥꾼입니다. </gray>",
                 "<green> 체력이 {ability.executeHealthThreshold:percent} 이하인 사거리 내 몬스터를 우선 공격합니다. </green>",
                 "<green> 처형 대상에게 {ability.executeDamageBonusRatio:percent} 추가 피해를 줍니다. </green>",
+                "<green> 사거리 내 몬스터 사망 시 공격력이 {ability.killBonusDamage:number} 증가합니다. 최대 {ability.killBonusDamageCap:number}까지 증가합니다. </green>",
                 "<green> 같은 여우 타워마다 처형 기준이 {ability.executeThresholdPerStack:percent}, 추가 피해가 {ability.executeDamageBonusPerStack:percent} 증가합니다. </green>",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}회, 처형 기준 최대 : {ability.maxExecuteHealthThreshold:percent} </green>"
         ));
