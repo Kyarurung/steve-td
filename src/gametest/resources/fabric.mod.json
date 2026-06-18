@@ -9,7 +9,8 @@
       "kim.biryeong.semiontd.gametest.SemionParticipantGameTest",
       "kim.biryeong.semiontd.gametest.SemionEmeraldIncomeBoostGameTest",
       "kim.biryeong.semiontd.gametest.SemionSandboxGameTest",
-      "kim.biryeong.semiontd.gametest.SemionTraitSelectionGameTest"
+      "kim.biryeong.semiontd.gametest.SemionTraitSelectionGameTest",
+      "kim.biryeong.semiontd.game.RatingProfileCacheGameTest"
     ]
   }
 }

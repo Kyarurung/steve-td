@@ -115,6 +115,7 @@ public final class SemionGameManager {
     private final Set<UUID> nextMatchPriorityPlayerIds = new HashSet<>();
     private final Map<UUID, String> playerLimitBypassNames = new ConcurrentHashMap<>();
     private final Map<UUID, SemionGame> sandboxGames = new ConcurrentHashMap<>();
+    private final RatingProfileCache ratingProfileCache = new RatingProfileCache();
     private SemionGame pendingFinishedGame;
     private int pendingFinishDelayTicks;
     private MatchResult pendingMatchResultDialog;
@@ -327,6 +328,7 @@ public final class SemionGameManager {
                 createAppliedMatchRepository(this.persistenceConfig, sqlitePath, ratingAppliedMatchesPath, this.configDir),
                 this.ratingConfig
         );
+        clearRatingProfileCache();
         this.matchResultRepository = createMatchResultRepository(this.persistenceConfig, sqlitePath, matchResultPath, this.configDir);
         this.buildGuideService.configure(this.configDir == null ? null : this.configDir.resolve("build_guides.json"));
         ProductionTowerCatalogs.reloadBuiltIns(this.towerBalanceConfig);
@@ -504,6 +506,9 @@ public final class SemionGameManager {
             activeGame.applyConfigs(configs.economy(), configs.waves(), configs.leaderTargeting(), configs.incomeLaneRouting(), configs.monsterScaling());
             activeGame.refreshProductionTowerTypes();
             activeGame.refreshSummonShop();
+            if (activeGame.rosterLocked()) {
+                cacheRatingProfilesForGame(activeGame);
+            }
             sidebarHudService.refreshNow(server, activeGame, matchMode);
         }
         return new ReloadConfigResult(true, activeGameUpdated, configDir);
@@ -534,7 +539,25 @@ public final class SemionGameManager {
     }
 
     public Optional<PlayerRatingProfile> ratingProfile(UUID playerId) {
-        return ratingService.profile(playerId);
+        return ratingProfileCache.profile(playerId, ratingService::profile);
+    }
+
+    void cacheRatingProfilesForMatch(ParticipantSelectionPlan plan) {
+        ratingProfileCache.capture(plan, ratingService::profile);
+    }
+
+    void cacheRatingProfilesForGame(SemionGame game) {
+        if (game == null) {
+            ratingProfileCache.clear();
+            return;
+        }
+        Set<UUID> playerIds = new HashSet<>(game.players().keySet());
+        playerIds.addAll(game.matchSpectatorIds());
+        ratingProfileCache.captureIds(playerIds, ratingService::profile);
+    }
+
+    void clearRatingProfileCache() {
+        ratingProfileCache.clear();
     }
 
     public List<PlayerRatingProfile> topRatingProfiles(int limit) {
@@ -706,6 +729,7 @@ public final class SemionGameManager {
             sendAllPlayersToLobby(server);
             closeActiveGameSafely(activeGame, "replacing active game during create");
         }
+        clearRatingProfileCache();
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
         clearPendingMatchResultDialog();
@@ -729,6 +753,7 @@ public final class SemionGameManager {
             finalizeBuildGuideRecording(activeGame, activeGame.matchResult());
             closeActiveGameSafely(activeGame, "resetting match to lobby");
         }
+        clearRatingProfileCache();
         pendingFinishedGame = null;
         pendingFinishDelayTicks = 0;
         clearPendingMatchResultDialog();
@@ -1149,6 +1174,7 @@ public final class SemionGameManager {
             activeGame.close();
             activeGame = null;
         }
+        clearRatingProfileCache();
         clearStartCountdown();
         clearTraitSelection();
         pendingFinishedGame = null;
@@ -1324,6 +1350,7 @@ public final class SemionGameManager {
             );
             return;
         }
+        cacheRatingProfilesForMatch(plan);
         clearPriorityForActiveParticipants(plan);
         server.getPlayerList().broadcastSystemMessage(SemionText.prefixedMini("<green><bold>게임을 시작합니다.</bold></green>"), false);
         activeGame.announceTeamLeaders(server);
@@ -1356,6 +1383,7 @@ public final class SemionGameManager {
             activeGame = null;
             clearStartCountdown();
             clearTraitSelection();
+            clearRatingProfileCache();
         }
         if (pendingFinishedGame == game) {
             pendingFinishedGame = null;
