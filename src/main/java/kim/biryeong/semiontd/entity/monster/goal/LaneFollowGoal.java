@@ -90,6 +90,7 @@ public final class LaneFollowGoal extends Goal {
                 .stream()
                 .filter(SemionBossEntity.class::isInstance)
                 .map(SemionBossEntity.class::cast)
+                .filter(boss -> monster.runtimeMonster() != null && boss.teamId() == monster.runtimeMonster().targetTeam())
                 .findFirst()
                 .orElse(null);
     }

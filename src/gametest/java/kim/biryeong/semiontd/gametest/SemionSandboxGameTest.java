@@ -5,8 +5,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.entity.SemionEntityTypes;
+import kim.biryeong.semiontd.entity.boss.BossMonster;
+import kim.biryeong.semiontd.entity.boss.SemionBossEntity;
+import kim.biryeong.semiontd.entity.monster.DamageType;
+import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.entity.monster.goal.LaneFollowGoal;
 import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.MapConfig;
@@ -15,6 +24,7 @@ import kim.biryeong.semiontd.config.SummonConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.game.AssignedParticipant;
+import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.MatchMode;
 import kim.biryeong.semiontd.game.ParticipantSelectionPlan;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -25,7 +35,10 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TowerPlacementResult;
 import kim.biryeong.semiontd.job.AnimalTowerJob;
 import kim.biryeong.semiontd.map.GameArena;
+import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.summon.SummonResult;
+import kim.biryeong.semiontd.summon.SummonRole;
+import kim.biryeong.semiontd.summon.SummonTier;
 import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
@@ -40,6 +53,8 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import xyz.nucleoid.map_templates.BlockBounds;
 
 public final class SemionSandboxGameTest {
     @GameTest
@@ -615,6 +630,64 @@ public final class SemionSandboxGameTest {
         } finally {
             manager.shutdown();
         }
+    }
+
+    @GameTest
+    public void laneMonsterTargetsOnlyItsRuntimeTargetTeamBoss(GameTestHelper context) {
+        Vec3 bossPosition = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 2.0, 4.0);
+        LaneRegionLayout laneLayout = new LaneRegionLayout(
+                1,
+                bossPosition.add(0.0, 0.0, -4.0),
+                List.of(bossPosition.add(0.0, 0.0, -2.0)),
+                bossPosition,
+                BlockBounds.of(
+                        new BlockPos((int) bossPosition.x - 2, (int) bossPosition.y - 1, (int) bossPosition.z - 4),
+                        new BlockPos((int) bossPosition.x + 2, (int) bossPosition.y + 2, (int) bossPosition.z)
+                ),
+                List.of(new GridPosition((int) bossPosition.x, (int) bossPosition.y, (int) bossPosition.z))
+        );
+
+        SemionBossEntity blueBoss = new SemionBossEntity(SemionEntityTypes.BOSS, context.getLevel());
+        blueBoss.configure(TeamId.BLUE, BossMonster.defaultBoss(TeamId.BLUE));
+        blueBoss.setPos(bossPosition.add(1.0, 0.0, 0.0));
+        context.getLevel().addFreshEntity(blueBoss);
+
+        SemionBossEntity redBoss = new SemionBossEntity(SemionEntityTypes.BOSS, context.getLevel());
+        redBoss.configure(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        redBoss.setPos(bossPosition);
+        context.getLevel().addFreshEntity(redBoss);
+
+        Monster monster = new Monster(
+                "sandbox-self-target-check",
+                TeamId.RED,
+                1,
+                Optional.empty(),
+                Optional.of(TeamId.BLUE),
+                100.0,
+                0.0,
+                3.0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                DamageType.PHYSICAL,
+                0,
+                SummonTier.T1,
+                List.of(SummonRole.RUSH),
+                0
+        );
+        SemionMonsterEntity monsterEntity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        monsterEntity.configureFrom(monster, laneLayout);
+        monsterEntity.setPos(bossPosition);
+        context.getLevel().addFreshEntity(monsterEntity);
+
+        LaneFollowGoal goal = new LaneFollowGoal(monsterEntity, 1.0);
+        goal.start();
+        goal.tick();
+
+        if (!assertTrue(context, monsterEntity.getTarget() == redBoss, "Lane monsters should target the boss for their runtime target team only.")) {
+            return;
+        }
+        context.succeed();
     }
 
     @GameTest
