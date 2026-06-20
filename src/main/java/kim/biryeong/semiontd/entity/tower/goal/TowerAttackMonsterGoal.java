@@ -4,8 +4,9 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
-import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.TowerAttackVfxService;
+import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -76,6 +77,7 @@ public final class TowerAttackMonsterGoal extends Goal {
         double damageAmount = tower.attackDamageAmount(target);
         playRangedAttackSound();
         boolean killedPrimaryTarget = tower.damageTarget(target, damageAmount);
+        TowerAttackVfxService.showHit(tower, target);
         tower.recordAttack(target, damageAmount, killedPrimaryTarget);
         cooldownTicks = tower.attackIntervalTicks();
     }
