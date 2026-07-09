@@ -67,6 +67,12 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     private LaneRegionLayout laneLayout;
     private Vec3 finalDefenseAnchorPosition;
     private EntityVisual visual = EntityVisual.vanilla(EntityVisual.DEFAULT_TOWER_ENTITY_TYPE);
+    private AABB cachedTargetSearchBox;
+    private LaneRegionLayout cachedTargetSearchLaneLayout;
+    private double cachedTargetSearchX = Double.NaN;
+    private double cachedTargetSearchY = Double.NaN;
+    private double cachedTargetSearchZ = Double.NaN;
+    private double cachedTargetSearchAcquireRange = Double.NaN;
     private String blockbenchModelId;
     private SemionAnimationState animationState = SemionAnimationState.IDLE;
     private EntityType<?> polymerEntityType = EntityType.ARMOR_STAND;
@@ -223,10 +229,24 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public AABB targetSearchBox() {
-        if (laneLayout == null) {
-            return getBoundingBox().inflate(targetAcquireRange);
+        if (cachedTargetSearchBox != null
+                && cachedTargetSearchLaneLayout == laneLayout
+                && Double.compare(cachedTargetSearchX, getX()) == 0
+                && Double.compare(cachedTargetSearchY, getY()) == 0
+                && Double.compare(cachedTargetSearchZ, getZ()) == 0
+                && Double.compare(cachedTargetSearchAcquireRange, targetAcquireRange) == 0) {
+            return cachedTargetSearchBox;
         }
-        return laneLayout.defenseSearchBox(position(), TARGET_SEARCH_HORIZONTAL_PADDING, TARGET_SEARCH_VERTICAL_PADDING);
+
+        cachedTargetSearchBox = laneLayout == null
+                ? getBoundingBox().inflate(targetAcquireRange)
+                : laneLayout.defenseSearchBox(position(), TARGET_SEARCH_HORIZONTAL_PADDING, TARGET_SEARCH_VERTICAL_PADDING);
+        cachedTargetSearchLaneLayout = laneLayout;
+        cachedTargetSearchX = getX();
+        cachedTargetSearchY = getY();
+        cachedTargetSearchZ = getZ();
+        cachedTargetSearchAcquireRange = targetAcquireRange;
+        return cachedTargetSearchBox;
     }
 
     public double attackDamageAmount(SemionMonsterEntity target) {

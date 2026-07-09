@@ -3915,6 +3915,64 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         });
     }
 
+    @GameTest(maxTicks = 120)
+    public void defaultTowerKeepsTargetUntilItLeavesSearchRange(GameTestHelper context) {
+        UUID playerId = stableUuid("red-target-lock-owner");
+        Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
+        TowerType towerType = new TowerType("target_lock_test", "Target Lock Test", TowerCategory.DIRECT, 0, 50.0, 8.0, 0.0, 20, 0);
+        SemionMonsterEntity firstTarget = spawnRoleMonsterEntity(
+                context,
+                "target-lock-first",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                origin.add(0.0, 0.0, 4.0),
+                100.0,
+                List.of(SummonRole.RUSH)
+        );
+        firstTarget.setNoAi(true);
+        firstTarget.runtimeMonster().syncLaneProgress(0.1);
+
+        SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+        tower.configure(new TestTower(towerType, playerId, TeamId.RED, 1, GridPosition.from(BlockPos.containing(origin))), null);
+        tower.setUUID(stableUuid("target-lock-tower"));
+        tower.setPos(origin);
+        context.getLevel().addFreshEntity(tower);
+
+        context.runAfterDelay(10, () -> {
+            if (!assertTrue(context, tower.currentAttackTarget() == firstTarget, "Tower should acquire the first target.")) {
+                return;
+            }
+
+            SemionMonsterEntity higherPriorityTarget = spawnRoleMonsterEntity(
+                    context,
+                    "target-lock-higher-priority",
+                    Optional.empty(),
+                    TeamId.RED,
+                    1,
+                    origin.add(1.0, 0.0, 4.0),
+                    100.0,
+                    List.of(SummonRole.SIEGE)
+            );
+            higherPriorityTarget.setNoAi(true);
+            higherPriorityTarget.runtimeMonster().syncLaneProgress(0.95);
+
+            context.runAfterDelay(20, () -> {
+                if (!assertTrue(context, tower.currentAttackTarget() == firstTarget, "Tower should keep a valid cached target instead of reselecting by priority.")) {
+                    return;
+                }
+
+                firstTarget.setPos(origin.add(128.0, 0.0, 128.0));
+                context.runAfterDelay(5, () -> {
+                    if (!assertTrue(context, tower.currentAttackTarget() == higherPriorityTarget, "Tower should reselect after the cached target leaves search range.")) {
+                        return;
+                    }
+                    context.succeed();
+                });
+            });
+        });
+    }
+
     @GameTest(maxTicks = 80)
     public void foxTowerPrioritizesLowHealthTargetInRuntimeCombat(GameTestHelper context) {
         UUID playerId = stableUuid("red-fox-tower-owner");

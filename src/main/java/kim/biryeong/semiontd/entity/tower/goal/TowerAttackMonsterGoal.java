@@ -14,7 +14,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.AABB;
 
 public final class TowerAttackMonsterGoal extends Goal {
-    private static final int TARGET_RECHECK_INTERVAL_TICKS = 5;
+    private static final int EMPTY_TARGET_RECHECK_INTERVAL_TICKS = 5;
 
     private final SemionTowerEntity tower;
     private int cooldownTicks;
@@ -94,23 +94,26 @@ public final class TowerAttackMonsterGoal extends Goal {
             return null;
         }
 
+        if (isUsableCachedTarget()) {
+            return cachedTarget;
+        }
+        SemionMonsterEntity currentTarget = tower.currentAttackTarget();
+        if (cachedTarget == null && isUsableTarget(currentTarget)) {
+            cachedTarget = currentTarget;
+            targetSearchCooldownTicks = 0;
+            return cachedTarget;
+        }
+        if (cachedTarget != null) {
+            cachedTarget = null;
+        }
+
         if (targetSearchCooldownTicks > 0) {
             targetSearchCooldownTicks--;
-        }
-        boolean hadCachedTarget = cachedTarget != null;
-        if (isUsableCachedTarget()) {
-            if (targetSearchCooldownTicks > 0) {
-                return cachedTarget;
-            }
-        } else {
-            cachedTarget = null;
-            if (!hadCachedTarget && targetSearchCooldownTicks > 0) {
-                return null;
-            }
+            return null;
         }
 
         cachedTarget = selectTarget();
-        targetSearchCooldownTicks = TARGET_RECHECK_INTERVAL_TICKS;
+        targetSearchCooldownTicks = cachedTarget == null ? EMPTY_TARGET_RECHECK_INTERVAL_TICKS : 0;
         return cachedTarget;
     }
 
@@ -151,7 +154,15 @@ public final class TowerAttackMonsterGoal extends Goal {
     }
 
     private boolean isUsableCachedTarget() {
-        return tower.isValidAttackTarget(cachedTarget);
+        return isUsableTarget(cachedTarget);
+    }
+
+    private boolean isUsableTarget(SemionMonsterEntity monster) {
+        return tower.isValidAttackTarget(monster) && isInTargetSearchRange(monster);
+    }
+
+    private boolean isInTargetSearchRange(SemionMonsterEntity monster) {
+        return tower.targetSearchBox().intersects(monster.getBoundingBox());
     }
 
     private boolean isInAttackRange(SemionMonsterEntity monster) {
