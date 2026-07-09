@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -53,6 +54,8 @@ import net.minecraft.server.level.ServerPlayer;
 
 public final class SemionCommands {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+    private static final long RATING_SOFT_RESET_CONFIRMATION_MILLIS = 30_000L;
+    private static final Map<String, Long> RATING_SOFT_RESET_CONFIRMATIONS = new ConcurrentHashMap<>();
 
     private SemionCommands() {
     }
@@ -160,7 +163,10 @@ public final class SemionCommands {
                 .then(literal("rating")
                         .executes(context -> rating(context.getSource(), gameManager))
                         .then(literal("top")
-                                .executes(context -> ratingTop(context.getSource(), gameManager))))
+                                .executes(context -> ratingTop(context.getSource(), gameManager)))
+                        .then(literal("softreset")
+                                .requires(source -> source.hasPermission(2))
+                                .executes(context -> ratingSoftReset(context.getSource(), gameManager))))
                 .then(literal("job")
                         .then(literal("list")
                                 .executes(context -> listJobs(context.getSource())))
@@ -1271,6 +1277,35 @@ public final class SemionCommands {
             rank++;
         }
         return profiles.size();
+    }
+
+    private static int ratingSoftReset(CommandSourceStack source, SemionGameManager gameManager) {
+        String confirmationKey = ratingSoftResetConfirmationKey(source);
+        long now = System.currentTimeMillis();
+        long confirmedUntil = RATING_SOFT_RESET_CONFIRMATIONS.getOrDefault(confirmationKey, 0L);
+        if (confirmedUntil < now) {
+            RATING_SOFT_RESET_CONFIRMATIONS.put(confirmationKey, now + RATING_SOFT_RESET_CONFIRMATION_MILLIS);
+            success(source, "ELO 소프트 리셋 확인 필요: 30초 안에 /semiontd rating softreset 을 한 번 더 입력하면 백업 후 리셋됩니다.");
+            return 1;
+        }
+
+        RATING_SOFT_RESET_CONFIRMATIONS.remove(confirmationKey);
+        try {
+            SemionGameManager.RatingSoftResetResult result = gameManager.softResetRatingsWithBackup();
+            success(source, "ELO 소프트 리셋 완료. 백업: " + result.backupPath());
+            return 1;
+        } catch (RuntimeException exception) {
+            SemionTd.LOGGER.error("Unexpected Semion TD rating soft reset failure.", exception);
+            failure(source, "ELO 소프트 리셋 실패: " + exception.getMessage());
+            return 0;
+        }
+    }
+
+    private static String ratingSoftResetConfirmationKey(CommandSourceStack source) {
+        if (source.getEntity() instanceof ServerPlayer player) {
+            return player.getUUID().toString();
+        }
+        return "console";
     }
 
     private static String formatRatingProfile(PlayerRatingProfile profile) {

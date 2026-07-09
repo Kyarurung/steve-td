@@ -1,10 +1,13 @@
 package kim.biryeong.semiontd.game;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.DriverManager;
 import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.persistence.FileRatingEventRepository;
@@ -14,6 +17,9 @@ import kim.biryeong.semiontd.persistence.RatingEventRepository;
 import kim.biryeong.semiontd.persistence.RatingRepository;
 import kim.biryeong.semiontd.persistence.SemionPersistenceBackendType;
 import kim.biryeong.semiontd.persistence.SemionPersistenceConfig;
+import kim.biryeong.semiontd.persistence.SQLiteAppliedMatchRepository;
+import kim.biryeong.semiontd.persistence.SQLiteRatingEventRepository;
+import kim.biryeong.semiontd.persistence.SQLiteRatingRepository;
 import kim.biryeong.semiontd.rating.PlayerRatingProfile;
 import kim.biryeong.semiontd.rating.RatingMatchResult;
 import kim.biryeong.semiontd.rating.RatingSystemId;
@@ -128,6 +134,36 @@ final class SemionGameManagerPersistenceTest {
         assertEquals(150L, recovered.findMatchResult(conflictId).orElseThrow().appliedAtEpochMillis());
     }
 
+    @Test
+    void softResetRatingsBacksUpAndClearsRatingDataButPreservesAppliedMarkers() throws Exception {
+        Path database = tempDir.resolve("semiontd.db");
+        Path profileFile = tempDir.resolve("ratings.json");
+        Path eventFile = tempDir.resolve("rating-events.json");
+        UUID sqlitePlayerId = UUID.nameUUIDFromBytes("soft-reset-sqlite".getBytes());
+        UUID fallbackPlayerId = UUID.nameUUIDFromBytes("soft-reset-fallback".getBytes());
+        MatchId ratingMatchId = new MatchId(91L);
+
+        new SQLiteRatingRepository(database).saveProfile(sqlitePlayerId, profile(sqlitePlayerId, "sqlite", 1510, 10L));
+        new SQLiteRatingEventRepository(database).saveMatchResult(ratingResult(ratingMatchId, 10L));
+        new SQLiteAppliedMatchRepository(database).markApplied(ratingMatchId, "rating", 20L);
+        new FileRatingRepository(profileFile).saveProfile(fallbackPlayerId, profile(fallbackPlayerId, "fallback", 1600, 20L));
+        new FileRatingEventRepository(eventFile).saveMatchResult(ratingResult(new MatchId(92L), 20L));
+
+        SemionGameManager.RatingSoftResetResult result = SemionGameManager.softResetRatingStore(
+                tempDir,
+                new SemionPersistenceConfig(SemionPersistenceBackendType.SQLITE, database.toString(), "", "semiontd", false)
+        );
+
+        assertTrue(Files.exists(result.backupPath().resolve("semiontd.db")));
+        assertTrue(Files.exists(result.backupPath().resolve("ratings.json")));
+        assertTrue(Files.exists(result.backupPath().resolve("rating-events.json")));
+        assertFalse(Files.exists(profileFile));
+        assertFalse(Files.exists(eventFile));
+        assertEquals(0, countRows(database, "rating_profiles"));
+        assertEquals(0, countRows(database, "rating_events"));
+        assertEquals(1, countRows(database, "applied_matches"));
+    }
+
     private static PlayerRatingProfile profile(UUID playerId, String name, int elo, long updatedAtEpochMillis) {
         return new PlayerRatingProfile(
                 playerId,
@@ -147,6 +183,15 @@ final class SemionGameManagerPersistenceTest {
 
     private static RatingMatchResult ratingResult(MatchId matchId, long endedAtEpochMillis) {
         return new RatingMatchResult(matchId, RatingSystemId.ELO, 1, endedAtEpochMillis, List.of());
+    }
+
+    private static int countRows(Path database, String table) throws Exception {
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement();
+             var results = statement.executeQuery("SELECT COUNT(*) FROM " + table)) {
+            assertTrue(results.next());
+            return results.getInt(1);
+        }
     }
 
     private static SemionPersistenceConfig requiredSqlite(Path sqlitePath) {
