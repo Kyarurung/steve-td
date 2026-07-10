@@ -36,6 +36,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.area.AreaVfxStyleRegistryImpl;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -271,6 +272,9 @@ public final class TowerVfxService {
         }
         if (IllagerTowers.isIllagerTower(type)) {
             return BuilderPalette.ILLAGER;
+        }
+        if (NetherTowers.isNetherTower(type)) {
+            return BuilderPalette.NETHER;
         }
         return BuilderPalette.DEFAULT;
     }

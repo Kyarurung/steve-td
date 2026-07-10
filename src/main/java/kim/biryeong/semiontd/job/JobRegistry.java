@@ -46,6 +46,7 @@ public final class JobRegistry {
         registerIfAbsent(new LegionTowerJob());
         registerIfAbsent(new ResonanceTowerJob());
         registerIfAbsent(new IllagerTowerJob());
+        registerIfAbsent(new NetherTowerJob());
     }
 
     public static Optional<SemionJob> find(ResourceLocation id) {

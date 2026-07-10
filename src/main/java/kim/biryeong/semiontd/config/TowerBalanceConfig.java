@@ -8,6 +8,8 @@ import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.nether.NetherTower;
+import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -133,6 +135,7 @@ public record TowerBalanceConfig(
         addTower(towers, IllagerTowers.T2_WITCH_HIGH);
         addTower(towers, IllagerTowers.T3_ILLUSIONER_LOW);
         addTower(towers, IllagerTowers.T3_ILLUSIONER_HIGH);
+        addNetherTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -196,6 +199,7 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, IllagerTowers.T1_VEX, IllagerTowers.T2_WITCH_HIGH.id(), 150);
         putUpgrade(upgradeCosts, IllagerTowers.T2_WITCH_LOW, IllagerTowers.T3_ILLUSIONER_LOW.id(), 280);
         putUpgrade(upgradeCosts, IllagerTowers.T2_WITCH_HIGH, IllagerTowers.T3_ILLUSIONER_HIGH.id(), 280);
+        putNetherUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -737,6 +741,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, ResonanceTowers.AMPLIFY_CRYSTAL.id(), resonanceAbilities(1, ResonanceAspect.AMPLIFY));
         putAbilities(abilities, ResonanceTowers.AMPLIFY_PRISM.id(), resonanceAbilities(2, ResonanceAspect.AMPLIFY));
         putAbilities(abilities, ResonanceTowers.AMPLIFY_CORE.id(), resonanceAbilities(3, ResonanceAspect.AMPLIFY));
+        putNetherAbilities(abilities);
 
         return new TowerBalanceConfig(towers, upgradeCosts, abilities, IllusionCloneQueueConfig.defaultConfig(), VillagerAdvConfig.defaultConfig());
     }
@@ -861,6 +866,167 @@ public record TowerBalanceConfig(
         putUpgrade(upgrades, VillagerTowers.ADV_T1_CAT_TOWER, "t2_lane_clear_cat_tower", 120);
         putUpgrade(upgrades, VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER, "t3_anti_tanker_cat_tower", 210);
         putUpgrade(upgrades, VillagerTowers.ADV_T2_LANE_CLEAR_CAT_TOWER, "t3_lane_clear_cat_tower", 210);
+    }
+
+    private static void addNetherTowers(Map<String, TowerStats> towers) {
+        addTower(towers, NetherTowers.T1_STRIDER);
+        addTower(towers, NetherTowers.T2_PIGLIN);
+        addTower(towers, NetherTowers.T3_PIGLIN_BRUTE);
+        addTower(towers, NetherTowers.T1_HOGLIN);
+        addTower(towers, NetherTowers.T2_ZOGLIN);
+        addTower(towers, NetherTowers.T3_ZOMBIFIED_PIGLIN);
+        addTower(towers, NetherTowers.T1_MAGMA_CUBE);
+        addTower(towers, NetherTowers.T2_BLAZE);
+        addTower(towers, NetherTowers.T3_GHAST);
+        addTower(towers, NetherTowers.T1_SKELETON);
+        addTower(towers, NetherTowers.T2_WITHER_SKELETON);
+        addTower(towers, NetherTowers.T3_WITHER);
+    }
+
+    private static void putNetherUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, NetherTowers.T1_STRIDER, NetherTowers.T2_PIGLIN.id(), 100);
+        putUpgrade(upgrades, NetherTowers.T2_PIGLIN, NetherTowers.T3_PIGLIN_BRUTE.id(), 180);
+        putUpgrade(upgrades, NetherTowers.T1_HOGLIN, NetherTowers.T2_ZOGLIN.id(), 110);
+        putUpgrade(upgrades, NetherTowers.T2_ZOGLIN, NetherTowers.T3_ZOMBIFIED_PIGLIN.id(), 190);
+        putUpgrade(upgrades, NetherTowers.T1_MAGMA_CUBE, NetherTowers.T2_BLAZE.id(), 95);
+        putUpgrade(upgrades, NetherTowers.T2_BLAZE, NetherTowers.T3_GHAST.id(), 180);
+        putUpgrade(upgrades, NetherTowers.T1_SKELETON, NetherTowers.T2_WITHER_SKELETON.id(), 95);
+        putUpgrade(upgrades, NetherTowers.T2_WITHER_SKELETON, NetherTowers.T3_WITHER.id(), 180);
+    }
+
+    private static void putNetherAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, NetherTower.CONFIG_ID, Map.ofEntries(
+                Map.entry("netherDecayMaxHealthRatioPerSecond", 0.0667),
+                Map.entry("zombieDecayMaxHealthRatioPerSecond", 0.143),
+                Map.entry("zombieReviveHealthRatio", 1.0),
+                Map.entry("lowHealthThreshold", 0.60),
+                Map.entry("criticalHealthThreshold", 0.30),
+                Map.entry("damagePerMissingHealth", 0.80),
+                Map.entry("lowHealthDamageBonusCap", 0.75),
+                Map.entry("netherLifeStealRatio", 0.30),
+                Map.entry("zombieLifeStealRatio", 0.04),
+                Map.entry("lifeStealPerMissingHealth", 0.40),
+                Map.entry("lifeStealBonusCap", 0.50),
+                Map.entry("effectRefreshTicks", 25.0)
+        ));
+        putAbilities(abilities, NetherTowers.T1_STRIDER.id(), Map.of(
+                "lifeStealBonus", 0.08,
+                "decayReductionRatio", 0.50,
+                "decayReductionTicks", 40.0
+        ));
+        putAbilities(abilities, NetherTowers.T2_PIGLIN.id(), Map.ofEntries(
+                Map.entry("lifeStealBonus", 0.12),
+                Map.entry("decayReductionRatio", 0.60),
+                Map.entry("decayReductionTicks", 50.0),
+                Map.entry("incomeDamageBonus", 0.35),
+                Map.entry("killDamageBonus", 0.15),
+                Map.entry("killDamageBonusTicks", 60.0),
+                Map.entry("zombieAttackSpeedBonus", 0.35)
+        ));
+        putAbilities(abilities, NetherTowers.T3_PIGLIN_BRUTE.id(), Map.ofEntries(
+                Map.entry("lifeStealBonus", 0.16),
+                Map.entry("decayReductionRatio", 0.70),
+                Map.entry("decayReductionTicks", 60.0),
+                Map.entry("incomeDamageBonus", 0.50),
+                Map.entry("killDamageBonus", 0.25),
+                Map.entry("killDamageBonusTicks", 80.0),
+                Map.entry("zombieAttackSpeedBonus", 0.35),
+                Map.entry("tankDamageBonus", 0.75),
+                Map.entry("tankLifeStealBonus", 0.25),
+                Map.entry("highHealthThreshold", 120.0),
+                Map.entry("zombieTransitionDamageBonus", 0.40),
+                Map.entry("zombieTransitionDamageBonusTicks", 80.0)
+        ));
+        putAbilities(abilities, NetherTowers.T1_HOGLIN.id(), Map.of(
+                "splashRadius", 0.75,
+                "splashDamageRatio", 0.50,
+                "criticalDamageReduction", 0.20
+        ));
+        putAbilities(abilities, NetherTowers.T2_ZOGLIN.id(), Map.ofEntries(
+                Map.entry("splashRadius", 1.25),
+                Map.entry("splashDamageRatio", 0.75),
+                Map.entry("criticalDamageReduction", 0.25),
+                Map.entry("missingHealthAttackSpeedBonusCap", 0.35),
+                Map.entry("zombieSplashRadiusBonus", 0.50)
+        ));
+        putAbilities(abilities, NetherTowers.T3_ZOMBIFIED_PIGLIN.id(), Map.ofEntries(
+                Map.entry("splashRadius", 1.50),
+                Map.entry("splashDamageRatio", 1.00),
+                Map.entry("criticalDamageReduction", 0.30),
+                Map.entry("missingHealthAttackSpeedBonusCap", 0.50),
+                Map.entry("zombieMissingHealthAttackSpeedBonusCap", 0.75),
+                Map.entry("zombieSplashRadiusBonus", 0.75)
+        ));
+        putAbilities(abilities, NetherTowers.T1_MAGMA_CUBE.id(), Map.ofEntries(
+                Map.entry("splashRadius", 0.75),
+                Map.entry("splashDamageRatio", 0.50),
+                Map.entry("missingHealthAttackSpeedBonusCap", 0.30),
+                Map.entry("pulseRadius", 2.0),
+                Map.entry("pulseDamageRatio", 1.50),
+                Map.entry("pulseIntervalTicks", 40.0),
+                Map.entry("zombieTransitionPulseRadius", 2.5),
+                Map.entry("zombieTransitionPulseDamageRatio", 2.50)
+        ));
+        putAbilities(abilities, NetherTowers.T2_BLAZE.id(), Map.ofEntries(
+                Map.entry("splashRadius", 1.25),
+                Map.entry("splashDamageRatio", 0.75),
+                Map.entry("missingHealthAttackSpeedBonusCap", 0.50),
+                Map.entry("pulseRadius", 2.25),
+                Map.entry("pulseDamageRatio", 1.75),
+                Map.entry("pulseIntervalTicks", 40.0),
+                Map.entry("zombieTransitionPulseRadius", 2.75),
+                Map.entry("zombieTransitionPulseDamageRatio", 3.00),
+                Map.entry("extraAttackEvery", 3.0),
+                Map.entry("secondaryRange", 7.0),
+                Map.entry("extraAttackDamageRatio", 0.60)
+        ));
+        putAbilities(abilities, NetherTowers.T3_GHAST.id(), Map.ofEntries(
+                Map.entry("splashRadius", 1.75),
+                Map.entry("splashDamageRatio", 1.00),
+                Map.entry("lowHealthSplashRadiusBonus", 0.75),
+                Map.entry("missingHealthAttackSpeedBonusCap", 0.75),
+                Map.entry("pulseRadius", 2.50),
+                Map.entry("pulseDamageRatio", 2.00),
+                Map.entry("pulseIntervalTicks", 40.0),
+                Map.entry("zombieTransitionPulseRadius", 3.00),
+                Map.entry("zombieTransitionPulseDamageRatio", 3.50),
+                Map.entry("extraAttackEvery", 2.0),
+                Map.entry("secondaryRange", 9.5),
+                Map.entry("extraAttackDamageRatio", 0.75),
+                Map.entry("criticalMarkDamageTakenBonus", 0.20),
+                Map.entry("markDurationTicks", 60.0)
+        ));
+        putAbilities(abilities, NetherTowers.T1_SKELETON.id(), Map.of(
+                "lowTargetHealthThreshold", 0.40,
+                "lowTargetDamageBonus", 0.35,
+                "criticalKillLifeStealRatio", 0.30
+        ));
+        putAbilities(abilities, NetherTowers.T2_WITHER_SKELETON.id(), Map.ofEntries(
+                Map.entry("lowTargetHealthThreshold", 0.45),
+                Map.entry("lowTargetDamageBonus", 0.50),
+                Map.entry("criticalKillLifeStealRatio", 0.35),
+                Map.entry("markDamageTakenBonus", 0.05),
+                Map.entry("markDurationTicks", 80.0),
+                Map.entry("maxMarkStacks", 3.0),
+                Map.entry("zombieMarkDamageTakenBonus", 0.04)
+        ));
+        putAbilities(abilities, NetherTowers.T3_WITHER.id(), Map.ofEntries(
+                Map.entry("lowTargetHealthThreshold", 0.50),
+                Map.entry("lowTargetDamageBonus", 0.75),
+                Map.entry("criticalKillLifeStealRatio", 0.40),
+                Map.entry("markDamageTakenBonus", 0.10),
+                Map.entry("markDurationTicks", 80.0),
+                Map.entry("maxMarkStacks", 3.0),
+                Map.entry("zombieMarkDamageTakenBonus", 0.0),
+                Map.entry("highHealthThreshold", 500.0),
+                Map.entry("highHealthDamageBonus", 0.60),
+                Map.entry("criticalSplashRadius", 2.0),
+                Map.entry("criticalSplashDamageRatio", 0.90),
+                Map.entry("criticalMarkDamageTakenBonus", 0.75),
+                Map.entry("zombieExecuteThreshold", 0.40),
+                Map.entry("zombieExecuteDamageBonus", 0.90),
+                Map.entry("zombieLifeStealRatio", 0.0)
+        ));
     }
 
     private static void putAbilities(Map<String, Map<String, Double>> abilities, String towerId, Map<String, Double> values) {
