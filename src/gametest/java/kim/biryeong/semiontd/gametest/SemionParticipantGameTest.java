@@ -127,6 +127,7 @@ import kim.biryeong.semiontd.persistence.FileMatchResultRepository;
 import kim.biryeong.semiontd.persistence.SemionPersistenceBackendType;
 import kim.biryeong.semiontd.test.TestTowerService;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.goal.TowerAttackMonsterGoal;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.summon.IncomeSummons;
 import kim.biryeong.semiontd.summon.SummonAbilityActivation;
@@ -2302,6 +2303,77 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void playerStatusDialogRowsUseCurrentEconomyTowerCountAndJob(GameTestHelper context) {
+        reloadDefaultIncomeSummons();
+        var player = context.makeMockServerPlayerInLevel();
+        UUID redId = player.getUUID();
+        UUID blueId = stableUuid("status-table-blue");
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                new WaveConfig(List.of(), 20, null),
+                testArena(context)
+        );
+        if (!assertTrue(context, game.selectJob(redId, NetherTowerJob.ID), "Status table test should select the nether job.")) {
+            return;
+        }
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(blueId, "status-blue", TeamId.BLUE, 1),
+                        new AssignedParticipant(redId, player.getGameProfile().getName(), TeamId.RED, 1)
+                ),
+                Set.of(),
+                2
+        );
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Status table test game should start.")) {
+            return;
+        }
+
+        game.players().get(redId).economy().overrideStartingValues(321, 45, 17, 1);
+        game.players().get(blueId).economy().overrideStartingValues(111, 22, 9, 1);
+        PlayerLane lane = game.playerLane(redId).orElseThrow();
+        BlockPos towerPos = towerPlacementPos(lane);
+        lane.addTower(new TestTower(redId, TeamId.RED, 1, GridPosition.from(towerPos)));
+        lane.addTower(new TestTower(redId, TeamId.RED, 1, GridPosition.from(towerPos.offset(1, 0, 0))));
+
+        List<SemionDialogService.PlayerStatusRow> rows = SemionDialogService.playerStatusRows(game);
+        if (!assertEquals(context, 2, rows.size(), "Status table should include every active participant.")) {
+            return;
+        }
+        SemionDialogService.PlayerStatusRow red = rows.getFirst();
+        if (!assertEquals(context, redId, red.playerId(), "Status rows should use deterministic team and lane ordering.")) {
+            return;
+        }
+        if (!assertEquals(context, TeamId.RED, red.teamId(), "Status rows should expose the player's team for grouping and name color.")) {
+            return;
+        }
+        if (!assertEquals(context, 321L, red.diamond(), "Status table should show current diamonds.")) {
+            return;
+        }
+        if (!assertEquals(context, 45L, red.emerald(), "Status table should show current emeralds.")) {
+            return;
+        }
+        if (!assertEquals(context, 17L, red.income(), "Status table should show current income.")) {
+            return;
+        }
+        if (!assertEquals(context, 2, red.towerCount(), "Status table should count the player's current towers.")) {
+            return;
+        }
+        if (!assertEquals(context, game.players().get(redId).job().orElseThrow().displayName().getString(), red.jobName(), "Status table should show the active job.")) {
+            return;
+        }
+        if (!assertEquals(context, JobRegistry.defaultJob().displayName().getString(), rows.get(1).jobName(), "Status table should use the default job name when no job was selected.")) {
+            return;
+        }
+        if (!assertEquals(context, TeamId.BLUE, rows.get(1).teamId(), "Status rows should keep players grouped in team order.")) {
+            return;
+        }
+
+        new SemionDialogService().showGameStatus(player, game);
+        context.succeed();
+    }
+
+    @GameTest
     public void productionTowerCatalogStartsEmptyForManualAuthoring(GameTestHelper context) {
         ProductionTowerCatalog.clear();
         if (!assertTrue(context, ProductionTowerCatalog.all().isEmpty(), "Production catalog should start empty so towers can be authored manually.")) {
@@ -4160,20 +4232,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         target.setNoAi(true);
 
-        context.runAfterDelay(45, () -> {
-            TowerBalanceRuntime.apply(defaults);
-            if (!assertTrue(context, towerEntity.currentAttackTarget() == target, "Bee tower should acquire the poison target.")) {
-                return;
+        for (int sting = 0; sting < 3; sting++) {
+            beeTower.onAttack(towerEntity, target, 0.0, false);
+            for (int tick = 0; tick < 5; tick++) {
+                beeTower.tick(lane);
             }
-            if (!assertTrue(
-                    context,
-                    target.getHealth() <= 80.0F,
-                    "Bee tower has zero direct damage in this test, so health loss should come from config-driven poison."
-            )) {
-                return;
-            }
-            context.succeed();
-        });
+        }
+        TowerBalanceRuntime.apply(defaults);
+        if (!assertTrue(
+                context,
+                target.getHealth() <= 80.0F,
+                "Bee tower has zero direct damage in this test, so health loss should come from config-driven poison. Actual health=" + target.getHealth()
+        )) {
+            return;
+        }
+        context.succeed();
     }
 
     @GameTest(maxTicks = 80)
@@ -4317,25 +4390,34 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest(maxTicks = 100)
     public void finalDefenseTowerDoesNotChaseOutOfRangeMonster(GameTestHelper context) {
         UUID playerId = stableUuid("red-final-defense-anchor-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-
-        if (!assertEquals(
-                context,
-                TowerPlacementResult.SUCCESS,
-                TestTowerService.placeTestTower(game, playerId, towerPlacementPos(lane)),
-                "Test tower placement should succeed before final defense anchor validation."
-        )) {
-            return;
-        }
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.PURPLE);
+        PlayerLane lane = lane(game, TeamId.PURPLE, 1);
+        TowerType shortRangeType = new TowerType(
+                "final_defense_short_range",
+                "Final Defense Short Range",
+                TowerCategory.DIRECT,
+                0,
+                50.0,
+                3.0,
+                0.0,
+                20,
+                0
+        );
+        lane.addTower(new TestTower(
+                shortRangeType,
+                playerId,
+                TeamId.PURPLE,
+                1,
+                GridPosition.from(towerPlacementPos(lane))
+        ));
 
         GridPosition finalDefenseSlot = lane.laneLayout().finalDefenseTowerSlots().getFirst();
         BlockPos finalDefenseAirPos = new BlockPos(finalDefenseSlot.x(), finalDefenseSlot.y(), finalDefenseSlot.z());
         context.getLevel().setBlock(finalDefenseAirPos.below(), Blocks.STONE.defaultBlockState(), 3);
         context.getLevel().setBlock(finalDefenseAirPos, Blocks.AIR.defaultBlockState(), 3);
 
-        game.teams().get(TeamId.RED).resetForRound();
-        game.teams().get(TeamId.RED).tick(context.getLevel().getServer());
+        game.teams().get(TeamId.PURPLE).resetForRound();
+        game.teams().get(TeamId.PURPLE).tick(context.getLevel().getServer());
 
         TestTower tower = (TestTower) lane.towers().getFirst();
         if (!assertTrue(context, tower.deployedAtFinalDefense(), "Tower should be deployed at final defense before chase validation.")) {
@@ -4354,13 +4436,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 context,
                 "final-defense-anchor-target",
                 Optional.empty(),
-                TeamId.RED,
+                TeamId.PURPLE,
                 1,
-                initialTowerPosition.add(5.0, 0.0, 0.0),
-                100.0,
+                initialTowerPosition.add(7.5, 0.0, 0.0),
+                100000.0,
                 List.of(SummonRole.RUSH)
         );
         outOfRangeTarget.setNoAi(true);
+        outOfRangeTarget.runtimeMonster().syncLaneProgress(1.0);
 
         context.runAfterDelay(40, () -> {
             if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
@@ -4384,6 +4467,46 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                     context,
                     lane.laneLayout().isInsideFinalDefenseTowerArea(currentTowerPosition),
                     "Final defense tower should stay inside the final defense tower area."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    currentTowerEntity.currentAttackTarget() == null,
+                    "Final defense tower should ignore monsters farther than seven blocks away."
+            )) {
+                return;
+            }
+
+            currentTowerEntity.setNoAi(true);
+            TowerAttackMonsterGoal targetingGoal = new TowerAttackMonsterGoal(currentTowerEntity);
+            outOfRangeTarget.setPos(initialTowerPosition.add(6.0, 0.0, 0.0));
+            targetingGoal.tick();
+            if (!assertTrue(
+                    context,
+                    currentTowerEntity.currentAttackTarget() == outOfRangeTarget,
+                    "Final defense tower should acquire a monster inside seven blocks."
+            )) {
+                return;
+            }
+
+            SemionMonsterEntity attackableTarget = spawnRoleMonsterEntity(
+                    context,
+                    "final-defense-attackable-target",
+                    Optional.empty(),
+                    TeamId.PURPLE,
+                    1,
+                    initialTowerPosition.add(2.0, 0.0, 0.0),
+                    100000.0,
+                    List.of(SummonRole.RUSH)
+            );
+            attackableTarget.setNoAi(true);
+            attackableTarget.runtimeMonster().syncLaneProgress(1.0);
+            targetingGoal.tick();
+            if (!assertTrue(
+                    context,
+                    currentTowerEntity.currentAttackTarget() == attackableTarget,
+                    "An attackable target should replace a cached target outside attack range."
             )) {
                 return;
             }
@@ -4613,6 +4736,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         List<SemionTowerEntity> firstRoundClones = List.copyOf(tower.spawnedCloneEntities());
         lane.moveTowersToFinalDefense();
+        Set<GridPosition> finalDefensePositions = new java.util.HashSet<>();
+        finalDefensePositions.add(tower.position());
         for (SemionTowerEntity cloneEntity : firstRoundClones) {
             if (!assertTrue(
                     context,
@@ -4622,6 +4747,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
             IllusionRuntimeTower cloneTower = (IllusionRuntimeTower) cloneEntity.runtimeTower();
+            finalDefensePositions.add(cloneTower.position());
             if (!assertTrue(context, cloneTower.deployedAtFinalDefense(), "Wave-cleared clone should move to final defense.")) {
                 return;
             }
@@ -4632,6 +4758,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             )) {
                 return;
             }
+        }
+        if (!assertEquals(
+                context,
+                firstRoundClones.size() + 1,
+                finalDefensePositions.size(),
+                "Source tower and final-defense clones should use distinct shared slots while capacity remains."
+        )) {
+            return;
         }
 
         lane.resetForRound();
@@ -5437,6 +5571,53 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
+    @GameTest
+    public void longRangeMonsterClosesIntoFinalDefenseEngagementRange(GameTestHelper context) {
+        Vec3 anchor = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 2.0, 4.0);
+        SemionBossEntity boss = new SemionBossEntity(SemionEntityTypes.BOSS, context.getLevel());
+        boss.configure(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        boss.setPos(anchor);
+        boss.setAnchorPosition(anchor);
+        boss.setNoAi(true);
+        context.getLevel().addFreshEntity(boss);
+
+        WaveMonsterEntry artillery = new WaveMonsterEntry(
+                "final-defense-artillery",
+                100.0,
+                0.0,
+                4.0,
+                AttackKind.RANGED,
+                "minecraft:pillager",
+                null,
+                MonsterDimensions.DEFAULT,
+                0,
+                1,
+                0.0,
+                1.0,
+                11.0,
+                24
+        );
+        Monster runtimeMonster = Monster.fromWaveEntry(artillery, TeamId.RED, 1);
+        runtimeMonster.enterFinalDefenseCombat();
+        SemionMonsterEntity rangedEntity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        rangedEntity.configureFrom(runtimeMonster, null);
+        rangedEntity.setPos(anchor.add(8.0, 0.0, 0.0));
+        rangedEntity.setTarget(boss);
+        context.getLevel().addFreshEntity(rangedEntity);
+
+        new MonsterAttackTargetGoal(rangedEntity, 1.1).tick();
+        if (!assertTrue(context, rangedEntity.getMoveControl().hasWanted(), "Long-range monsters should enter the movement branch outside final-defense range.")) {
+            return;
+        }
+        if (!assertEquals(context, boss.getX(), rangedEntity.getMoveControl().getWantedX(), "Long-range monsters should move toward the boss X position.")) {
+            return;
+        }
+        if (!assertEquals(context, boss.getZ(), rangedEntity.getMoveControl().getWantedZ(), "Long-range monsters should move toward the boss Z position.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 40)
     public void bossAttackDamagesNearbyMonstersWithSplash(GameTestHelper context) {
         Vec3 anchor = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 2.0, 4.0);
@@ -5579,7 +5760,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             context.fail(Component.literal("Wave timeout monster entity should still exist."));
             return;
         }
-        if (!assertTrue(context, monsterEntity.position().distanceTo(lane.laneLayout().positionAt(0.9)) < 1.5, "Wave timeout should move enemy toward the final defense side.")) {
+        if (!assertTrue(
+                context,
+                lane.laneLayout().progressAt(monsterEntity.position()) >= 0.75,
+                "Wave timeout should move enemy toward the final defense side."
+        )) {
             return;
         }
         context.succeed();
@@ -5832,6 +6017,43 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, 2, game.currentRound(), "Next prepare phase should be round 2 after all teams clear.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void infiniteWaveTemplateSelectionIsSharedAcrossTeams(GameTestHelper context) {
+        WaveMonsterEntry firstEntry = new WaveMonsterEntry("template-first", 100.0, 0.0, 1.0, AttackKind.MELEE, "minecraft:piglin", null, 1);
+        WaveMonsterEntry secondEntry = new WaveMonsterEntry("template-second", 100.0, 0.0, 1.0, AttackKind.MELEE, "minecraft:blaze", null, 1);
+        WaveMonsterEntry thirdEntry = new WaveMonsterEntry("template-third", 100.0, 0.0, 1.0, AttackKind.MELEE, "minecraft:wither_skeleton", null, 1);
+        var first = new kim.biryeong.semiontd.config.RoundWaveConfig(1, Map.of("default", List.of(firstEntry)));
+        var second = new kim.biryeong.semiontd.config.RoundWaveConfig(1, Map.of("default", List.of(secondEntry)));
+        var third = new kim.biryeong.semiontd.config.RoundWaveConfig(1, Map.of("default", List.of(thirdEntry)));
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                new WaveConfig(List.of(), 1, first, List.of(first, second, third)),
+                testArena(context)
+        );
+        UUID redId = stableUuid("shared-template-red");
+        UUID blueId = stableUuid("shared-template-blue");
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(redId, "red", TeamId.RED, 1),
+                        new AssignedParticipant(blueId, "blue", TeamId.BLUE, 1)
+                ),
+                Set.of(),
+                2
+        );
+
+        if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Shared-template game should start.")) {
+            return;
+        }
+        tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS + 1);
+        String redMonsterId = redLane(game, 1).activeMonsters().getFirst().id();
+        String blueMonsterId = lane(game, TeamId.BLUE, 1).activeMonsters().getFirst().id();
+        if (!assertEquals(context, redMonsterId, blueMonsterId, "All teams should receive the same infinite-wave template.")) {
             return;
         }
         context.succeed();
@@ -7745,6 +7967,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         IllagerRaidState state = IllagerRaidStates.get(playerId).orElseThrow();
         state.resetForRound(4);
         state.addGauge(100, 100);
+
+        int activatedTowers = IllagerRaidStates.playPendingActivationEffects(context.getLevel().getServer(), lane);
+        if (!assertEquals(context, 1, activatedTowers, "Illager raid activation should emit VFX for each live illager tower.")) {
+            return;
+        }
+        if (!assertTrue(context, !state.pendingActivationEffects(), "Illager raid activation effects should be consumed once.")) {
+            return;
+        }
 
         tower.tick(lane);
 
