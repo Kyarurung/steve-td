@@ -43,7 +43,6 @@ import net.minecraft.network.chat.ClickEvent;
 import kim.biryeong.semiontd.game.MatchParticipantResult;
 import kim.biryeong.semiontd.game.MatchResult;
 import kim.biryeong.semiontd.game.PlayerEconomy;
-import kim.biryeong.semiontd.game.RoundPhase;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.SemionTeam;
@@ -52,6 +51,7 @@ import kim.biryeong.semiontd.progression.MatchProgressionReward;
 import kim.biryeong.semiontd.progression.SemionPlayerProfile;
 import kim.biryeong.semiontd.ui.dialog.body.AlignedMessage;
 import kim.biryeong.semiontd.ui.dialog.body.SplitAlignedMessage;
+import kim.biryeong.semiontd.util.TextUncenterer;
 import net.minecraft.server.dialog.ActionButton;
 import net.minecraft.core.Holder;
 import net.minecraft.server.dialog.CommonButtonData;
@@ -71,7 +71,13 @@ import net.minecraft.server.level.ServerPlayer;
 public final class SemionDialogService {
     private static final int BODY_WIDTH = 256;
     private static final int TITLE_HEADER_WIDTH = 200;
-    private static final int PARTICIPANT_AVATAR_STEP = 18;
+    private static final int PLAYER_STATUS_WIDTH = 480;
+    private static final int PLAYER_STATUS_AVATAR_WIDTH = 16;
+    private static final int PLAYER_STATUS_NAME_WIDTH = 112;
+    private static final int PLAYER_STATUS_NUMBER_WIDTH = 56;
+    private static final int PLAYER_STATUS_TOWER_WIDTH = 48;
+    private static final int PLAYER_STATUS_TOWER_JOB_GAP = 12;
+    private static final int PLAYER_STATUS_JOB_WIDTH = 108;
     private static final int BUTTON_WIDTH = 180;
     private static final int COMPACT_BUTTON_WIDTH = 118;
     private static final int SUMMON_BUTTON_WIDTH = 82;
@@ -81,44 +87,52 @@ public final class SemionDialogService {
     private static final int SUMMON_PAGE_SIZE = 25;
     private static final int BUILD_GUIDE_PAGE_SIZE = 4;
     private static final ConcurrentMap<SmallAvatarKey, Component> SMALL_AVATAR_CACHE = new ConcurrentHashMap<>();
-
     public void showGameStatus(ServerPlayer player, SemionGame game) {
-        StringBuilder body = new StringBuilder();
-        body.append("라운드: ").append(game.currentRound()).append('\n');
-        body.append("단계: ").append(phaseLabel(game.phase())).append('\n');
-        body.append("플레이어: ").append(game.players().size()).append('\n');
-        body.append("관전자: ").append(game.spectatorCount()).append('\n');
-        body.append('\n');
-        body.append("팀 상태\n");
-        for (SemionTeam team : game.teams().values()) {
-            if (!team.active()) {
-                continue;
+        ArrayList<DialogBody> bodies = new ArrayList<>();
+        bodies.add(new HeaderMessage(miniMessage("<gradient:#facc15:#22d3ee><bold>플레이어 현황</bold></gradient>"), PLAYER_STATUS_WIDTH));
+        bodies.add(new PlainMessage(playerStatusHeader(), PLAYER_STATUS_WIDTH));
+        bodies.add(new PlainMessage(
+                miniMessage("<dark_gray>──────────────────────────────────────────────────</dark_gray>"),
+                PLAYER_STATUS_WIDTH
+        ));
+        TeamId currentTeam = null;
+        MutableComponent teamBody = null;
+        for (PlayerStatusRow row : playerStatusRows(game)) {
+            if (row.teamId() != currentTeam) {
+                if (teamBody != null) {
+                    bodies.add(new PlainMessage(teamBody, PLAYER_STATUS_WIDTH));
+                }
+                currentTeam = row.teamId();
+                teamBody = Component.empty().append(playerStatusTeamHeader(currentTeam));
             }
-            body.append(" - ")
-                    .append(team.id().name())
-                    .append(": ")
-                    .append(team.eliminated() ? "탈락" : "생존")
-                    .append(", 인원=")
-                    .append(team.memberIds().size())
-                    .append(", 보스HP=")
-                    .append(Math.round(team.laneGroup().boss().health()))
-                    .append('\n');
+            teamBody.append("\n").append(playerStatusBody(row));
         }
-
-        SemionPlayer semionPlayer = game.players().get(player.getUUID());
-        if (semionPlayer != null) {
-            PlayerEconomy economy = semionPlayer.economy();
-            body.append('\n');
-            body.append("내 정보\n");
-            body.append("팀: ").append(semionPlayer.teamId().name()).append('\n');
-            body.append("라인: ").append(semionPlayer.laneId()).append('\n');
-            body.append("다이아: ").append(economy.diamond()).append('\n');
-            body.append("에메랄드: ").append(economy.emerald()).append('\n');
-            body.append("수입: ").append(economy.income()).append('\n');
-            body.append("에메랄드/초: ").append(economy.emeraldPerSec()).append('\n');
+        if (teamBody != null) {
+            bodies.add(new PlainMessage(teamBody, PLAYER_STATUS_WIDTH));
         }
+        showActions(player, "세미온 TD 플레이어 현황", bodies, List.of(), 1);
+    }
 
-        show(player, "세미온 TD 상태", body.toString());
+    public static List<PlayerStatusRow> playerStatusRows(SemionGame game) {
+        return game.players().values().stream()
+                .sorted(Comparator.comparing(SemionPlayer::teamId)
+                        .thenComparingInt(SemionPlayer::laneId)
+                        .thenComparing(SemionPlayer::name))
+                .map(semionPlayer -> {
+                    PlayerEconomy economy = semionPlayer.economy();
+                    SemionJob job = semionPlayer.job().orElse(JobRegistry.defaultJob());
+                    return new PlayerStatusRow(
+                            semionPlayer.uuid(),
+                            semionPlayer.name(),
+                            semionPlayer.teamId(),
+                            economy.diamond(),
+                            economy.emerald(),
+                            economy.income(),
+                            game.towerCount(semionPlayer.uuid()),
+                            job.displayName().getString()
+                    );
+                })
+                .toList();
     }
 
     public void showMatchResult(
@@ -131,18 +145,25 @@ public final class SemionDialogService {
                 .toList();
 
         ArrayList<DialogBody> bodies = new ArrayList<>();
-        bodies.add(new HeaderMessage(miniMessage("<gradient:#facc15:#22d3ee><bold>경기 결과</bold></gradient>"), TITLE_HEADER_WIDTH));
-        bodies.add(new AlignedMessage(
-                miniMessage("<gray>최종 라운드</gray> <white>" + matchResult.finalRound() + "</white>\n"
-                        + "<gray>승리 팀</gray> " + teamListMarkup(matchResult.winningTeams())),
-                BODY_WIDTH,
-                AlignedMessage.Align.LEFT
+        bodies.add(decoratedHeader(
+                miniMessage("<gradient:#facc15:#22d3ee><bold>경기 결과</bold></gradient>"),
+                TITLE_HEADER_WIDTH
+        ));
+        bodies.add(new PlainMessage(
+                miniMessage("<gray>최종 라운드:</gray> <white>" + matchResult.finalRound() + "</white>"),
+                BODY_WIDTH
+        ));
+        bodies.add(new PlainMessage(
+                miniMessage("<gray>승리 팀:</gray> " + teamListMarkup(matchResult.winningTeams())),
+                BODY_WIDTH
         ));
 
-        bodies.add(new HeaderMessage(miniMessage("<yellow><bold>참가자 기록</bold></yellow>"), BODY_WIDTH));
-        int avatarOffset = 0;
+        bodies.add(decoratedHeader(miniMessage("<yellow><bold>참가자 기록</bold></yellow>"), BODY_WIDTH));
         for (MatchParticipantResult participant : orderedParticipants) {
-            bodies.add(new PlainMessage(participantResultBody(participant, rewards.get(participant.playerId()), avatarOffset++), BODY_WIDTH));
+            bodies.add(new PlainMessage(
+                    participantResultBody(participant, rewards.get(participant.playerId())),
+                    BODY_WIDTH
+            ));
             bodies.add(new PlainMessage(Component.literal(" "), BODY_WIDTH));
         }
 
@@ -1333,14 +1354,22 @@ public final class SemionDialogService {
         }
     }
 
+    private static PlainMessage decoratedHeader(Component title, int width) {
+        Component side = Component.literal("──────").withStyle(ChatFormatting.DARK_GRAY);
+        return new PlainMessage(
+                Component.empty().append(side).append(" ").append(title).append(" ").append(side),
+                width
+        );
+    }
+
     private static Component participantResultBody(
             MatchParticipantResult participant,
-            MatchProgressionReward reward,
-            int avatarIndex
+            MatchProgressionReward reward
     ) {
         var stats = participant.stats();
         MutableComponent body = Component.empty()
-                .append(avatarComponent(participant, avatarIndex))
+                .append(TextUncenterer.filler(8))
+                .append(avatarComponent(participant.playerName(), AvatarVariant.RESULT))
                 .append(miniMessage(" <white>" + participant.playerName() + "</white>"
                         + " <dark_gray>[</dark_gray>"
                         + (participant.winner() ? "<gold>승리</gold>" : "<gray>패배</gray>")
@@ -1356,18 +1385,53 @@ public final class SemionDialogService {
         return body;
     }
 
-    private static Component avatarComponent(MatchParticipantResult participant, int offset) {
-        int yOffset = Math.min(239, Math.max(0, offset) * PARTICIPANT_AVATAR_STEP);
-        SmallAvatarKey key = new SmallAvatarKey(participant.playerName(), yOffset);
+    private static Component playerStatusHeader() {
+        return Component.empty()
+                .append(TextUncenterer.filler(PLAYER_STATUS_AVATAR_WIDTH))
+                .append(tableCell(Component.literal("플레이어").withStyle(ChatFormatting.GRAY), PLAYER_STATUS_NAME_WIDTH, false))
+                .append(tableCell(Component.literal("다이아").withStyle(ChatFormatting.GRAY), PLAYER_STATUS_NUMBER_WIDTH, true))
+                .append(tableCell(Component.literal("에메랄드").withStyle(ChatFormatting.GRAY), PLAYER_STATUS_NUMBER_WIDTH, true))
+                .append(tableCell(Component.literal("수입").withStyle(ChatFormatting.GRAY), PLAYER_STATUS_NUMBER_WIDTH, true))
+                .append(tableCell(Component.literal("타워").withStyle(ChatFormatting.GRAY), PLAYER_STATUS_TOWER_WIDTH, true))
+                .append(TextUncenterer.filler(PLAYER_STATUS_TOWER_JOB_GAP))
+                .append(tableCell(Component.literal("직업").withStyle(ChatFormatting.GRAY), PLAYER_STATUS_JOB_WIDTH, false));
+    }
+
+    private static Component playerStatusTeamHeader(TeamId teamId) {
+        return Component.literal(teamId.name() + " 팀").withStyle(teamColor(teamId), ChatFormatting.BOLD);
+    }
+
+    private static Component playerStatusBody(PlayerStatusRow row) {
+        return Component.empty()
+                .append(avatarComponent(row.playerName(), AvatarVariant.COMPACT))
+                .append(TextUncenterer.filler(6))
+                .append(tableCell(Component.literal(row.playerName()).withStyle(teamColor(row.teamId())), PLAYER_STATUS_NAME_WIDTH, false))
+                .append(tableCell(Component.literal(Long.toString(row.diamond())).withStyle(ChatFormatting.AQUA), PLAYER_STATUS_NUMBER_WIDTH, true))
+                .append(tableCell(Component.literal(Long.toString(row.emerald())).withStyle(ChatFormatting.GREEN), PLAYER_STATUS_NUMBER_WIDTH, true))
+                .append(tableCell(Component.literal(Long.toString(row.income())).withStyle(ChatFormatting.YELLOW), PLAYER_STATUS_NUMBER_WIDTH, true))
+                .append(tableCell(Component.literal(Integer.toString(row.towerCount())).withStyle(ChatFormatting.GOLD), PLAYER_STATUS_TOWER_WIDTH, true))
+                .append(TextUncenterer.filler(PLAYER_STATUS_TOWER_JOB_GAP))
+                .append(tableCell(Component.literal(row.jobName()).withStyle(ChatFormatting.LIGHT_PURPLE), PLAYER_STATUS_JOB_WIDTH, false));
+    }
+
+    private static Component tableCell(Component value, int width, boolean rightAligned) {
+        Component padding = TextUncenterer.filler(Math.max(0, width - TextUncenterer.width(value)));
+        return rightAligned
+                ? Component.empty().append(padding).append(value)
+                : Component.empty().append(value).append(padding);
+    }
+
+    private static Component avatarComponent(String playerName, AvatarVariant variant) {
+        SmallAvatarKey key = new SmallAvatarKey(playerName, variant);
         Component cached = SMALL_AVATAR_CACHE.get(key);
         if (cached != null) {
             return cached;
         }
 
         try {
-            Optional<BufferedImage> skin = SkinLoader.load(participant.playerName());
+            Optional<BufferedImage> skin = SkinLoader.load(playerName);
             if (skin.isPresent()) {
-                Component avatar = AvatarRenderer.asTextComponent(smallAvatarImage(skin.get()), yOffset);
+                Component avatar = AvatarRenderer.asTextComponent(avatarImage(skin.get(), variant), variant.yOffset());
                 SMALL_AVATAR_CACHE.putIfAbsent(key, avatar);
                 return avatar;
             }
@@ -1375,7 +1439,7 @@ public final class SemionDialogService {
             // Fall back to the bundled Steve skin below.
         }
 
-        SmallAvatarKey defaultKey = new SmallAvatarKey("Steve", yOffset);
+        SmallAvatarKey defaultKey = new SmallAvatarKey("Steve", variant);
         return SMALL_AVATAR_CACHE.computeIfAbsent(defaultKey, SemionDialogService::defaultSmallAvatar);
     }
 
@@ -1388,26 +1452,37 @@ public final class SemionDialogService {
             if (skin == null) {
                 return Component.empty();
             }
-            return AvatarRenderer.asTextComponent(smallAvatarImage(skin), key.yOffset());
+            return AvatarRenderer.asTextComponent(avatarImage(skin, key.variant()), key.variant().yOffset());
         } catch (java.io.IOException exception) {
             return Component.empty();
         }
     }
 
-    private static BufferedImage smallAvatarImage(BufferedImage skin) {
-        BufferedImage face = new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB);
+    private static BufferedImage avatarImage(BufferedImage skin, AvatarVariant variant) {
+        BufferedImage face = new BufferedImage(variant.imageSize(), variant.imageSize(), BufferedImage.TYPE_INT_ARGB);
+        boolean hasFaceOverlay = skin.getHeight() >= 64;
         for (int y = 0; y < 8; y++) {
             for (int x = 0; x < 8; x++) {
                 int color = skinPixel(skin, 8 + x, 8 + y);
-                int overlay = skinPixel(skin, 40 + x, 8 + y);
-                if ((overlay >>> 24) > 16) {
-                    color = overlay;
+                if (hasFaceOverlay) {
+                    int overlay = skinPixel(skin, 40 + x, 8 + y);
+                    if ((overlay >>> 24) > 16) {
+                        color = overlay;
+                    }
                 }
-                fill(face, 1 + x * 2, 1 + y * 2, color);
+                if ((color >>> 24) != 0) {
+                    int targetX = 1 + x * variant.pixelScale();
+                    int targetY = 1 + y * variant.pixelScale();
+                    for (int dy = 0; dy < variant.pixelScale(); dy++) {
+                        for (int dx = 0; dx < variant.pixelScale(); dx++) {
+                            face.setRGB(targetX + dx, targetY + dy, color);
+                        }
+                    }
+                }
             }
         }
 
-        BufferedImage outlined = new BufferedImage(18, 18, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage outlined = new BufferedImage(variant.imageSize(), variant.imageSize(), BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < face.getHeight(); y++) {
             for (int x = 0; x < face.getWidth(); x++) {
                 if ((face.getRGB(x, y) >>> 24) == 0) {
@@ -1434,16 +1509,6 @@ public final class SemionDialogService {
             }
         }
         return outlined;
-    }
-
-    private static void fill(BufferedImage image, int x, int y, int color) {
-        if ((color >>> 24) == 0) {
-            return;
-        }
-        image.setRGB(x, y, color);
-        image.setRGB(x + 1, y, color);
-        image.setRGB(x, y + 1, color);
-        image.setRGB(x + 1, y + 1, color);
     }
 
     private static int skinPixel(BufferedImage skin, int x, int y) {
@@ -1474,6 +1539,16 @@ public final class SemionDialogService {
         return "<" + color + ">" + teamId.name() + "</" + color + ">";
     }
 
+    private static ChatFormatting teamColor(TeamId teamId) {
+        return switch (teamId) {
+            case RED -> ChatFormatting.RED;
+            case BLUE -> ChatFormatting.BLUE;
+            case GREEN -> ChatFormatting.GREEN;
+            case YELLOW -> ChatFormatting.YELLOW;
+            case PURPLE -> ChatFormatting.LIGHT_PURPLE;
+        };
+    }
+
     private static long nextGasUpgradeCost(SemionGame game, PlayerEconomy economy) {
         var config = game.economyConfig().gasProduction();
         if (economy.emeraldProductionUpgradeCount() >= config.maxUpgradeCount()) {
@@ -1501,16 +1576,46 @@ public final class SemionDialogService {
                 .thenComparing(MatchParticipantResult::playerName);
     }
 
-    private static String phaseLabel(RoundPhase phase) {
-        return switch (phase) {
-            case WAITING -> "대기";
-            case PREPARE_AND_SUMMON -> "준비/소환";
-            case LANE_WAVE -> "웨이브";
-            case ROUND_PAYOUT -> "정산";
-            case ENDED -> "종료";
-        };
+    public record PlayerStatusRow(
+            UUID playerId,
+            String playerName,
+            TeamId teamId,
+            long diamond,
+            long emerald,
+            long income,
+            int towerCount,
+            String jobName
+    ) {
     }
 
-    private record SmallAvatarKey(String playerName, int yOffset) {
+    private enum AvatarVariant {
+        COMPACT(1, 10, 25),
+        RESULT(2, 18, 20);
+
+        private final int pixelScale;
+        private final int imageSize;
+        private final int yOffset;
+
+        AvatarVariant(int pixelScale, int imageSize, int yOffset) {
+            this.pixelScale = pixelScale;
+            this.imageSize = imageSize;
+            this.yOffset = yOffset;
+        }
+
+        int pixelScale() {
+            return pixelScale;
+        }
+
+        int imageSize() {
+            return imageSize;
+        }
+
+        int yOffset() {
+            return yOffset;
+        }
     }
+
+    private record SmallAvatarKey(String playerName, AvatarVariant variant) {
+    }
+
 }

@@ -78,7 +78,7 @@ public final class TextUncenterer {
         List<MutableComponent> splitLines = splitExplicitLines(text);
         List<Component> result = new ArrayList<>(splitLines.size());
         for (MutableComponent line : splitLines) {
-            int fillerWidth = Math.max(0, normalizedWidth - getWidth(line));
+            int fillerWidth = Math.max(0, normalizedWidth - width(line));
             result.add(merger.apply(line, filler(fillerWidth)));
         }
         return List.copyOf(result);
@@ -142,7 +142,7 @@ public final class TextUncenterer {
             Merger merger
     ) {
         MutableComponent component = Component.literal(text).setStyle(style);
-        if (getWidth(Component.empty().append(line.component).append(component)) <= width) {
+        if (width(Component.empty().append(line.component).append(component)) <= width) {
             line.component.append(component);
             return;
         }
@@ -169,7 +169,7 @@ public final class TextUncenterer {
         line.component.append(component);
     }
 
-    private static int getWidth(Component text) {
+    public static int width(Component text) {
         final int[] totalWidth = {0};
         text.visit((style, string) -> {
             if (!string.isEmpty()) {
@@ -199,7 +199,7 @@ public final class TextUncenterer {
             return;
         }
 
-        int fillerWidth = Math.max(0, width - getWidth(line.component));
+        int fillerWidth = Math.max(0, width - width(line.component));
         result.add(merger.apply(line.component, filler(fillerWidth)));
         line.component = Component.empty();
     }
