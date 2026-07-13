@@ -14,6 +14,12 @@
 | `/semiontd money request <amount>` | 같은 팀에게 다이아 지원을 요청합니다. |
 | `/semiontd money accept <requestId>` | 팀원의 지원 요청을 수락합니다. |
 | `/semiontd profile` | 내 프로필을 봅니다. |
+| `/semiontd skybox` | 등록된 스카이박스와 현재 선택을 봅니다. |
+| `/semiontd skybox <id>` | 개인 스카이박스를 선택합니다. |
+| `/semiontd skybox off` | 개인 스카이박스를 끕니다. |
+| `/semiontd tip` | 현재 개인 팁 수신 상태와 서버 전체 설정을 봅니다. |
+| `/semiontd tip off` | 접속 및 경기 중 팁을 끕니다. 선택은 프로필에 저장됩니다. |
+| `/semiontd tip on` | 팁을 다시 켭니다. |
 | `/semiontd rating` | 내 ELO 정보를 봅니다. |
 | `/semiontd rating top` | ELO 순위표를 봅니다. |
 | `/semiontd job list` | 선택 가능한 빌더 목록을 봅니다. |
@@ -54,6 +60,7 @@
 | `/semiontd end` | 진행 중인 게임을 강제 종료하고 로비로 돌립니다. |
 | `/semiontd reset` | 게임을 리셋하고 로비로 돌립니다. |
 | `/semiontd reload` | 설정 파일과 타워 카탈로그를 다시 불러옵니다. |
+| `/semiontd resourcepack reload` | 스카이박스와 음악을 다시 읽고 Polymer 생성팩을 재생성·재전송합니다. |
 | `/semiontd testmode <true or false>` | 테스트 모드를 켜거나 끕니다. |
 | `/semiontd autojoin` | 다음 시작을 위한 팀 배정을 실행합니다. |
 | `/semiontd playerlimit add <player>` | 정원 초과 입장 허용 목록에 플레이어를 추가합니다. |
@@ -62,7 +69,7 @@
 | `/semiontd killboss <team>` | 지정 팀의 보스를 제거합니다. |
 | `/semiontd rating softreset` | ELO 데이터를 백업한 뒤 소프트 리셋합니다. 같은 관리자가 30초 안에 두 번 입력해야 실행됩니다. |
 
-`/semiontd reload`는 경제, 웨이브, 타워 카탈로그를 즉시 갱신합니다. 맵 설정은 다음 게임 생성부터 반영됩니다.
+`/semiontd reload`는 경제, 웨이브, 타워 카탈로그를 즉시 갱신합니다. 맵 설정은 다음 게임 생성부터 반영됩니다. 스카이박스와 음악은 이 명령에 포함되지 않으며 `/semiontd resourcepack reload`로 갱신합니다.
 
 ## 샌드박스 명령어
 
@@ -105,6 +112,7 @@
 | alias | 연결 명령 |
 |---|---|
 | `/직업` | `/semiontd job ui` |
+| `/스카이박스 [id or off]` | `/semiontd skybox [id or off]` |
 | `/특성` | `/semiontd trait` |
 | `/레이팅` | `/semiontd rating` |
 | `/랭크` | `/semiontd rating` |

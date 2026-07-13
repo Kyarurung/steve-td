@@ -2,6 +2,8 @@
 
 Semion TD는 서버 시작 또는 `/semiontd reload` 시 `config/semion-td/` 아래 설정 파일을 읽습니다. 파일이 없으면 `SemionConfigLoader`가 기본값으로 생성합니다. 이 문서는 운영자가 수정할 수 있는 필드와 주의사항만 다룹니다.
 
+스카이박스와 음악처럼 생성 리소스팩에 들어가는 파일은 서버 시작 또는 `/semiontd resourcepack reload` 실행 시 읽습니다. 일반 `/semiontd reload`에는 포함되지 않습니다.
+
 ## 자동 생성 설정 파일
 
 | 파일 | 역할 |
@@ -18,6 +20,7 @@ Semion TD는 서버 시작 또는 `/semiontd reload` 시 `config/semion-td/` 아
 | `income_lane_routing.json` | 인컴 유닛을 어느 라인으로 보낼지 정합니다. |
 | `monster_scaling.json` | 오래 살아남은 몬스터의 체력과 공격력 증가를 설정합니다. |
 | `vfx.json` | 타워 공격과 AOE VFX, 비동기 계획, 전송 예산을 설정합니다. |
+| `tips.json` | 접속 및 경기 중 표시할 팁, 표시 주기, 전체 활성화 여부를 설정합니다. |
 
 `wave.json`이 현재 파일명입니다. 예전 복수형 파일명은 `wave.json`이 없을 때만 읽는 레거시 경로입니다.
 
@@ -33,6 +36,47 @@ Semion TD는 서버 시작 또는 `/semiontd reload` 시 `config/semion-td/` 아
 | `semiontd.db-shm`, `semiontd.db-wal` | SQLite 런타임 보조 파일입니다. |
 
 운영 데이터는 서버를 끈 뒤 백업하고, 가능하면 명령어로 갱신합니다.
+
+`profiles.json`에는 플레이어가 선택한 스카이박스 ID와 팁 수신 여부도 저장됩니다.
+
+## `skyboxes/`: 개인 스카이박스
+
+`config/semion-td/skyboxes/`에 PNG 파일을 넣으면 서버 시작 시 생성 리소스팩에 자동으로 추가됩니다. 음악 파일을 `music/`에 추가하는 방식과 같습니다. 실행 중에는 `/semiontd resourcepack reload`로 두 디렉터리를 다시 읽습니다.
+
+새 이미지를 만들 때는 [스카이박스 템플릿](skybox-template/README.ko.md)의 얼굴 배치도와 편집용 SVG를 사용합니다.
+
+- 텍스처는 업로드한 템플릿과 같은 `2:1` 큐브맵 아틀라스여야 합니다. 예: `1024x512`, `2048x1024`.
+- 파일명이 스카이박스 ID가 됩니다. `Red Nebula.png`는 `red_nebula`로 등록됩니다.
+- 파일명은 영문 소문자, 숫자, `_`, `-` 조합을 권장합니다.
+- 불투명 픽셀의 alpha는 생성팩에 넣을 때 자동으로 `252`로 바뀝니다. 이 값으로 스카이박스에만 fog 우회를 적용합니다.
+- 첫 번째 파일이 기본 스카이박스입니다. 플레이어가 별도로 선택하지 않았다면 기본값을 봅니다.
+- `/semiontd skybox <id>`로 개인 스카이박스를 선택하고 `/semiontd skybox off`로 끕니다.
+
+스카이박스는 경기장 월드에서만 표시됩니다. 플레이어마다 별도의 가상 `item_display`를 받으므로 같은 팀과 같은 위치에 있어도 서로 다른 스카이박스를 선택할 수 있습니다. 파일 추가, 삭제, 교체는 `/semiontd resourcepack reload`로 반영합니다. 명령 실행 후 접속자는 갱신된 생성팩을 다시 받습니다.
+
+## `tips.json`
+
+플레이어 접속 시 팁을 한 번 표시합니다. 이후 실제 경기 참가자와 샌드박스 플레이어에게 플레이 시간 기준으로 팁을 반복 표시합니다. 관전 중에는 주기 시간이 흐르지 않습니다.
+
+```json
+{
+  "enabled": true,
+  "joinEnabled": true,
+  "joinMessage": "<gold><bold>TIP</bold></gold> <gray>나침반을 우클릭하면 타워 설치 창을 열 수 있습니다.</gray>",
+  "intervalSeconds": 120,
+  "messages": [
+    "<gold><bold>TIP</bold></gold> <gray>업그레이드 가격은 대상 타워의 설치 가격과 별도로 설정됩니다.</gray>"
+  ]
+}
+```
+
+- `enabled`: 서버 전체 팁 표시 여부입니다. `false`이면 개인 설정과 관계없이 표시하지 않습니다.
+- `joinEnabled`: 접속 팁만 켜거나 끕니다. 경기 중 주기 팁에는 영향을 주지 않습니다.
+- `joinMessage`: 접속할 때 한 번 표시할 MiniMessage 문자열입니다.
+- `intervalSeconds`: 경기 중 팁 간격입니다. 기본값은 `120`초이며 `1..86400` 범위로 보정됩니다.
+- `messages`: 경기 중 순서대로 반복할 MiniMessage 문자열 목록입니다. 빈 문자열은 무시합니다.
+
+플레이어는 `/semiontd tip off`로 팁을 끄고 `/semiontd tip on`으로 다시 켤 수 있습니다. 이 선택은 `profiles.json`에 저장됩니다. 설정 파일 변경은 `/semiontd reload`로 반영합니다.
 
 ## `economy.json`
 
@@ -56,19 +100,76 @@ Semion TD는 서버 시작 또는 `/semiontd reload` 시 `config/semion-td/` 아
 
 - `rounds`: 고정 라운드 목록입니다. 각 항목은 `round`와 `lanes`를 가집니다.
 - `infiniteFromRound`: 무한 웨이브가 시작되는 라운드입니다.
-- `infinite`: 무한 웨이브 기준 몬스터입니다. 라운드가 오를수록 체력이 스케일됩니다.
+- `infinite`: 예전 형식의 단일 무한 웨이브입니다. `infiniteTemplates`가 없을 때 사용합니다.
+- `infiniteTemplates`: 무한 웨이브 후보 목록입니다. 매 라운드 하나를 같은 확률로 뽑으며 모든 팀에 같은 구성을 적용합니다.
 - `lanes`: `default`, `lane_1` 같은 키로 라인별 몬스터 목록을 지정합니다.
+- `spawnMode`: 몬스터 종류가 여러 개일 때 소환 순서를 정합니다. `SEQUENTIAL`은 종류별로 전부 소환하고, `ROUND_ROBIN`은 종류마다 한 마리씩 번갈아 소환합니다. 기본값은 `SEQUENTIAL`입니다.
+- `spawnIntervalTicks`: 같은 라인에 웨이브 몬스터를 소환하는 간격입니다. `1`이면 매 tick 한 마리를 소환합니다. 인컴 소환에는 적용되지 않습니다.
 
 몬스터 항목 필드:
 
 - `id`: 웨이브 몬스터 ID입니다.
 - `health`, `armor`, `attackDamage`: 전투 수치입니다.
 - `attackKind`: `MELEE` 또는 `RANGED` 계열 공격 타입입니다.
-- `entityType`: 바닐라 엔티티 ID입니다.
+- `entityType`: 화면에 표시할 바닐라 엔티티 ID입니다. 크리퍼 폭발이나 블레이즈 화염구 같은 바닐라 능력을 부여하지는 않습니다.
 - `blockbenchModelId`: BIL 모델 ID입니다. 없으면 `null`을 둡니다.
 - `dimensions`: 몬스터 충돌 크기입니다.
 - `mineralReward`: 처치 시 다이아 보상입니다.
 - `count`: 소환 수입니다.
+- `targetPriority`: 일반 타워가 공격 대상을 고를 때 더하는 우선순위입니다. 기본값은 `0`이며 값이 높을수록 먼저 공격받습니다.
+- `movementSpeedMultiplier`: 기본 이동 속도 배율입니다. 기본값은 `1.0`입니다.
+- `attackRange`: 공격 사거리입니다. 생략하면 근접은 `2.5`, 원거리는 `6.0`블록입니다.
+- `attackIntervalTicks`: 공격 간격입니다. 기본값은 `13`tick이며 낮을수록 자주 공격합니다.
+
+탱커와 원거리를 섞는 예시:
+
+```json
+{
+  "round": 8,
+  "spawnMode": "ROUND_ROBIN",
+  "spawnIntervalTicks": 1,
+  "lanes": {
+    "default": [
+      {
+        "id": "tank_8",
+        "health": 25.0,
+        "armor": 4.0,
+        "attackDamage": 1.0,
+        "attackKind": "MELEE",
+        "entityType": "minecraft:husk",
+        "mineralReward": 5,
+        "count": 20,
+        "targetPriority": 45,
+        "movementSpeedMultiplier": 0.95,
+        "attackRange": 2.5,
+        "attackIntervalTicks": 18
+      },
+      {
+        "id": "ranged_8",
+        "health": 12.0,
+        "armor": 0.0,
+        "attackDamage": 1.5,
+        "attackKind": "RANGED",
+        "entityType": "minecraft:skeleton",
+        "mineralReward": 5,
+        "count": 20,
+        "targetPriority": 0,
+        "movementSpeedMultiplier": 0.8,
+        "attackRange": 7.0,
+        "attackIntervalTicks": 18
+      }
+    ]
+  }
+}
+```
+
+타워가 몬스터를 고르는 점수는 `라인 진행도 * 100 + targetPriority + 역할 보너스`입니다. 처형이나 특정 역할 우선 공격처럼 고유 타게팅이 있는 타워는 자체 규칙을 먼저 사용합니다. 타워 설정의 `aggroPriority`는 반대 방향인 몬스터가 방어 대상을 고를 때 쓰므로 `targetPriority`와 용도가 다릅니다.
+
+`infiniteTemplates`가 있으면 `infinite`보다 우선합니다. 선택된 템플릿은 `infiniteFromRound`부터 사용하며, 이후 라운드마다 체력이 `40%`씩 증가합니다. 같은 템플릿이 연속으로 선택될 수 있습니다. 웨이브와 인컴 몬스터가 라인 끝에 도달하거나, 라인 타워를 모두 파괴하거나, 시간 초과로 최종 방어선에 강제 이동하면 공격 사거리가 `2`블록으로 제한됩니다. 최종 방어선 타워는 7블록 안의 몬스터만 공격 대상으로 인식합니다. 일반 라인에서는 설정된 `attackRange`를 그대로 사용합니다.
+
+기본 무한 웨이브는 동물, 오버월드 몬스터, 네더 몬스터 템플릿을 하나씩 제공합니다. 세 템플릿은 같은 수량·총 체력·총 보상을 사용하며 몹 구성과 역할 조합만 다릅니다.
+
+기본 웨이브는 1~5라운드에 동물, 6~15라운드에 오버월드 몬스터, 16라운드 이후에 네더 몬스터를 사용합니다. `entityType`을 바꿀 때는 가스트나 파괴수처럼 화면을 크게 가리는 엔티티를 피하는 편이 좋습니다.
 
 `rounds`는 라운드 번호 기준으로 정렬됩니다. 특정 라인만 다른 웨이브를 넣을 때도 `default` 구성을 남겨두면 누락 라인 처리 실수를 줄일 수 있습니다.
 

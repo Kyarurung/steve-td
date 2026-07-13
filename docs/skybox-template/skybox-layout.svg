@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="512" viewBox="0 0 1024 512">
+  <title>SemionTD skybox 4x2 cubemap layout</title>
+  <desc>Hide the guides group before exporting the artwork group as a 1024 by 512 PNG.</desc>
+
+  <defs>
+    <pattern id="unused-pattern" width="24" height="24" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="24" height="24" fill="#111827"/>
+      <rect width="8" height="24" fill="#1f2937"/>
+    </pattern>
+  </defs>
+
+  <g id="artwork">
+    <rect x="0" y="0" width="1024" height="512" fill="#0b1020"/>
+  </g>
+
+  <g id="guides" font-family="Apple SD Gothic Neo, Noto Sans KR, sans-serif" text-anchor="middle">
+    <rect x="0" y="0" width="256" height="256" fill="url(#unused-pattern)"/>
+    <rect x="768" y="0" width="256" height="256" fill="url(#unused-pattern)"/>
+
+    <rect x="256" y="0" width="256" height="256" fill="#2563eb" fill-opacity="0.76"/>
+    <rect x="512" y="0" width="256" height="256" fill="#7c3aed" fill-opacity="0.76"/>
+    <rect x="0" y="256" width="256" height="256" fill="#dc2626" fill-opacity="0.76"/>
+    <rect x="256" y="256" width="256" height="256" fill="#ea580c" fill-opacity="0.76"/>
+    <rect x="512" y="256" width="256" height="256" fill="#16a34a" fill-opacity="0.76"/>
+    <rect x="768" y="256" width="256" height="256" fill="#0891b2" fill-opacity="0.76"/>
+
+    <g fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="10 8" opacity="0.88">
+      <path d="M256 0V512 M512 0V512 M768 0V512 M0 256H1024"/>
+      <rect x="1.5" y="1.5" width="1021" height="509"/>
+    </g>
+
+    <g fill="#ffffff">
+      <text x="128" y="128" font-size="26" font-weight="700">미사용</text>
+      <text x="896" y="128" font-size="26" font-weight="700">미사용</text>
+
+      <text x="384" y="118" font-size="36" font-weight="700">UP</text>
+      <text x="384" y="154" font-size="18">위</text>
+
+      <text x="640" y="112" font-size="36" font-weight="700">DOWN</text>
+      <text x="640" y="148" font-size="18">아래 · 세로 반전</text>
+
+      <text x="128" y="374" font-size="36" font-weight="700">WEST</text>
+      <text x="128" y="410" font-size="18">서쪽</text>
+
+      <text x="384" y="374" font-size="36" font-weight="700">SOUTH</text>
+      <text x="384" y="410" font-size="18">남쪽</text>
+
+      <text x="640" y="374" font-size="36" font-weight="700">EAST</text>
+      <text x="640" y="410" font-size="18">동쪽</text>
+
+      <text x="896" y="374" font-size="36" font-weight="700">NORTH</text>
+      <text x="896" y="410" font-size="18">북쪽</text>
+    </g>
+
+    <g stroke="#ffffff" stroke-width="5" opacity="0.9">
+      <path d="M384 210V178"/>
+      <path d="M640 178V210"/>
+      <path d="M128 468V432"/>
+      <path d="M384 468V432"/>
+      <path d="M640 468V432"/>
+      <path d="M896 468V432"/>
+    </g>
+    <g fill="#ffffff" opacity="0.9">
+      <path d="M384 166L373 184H395Z"/>
+      <path d="M640 222L629 204H651Z"/>
+      <path d="M128 420L117 438H139Z"/>
+      <path d="M384 420L373 438H395Z"/>
+      <path d="M640 420L629 438H651Z"/>
+      <path d="M896 420L885 438H907Z"/>
+    </g>
+  </g>
+</svg>
