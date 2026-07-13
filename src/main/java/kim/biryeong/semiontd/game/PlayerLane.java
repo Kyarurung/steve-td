@@ -258,7 +258,7 @@ public final class PlayerLane {
                 && waveMonsterSpawnQueue.isEmpty() && summonedMonsterSpawnQueue.isEmpty()) {
             clearedThisRound = true;
         }
-        IllagerRaidStates.playPendingActivationSounds(server, players);
+        IllagerRaidStates.playPendingActivationEffects(server, this);
     }
 
     public void clearTowers() {

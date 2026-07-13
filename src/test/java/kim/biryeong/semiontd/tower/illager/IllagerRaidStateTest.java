@@ -16,11 +16,11 @@ class IllagerRaidStateTest {
         assertEquals(0, state.gauge());
         assertFalse(state.active());
         assertEquals(4, state.roundStartTowerCount());
-        assertFalse(state.pendingActivationSound());
+        assertFalse(state.pendingActivationEffects());
     }
 
     @Test
-    void activatesAtGaugeMaximumAndQueuesSoundOnce() {
+    void activatesAtGaugeMaximumAndQueuesEffectsOnce() {
         IllagerRaidState state = new IllagerRaidState();
         state.resetForRound(3);
 
@@ -28,9 +28,9 @@ class IllagerRaidStateTest {
         assertEquals(40, state.gauge());
         assertTrue(state.addGauge(60, 100));
         assertTrue(state.active());
-        assertTrue(state.pendingActivationSound());
-        assertTrue(state.consumePendingActivationSound());
-        assertFalse(state.consumePendingActivationSound());
+        assertTrue(state.pendingActivationEffects());
+        assertTrue(state.consumePendingActivationEffects());
+        assertFalse(state.consumePendingActivationEffects());
     }
 
     @Test

@@ -6,9 +6,12 @@ import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.job.JobContext;
+import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -89,20 +92,33 @@ public final class IllagerRaidStates {
         );
     }
 
-    public static void playPendingActivationSounds(MinecraftServer server, Map<UUID, SemionPlayer> players) {
-        if (server == null || players == null) {
-            return;
+    public static int playPendingActivationEffects(MinecraftServer server, PlayerLane lane) {
+        if (server == null || lane == null) {
+            return 0;
         }
-        STATES.forEach((playerId, state) -> {
-            SemionPlayer semionPlayer = players.get(playerId);
-            if (semionPlayer == null || !state.consumePendingActivationSound()) {
-                return;
+        IllagerRaidState state = STATES.get(lane.ownerPlayer());
+        if (state == null || !state.consumePendingActivationEffects()) {
+            return 0;
+        }
+
+        ServerPlayer player = server.getPlayerList().getPlayer(lane.ownerPlayer());
+        if (player != null) {
+            player.playNotifySound(SoundEvents.APPLY_EFFECT_RAID_OMEN, SoundSource.HOSTILE, 1.0F, 1.0F);
+        }
+
+        int affectedTowers = 0;
+        for (Tower tower : lane.towers()) {
+            if (!IllagerTowers.isIllagerTower(tower.type()) || tower.health() <= 0.0
+                    || !(tower instanceof EntityBackedTower entityBackedTower) || entityBackedTower.entityId().isEmpty()) {
+                continue;
             }
-            ServerPlayer player = server.getPlayerList().getPlayer(playerId);
-            if (player != null) {
-                player.playNotifySound(SoundEvents.APPLY_EFFECT_RAID_OMEN, SoundSource.HOSTILE, 1.0F, 1.0F);
+            if (lane.arenaWorld().getEntity(entityBackedTower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity
+                    && towerEntity.isAlive() && !towerEntity.isRemoved()) {
+                TowerVfxService.showIllagerRaidActivation(towerEntity);
+                affectedTowers++;
             }
-        });
+        }
+        return affectedTowers;
     }
 
     static int gaugeMax() {

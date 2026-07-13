@@ -73,6 +73,8 @@ public final class TowerVfxService {
     private static final DustParticleOptions LIFE_STEAL_PARTICLE = new DustParticleOptions(0xE53935, 0.85F);
     private static final DustParticleOptions NETHER_TRANSITION_PARTICLE = new DustParticleOptions(0xFF6D00, 1.2F);
     private static final DustParticleOptions ZOMBIE_TRANSITION_PARTICLE = new DustParticleOptions(0x6D8B3D, 1.0F);
+    private static final DustParticleOptions ILLAGER_RAID_POWER_PARTICLE = new DustParticleOptions(0xE53935, 1.2F);
+    private static final DustParticleOptions ILLAGER_RAID_ARMOR_PARTICLE = new DustParticleOptions(0xB0BEC5, 1.0F);
 
     private static final Set<String> UNDEAD_TOWER_IDS = Set.of(
             UndeadTowers.T1_ZOMBIE_TOWER.id(), UndeadTowers.T2_ZOMBIE_TOWER.id(), UndeadTowers.T3_ZOMBIE_TOWER.id(),
@@ -100,6 +102,8 @@ public final class TowerVfxService {
     private static volatile AreaVfxStyleRegistryImpl areaVfxStyles;
     private static volatile ExecutorService executor;
     private static volatile Consumer<AreaEffectVfxEvent> areaEffectTestObserver;
+    private static volatile Consumer<Vec3> netherTransitionTestObserver;
+    private static volatile Consumer<Vec3> illagerRaidActivationTestObserver;
     private static final Set<net.minecraft.resources.ResourceLocation> MISSING_STYLE_WARNINGS = ConcurrentHashMap.newKeySet();
     private static final Map<net.minecraft.resources.ResourceLocation, Long> STYLE_ERROR_LOG_TICKS = new ConcurrentHashMap<>();
 
@@ -167,8 +171,31 @@ public final class TowerVfxService {
         }
         EventContext context = context(tower, towerCenter(tower));
         if (context != null) {
-            enqueue(new TransitionEvent(context, towerCenter(tower)));
+            Vec3 center = towerCenter(tower);
+            Consumer<Vec3> observer = netherTransitionTestObserver;
+            if (observer != null) {
+                observer.accept(center);
+            }
+            enqueue(new TransitionEvent(context, center));
         }
+    }
+
+    public static void showIllagerRaidActivation(SemionTowerEntity tower) {
+        if (!config.enabled() || tower == null) {
+            return;
+        }
+        Vec3 center = towerCenter(tower);
+        EventContext context = context(tower, center);
+        if (context == null) {
+            return;
+        }
+        Consumer<Vec3> observer = illagerRaidActivationTestObserver;
+        if (observer != null) {
+            observer.accept(center);
+        }
+        double radius = Math.max(1.05, Math.min(1.7, tower.getBbWidth() * 0.85));
+        double height = Math.max(1.6, Math.min(2.6, tower.getBbHeight() * 0.9));
+        enqueue(new IllagerRaidActivationEvent(context, center, radius, height));
     }
 
     public static void endServerTick(MinecraftServer server) {
@@ -370,6 +397,14 @@ public final class TowerVfxService {
         areaEffectTestObserver = observer;
     }
 
+    static void setNetherTransitionTestObserver(Consumer<Vec3> observer) {
+        netherTransitionTestObserver = observer;
+    }
+
+    static void setIllagerRaidActivationTestObserver(Consumer<Vec3> observer) {
+        illagerRaidActivationTestObserver = observer;
+    }
+
     private static Vec3 towerCenter(SemionTowerEntity tower) {
         return tower == null
                 ? Vec3.ZERO
@@ -489,6 +524,8 @@ public final class TowerVfxService {
                 renderKill(kill, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             } else if (event instanceof TransitionEvent transition) {
                 renderTransition(transition, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof IllagerRaidActivationEvent raidActivation) {
+                renderIllagerRaidActivation(raidActivation, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             }
         }
         long elapsedMicros = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - started);
@@ -583,12 +620,84 @@ public final class TowerVfxService {
     }
 
     private static void renderTransition(TransitionEvent event, long gameTime, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts) {
-        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 44, 10, true);
-        sendSphere(event.context(), NETHER_TRANSITION_PARTICLE, "minecraft:flame", event.center, 0.9, points / 2,
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 160, 64, true);
+        int orangeSpherePoints = points * 22 / 100;
+        int greenSpherePoints = points * 26 / 100;
+        int groundRingPoints = points * 14 / 100;
+        int middleRingPoints = points * 14 / 100;
+        int trailPoints = Math.max(4, (points - orangeSpherePoints - greenSpherePoints - groundRingPoints - middleRingPoints) / 4);
+
+        sendSphere(event.context(), NETHER_TRANSITION_PARTICLE, "minecraft:flame", event.center, 1.15, orangeSpherePoints,
                 true, config, packetCounts, shapeCounts);
-        sendCircle(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", event.center.add(0.0, -0.65, 0.0), 0.7,
-                Math.max(8, points / 2), true, config, packetCounts, shapeCounts);
-        sendParticle(event.context(), ParticleTypes.LARGE_SMOKE, "minecraft:large_smoke", event.center, false, config, packetCounts, shapeCounts);
+        sendSphere(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", event.center.add(0.0, 0.05, 0.0), 0.78,
+                greenSpherePoints, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), NETHER_TRANSITION_PARTICLE, "minecraft:flame", event.center.add(0.0, -0.68, 0.0), 1.05,
+                groundRingPoints, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", event.center.add(0.0, -0.08, 0.0), 0.72,
+                middleRingPoints, true, config, packetCounts, shapeCounts);
+
+        for (int index = 0; index < 4; index++) {
+            double angle = Math.PI * 2.0 * index / 4.0;
+            Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
+            Vec3 start = event.center.add(direction.scale(0.72)).add(0.0, -0.48, 0.0);
+            Vec3 control = event.center.add(direction.scale(1.05)).add(0.0, 0.48, 0.0);
+            Vec3 end = event.center.add(direction.scale(0.28)).add(0.0, 1.42, 0.0);
+            sendTrail(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", start, control, end,
+                    trailPoints, true, config, packetCounts, shapeCounts);
+        }
+
+        int smokePoints = claimVanillaPoints(event.context().lane(), gameTime, config, 18, 0, false);
+        if (smokePoints > 0) {
+            sendSphere(event.context(), ParticleTypes.LARGE_SMOKE, "minecraft:large_smoke", event.center, 0.58,
+                    smokePoints, false, config, packetCounts, shapeCounts);
+        }
+    }
+
+    private static void renderIllagerRaidActivation(
+            IllagerRaidActivationEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 180, 72, true);
+        int armorSpherePoints = points * 22 / 100;
+        int powerSpherePoints = points * 28 / 100;
+        int baseRingPoints = points * 16 / 100;
+        int upperRingPoints = points * 12 / 100;
+        int trailPoints = Math.max(4, (points - armorSpherePoints - powerSpherePoints - baseRingPoints - upperRingPoints) / 6);
+        Vec3 base = event.center.add(0.0, -event.height * 0.5, 0.0);
+
+        sendSphere(event.context(), ILLAGER_RAID_ARMOR_PARTICLE, "minecraft:ash", event.center, event.radius,
+                armorSpherePoints, true, config, packetCounts, shapeCounts);
+        sendSphere(event.context(), ILLAGER_RAID_POWER_PARTICLE, "minecraft:damage_indicator", event.center, event.radius * 0.68,
+                powerSpherePoints, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), ILLAGER_RAID_POWER_PARTICLE, "minecraft:damage_indicator", base, event.radius,
+                baseRingPoints, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), ILLAGER_RAID_ARMOR_PARTICLE, "minecraft:ash", event.center.add(0.0, event.height * 0.12, 0.0),
+                event.radius * 0.62, upperRingPoints, true, config, packetCounts, shapeCounts);
+
+        for (int index = 0; index < 6; index++) {
+            double angle = Math.PI * 2.0 * index / 6.0;
+            Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
+            Vec3 start = base.add(direction.scale(event.radius * 0.82));
+            Vec3 control = event.center.add(direction.scale(event.radius * 1.05));
+            Vec3 end = event.center.add(direction.scale(event.radius * 0.24)).add(0.0, event.height * 0.5, 0.0);
+            sendTrail(event.context(), ILLAGER_RAID_POWER_PARTICLE, "minecraft:damage_indicator", start, control, end,
+                    trailPoints, true, config, packetCounts, shapeCounts);
+        }
+
+        int sparkPoints = claimVanillaPoints(event.context().lane(), gameTime, config, 24, 0, false);
+        if (sparkPoints > 0) {
+            sendSphere(event.context(), ParticleTypes.ELECTRIC_SPARK, "minecraft:electric_spark", event.center,
+                    event.radius * 0.58, sparkPoints, false, config, packetCounts, shapeCounts);
+        }
+        int angerPoints = claimVanillaPoints(event.context().lane(), gameTime, config, 8, 0, false);
+        if (angerPoints > 0) {
+            sendSphere(event.context(), ParticleTypes.ANGRY_VILLAGER, "minecraft:angry_villager",
+                    event.center.add(0.0, event.height * 0.32, 0.0), event.radius * 0.48,
+                    angerPoints, false, config, packetCounts, shapeCounts);
+        }
     }
 
     private static void sendLine(
@@ -973,6 +1082,19 @@ public final class TowerVfxService {
         private TransitionEvent(EventContext context, Vec3 center) {
             super(context, Phase.AREA_DAMAGE);
             this.center = center;
+        }
+    }
+
+    private static final class IllagerRaidActivationEvent extends PendingEvent {
+        private final Vec3 center;
+        private final double radius;
+        private final double height;
+
+        private IllagerRaidActivationEvent(EventContext context, Vec3 center, double radius, double height) {
+            super(context, Phase.AREA_DAMAGE);
+            this.center = center;
+            this.radius = radius;
+            this.height = height;
         }
     }
 

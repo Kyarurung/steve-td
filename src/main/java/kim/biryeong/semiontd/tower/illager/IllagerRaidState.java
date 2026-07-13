@@ -4,7 +4,7 @@ public final class IllagerRaidState {
     private int gauge;
     private boolean active;
     private int roundStartTowerCount;
-    private boolean pendingActivationSound;
+    private boolean pendingActivationEffects;
 
     public int gauge() {
         return gauge;
@@ -18,15 +18,15 @@ public final class IllagerRaidState {
         return roundStartTowerCount;
     }
 
-    public boolean pendingActivationSound() {
-        return pendingActivationSound;
+    public boolean pendingActivationEffects() {
+        return pendingActivationEffects;
     }
 
     public void resetForRound(int roundStartTowerCount) {
         this.gauge = 0;
         this.active = false;
         this.roundStartTowerCount = Math.max(0, roundStartTowerCount);
-        this.pendingActivationSound = false;
+        this.pendingActivationEffects = false;
     }
 
     public boolean addGauge(int amount, int gaugeMax) {
@@ -36,17 +36,17 @@ public final class IllagerRaidState {
         gauge = Math.min(Math.max(1, gaugeMax), gauge + amount);
         if (gauge >= Math.max(1, gaugeMax)) {
             active = true;
-            pendingActivationSound = true;
+            pendingActivationEffects = true;
             return true;
         }
         return false;
     }
 
-    public boolean consumePendingActivationSound() {
-        if (!pendingActivationSound) {
+    public boolean consumePendingActivationEffects() {
+        if (!pendingActivationEffects) {
             return false;
         }
-        pendingActivationSound = false;
+        pendingActivationEffects = false;
         return true;
     }
 }

@@ -22,8 +22,11 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
+import kim.biryeong.semiontd.tower.illager.IllagerTower;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.nether.NetherTower;
+import kim.biryeong.semiontd.tower.nether.NetherTowerState;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -56,6 +59,54 @@ public final class TowerVfxGameTest {
         assertPalette(IllagerTowers.T1_VINDICATOR, BuilderPalette.ILLAGER);
         assertPalette(NetherTowers.T1_STRIDER, BuilderPalette.NETHER);
         context.succeed();
+    }
+
+    @GameTest
+    public void netherDeathTransitionsToZombieAndEmitsVfx(GameTestHelper context) {
+        List<Vec3> observed = new ArrayList<>();
+        TowerVfxService.setNetherTransitionTestObserver(observed::add);
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("nether-transition-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            NetherTower runtimeTower = new NetherTower(NetherTowers.T1_STRIDER, owner, TeamId.RED, 1, new GridPosition(2, 2, 2));
+            SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            tower.setPos(2.0, 2.0, 2.0);
+            tower.configure(runtimeTower, null);
+
+            runtimeTower.onDamaged(tower, null, runtimeTower.currentMaxHealth(), runtimeTower.currentMaxHealth(), 0.0);
+
+            if (runtimeTower.state() != NetherTowerState.ZOMBIE) {
+                throw new AssertionError("Lethal damage should transition a nether tower to zombie state");
+            }
+            if (observed.size() != 1 || observed.getFirst().distanceTo(tower.position()) > 2.0) {
+                throw new AssertionError("Zombie transition should emit one VFX event at the tower: " + observed);
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setNetherTransitionTestObserver(null);
+        }
+    }
+
+    @GameTest
+    public void illagerRaidActivationEmitsVfxAtTower(GameTestHelper context) {
+        List<Vec3> observed = new ArrayList<>();
+        TowerVfxService.setIllagerRaidActivationTestObserver(observed::add);
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("illager-raid-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            GridPosition position = new GridPosition(2, 2, 2);
+            IllagerTower runtimeTower = new IllagerTower(IllagerTowers.T1_VINDICATOR, owner, TeamId.RED, 1, position, position);
+            SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            tower.setPos(2.0, 2.0, 2.0);
+            tower.configure(runtimeTower, null);
+
+            TowerVfxService.showIllagerRaidActivation(tower);
+
+            if (observed.size() != 1 || observed.getFirst().distanceTo(tower.position()) > 2.0) {
+                throw new AssertionError("Illager raid activation should emit one VFX event at the tower: " + observed);
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setIllagerRaidActivationTestObserver(null);
+        }
     }
 
     @GameTest
