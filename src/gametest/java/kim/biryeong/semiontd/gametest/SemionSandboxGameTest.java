@@ -37,6 +37,9 @@ import kim.biryeong.semiontd.job.AnimalTowerJob;
 import kim.biryeong.semiontd.job.IllagerTowerJob;
 import kim.biryeong.semiontd.map.GameArena;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
+import kim.biryeong.semiontd.music.SemionMusicLibrary;
+import kim.biryeong.semiontd.music.SemionMusicService;
+import kim.biryeong.semiontd.music.SemionMusicTrack;
 import kim.biryeong.semiontd.summon.SummonResult;
 import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonTier;
@@ -48,6 +51,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -208,6 +212,64 @@ public final class SemionSandboxGameTest {
             context.succeed();
         } catch (Exception exception) {
             context.fail(Component.literal("Sandbox isolation test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxMusicTargetsOwnerAndStopsWhenSandboxEnds(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var owner = context.makeMockServerPlayerInLevel();
+            UUID ownerId = owner.getUUID();
+            SemionMusicTrack track = new SemionMusicTrack(
+                    "sandbox",
+                    Path.of("sandbox.ogg"),
+                    ResourceLocation.fromNamespaceAndPath("semion-td", "music.sandbox"),
+                    ResourceLocation.fromNamespaceAndPath("semion-td", "music/sandbox"),
+                    200L
+            );
+            SemionMusicService musicService = new SemionMusicService(new SemionMusicLibrary(List.of(track)), () -> 100L);
+            manager.configureMusic(musicService);
+
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    ownerId,
+                    owner.getGameProfile().getName(),
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Sandbox should start before music playback.")) {
+                return;
+            }
+
+            manager.tick(server);
+            if (!assertEquals(
+                    context,
+                    SemionMusicService.PlaybackAction.NONE,
+                    musicService.decisionFor(ownerId, 0L, false).action(),
+                    "Sandbox owner should be tracked by the music service."
+            )) {
+                return;
+            }
+
+            if (!assertTrue(context, manager.stopSandbox(ownerId), "Sandbox should stop before music cleanup.")) {
+                return;
+            }
+            manager.tick(server);
+            if (!assertEquals(
+                    context,
+                    SemionMusicService.PlaybackAction.START_TRACK,
+                    musicService.decisionFor(ownerId, 0L, false).action(),
+                    "Sandbox owner should no longer be tracked after the sandbox stops."
+            )) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox music test failed: " + exception.getMessage()));
         } finally {
             manager.shutdown();
         }

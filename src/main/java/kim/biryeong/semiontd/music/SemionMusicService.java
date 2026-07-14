@@ -1,8 +1,10 @@
 package kim.biryeong.semiontd.music;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -77,8 +79,9 @@ public final class SemionMusicService {
         playedTrackIndices.clear();
     }
 
-    public void tick(MinecraftServer server, SemionGame game) {
-        if (!isMusicActive(game)) {
+    public void tick(MinecraftServer server, SemionGame activeGame, Collection<SemionGame> sandboxGames) {
+        Set<UUID> targetPlayers = targetPlayers(activeGame, sandboxGames);
+        if (targetPlayers.isEmpty()) {
             stopAll(server);
             active = false;
             musicTick = 0L;
@@ -93,14 +96,13 @@ public final class SemionMusicService {
         }
 
         long currentTick = musicTick;
-        Set<UUID> targetPlayers = targetPlayers(game);
         for (UUID playerId : targetPlayers) {
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
             if (player != null) {
                 ensurePlayback(player, currentTick);
             }
         }
-        playerStates.keySet().removeIf(playerId -> !targetPlayers.contains(playerId));
+        stopPlayersOutsideTargets(server, targetPlayers);
         musicTick++;
     }
 
@@ -251,10 +253,36 @@ public final class SemionMusicService {
                 && !library.isEmpty();
     }
 
-    private Set<UUID> targetPlayers(SemionGame game) {
-        Set<UUID> playerIds = new HashSet<>(game.players().keySet());
-        playerIds.addAll(game.matchSpectatorIds());
+    private Set<UUID> targetPlayers(SemionGame activeGame, Collection<SemionGame> sandboxGames) {
+        Set<UUID> playerIds = new HashSet<>();
+        addTargetPlayers(activeGame, playerIds);
+        for (SemionGame sandboxGame : sandboxGames) {
+            addTargetPlayers(sandboxGame, playerIds);
+        }
         return playerIds;
+    }
+
+    private void addTargetPlayers(SemionGame game, Set<UUID> playerIds) {
+        if (!isMusicActive(game)) {
+            return;
+        }
+        playerIds.addAll(game.players().keySet());
+        playerIds.addAll(game.matchSpectatorIds());
+    }
+
+    private void stopPlayersOutsideTargets(MinecraftServer server, Set<UUID> targetPlayers) {
+        Iterator<Map.Entry<UUID, PlayerMusicState>> iterator = playerStates.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, PlayerMusicState> entry = iterator.next();
+            if (targetPlayers.contains(entry.getKey())) {
+                continue;
+            }
+            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+            if (player != null && entry.getValue().playingEventId != null) {
+                stopMusic(player, entry.getValue().playingEventId);
+            }
+            iterator.remove();
+        }
     }
 
     private void stopAll(MinecraftServer server) {

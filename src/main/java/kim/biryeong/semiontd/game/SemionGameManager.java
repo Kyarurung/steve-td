@@ -1238,7 +1238,7 @@ public final class SemionGameManager {
 
     public void tick(MinecraftServer server) {
         IllusionCloneSpawnQueue.tick();
-        musicService.tick(server, activeGame);
+        musicService.tick(server, activeGame, sandboxGames.values());
         tickPendingRatingRetry(server);
         tickPendingMatchResultDialog(server);
         tickSandboxGames(server);
