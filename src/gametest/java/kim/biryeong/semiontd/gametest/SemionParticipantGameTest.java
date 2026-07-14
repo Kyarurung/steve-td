@@ -196,6 +196,7 @@ import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHudTextService;
+import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
@@ -207,12 +208,15 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import org.slf4j.LoggerFactory;
@@ -8417,6 +8421,74 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void legionGoatBuffPulsesDuringPrepareAndAppearsOnRightClick(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        UUID playerId = player.getUUID();
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, LegionTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos targetPos = towerPlacementPos(lane);
+        BlockPos goatPos = nearbyTowerPlacementPos(lane, targetPos);
+
+        if (!assertEquals(context, TowerPlacementResult.SUCCESS, ProductionTowerService.placeTower(game, playerId, targetPos, LegionTowers.T1_CHICKEN.id()), "Player should place a Legion target during prepare.")) {
+            return;
+        }
+        if (!assertEquals(context, TowerPlacementResult.SUCCESS, ProductionTowerService.placeTower(game, playerId, goatPos, LegionTowers.T1_GOAT_TOWER.id()), "Player should place a goat during prepare.")) {
+            return;
+        }
+
+        Tower target = lane.towers().stream()
+                .filter(tower -> tower.type().id().equals(LegionTowers.T1_CHICKEN.id()))
+                .findFirst()
+                .orElseThrow();
+        LegionGoatTower goat = lane.towers().stream()
+                .filter(LegionGoatTower.class::isInstance)
+                .map(LegionGoatTower.class::cast)
+                .findFirst()
+                .orElseThrow();
+        SemionTowerEntity targetEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(((EntityBackedTower) target).entityId().orElseThrow());
+
+        game.tick(context.getLevel().getServer());
+        if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Goat buff verification should run during the real prepare phase.")) {
+            return;
+        }
+        if (!assertClose(context, 0.02, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat should buff a player's Legion tower during prepare.")) {
+            return;
+        }
+        if (!assertTrue(context, towerTimedEffectBody(targetEntity).contains("피해 증가 +2.0%"), "Right-click tower details should show the active goat damage buff.")) {
+            return;
+        }
+
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+        try {
+            InteractionResult result = SemionTowerInteractionService.handleUse(
+                    manager,
+                    player,
+                    context.getLevel(),
+                    InteractionHand.MAIN_HAND,
+                    targetEntity,
+                    new EntityHitResult(targetEntity)
+            );
+            if (!assertEquals(context, InteractionResult.SUCCESS, result, "A real player right-click should open the buffed tower details.")) {
+                return;
+            }
+        } finally {
+            setField(manager, "activeGame", null);
+            manager.shutdown();
+        }
+
+        for (int tick = 0; tick <= goat.type().attackIntervalTicks(); tick++) {
+            targetEntity.aiStep();
+            game.tick(context.getLevel().getServer());
+        }
+        int buffDurationTicks = TowerBalanceRuntime.abilityTicks(goat.type().id(), "buffDurationTicks");
+        if (!assertEquals(context, buffDurationTicks, targetEntity.activeTimedEffectTicks(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat should refresh its buff every configured pulse interval.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void legionGoatTowerBuffsLegionBodiesAndClonesUpToThreeStacks(GameTestHelper context) {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         UUID playerId = stableUuid("legion-goat-buff-owner");
@@ -8490,6 +8562,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 0.195, cloneEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat clone damage reduction should stack up to three times.")) {
+            return;
+        }
+
+        if (!assertTrue(context, lane.killTower(goat), "Goat stack test should kill the first provider.")) {
+            return;
+        }
+        int buffDurationTicks = TowerBalanceRuntime.abilityTicks(goat.type().id(), "buffDurationTicks");
+        for (int tick = 0; tick < buffDurationTicks; tick++) {
+            bodyEntity.aiStep();
+        }
+        for (LegionGoatTower provider : List.of(secondGoat, thirdGoat, fourthGoat)) {
+            provider.resetForRound(lane);
+            provider.tick(lane);
+        }
+        if (!assertClose(context, 0.15, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "A dead goat should not consume one of the three buff stacks.")) {
             return;
         }
         context.succeed();
@@ -9530,6 +9617,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     private static void tickLaneWithGlobalCloneQueue(PlayerLane lane, MinecraftServer server) {
         IllusionCloneSpawnQueue.tick();
         lane.tick(server);
+    }
+
+    private static String towerTimedEffectBody(SemionTowerEntity entity) {
+        try {
+            Method method = SemionDialogService.class.getDeclaredMethod("appendTowerTimedEffects", StringBuilder.class, SemionTowerEntity.class);
+            method.setAccessible(true);
+            StringBuilder body = new StringBuilder();
+            method.invoke(null, body, entity);
+            return body.toString();
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Failed to render tower timed effects.", exception);
+        }
     }
 
     private static void setField(Object target, String fieldName, Object value) {

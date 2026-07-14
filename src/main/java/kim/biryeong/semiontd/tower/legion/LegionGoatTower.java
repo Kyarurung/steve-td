@@ -124,7 +124,8 @@ public class LegionGoatTower extends SupportTower {
     }
 
     private boolean canBuff(Tower target) {
-        return target != null
+        return health() > 0.0
+                && target != null
                 && target.health() > 0.0
                 && target.ownerPlayer().equals(ownerPlayer())
                 && target.teamId() == teamId()
@@ -144,7 +145,7 @@ public class LegionGoatTower extends SupportTower {
         if (magnitude <= 0.0) {
             return false;
         }
-        return entity.applyTimedEffect(type, source, magnitude, ticks("buffDurationTicks"));
+        return entity.refreshTimedEffect(type, source, magnitude, ticks("buffDurationTicks"));
     }
 
     private Optional<SemionTowerEntity> towerEntity(Tower target, PlayerLane lane) {

@@ -270,12 +270,7 @@ public final class PlayerLane {
         spawnQueuedWaveMonster(players);
         spawnQueuedMonster(summonedMonsterSpawnQueue, players, false);
 
-        for (Tower tower : List.copyOf(towers)) {
-            if (towers.contains(tower)) {
-                tower.tick(this);
-            }
-        }
-        syncTowerStates();
+        tickTowers();
 
         Iterator<Monster> iterator = activeMonsters.iterator();
         while (iterator.hasNext()) {
@@ -303,6 +298,15 @@ public final class PlayerLane {
             clearedThisRound = true;
         }
         IllagerRaidStates.playPendingActivationEffects(server, this);
+    }
+
+    void tickTowers() {
+        for (Tower tower : List.copyOf(towers)) {
+            if (towers.contains(tower)) {
+                tower.tick(this);
+            }
+        }
+        syncTowerStates();
     }
 
     public void clearTowers() {

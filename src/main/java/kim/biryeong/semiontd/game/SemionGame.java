@@ -933,6 +933,11 @@ public final class SemionGame {
 
     private void tickPrepare(MinecraftServer server) {
         phaseTicks++;
+        for (SemionTeam team : livingTeams()) {
+            for (PlayerLane lane : team.laneGroup().lanes()) {
+                lane.tickTowers();
+            }
+        }
         if (phaseTicks % 80 == 0) {
             showLaneIndicators(server);
         }
