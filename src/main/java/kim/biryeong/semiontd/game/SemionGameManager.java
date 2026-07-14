@@ -855,6 +855,7 @@ public final class SemionGameManager {
         ensureLobby(server);
 
         if (activeGame != null) {
+            finalizeBuildGuideRecording(activeGame, activeGame.matchResult());
             sidebarHudService.clear(server);
             illagerRaidBossBarService.clear(server);
             villagerAdvReputationBossBarService.clear(server);

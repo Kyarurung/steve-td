@@ -2691,7 +2691,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void buildGuideCanPublishAfterNextWaitingGameIsCreated(GameTestHelper context) {
+    public void buildGuideRemainsPublishableUntilNextCountdownCompletes(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();
         var player = context.makeMockServerPlayerInLevel();
         SemionGameManager manager = new SemionGameManager();
@@ -2729,7 +2729,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
             PlayerLane lane = redLane(finishedGame, 1);
             finishedGame.recordTowerPlacement(redId, "waiting_publish_tower", GridPosition.from(towerPlacementPos(lane)), 0L);
-            manager.buildGuideService().finishMatch(finishedGame, 2);
+            if (!assertTrue(context, finishedGame.killBoss(TeamId.BLUE), "First game should end before the next game is created.")) {
+                return;
+            }
 
             SemionGame waitingGame = manager.createGame(server);
             if (!assertTrue(context, manager.lastMatchResult().isEmpty(), "Creating the next waiting game should clear stale match results.")) {
@@ -2739,74 +2741,54 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
 
-            Optional<BuildGuide> published = manager.publishLastBuild(player, "대기 중 저장");
-            if (!assertPresent(context, published, "Last finished build recording should publish while the next game is still waiting.")) {
+            ParticipantSelectionPlan secondPlan = new ParticipantSelectionPlan(
+                    MatchMode.NORMAL,
+                    List.of(
+                            new AssignedParticipant(redId, player.getGameProfile().getName(), TeamId.RED, 1),
+                            new AssignedParticipant(blueId, "build-guide-waiting-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(),
+                    2
+            );
+            if (!assertEquals(
+                    context,
+                    SemionGameManager.StartCountdownResult.SCHEDULED,
+                    manager.scheduleStart(server, secondPlan),
+                    "Next game countdown should start."
+            )) {
+                return;
+            }
+            for (int tick = 0; tick < SemionGameManager.START_COUNTDOWN_TICKS - 1; tick++) {
+                manager.tick(server);
+            }
+            if (!assertEquals(context, RoundPhase.WAITING, waitingGame.phase(), "Next game should remain waiting until the final countdown tick.")) {
+                return;
+            }
+            Optional<BuildGuide> published = manager.publishLastBuild(player, "카운트다운 중 저장");
+            if (!assertPresent(context, published, "Last finished build recording should publish before the countdown completes.")) {
                 return;
             }
             if (!assertEquals(context, 1, published.get().actions().size(), "Published waiting-period guide should preserve the previous match action.")) {
                 return;
             }
+
+            manager.tick(server);
+            if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, waitingGame.phase(), "Final countdown tick should start the next game.")) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    manager.publishLastBuild(player, "너무 늦은 저장").isEmpty(),
+                    "Previous match recording should expire when the next game starts."
+            )) {
+                return;
+            }
             context.succeed();
         } catch (Exception exception) {
-            context.fail(Component.literal("Build guide should publish after next waiting game creation: " + exception.getMessage()));
+            context.fail(Component.literal("Build guide should remain publishable until the next countdown completes: " + exception.getMessage()));
         } finally {
             manager.shutdown();
         }
-    }
-
-    @GameTest
-    public void buildGuideExpiresPreviousRecordingWhenNextMatchStarts(GameTestHelper context) {
-        BuildGuideService service = new BuildGuideService(null);
-        UUID redId = stableUuid("build-guide-expire-red-owner");
-        UUID blueId = stableUuid("build-guide-expire-blue-owner");
-        SemionGame firstGame = new SemionGame(
-                EconomyConfig.defaultConfig(),
-                new WaveConfig(List.of(), 20, null),
-                testArena(context),
-                service
-        );
-        ParticipantSelectionPlan firstPlan = new ParticipantSelectionPlan(
-                MatchMode.NORMAL,
-                List.of(
-                        new AssignedParticipant(redId, "build-guide-expire-red", TeamId.RED, 1),
-                        new AssignedParticipant(blueId, "build-guide-expire-blue", TeamId.BLUE, 1)
-                ),
-                Set.of(),
-                2
-        );
-        if (!assertTrue(context, firstGame.start(context.getLevel().getServer(), firstPlan), "First game should start build recording.")) {
-            return;
-        }
-        PlayerLane firstLane = redLane(firstGame, 1);
-        firstGame.recordTowerPlacement(redId, "expired_publish_tower", GridPosition.from(towerPlacementPos(firstLane)), 0L);
-        service.finishMatch(firstGame, 2);
-
-        SemionGame secondGame = new SemionGame(
-                EconomyConfig.defaultConfig(),
-                new WaveConfig(List.of(), 20, null),
-                testArena(context),
-                service
-        );
-        ParticipantSelectionPlan secondPlan = new ParticipantSelectionPlan(
-                MatchMode.NORMAL,
-                List.of(
-                        new AssignedParticipant(redId, "build-guide-expire-red", TeamId.RED, 1),
-                        new AssignedParticipant(blueId, "build-guide-expire-blue", TeamId.BLUE, 1)
-                ),
-                Set.of(),
-                2
-        );
-        if (!assertTrue(context, secondGame.start(context.getLevel().getServer(), secondPlan), "Second game start should expire previous unpublished recording.")) {
-            return;
-        }
-        if (!assertTrue(
-                context,
-                service.publishLastRecording(redId, "너무 늦은 저장").isEmpty(),
-                "Previous match recording should no longer publish after the next match starts."
-        )) {
-            return;
-        }
-        context.succeed();
     }
 
     @GameTest
