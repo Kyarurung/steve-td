@@ -32,8 +32,10 @@ public final class SemionHotbarService {
 
     public static void grantMatchTools(ServerPlayer player) {
         ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD).copy();
+        ItemStack offhand = player.getItemBySlot(EquipmentSlot.OFFHAND).copy();
         player.getInventory().clearContent();
         player.setItemSlot(EquipmentSlot.HEAD, head);
+        player.setItemSlot(EquipmentSlot.OFFHAND, offhand);
         setTool(player, TOWER_TOOL_SLOT, towerTool());
         setTool(player, SUMMON_TOOL_SLOT, summonTool());
     }

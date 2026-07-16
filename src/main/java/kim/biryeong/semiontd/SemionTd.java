@@ -1,11 +1,13 @@
 package kim.biryeong.semiontd;
 
 import java.nio.file.Path;
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import kim.biryeong.semiontd.api.SemionTdApi;
 import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.SemionConfigLoader;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.cosmetic.CosmeticService;
+import kim.biryeong.semiontd.cosmetic.SemionCosmeticItems;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.SemionPolymerEntityDataWarmup;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
@@ -54,6 +56,8 @@ public class SemionTd implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        SemionCosmeticItems.register();
+        PolymerResourcePackUtils.addModAssets(MOD_ID);
         SemionEntityTypes.register();
         BuiltInTraits.register();
 

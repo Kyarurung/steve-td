@@ -1,6 +1,8 @@
 package kim.biryeong.semiontd.cosmetic;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.progression.ProgressionService.CosmeticUpdateResult;
@@ -8,11 +10,11 @@ import kim.biryeong.semiontd.progression.SemionPlayerProfile;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.equipment.Equippable;
 
@@ -27,12 +29,14 @@ public final class CosmeticService {
 
     public void registerUseProtection() {
         UseItemCallback.EVENT.register((player, world, hand) -> {
-            if (world.isClientSide() || !CosmeticItemSupport.isCosmetic(player.getItemBySlot(EquipmentSlot.HEAD))) {
+            if (world.isClientSide()) {
                 return InteractionResult.PASS;
             }
             ItemStack held = player.getItemInHand(hand);
             Equippable equippable = held.get(DataComponents.EQUIPPABLE);
-            return equippable != null && equippable.slot() == EquipmentSlot.HEAD
+            return equippable != null
+                    && CosmeticItemSupport.supports(equippable.slot())
+                    && CosmeticItemSupport.isCosmetic(player.getItemBySlot(equippable.slot()))
                     ? InteractionResult.FAIL
                     : InteractionResult.PASS;
         });
@@ -101,20 +105,28 @@ public final class CosmeticService {
     }
 
     private void handleToggle(ServerPlayer player, CosmeticCatalog.Entry entry, SemionPlayerProfile profile) {
-        boolean selected = profile.selectedCosmeticId().equals(entry.id());
+        boolean selected = profile.isCosmeticSelected(entry.id());
         if (!selected) {
-            ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
-            if (!head.isEmpty() && !CosmeticItemSupport.isCosmetic(head)) {
-                player.sendSystemMessage(SemionText.prefixedError("머리 슬롯의 아이템을 먼저 치워야 합니다."));
+            ItemStack equipped = player.getItemBySlot(entry.slot());
+            if (!equipped.isEmpty() && !CosmeticItemSupport.isCosmetic(equipped)) {
+                player.sendSystemMessage(SemionText.prefixedError(
+                        CosmeticItemSupport.slotName(entry.slot()) + " 슬롯의 아이템을 먼저 치워야 합니다."
+                ));
                 return;
             }
         }
 
-        String selection = selected ? "" : entry.id();
-        CosmeticUpdateResult result = gameManager.selectCosmetic(
+        List<String> selections = new ArrayList<>(profile.selectedCosmeticIds());
+        if (selected) {
+            selections.remove(entry.id());
+        } else {
+            selections.removeIf(id -> catalog.find(id).map(existing -> existing.slot() == entry.slot()).orElse(false));
+            selections.add(entry.id());
+        }
+        CosmeticUpdateResult result = gameManager.selectCosmetics(
                 player.getUUID(),
                 player.getGameProfile().getName(),
-                selection
+                selections
         );
         if (result != CosmeticUpdateResult.SUCCESS) {
             player.sendSystemMessage(SemionText.prefixedError(result == CosmeticUpdateResult.PERSISTENCE_FAILED
@@ -123,13 +135,10 @@ public final class CosmeticService {
             return;
         }
 
-        if (selected) {
-            removeEquipped(player, entry.id());
-            player.sendSystemMessage(SemionText.prefixedPlain("치장 아이템을 해제했습니다."));
-        } else {
-            player.setItemSlot(EquipmentSlot.HEAD, CosmeticItemSupport.equippedCopy(entry));
-            player.sendSystemMessage(SemionText.prefixedPlain("치장 아이템을 착용했습니다."));
-        }
+        syncPlayer(player);
+        player.sendSystemMessage(SemionText.prefixedPlain(selected
+                ? "치장 아이템을 해제했습니다."
+                : "치장 아이템을 착용했습니다."));
     }
 
     public void syncPlayer(ServerPlayer player) {
@@ -137,26 +146,34 @@ public final class CosmeticService {
             return;
         }
         SemionPlayerProfile profile = profile(player);
-        String selectedId = profile.selectedCosmeticId();
-        if (selectedId.isBlank()) {
-            if (CosmeticItemSupport.isCosmetic(player.getItemBySlot(EquipmentSlot.HEAD))) {
-                player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+        List<CosmeticCatalog.Entry> selectedEntries = new ArrayList<>();
+        EnumSet<EquipmentSlot> selectedSlots = EnumSet.noneOf(EquipmentSlot.class);
+        for (String selectedId : profile.selectedCosmeticIds()) {
+            CosmeticCatalog.Entry entry = catalog.find(selectedId).orElse(null);
+            if (entry != null && profile.ownsCosmetic(selectedId) && selectedSlots.add(entry.slot())) {
+                selectedEntries.add(entry);
             }
-            return;
         }
 
-        CosmeticCatalog.Entry entry = catalog.find(selectedId).orElse(null);
-        if (entry == null || !profile.ownsCosmetic(selectedId)) {
-            if (gameManager.selectCosmetic(player.getUUID(), player.getGameProfile().getName(), "")
-                    == CosmeticUpdateResult.SUCCESS) {
-                removeEquipped(player, selectedId);
-            }
+        List<String> validIds = selectedEntries.stream().map(CosmeticCatalog.Entry::id).toList();
+        if (!validIds.equals(profile.selectedCosmeticIds())
+                && gameManager.selectCosmetics(player.getUUID(), player.getGameProfile().getName(), validIds)
+                != CosmeticUpdateResult.SUCCESS) {
             return;
         }
-
-        ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
-        if (head.isEmpty() || CosmeticItemSupport.isCosmetic(head)) {
-            player.setItemSlot(EquipmentSlot.HEAD, CosmeticItemSupport.equippedCopy(entry));
+        for (EquipmentSlot slot : CosmeticItemSupport.supportedSlots()) {
+            CosmeticCatalog.Entry selected = selectedEntries.stream()
+                    .filter(entry -> entry.slot() == slot)
+                    .findFirst()
+                    .orElse(null);
+            ItemStack equipped = player.getItemBySlot(slot);
+            if (selected == null) {
+                if (CosmeticItemSupport.isCosmetic(equipped)) {
+                    player.setItemSlot(slot, ItemStack.EMPTY);
+                }
+            } else if (equipped.isEmpty() || CosmeticItemSupport.isCosmetic(equipped)) {
+                player.setItemSlot(slot, CosmeticItemSupport.equippedCopy(selected));
+            }
         }
     }
 
@@ -164,16 +181,42 @@ public final class CosmeticService {
         return catalog.add(server.registryAccess(), id, price, item);
     }
 
+    public CosmeticCatalog.MutationResult add(
+            MinecraftServer server,
+            String id,
+            long price,
+            EquipmentSlot slot,
+            ItemStack item
+    ) {
+        return catalog.add(server.registryAccess(), id, price, slot, item);
+    }
+
     public CosmeticCatalog.MutationResult update(MinecraftServer server, String id, long price, ItemStack item) {
         CosmeticCatalog.MutationResult result = catalog.update(server.registryAccess(), id, price, item);
+        syncUpdatedEntry(server, id, result);
+        return result;
+    }
+
+    public CosmeticCatalog.MutationResult update(
+            MinecraftServer server,
+            String id,
+            long price,
+            EquipmentSlot slot,
+            ItemStack item
+    ) {
+        CosmeticCatalog.MutationResult result = catalog.update(server.registryAccess(), id, price, slot, item);
+        syncUpdatedEntry(server, id, result);
+        return result;
+    }
+
+    private void syncUpdatedEntry(MinecraftServer server, String id, CosmeticCatalog.MutationResult result) {
         if (result == CosmeticCatalog.MutationResult.SUCCESS) {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                if (profile(player).selectedCosmeticId().equals(id)) {
+                if (profile(player).isCosmeticSelected(id)) {
                     syncPlayer(player);
                 }
             }
         }
-        return result;
     }
 
     public RemoveResult remove(MinecraftServer server, String id) {
@@ -188,10 +231,15 @@ public final class CosmeticService {
         return new RemoveResult(result, profilesSaved);
     }
 
-    private static void removeEquipped(ServerPlayer player, String id) {
-        ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
-        if (CosmeticItemSupport.cosmeticId(head).equals(id)) {
-            player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+    private void removeEquipped(ServerPlayer player, String id) {
+        Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            if (CosmeticItemSupport.cosmeticId(inventory.getItem(slot)).equals(id)) {
+                inventory.setItem(slot, ItemStack.EMPTY);
+            }
+        }
+        if (CosmeticItemSupport.cosmeticId(player.containerMenu.getCarried()).equals(id)) {
+            player.containerMenu.setCarried(ItemStack.EMPTY);
         }
     }
 

@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.progression;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -93,12 +94,15 @@ public final class ProgressionService {
                 : CosmeticUpdateResult.PERSISTENCE_FAILED;
     }
 
-    public synchronized CosmeticUpdateResult selectCosmetic(UUID playerId, String playerName, String cosmeticId) {
+    public synchronized CosmeticUpdateResult selectCosmetics(UUID playerId, String playerName, List<String> cosmeticIds) {
         SemionPlayerProfile current = store.getOrCreateProfile(playerId, playerName);
-        if (cosmeticId != null && !cosmeticId.isBlank() && !current.ownsCosmetic(cosmeticId)) {
+        List<String> normalized = cosmeticIds == null
+                ? List.of()
+                : cosmeticIds.stream().filter(id -> id != null && !id.isBlank()).distinct().toList();
+        if (normalized.stream().anyMatch(id -> !current.ownsCosmetic(id))) {
             return CosmeticUpdateResult.NOT_OWNED;
         }
-        SemionPlayerProfile updated = current.updateSelectedCosmetic(playerName, cosmeticId);
+        SemionPlayerProfile updated = current.updateSelectedCosmetics(playerName, normalized);
         if (updated.equals(current)) {
             return CosmeticUpdateResult.SUCCESS;
         }

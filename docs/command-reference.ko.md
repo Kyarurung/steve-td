@@ -69,17 +69,19 @@
 | `/semiontd playerlimit add <player>` | 정원 초과 입장 허용 목록에 플레이어를 추가합니다. |
 | `/semiontd playerlimit remove <player>` | 정원 초과 입장 허용 목록에서 플레이어를 제거합니다. |
 | `/semiontd playerlimit list` | 정원 초과 입장 허용 목록을 봅니다. |
-| `/semiontd cosmetic add <id> <price>` | 주 손의 머리 착용 아이템을 1개로 복사해 판매 목록에 추가합니다. |
-| `/semiontd cosmetic update <id> <price>` | 기존 상품을 주 손 아이템과 새 가격으로 교체합니다. |
+| `/semiontd cosmetic add <id> <price> [slot]` | 주 손 아이템을 1개로 복사해 판매 목록에 추가합니다. `slot`은 `head` 또는 `offhand`이며 생략하면 `head`입니다. |
+| `/semiontd cosmetic update <id> <price> [slot]` | 기존 상품을 주 손 아이템과 새 가격으로 교체합니다. 슬롯을 생략하면 기존 슬롯을 유지합니다. |
 | `/semiontd cosmetic remove <id>` | 상품을 판매 목록에서 제거하고 해당 상품의 착용을 해제합니다. 구매 기록은 유지합니다. |
-| `/semiontd cosmetic list` | 등록된 상품 ID와 가격을 봅니다. |
+| `/semiontd cosmetic list` | 등록된 상품 ID, 가격, 착용 슬롯을 봅니다. |
 | `/semiontd cosmetic reload` | `cosmetics.json`을 다시 읽고 온라인 플레이어의 착용 상태를 갱신합니다. |
 | `/semiontd killboss <team>` | 지정 팀의 보스를 제거합니다. |
 | `/semiontd rating softreset` | ELO 데이터를 백업한 뒤 소프트 리셋합니다. 같은 관리자가 30초 안에 두 번 입력해야 실행됩니다. |
 
 `/semiontd reload`는 경제, 웨이브, 타워 카탈로그를 즉시 갱신합니다. 맵 설정은 다음 게임 생성부터 반영됩니다. 스카이박스와 음악은 이 명령에 포함되지 않으며 `/semiontd resourcepack reload`로 갱신합니다.
 
-치장 상품 등록과 수정에는 `EQUIPPABLE` 컴포넌트의 슬롯이 `HEAD`인 아이템만 쓸 수 있습니다. 가격은 `0` 이상이어야 합니다. 첫 클릭은 구매만 처리하며, 같은 상품을 다시 클릭하면 착용합니다. 착용 중인 상품을 클릭하면 해제합니다. 머리 슬롯에 일반 아이템이 있으면 착용하지 않습니다.
+치장 상품 등록과 수정에는 지정한 슬롯과 `EQUIPPABLE` 컴포넌트의 슬롯이 같은 아이템만 쓸 수 있습니다. 지원 슬롯은 `head`와 `offhand`이고 가격은 `0` 이상이어야 합니다. 첫 클릭은 구매만 처리하며, 같은 상품을 다시 클릭하면 착용합니다. 착용 중인 상품을 클릭하면 해제합니다.
+
+플레이어는 머리 치장과 왼손 치장을 함께 착용할 수 있습니다. 같은 슬롯에서는 마지막으로 선택한 상품 하나만 유지합니다. 슬롯에 일반 아이템이 있으면 해당 치장을 착용하지 않습니다. 왼손 치장은 치장 상점에서 해제하며, 손 교체나 인벤토리 조작으로 빼지 않습니다.
 
 ## 샌드박스 명령어
 

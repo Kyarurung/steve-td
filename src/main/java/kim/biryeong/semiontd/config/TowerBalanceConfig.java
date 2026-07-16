@@ -699,6 +699,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, LegionTowers.T1_GOAT_TOWER.id(), Map.of(
                 "radius", 5.0,
                 "damageBonus", 0.02,
+                "damageReduction", 0.02,
                 "cloneDamageBonus", 0.015,
                 "cloneDamageReduction", 0.02,
                 "maxStacks", 3.0,
@@ -707,6 +708,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, LegionTowers.T2_STRONG_GOAT_TOWER.id(), Map.of(
                 "radius", 6.0,
                 "damageBonus", 0.035,
+                "damageReduction", 0.04,
                 "cloneDamageBonus", 0.03,
                 "cloneDamageReduction", 0.04,
                 "maxStacks", 3.0,
@@ -715,6 +717,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, LegionTowers.T3_EXTREME_GOAT_TOWER.id(), Map.of(
                 "radius", 7.0,
                 "damageBonus", 0.05,
+                "damageReduction", 0.065,
                 "cloneDamageBonus", 0.065,
                 "cloneDamageReduction", 0.065,
                 "maxStacks", 3.0,

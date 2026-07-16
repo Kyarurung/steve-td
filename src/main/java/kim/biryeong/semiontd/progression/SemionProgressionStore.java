@@ -78,11 +78,15 @@ public final class SemionProgressionStore {
         ensureLoaded();
         Map<UUID, SemionPlayerProfile> previous = new HashMap<>();
         for (Map.Entry<UUID, SemionPlayerProfile> entry : profiles.entrySet()) {
-            if (!entry.getValue().selectedCosmeticId().equals(cosmeticId)) {
+            SemionPlayerProfile profile = entry.getValue();
+            if (!profile.isCosmeticSelected(cosmeticId)) {
                 continue;
             }
-            previous.put(entry.getKey(), entry.getValue());
-            entry.setValue(entry.getValue().updateSelectedCosmetic(entry.getValue().lastKnownName(), ""));
+            previous.put(entry.getKey(), profile);
+            entry.setValue(profile.updateSelectedCosmetics(
+                    profile.lastKnownName(),
+                    profile.selectedCosmeticIds().stream().filter(id -> !id.equals(cosmeticId)).toList()
+            ));
         }
         if (previous.isEmpty() || save(false)) {
             return true;

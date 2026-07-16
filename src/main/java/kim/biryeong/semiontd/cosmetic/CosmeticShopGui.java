@@ -40,10 +40,12 @@ public final class CosmeticShopGui extends SimpleGui {
         for (int index = start; index < end; index++) {
             CosmeticCatalog.Entry entry = entries.get(index);
             boolean owned = profile.ownsCosmetic(entry.id());
-            boolean selected = profile.selectedCosmeticId().equals(entry.id());
+            boolean selected = profile.isCosmeticSelected(entry.id());
             GuiElementBuilder builder = GuiElementBuilder.from(entry.item())
                     .addLoreLineRaw(Component.literal("가격: " + entry.price() + " 치장 포인트")
                             .withStyle(ChatFormatting.AQUA))
+                    .addLoreLineRaw(Component.literal("착용 슬롯: " + CosmeticItemSupport.slotName(entry.slot()))
+                            .withStyle(ChatFormatting.GRAY))
                     .addLoreLineRaw(Component.literal(owned ? "보유 중" : "미보유")
                             .withStyle(owned ? ChatFormatting.GREEN : ChatFormatting.GRAY))
                     .addLoreLineRaw(Component.literal(selected ? "착용 중" : "미착용")

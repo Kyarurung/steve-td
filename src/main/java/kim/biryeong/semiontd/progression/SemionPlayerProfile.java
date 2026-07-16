@@ -16,6 +16,7 @@ public record SemionPlayerProfile(
         long cosmeticCurrency,
         List<String> ownedCosmeticIds,
         String selectedCosmeticId,
+        List<String> selectedCosmeticIds,
         String selectedJobId,
         String selectedSkyboxId,
         Boolean tipsEnabled,
@@ -29,6 +30,7 @@ public record SemionPlayerProfile(
             Codec.LONG.optionalFieldOf("cosmeticCurrency", 0L).forGetter(SemionPlayerProfile::cosmeticCurrency),
             Codec.STRING.listOf().optionalFieldOf("ownedCosmeticIds", List.of()).forGetter(SemionPlayerProfile::ownedCosmeticIds),
             Codec.STRING.optionalFieldOf("selectedCosmeticId", "").forGetter(SemionPlayerProfile::selectedCosmeticId),
+            Codec.STRING.listOf().optionalFieldOf("selectedCosmeticIds", List.of()).forGetter(SemionPlayerProfile::selectedCosmeticIds),
             Codec.STRING.optionalFieldOf("selectedJobId", "").forGetter(SemionPlayerProfile::selectedJobId),
             Codec.STRING.optionalFieldOf("selectedSkyboxId", "").forGetter(SemionPlayerProfile::selectedSkyboxId),
             Codec.BOOL.optionalFieldOf("tipsEnabled", true).forGetter(SemionPlayerProfile::tipsEnabled),
@@ -41,9 +43,6 @@ public record SemionPlayerProfile(
         }
         if (selectedJobId == null) {
             selectedJobId = "";
-        }
-        if (selectedCosmeticId == null) {
-            selectedCosmeticId = "";
         }
         if (selectedSkyboxId == null) {
             selectedSkyboxId = "";
@@ -61,13 +60,27 @@ public record SemionPlayerProfile(
             }
         }
         ownedCosmeticIds = List.copyOf(normalizedCosmetics);
+        LinkedHashSet<String> normalizedSelections = new LinkedHashSet<>();
+        if (selectedCosmeticIds != null) {
+            for (String id : selectedCosmeticIds) {
+                if (id != null && !id.isBlank()) {
+                    normalizedSelections.add(id);
+                }
+            }
+        }
+        if (normalizedSelections.isEmpty() && selectedCosmeticId != null && !selectedCosmeticId.isBlank()) {
+            normalizedSelections.add(selectedCosmeticId);
+        }
+        selectedCosmeticIds = List.copyOf(normalizedSelections);
+        selectedCosmeticId = selectedCosmeticIds.isEmpty() ? "" : selectedCosmeticIds.getFirst();
         if (gamesPlayed < 0 || wins < 0 || losses < 0 || cosmeticCurrency < 0) {
             throw new IllegalArgumentException("Profile values cannot be negative.");
         }
     }
 
     public static SemionPlayerProfile fresh(String playerName) {
-        return new SemionPlayerProfile(playerName == null ? "" : playerName, 0, 0, 0, 0, List.of(), "", "", "", true, List.of());
+        return new SemionPlayerProfile(playerName == null ? "" : playerName, 0, 0, 0, 0,
+                List.of(), "", List.of(), "", "", true, List.of());
     }
 
     public SemionPlayerProfile updateName(String playerName) {
@@ -75,7 +88,7 @@ public record SemionPlayerProfile(
         if (normalized.equals(lastKnownName)) {
             return this;
         }
-        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticId, selectedJobId, selectedSkyboxId, tipsEnabled, recentBuildCodes);
+        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticIds, selectedJobId, selectedSkyboxId, tipsEnabled, recentBuildCodes);
     }
 
     public SemionPlayerProfile updateSelectedJob(String playerName, ResourceLocation jobId) {
@@ -84,7 +97,7 @@ public record SemionPlayerProfile(
         if (normalized.equals(lastKnownName) && jobIdText.equals(selectedJobId)) {
             return this;
         }
-        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticId, jobIdText, selectedSkyboxId, tipsEnabled, recentBuildCodes);
+        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticIds, jobIdText, selectedSkyboxId, tipsEnabled, recentBuildCodes);
     }
 
     public SemionPlayerProfile updateSelectedSkybox(String playerName, String skyboxId) {
@@ -93,7 +106,7 @@ public record SemionPlayerProfile(
         if (normalized.equals(lastKnownName) && skyboxIdText.equals(selectedSkyboxId)) {
             return this;
         }
-        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticId, selectedJobId, skyboxIdText, tipsEnabled, recentBuildCodes);
+        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticIds, selectedJobId, skyboxIdText, tipsEnabled, recentBuildCodes);
     }
 
     public SemionPlayerProfile updateTipsEnabled(String playerName, boolean enabled) {
@@ -101,7 +114,7 @@ public record SemionPlayerProfile(
         if (normalized.equals(lastKnownName) && tipsEnabled == enabled) {
             return this;
         }
-        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticId, selectedJobId, selectedSkyboxId, enabled, recentBuildCodes);
+        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticIds, selectedJobId, selectedSkyboxId, enabled, recentBuildCodes);
     }
 
     public Optional<ResourceLocation> selectedJobResource() {
@@ -121,6 +134,7 @@ public record SemionPlayerProfile(
                 cosmeticCurrency + Math.max(0L, reward),
                 ownedCosmeticIds,
                 selectedCosmeticId,
+                selectedCosmeticIds,
                 selectedJobId,
                 selectedSkyboxId,
                 tipsEnabled,
@@ -142,7 +156,7 @@ public record SemionPlayerProfile(
                 updated.add(existingCode);
             }
         }
-        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticId, selectedJobId, selectedSkyboxId, tipsEnabled, updated);
+        return copy(normalized, cosmeticCurrency, ownedCosmeticIds, selectedCosmeticIds, selectedJobId, selectedSkyboxId, tipsEnabled, updated);
     }
 
     public boolean ownsCosmetic(String cosmeticId) {
@@ -155,27 +169,42 @@ public record SemionPlayerProfile(
         }
         ArrayList<String> updated = new ArrayList<>(ownedCosmeticIds);
         updated.add(cosmeticId);
-        return copy(playerName == null ? "" : playerName, cosmeticCurrency - price, updated, selectedCosmeticId, selectedJobId, selectedSkyboxId, tipsEnabled, recentBuildCodes);
+        return copy(playerName == null ? "" : playerName, cosmeticCurrency - price, updated, selectedCosmeticIds, selectedJobId, selectedSkyboxId, tipsEnabled, recentBuildCodes);
     }
 
     public SemionPlayerProfile updateSelectedCosmetic(String playerName, String cosmeticId) {
-        String normalized = cosmeticId == null ? "" : cosmeticId;
-        if (!normalized.isBlank() && !ownsCosmetic(normalized)) {
+        return updateSelectedCosmetics(playerName,
+                cosmeticId == null || cosmeticId.isBlank() ? List.of() : List.of(cosmeticId));
+    }
+
+    public SemionPlayerProfile updateSelectedCosmetics(String playerName, List<String> cosmeticIds) {
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        if (cosmeticIds != null) {
+            cosmeticIds.stream().filter(id -> id != null && !id.isBlank()).forEach(normalized::add);
+        }
+        if (!ownedCosmeticIds.containsAll(normalized)) {
             return this;
         }
-        return copy(playerName == null ? "" : playerName, cosmeticCurrency, ownedCosmeticIds, normalized, selectedJobId, selectedSkyboxId, tipsEnabled, recentBuildCodes);
+        return copy(playerName == null ? "" : playerName, cosmeticCurrency, ownedCosmeticIds,
+                List.copyOf(normalized), selectedJobId, selectedSkyboxId, tipsEnabled, recentBuildCodes);
+    }
+
+    public boolean isCosmeticSelected(String cosmeticId) {
+        return cosmeticId != null && selectedCosmeticIds.contains(cosmeticId);
     }
 
     private SemionPlayerProfile copy(
             String playerName,
             long currency,
             List<String> cosmetics,
-            String selectedCosmetic,
+            List<String> selectedCosmetics,
             String job,
             String skybox,
             boolean tips,
             List<String> builds
     ) {
-        return new SemionPlayerProfile(playerName, gamesPlayed, wins, losses, currency, cosmetics, selectedCosmetic, job, skybox, tips, builds);
+        String legacySelection = selectedCosmetics.isEmpty() ? "" : selectedCosmetics.getFirst();
+        return new SemionPlayerProfile(playerName, gamesPlayed, wins, losses, currency, cosmetics,
+                legacySelection, selectedCosmetics, job, skybox, tips, builds);
     }
 }

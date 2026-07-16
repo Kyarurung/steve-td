@@ -234,7 +234,7 @@
 | 닭/펭귄 | `splashRadius`, `splashDamageRatio` | 광역 피해 범위와 피해 비율입니다. |
 | 슬라임 | `regenAmount`, `regenIntervalTicks` | 자가 회복량과 회복 간격입니다. |
 | 앵무 | `attackStackBonus`, `maxAttackStacks` | 공격할수록 쌓이는 공격력 배율과 상한입니다. |
-| 염소 | `radius`, `damageBonus`, `cloneDamageBonus`, `cloneDamageReduction`, `maxStacks`, `buffDurationTicks` | 주변 타워와 환영을 강화하는 버프 값입니다. |
+| 염소 | `radius`, `damageBonus`, `damageReduction`, `cloneDamageBonus`, `cloneDamageReduction`, `maxStacks`, `buffDurationTicks` | 일반 무리 타워와 환영에 적용할 피해 증가·받는 피해 감소 버프 값입니다. |
 | 벌 | `maxSwarmStacks`, `poisonDamagePerStack`, `poisonDamagePerSwarmStack`, `maxPoisonStacks`, `poisonStacksPerSwarmStack`, `poisonDurationTicks`, `poisonTickIntervalTicks` | 벌 계열 독 스택 값입니다. 현재 카탈로그 등록 코드는 비활성 주석 상태입니다. |
 
 `illusionCloneQueue`:

@@ -1,5 +1,8 @@
 package kim.biryeong.semiontd.cosmetic;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.sgui.api.ClickType;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -17,6 +20,7 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
@@ -34,8 +38,34 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.Enchantments;
+import xyz.nucleoid.stimuli.Stimuli;
+import xyz.nucleoid.stimuli.event.EventResult;
+import xyz.nucleoid.stimuli.event.player.PlayerSwapWithOffhandEvent;
 
 public final class CosmeticGameTest {
+    @GameTest
+    public void builtInHatItemsArePolymerHeadwear(GameTestHelper context) {
+        try {
+            List<net.minecraft.world.item.Item> items = SemionCosmeticItems.items();
+            assertEquals(119, items.size());
+            for (int index = 0; index < items.size(); index++) {
+                net.minecraft.world.item.Item item = items.get(index);
+                ItemStack stack = new ItemStack(item);
+                assertTrue(item instanceof PolymerItem, "Cosmetic item should expose a Polymer representation.");
+                assertEquals(1, stack.getMaxStackSize());
+                assertTrue(stack.get(DataComponents.EQUIPPABLE) != null, "Cosmetic item should be equippable.");
+                assertEquals(index == 118 ? EquipmentSlot.OFFHAND : EquipmentSlot.HEAD,
+                        stack.get(DataComponents.EQUIPPABLE).slot());
+                assertEquals(BuiltInRegistries.ITEM.getKey(item), stack.get(DataComponents.ITEM_MODEL));
+            }
+            assertEquals("해적선장 모자", new ItemStack(items.getFirst()).getHoverName().getString());
+            assertEquals("토끼 슬링백", new ItemStack(items.getLast()).getHoverName().getString());
+            context.succeed();
+        } catch (Throwable throwable) {
+            context.fail(Component.literal("Built-in cosmetic hats failed: " + throwable.getMessage()));
+        }
+    }
+
     @GameTest
     public void catalogRoundTripPreservesAllItemComponentsAndOrder(GameTestHelper context) {
         try {
@@ -48,18 +78,31 @@ public final class CosmeticGameTest {
                     catalog.add(context.getLevel().registryAccess(), "crown", 25, original));
             assertEquals(CosmeticCatalog.MutationResult.SUCCESS,
                     catalog.add(context.getLevel().registryAccess(), "halo", 40, new ItemStack(Items.GOLDEN_HELMET)));
+            assertEquals(CosmeticCatalog.MutationResult.SUCCESS,
+                    catalog.add(context.getLevel().registryAccess(), "rabbit", 60, EquipmentSlot.OFFHAND,
+                            new ItemStack(SemionCosmeticItems.items().getLast())));
 
             CosmeticCatalog reloaded = new CosmeticCatalog(path);
             assertTrue(reloaded.load(context.getLevel().registryAccess()), "Catalog should reload from disk.");
-            assertEquals(List.of("crown", "halo"), reloaded.entries().stream().map(CosmeticCatalog.Entry::id).toList());
+            assertEquals(List.of("crown", "halo", "rabbit"),
+                    reloaded.entries().stream().map(CosmeticCatalog.Entry::id).toList());
+            assertEquals(EquipmentSlot.HEAD, reloaded.find("crown").orElseThrow().slot());
+            assertEquals(EquipmentSlot.OFFHAND, reloaded.find("rabbit").orElseThrow().slot());
             ItemStack restored = reloaded.find("crown").orElseThrow().item();
             assertEquals(1, restored.getCount());
             assertTrue(ItemStack.isSameItemSameComponents(original.copyWithCount(1), restored),
                     "Item codec should preserve custom name, lore, model, enchantment and custom data.");
 
+            JsonObject legacyRoot = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+            legacyRoot.getAsJsonArray("entries").get(0).getAsJsonObject().remove("slot");
+            Files.writeString(path, legacyRoot.toString());
+            assertTrue(reloaded.load(context.getLevel().registryAccess()), "Legacy head entries should remain loadable.");
+            assertEquals(EquipmentSlot.HEAD, reloaded.find("crown").orElseThrow().slot());
+
             Files.writeString(path, "{ invalid");
             assertFalse(reloaded.load(context.getLevel().registryAccess()), "Invalid reload should fail.");
-            assertEquals(List.of("crown", "halo"), reloaded.entries().stream().map(CosmeticCatalog.Entry::id).toList(),
+            assertEquals(List.of("crown", "halo", "rabbit"),
+                    reloaded.entries().stream().map(CosmeticCatalog.Entry::id).toList(),
                     "Failed reload should preserve the active catalog.");
             context.succeed();
         } catch (Throwable throwable) {
@@ -105,6 +148,7 @@ public final class CosmeticGameTest {
 
             gui.click(0, ClickType.MOUSE_LEFT, net.minecraft.world.inventory.ClickType.PICKUP);
             assertEquals("crown", service.profile(player).selectedCosmeticId());
+            assertEquals(List.of("crown"), service.profile(player).selectedCosmeticIds());
             assertEquals("crown", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.HEAD)));
             assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).hasNonDefault(DataComponents.CREATIVE_SLOT_LOCK),
                     "Equipped cosmetic should be locked in creative inventory.");
@@ -151,13 +195,51 @@ public final class CosmeticGameTest {
             assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).is(Items.CHAINMAIL_HELMET),
                     "Catalog reload should refresh equipped cosmetics for online players.");
 
-            gui.click(0, ClickType.MOUSE_LEFT, net.minecraft.world.inventory.ClickType.PICKUP);
-            assertTrue(service.profile(player).selectedCosmeticId().isBlank(), "Third click should unequip.");
-            assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).isEmpty());
+            ItemStack rabbit = new ItemStack(SemionCosmeticItems.items().getLast());
+            assertEquals(CosmeticCatalog.MutationResult.SUCCESS,
+                    service.add(context.getLevel().getServer(), "rabbit", 150, EquipmentSlot.OFFHAND, rabbit));
+            service.handleCatalogClick(player, "rabbit");
+            service.handleCatalogClick(player, "rabbit");
+            assertEquals(List.of("crown", "rabbit"), service.profile(player).selectedCosmeticIds(),
+                    "Cosmetics in different equipment slots should stay selected together.");
+            assertEquals("rabbit", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.OFFHAND)));
+            assertEquals("crown", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.HEAD)));
+            SemionHotbarService.grantMatchTools(player);
+            assertEquals("rabbit", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.OFFHAND)),
+                    "Match inventory reset should preserve the offhand cosmetic.");
+            assertEquals("crown", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.HEAD)),
+                    "Match inventory reset should preserve the head cosmetic at the same time.");
+            int cosmeticSlot = cosmeticMenuSlot(player);
+            player.inventoryMenu.clicked(
+                    cosmeticSlot, 0, net.minecraft.world.inventory.ClickType.PICKUP, player
+            );
+            try (var invokers = Stimuli.select().forEntity(player)) {
+                assertEquals(EventResult.DENY,
+                        invokers.get(PlayerSwapWithOffhandEvent.EVENT).onSwapWithOffhand(player));
+            }
+            assertEquals("rabbit", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.OFFHAND)),
+                    "Inventory clicks and the swap-hands key must be denied.");
+            assertTrue(player.inventoryMenu.getCarried().isEmpty());
+            player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SemionCosmeticItems.items().getLast()));
+            assertEquals(InteractionResult.FAIL,
+                    UseItemCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND),
+                    "Right-click offhand equipment replacement should be blocked.");
 
+            invokeDropEquipment(player);
+            assertTrue(player.getItemBySlot(EquipmentSlot.OFFHAND).isEmpty());
+            assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).isEmpty());
+            service.syncPlayer(player);
+            assertEquals("rabbit", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.OFFHAND)));
+            assertEquals("crown", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.HEAD)));
+            service.handleCatalogClick(player, "rabbit");
+            assertTrue(player.getItemBySlot(EquipmentSlot.OFFHAND).isEmpty());
+            assertEquals("crown", CosmeticItemSupport.cosmeticId(player.getItemBySlot(EquipmentSlot.HEAD)));
+            assertEquals(List.of("crown"), service.profile(player).selectedCosmeticIds());
+
+            gui.click(0, ClickType.MOUSE_LEFT, net.minecraft.world.inventory.ClickType.PICKUP);
             player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
             gui.click(0, ClickType.MOUSE_LEFT, net.minecraft.world.inventory.ClickType.PICKUP);
-            assertTrue(service.profile(player).selectedCosmeticId().isBlank(), "Occupied head slot should reject equip.");
+            assertTrue(service.profile(player).selectedCosmeticIds().isEmpty(), "Occupied head slot should reject equip.");
             assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).is(Items.IRON_HELMET));
             SemionHotbarService.grantMatchTools(player);
             assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).is(Items.IRON_HELMET),
@@ -180,7 +262,7 @@ public final class CosmeticGameTest {
             assertEquals(CosmeticCatalog.MutationResult.SUCCESS, removed.catalogResult());
             assertTrue(removed.profilesSaved());
             assertTrue(service.profile(player).ownsCosmetic("crown"), "Removing a listing must retain ownership history.");
-            assertTrue(service.profile(player).selectedCosmeticId().isBlank());
+            assertTrue(service.profile(player).selectedCosmeticIds().isEmpty());
             assertTrue(player.getItemBySlot(EquipmentSlot.HEAD).isEmpty());
             context.succeed();
         } catch (Throwable throwable) {
@@ -204,6 +286,10 @@ public final class CosmeticGameTest {
             assertFalse(child.canUse(nonOp), childName + " should require permission level 2.");
             assertTrue(child.canUse(op), childName + " should allow permission level 2.");
         }
+        assertTrue(cosmetic.getChild("add").getChild("id").getChild("price").getChild("slot") != null,
+                "Add command should accept an explicit slot.");
+        assertTrue(cosmetic.getChild("update").getChild("id").getChild("price").getChild("slot") != null,
+                "Update command should accept an explicit slot.");
         context.succeed();
     }
 
@@ -228,6 +314,15 @@ public final class CosmeticGameTest {
                 .filter(slot -> CosmeticItemSupport.isCosmetic(slot.getItem()))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private static int cosmeticMenuSlot(ServerPlayer player) {
+        for (int slot = 0; slot < player.inventoryMenu.slots.size(); slot++) {
+            if (CosmeticItemSupport.isLockedOffhandCosmetic(player.inventoryMenu.getSlot(slot).getItem())) {
+                return slot;
+            }
+        }
+        throw new AssertionError("Locked offhand cosmetic slot was not found.");
     }
 
     private static void invokeDropEquipment(ServerPlayer player) throws Exception {

@@ -34,6 +34,7 @@ final class SemionPlayerProfileTest {
         assertTrue(existing.tipsEnabled());
         assertTrue(existing.ownedCosmeticIds().isEmpty());
         assertTrue(existing.selectedCosmeticId().isEmpty());
+        assertTrue(existing.selectedCosmeticIds().isEmpty());
 
         SemionPlayerProfile disabled = existing
                 .updateTipsEnabled("Player", false)
@@ -59,7 +60,21 @@ final class SemionPlayerProfileTest {
         assertEquals(purchased, duplicate);
         assertTrue(selected.ownsCosmetic("crown"));
         assertEquals("crown", selected.selectedCosmeticId());
+        assertEquals(java.util.List.of("crown"), selected.selectedCosmeticIds());
         assertEquals(70, selected.cosmeticCurrency());
+    }
+
+    @Test
+    void legacySingleCosmeticSelectionMigratesToSelectionList() {
+        SemionPlayerProfile profile = new Gson().fromJson("""
+                {
+                  "lastKnownName": "Player",
+                  "ownedCosmeticIds": ["crown"],
+                  "selectedCosmeticId": "crown"
+                }
+                """, SemionPlayerProfile.class);
+
+        assertEquals(java.util.List.of("crown"), profile.selectedCosmeticIds());
     }
 
     @Test

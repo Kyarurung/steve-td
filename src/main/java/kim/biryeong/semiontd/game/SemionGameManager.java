@@ -715,8 +715,8 @@ public final class SemionGameManager {
         return progressionService.purchaseCosmetic(playerId, playerName, cosmeticId, price);
     }
 
-    public ProgressionService.CosmeticUpdateResult selectCosmetic(UUID playerId, String playerName, String cosmeticId) {
-        return progressionService.selectCosmetic(playerId, playerName, cosmeticId);
+    public ProgressionService.CosmeticUpdateResult selectCosmetics(UUID playerId, String playerName, List<String> cosmeticIds) {
+        return progressionService.selectCosmetics(playerId, playerName, cosmeticIds);
     }
 
     public boolean clearSelectedCosmetic(String cosmeticId) {

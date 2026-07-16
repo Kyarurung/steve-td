@@ -1,142 +1,179 @@
-# 다음 세션 인계 메모
+# 서버 유지보수 인수인계
 
-## 현재 상태
+기준일은 2026-07-16이다. 이 문서는 새 유지보수 담당자가 Semion TD를 빌드하고 운영 서버에 배포한 뒤 장애 시 이전 JAR로 복구하는 절차를 다룬다.
 
-관전자 HUD, 팀 선택 관전, HUD 2차 정리, 운영 status 명령 강화, 출력 문구 정리, Carpet fake player를 이용한 서버 측 수동 QA와 reset/end 복구 보강은 커밋 완료 상태다.
-현재 세션에서는 P0 체크리스트를 Carpet으로 검증 가능한 항목과 실클라 전용 항목으로 재분류하고, 추가 Carpet smoke와 tower placement QA를 수행했다.
+## 운영 기준
 
-완료 커밋:
+| 항목 | 현재 값 |
+|---|---|
+| 저장소 | `steve-td` |
+| 기본 브랜치 | `master` |
+| Minecraft | `1.21.8` |
+| Fabric Loader | `0.19.2` |
+| Java target | `21` |
+| 현재 검증 JDK | `25.0.2` |
+| 빌드 JAR | `build/libs/semion-td-1.0-SNAPSHOT+1.21.8.jar` |
+| 서버 루트 | `~/Desktop/SemionTd` |
+| 배포 JAR | `~/Desktop/SemionTd/mods/semion-td-1.0-SNAPSHOT+1.21.8.jar` |
+| 운영 설정·데이터 | `~/Desktop/SemionTd/config/semion-td/` |
 
-```text
-feat(ui): show spectator team boss status
-feat(command): add team spectate targets
-docs: refresh next session handoff
-feat(ui): split match HUD by player role
-docs: update handoff after HUD role split
-feat(command): expand operational status output
-chore(ui): localize player-facing outputs
-docs: add service readiness checklist
-fix(command): harden lobby reset recovery
+버전 판단에는 `gradle.properties`와 `src/main/resources/fabric.mod.json`을 사용한다. 명령어는 `SemionCommands`, 설정 기본값은 `SemionConfigLoader`와 각 config record를 기준으로 확인한다.
+
+## 새 작업 환경 준비
+
+1. Java 21 이상을 설치한다.
+2. 저장소를 clone하고 `master`를 checkout한다.
+3. 소유자에게 비공개 리소스 원본을 받아 `src/main/resources/assets/semion-td/`에 배치한다.
+4. `./gradlew compileJava`로 의존성과 toolchain을 확인한다.
+
+### 비공개 리소스 규칙
+
+`src/main/resources/assets/semion-td/`의 모델, 텍스처, 애니메이션은 별도 구매한 리소스다. `.gitignore`가 이 경로를 제외한다.
+
+```bash
+git check-ignore -v src/main/resources/assets/semion-td/textures/item/cosmetics/rabbit_body.png
+git status --ignored --short src/main/resources/assets/semion-td
 ```
 
-완료된 내용:
+두 번째 명령은 디렉터리를 `!!`로 표시해야 한다. `git add -f`를 사용하지 않는다. 공개 GitHub Release나 공개 CI artifact에도 리소스가 포함된 JAR을 올리지 않는다. 새 담당자는 소유자가 관리하는 비공개 전달 경로로 원본을 받는다.
 
-- 관전자 HUD가 현재 플레이어의 runtime world를 기준으로 해당 팀 보스 체력을 표시한다.
-- `SemionGame.teamForWorld(ServerLevel)`로 runtime world에서 팀을 역매핑한다.
-- 플레이어 teleport 이후 DisplayHud virtual entity를 `teleport()`와 `mount()`로 다시 붙인다.
-- HUD refresh 대상:
-  - active player arena 이동
-  - spectator arena 이동
-  - lobby 이동
-  - 팀 선택 관전 이동
-- `/semiontd spectate` 기존 동작은 유지된다.
-- `/semiontd spectate red|blue|green|yellow`가 추가되었다.
-- 팀 인자가 있으면 해당 active team runtime world의 spectator spawn으로 이동한다.
-- 진행 중 게임이 없거나, 팀이 active가 아니거나, active participant가 관전 전환하려 하면 실패한다.
-- 실패/성공 메시지는 한국어로 유지한다.
-- GameTest에는 runtime world -> team HUD 매핑, 팀 선택 관전 대상 검증, boss combat 안정화가 포함되어 있다.
-- match HUD는 active player, spectator, eliminated player 역할별로 정보량이 분리되어 있다.
-- active player HUD는 경제 정보와 전체 팀 보스 요약을 유지한다.
-- spectator HUD는 현재 관전 팀과 해당 팀 보스 체력 중심으로 축소되어 있다.
-- eliminated player HUD는 `탈락 후 관전 중`, 원래 소속 팀, 현재 관전 팀을 구분한다.
-- `/semiontd status`는 activeGame, phase, round, matchMode, rosterLocked, ready, activeParticipants, spectators, lobbyLoaded, arenaLoaded를 출력한다.
-- `/semiontd status teams`는 팀별 active/eliminated/arenaLoaded/player/lane/boss 상태를 출력한다.
-- `/semiontd status players`는 active participant와 match spectator UUID를 출력한다.
-- `/semiontd economy`, `profile`, `job`, `tower`, `summon`, `summons`, `killboss`, `ui`의 플레이어-facing 성공/실패 메시지는 한국어 문구로 정리되어 있다.
-- DialogUtils 상태/결과 창의 제목과 본문 라벨은 한국어로 정리되어 있고, 상태 창은 팀/라인/경제 정보를 함께 보여준다.
-- 경기 종료 브로드캐스트와 progression 보상 메시지는 한국어로 정리되어 있다.
-- Carpet을 로컬 QA 런타임 의존성으로 추가해 fake player 수동 QA에 사용할 수 있다.
-- Carpet fake player의 cross-dimension teleport 실패가 전체 `end`/`reset` 실패로 번지지 않도록 플레이어별 lobby 이동 실패를 격리하고, 실패한 플레이어는 재접속 안내와 함께 disconnect한다.
-- `resetToLobby`는 arena close 전에 플레이어 lobby 이동을 먼저 시도해, 정상 클라이언트가 unload된 arena로 teleport되는 순서를 피한다.
-- P0 실플레이어 수동 QA와 맵 템플릿 실사용 QA는 `Carpet fake player로 검증 가능한 항목`과 `실클라 전용 확인 항목`으로 분리되어 있다.
-- `/semiontd status lanes`가 active lane별 laneArea 중심 `towerSample=x,y,z`와 `laneArea=min..max`를 출력한다.
-- Carpet tower QA에서는 fake player를 `towerSample` 좌표로 이동시켜 `semiontd tower test` 성공까지 확인했다.
-- 반복 실행 절차는 `docs/carpet-qa-runbook.ko.md`에 정리되어 있다.
-- 프로덕션 타워 등록 방식은 `docs/production-tower-catalog.ko.md`에 정리되어 있다. built-in reload는 주민, 주민 ADV, 언데드, 동물, 흑마법사, 무리, 무블룸, 우민 카탈로그를 등록하며, 새 실전 타워는 계열별 카탈로그 클래스로 추가한다.
-- 엔티티를 가진 타워 런타임은 `EntityBackedTower`와 `SemionTowerEntity`로 공용화되어 있다. `ProductionTower`는 더 이상 `TestTower`를 상속하지 않고, 두 타워 모두 `EntityBackedTower`로 `semion-td:tower` 엔티티를 사용한다. 프로덕션 카탈로그 factory도 `EntityBackedTower`를 반환하므로 1차/2차/3차를 서로 다른 엔티티 기반 런타임 클래스로 등록할 수 있다.
-- `/semiontd tower list`와 `/semiontd tower build <id>`가 추가되어 직업별 허용 타워를 설치할 수 있다.
-- 타워 외형은 typed visual builder로 바닐라 엔티티 variant/tracked data를 지정할 수 있다. villager/zombie_villager, cow, pig, chicken, wolf, cat, frog, horse, llama/trader_llama, fox, rabbit, parrot, axolotl, mooshroom, salmon, tropical_fish, sheep builder는 `docs/production-tower-catalog.ko.md`에 정리되어 있다.
-- 바닐라 tracked data 필드 접근은 reflection 없이 mixin accessor를 사용한다. 새 엔티티 property를 추가할 때도 `kim.biryeong.semiontd.mixin.accessor`에 accessor를 추가하고 `semion-td.mixins.json`에 등록한다.
+## 배포 전 검증
 
-검증 완료 상태:
-
-```text
-./gradlew compileJava compileGametestJava --console=plain
-./gradlew runGameTest --console=plain
+```bash
+./gradlew test runGameTest remapJar
 ```
 
-마지막 확인 결과는 `All 110 required tests passed :)`.
+완료 기준:
 
-Carpet fake player QA 후 추가 확인:
+- 단위 테스트가 통과한다.
+- Fabric GameTest `264`개가 통과한다.
+- `build/libs/semion-td-1.0-SNAPSHOT+1.21.8.jar`가 생성된다.
+- `git diff --check`가 오류를 출력하지 않는다.
+- `git status --short`에 `src/main/resources/assets/semion-td/`가 나타나지 않는다.
 
-```text
-./gradlew compileJava --console=plain
-./gradlew runGameTest --console=plain
+GameTest 수가 코드 추가로 바뀌면 실행 결과의 새 숫자를 이 문서와 서비스 준비 체크리스트에 함께 갱신한다.
+
+## 운영 서버 배포
+
+`~/Desktop/SemionTd/start.sh`는 Java 프로세스가 끝나면 5초 뒤 서버를 다시 실행한다. 유지보수 중에는 Java 프로세스만 종료하지 말고 `start.sh`를 실행한 터미널, screen, tmux 세션에서 실행 스크립트까지 중지한다.
+
+1. 접속자에게 점검을 알리고 서버를 정상 종료한다.
+2. 실행 스크립트가 서버를 다시 띄우지 않는지 확인한다.
+3. 기존 JAR과 `config/semion-td/`를 백업한다.
+4. 새 JAR을 mods 디렉터리에 복사한다.
+5. 파일 해시를 비교한다.
+6. `start.sh`로 서버를 시작한다.
+
+```bash
+cd ~/Desktop/SemionTd
+mkdir -p backups
+cp mods/semion-td-1.0-SNAPSHOT+1.21.8.jar \
+  backups/semion-td-1.0-SNAPSHOT+1.21.8.jar.before-update
+tar -czf backups/semion-td-config.before-update.tar.gz config/semion-td
+
+cp /path/to/steve-td/build/libs/semion-td-1.0-SNAPSHOT+1.21.8.jar \
+  mods/semion-td-1.0-SNAPSHOT+1.21.8.jar
+
+shasum -a 256 \
+  /path/to/steve-td/build/libs/semion-td-1.0-SNAPSHOT+1.21.8.jar \
+  mods/semion-td-1.0-SNAPSHOT+1.21.8.jar
 ```
 
-마지막 확인 결과도 `All 110 required tests passed :)`.
+SQLite 파일과 WAL/SHM 파일의 시점을 맞추기 위해 운영 데이터 백업은 서버를 끈 상태에서 만든다.
 
-실서버 기동 QA 완료 상태:
+## 기동 확인
+
+로그에서 다음 항목을 확인한다.
+
+- `Semion TD initialized.`
+- Polymer resource pack 생성 성공
+- mixin 적용 실패, registry sync 실패, config parse 실패가 없음
+- 로비 로드 완료
+
+콘솔 smoke:
 
 ```text
-./gradlew runServer --console=plain
+semiontd status
+semiontd create
+semiontd status
+semiontd status teams
+semiontd reset
+semiontd status
 ```
 
-콘솔에서 확인한 흐름:
+마지막 상태는 `activeGame=false`, `arenaLoaded=false`여야 한다. 전체 경기 smoke는 [Carpet QA Runbook](carpet-qa-runbook.ko.md)을 따른다.
 
-- 서버 기동 성공, `Semion TD initialized.`
-- `/semiontd status` equivalent console command `semiontd status`가 `activeGame=false`, `lobbyLoaded=true`, `arenaLoaded=false`를 출력했다.
-- `semiontd create` 성공.
-- create 후 `semiontd status`가 `activeGame=true`, `phase=WAITING`, `ready=0`, `activeParticipants=0`, `spectators=0`, `lobbyLoaded=true`, `arenaLoaded=5/5`를 출력한다.
-- `semiontd status teams`가 RED/BLUE/GREEN/YELLOW 팀별 arena/boss 상태를 출력했다.
-- `semiontd status players`가 `참가자 없음`, `관전자 없음`을 출력했다.
-- `semiontd start`는 준비 인원 부족 메시지로 실패했다.
-- `semiontd spectate red`는 진행 중 게임 없음 메시지로 실패했다.
-- `semiontd reset` 후 `semiontd status`가 다시 `activeGame=false`를 출력했다.
-- `stop`으로 서버가 정상 종료되었다.
-- 이후 실클라이언트 QA를 위해 서버를 다시 기동했지만 접속자가 없어 2인 ready/start/spectate/HUD/mount 검증은 진행하지 못했다.
-- 재기동 smoke에서는 Polymer resource pack 생성 성공, `arenaLoaded=5/5`, 네 팀 boss 상태, reset 복구, 정상 종료를 확인한다.
-- Carpet fake player QA에서는 4명 NORMAL ready/start, RED/BLUE active team 배정, active participant 관전 전환 실패, 신규 관전자 RED/BLUE 팀 선택 관전 성공, inactive GREEN 관전 실패를 확인했다.
-- fake player 실행에서 `semiontd economy`, `semiontd summons`, `semiontd ui`가 서버 예외 없이 응답했다.
-- 보강 후 `semiontd end`와 `semiontd reset`이 성공했고, 최종 status는 `activeGame=false`, `arenaLoaded=false`였다.
-- 추가 Carpet smoke에서 2명 TEST ready/start, `summon grunt`, `economy`, `ui`, `end`, `reset`, `create`, `reset` 반복 복구를 확인했다.
-- `semiontd tower test`는 active spawn 위치에서 `lane_path 영역 안에서 실행하세요`로 정상 실패했다. 이 방어 동작과 tower placement 성공 경로는 모두 GameTest와 Carpet tower QA에서 확인됐다.
-- `/semiontd status lanes`는 active lane별 laneArea 중심 `towerSample=x,y,z`와 `laneArea=min..max`를 출력한다. Carpet tower QA에서 `towerSample=-26,145,50` 이동 후 `semiontd tower test` 성공과 `towers=1` 갱신을 확인했다.
+## 롤백
 
-주의:
+1. `start.sh` 실행까지 중지한다.
+2. 실패한 JAR을 보관하거나 삭제한다.
+3. `backups/`의 이전 JAR을 mods 디렉터리에 복사한다.
+4. 설정이나 운영 데이터까지 변경됐다면 같은 배포 전에 만든 config 백업을 복원한다.
+5. 서버를 시작하고 기동 확인과 `create`/`reset` smoke를 반복한다.
 
-- `autoresearch-results/` 또는 `.dance-of-tal/` 산출물이 생기면 stage하지 않는다.
-- unrelated 변경은 되돌리지 않는다.
-- Gradle 실행 시 sandbox에서 `~/.gradle` 접근이 막히면 승인 후 재실행해야 한다.
-- Polymer/DialogUtils resource-pack 경고(`zip END header not found`, `rootPath is null`)는 현재 테스트 실패와 무관한 known noisy warning이다.
-- Carpet fake player 프로필 조회 경고는 offline fake player 생성 과정에서 나올 수 있으며 이번 QA에서는 치명 오류가 아니었다.
-- Carpet fake player는 cross-dimension teleport 중 내부 예외를 낼 수 있으므로, fake player reset QA에서는 disconnect 로그가 나와도 전체 reset 성공 여부를 status로 확인한다.
+JAR을 교체한 뒤 실행 중인 Java 프로세스가 자동으로 새 클래스를 읽지는 않는다. 로그 스택트레이스의 줄 번호가 현재 소스와 다르면 서버 시작 시각, JAR 수정 시각, SHA-256을 먼저 비교한다.
 
-## 다음 작업 1: 실플레이어 수동 QA
+## 설정과 운영 데이터
 
-GameTest와 Carpet fake player로 확인하기 어려운 화면/체감 부분은 실제 서버에서 봐야 한다.
-서비스 준비 기준의 필수/권장 작업은 `docs/service-readiness-checklist.ko.md`에 별도로 정리했다.
+서버를 끈 상태에서 다음 파일을 함께 백업한다.
 
-수동 체크리스트:
+- `profiles.json`, `cosmetics.json`, `build_guides.json`
+- `semiontd.db`, `semiontd.db-wal`, `semiontd.db-shm`
+- `job-statistics.db`, `job-statistics.db-wal`, `job-statistics.db-shm`
+- `skyboxes/`, `music/`
+- 운영자가 수정한 `*.json` 설정
 
-- HUD와 DialogUtils가 실제 화면에 보이는지 확인한다.
-- Polymer resource pack 적용이 접속과 표시를 막지 않는지 확인한다.
-- 팀 선택 관전 위치에서 시야가 실제 플레이 관전에 충분한지 확인한다.
-- 월드 이동 뒤 DisplayHud mount/refresh가 실제 클라이언트 렌더링에서도 유지되는지 확인한다.
-- 실제 클라이언트에서 `/semiontd ui`, `/semiontd economy`, `/semiontd profile`, `/semiontd job list/current/select`, `/semiontd summons` 출력이 읽기 좋은지 확인한다.
+적용 명령:
 
-## 다음 작업 2: 서버 측 QA 보강 후보
+| 변경 | 적용 방법 |
+|---|---|
+| 경제, 웨이브, 타워 밸런스 등 일반 설정 | `/semiontd reload` |
+| `cosmetics.json` | `/semiontd cosmetic reload` |
+| `skyboxes/`, `music/` | `/semiontd resourcepack reload` |
+| 맵 설정 | reset 후 다음 create |
+| mod 내장 모델·텍스처와 Java 코드 | 새 JAR 배포 후 서버 재시작 |
 
-실클라 없이 더 닫을 수 있는 항목이다.
+운영 데이터 형식과 각 설정 필드는 [설정 파일](config-reference.ko.md)을 본다.
 
-- `docs/carpet-qa-runbook.ko.md` 기준으로 NORMAL 4인 smoke와 TEST tower smoke를 필요할 때 재실행한다.
-- tower placement는 `status lanes`의 `towerSample` 이동으로 닫혔으므로, 남은 서버 측 확인은 final lane, boss convergence, 라운드 진행 장시간 smoke 중심이다.
+## 현재 치장 시스템
 
-## 후속 큰 작업 후보
+- 서버는 Polymer 치장 아이템 119개를 등록한다. 머리 치장 118개와 왼손 `rabbit_body` 1개다.
+- `cosmetics.json`은 `head`, `offhand` 슬롯을 저장한다. `slot`이 없는 기존 항목은 `head`로 읽는다.
+- `/semiontd cosmetic add <id> <price> [head|offhand]`로 등록한다. 슬롯을 생략하면 `head`다.
+- `/semiontd cosmetic update <id> <price> [head|offhand]`에서 슬롯을 생략하면 기존 슬롯을 유지한다.
+- 플레이어는 머리와 왼손 치장을 함께 선택할 수 있다. 같은 슬롯에는 한 상품만 남는다.
+- `profiles.json`의 현재 선택 필드는 `selectedCosmeticIds`다. 예전 `selectedCosmeticId`는 호환용으로 읽는다.
+- 왼손 치장은 상점에서 해제한다. 손 교체, 드롭, 인벤토리 이동으로 제거하지 않는다.
 
-- 추가 tower catalog 확장과 밸런스 패스
-- job 선택 UI 고도화
-- summon/tower/job balance pass
-- map template QA: lane path, final lane, boss convergence
-- match result UI 레이아웃 고도화
-- ELO 기반 팀 분배 설계
+2026-07-16 운영 catalog에는 167개 항목이 있었다. 이 숫자는 운영 중 바뀔 수 있으므로 `/semiontd cosmetic list` 또는 `cosmetics.json`의 `entries` 길이로 다시 확인한다.
+
+## 이번 코드 상태의 게임 변경
+
+- 염소 지원 타워는 일반 무리 타워에도 피해 증가와 받는 피해 감소를 함께 부여한다.
+- 환영에는 `cloneDamageBonus`, `cloneDamageReduction` 값을 따로 적용한다.
+- 염소 버프는 최대 3스택이며 `buffDurationTicks` 동안 유지되고 pulse마다 갱신된다.
+- 오른쪽 클릭 타워 상세에 피해 증가와 받는 피해 감소가 표시된다.
+
+수치는 `tower_balance.json`의 염소 ability 항목과 [타워 수치 설정](tower-balance-reference.ko.md)을 함께 확인한다.
+
+## 장애 확인 순서
+
+1. `semiontd status`, `status teams`, `status lanes`, `status players`를 저장한다.
+2. `logs/latest.log`에서 첫 예외를 찾는다.
+3. 배포 JAR과 빌드 JAR의 SHA-256을 비교한다.
+4. config parse 오류면 실패한 파일을 백업본과 비교한다.
+5. 새 JAR에서만 재현되면 이전 JAR로 롤백한다.
+6. 서버 상태가 꼬였지만 프로세스는 정상이라면 `semiontd reset` 후 status를 확인한다.
+
+화면, HUD, DialogUtils, 리소스팩, 치장 모델 문제는 서버 로그만으로 닫지 않는다. 실제 클라이언트에서 확인하고 [서비스 준비 체크리스트](service-readiness-checklist.ko.md)에 날짜와 결과를 남긴다.
+
+## 커밋 전 확인
+
+```bash
+git status --short
+git diff --check
+./gradlew test runGameTest remapJar
+git status --ignored --short src/main/resources/assets/semion-td
+```
+
+문서, 코드, 테스트만 stage한다. 운영 config, DB, 로그, 백업 JAR, 구매 리소스는 commit하지 않는다.

@@ -186,8 +186,8 @@ public class LegionTowers {
             EntityVisual.vanilla("minecraft:goat"),
             List.of(
                     "<gray>무리를 향해 나팔을 불어 사기를 끌어올리는 지원 타워입니다.</gray>",
-                    "<green>근처 무리 타워의 피해량을 증가시킵니다.</green>",
-                    "<green>분신은 추가로 피해 증가와 받는 피해 감소를 얻습니다.</green>"
+                    "<green>근처 무리 타워에 일정 시간 피해 증가와 받는 피해 감소를 부여합니다.</green>",
+                    "<green>분신에는 별도의 피해 증가와 받는 피해 감소 수치가 적용됩니다.</green>"
             )
     );
 
@@ -203,8 +203,8 @@ public class LegionTowers {
             EntityVisual.vanilla("minecraft:goat"),
             List.of(
                     "<gray>더 크게 울리는 나팔로 무리의 진형을 단단하게 만듭니다.</gray>",
-                    "<green>근처 무리 타워의 피해량을 증가시킵니다.</green>",
-                    "<green>분신은 추가로 피해 증가와 받는 피해 감소를 얻습니다.</green>"
+                    "<green>근처 무리 타워에 일정 시간 피해 증가와 받는 피해 감소를 부여합니다.</green>",
+                    "<green>분신에는 별도의 피해 증가와 받는 피해 감소 수치가 적용됩니다.</green>"
             )
     );
 
@@ -220,8 +220,8 @@ public class LegionTowers {
             EntityVisual.vanilla("minecraft:goat"),
             List.of(
                     "<gray>전장의 선두에서 무리를 밀어붙이는 최종 지원 타워입니다.</gray>",
-                    "<green>근처 무리 타워의 피해량을 증가시킵니다.</green>",
-                    "<green>분신은 추가로 피해 증가와 받는 피해 감소를 얻습니다.</green>"
+                    "<green>근처 무리 타워에 일정 시간 피해 증가와 받는 피해 감소를 부여합니다.</green>",
+                    "<green>분신에는 별도의 피해 증가와 받는 피해 감소 수치가 적용됩니다.</green>"
             )
     );
 
@@ -361,20 +361,23 @@ public class LegionTowers {
         ));
         TowerDescriptionRegistry.registerTemplate(T1_GOAT_TOWER, List.of(
                 "<gray>월드컵에서 강렬한 성적을 가지고 무리타워에 합류한 GOAT입니다.</gray>",
-                "<green>반경 {ability.radius:blocks} 내 무리 타워의 피해량을 {ability.damageBonus:percent} 증가시킵니다.</green>",
-                "<green>분신은 위 효과 대신 피해량 {ability.cloneDamageBonus:percent} 증가와 받는 피해 {ability.cloneDamageReduction:percent} 감소를 받습니다.</green>",
+                "<green>{stat.attackIntervalTicks:integer}틱마다 반경 {ability.radius:blocks} 내 무리 타워에 {ability.buffDurationTicks:integer}틱 동안 버프를 부여합니다.</green>",
+                "<green>일반 타워: 피해량 {ability.damageBonus:percent} 증가, 받는 피해 {ability.damageReduction:percent} 감소</green>",
+                "<green>분신: 피해량 {ability.cloneDamageBonus:percent} 증가, 받는 피해 {ability.cloneDamageReduction:percent} 감소</green>",
                 "<gray>염소 버프는 최대 {ability.maxStacks:integer}회 중첩됩니다.</gray>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_STRONG_GOAT_TOWER, List.of(
                 "<gray>월드컵에서 강렬한 성적을 가지고 무리타워에 합류한 GOAT입니다.</gray>",
-                "<green>반경 {ability.radius:blocks} 내 무리 타워의 피해량을 {ability.damageBonus:percent} 증가시킵니다.</green>",
-                "<green>분신은 위 효과 대신 피해량 {ability.cloneDamageBonus:percent} 증가와 받는 피해 {ability.cloneDamageReduction:percent} 감소를 받습니다.</green>",
+                "<green>{stat.attackIntervalTicks:integer}틱마다 반경 {ability.radius:blocks} 내 무리 타워에 {ability.buffDurationTicks:integer}틱 동안 버프를 부여합니다.</green>",
+                "<green>일반 타워: 피해량 {ability.damageBonus:percent} 증가, 받는 피해 {ability.damageReduction:percent} 감소</green>",
+                "<green>분신: 피해량 {ability.cloneDamageBonus:percent} 증가, 받는 피해 {ability.cloneDamageReduction:percent} 감소</green>",
                 "<gray>염소 버프는 최대 {ability.maxStacks:integer}회 중첩됩니다.</gray>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_EXTREME_GOAT_TOWER, List.of(
                 "<gray>월드컵에서 강렬한 성적을 가지고 무리타워에 합류한 GOAT입니다.</gray>",
-                "<green>반경 {ability.radius:blocks} 내 무리 타워의 피해량을 {ability.damageBonus:percent} 증가시킵니다.</green>",
-                "<green>분신은 위 효과 대신 피해량 {ability.cloneDamageBonus:percent} 증가와 받는 피해 {ability.cloneDamageReduction:percent} 감소를 받습니다.</green>",
+                "<green>{stat.attackIntervalTicks:integer}틱마다 반경 {ability.radius:blocks} 내 무리 타워에 {ability.buffDurationTicks:integer}틱 동안 버프를 부여합니다.</green>",
+                "<green>일반 타워: 피해량 {ability.damageBonus:percent} 증가, 받는 피해 {ability.damageReduction:percent} 감소</green>",
+                "<green>분신: 피해량 {ability.cloneDamageBonus:percent} 증가, 받는 피해 {ability.cloneDamageReduction:percent} 감소</green>",
                 "<gray>염소 버프는 최대 {ability.maxStacks:integer}회 중첩됩니다.</gray>"
         ));
         TowerDescriptionRegistry.registerTemplate(T1_BEE_TOWER, List.of(

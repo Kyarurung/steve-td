@@ -55,9 +55,12 @@ public final class CosmeticCatalog {
                 JsonObject object = serializedEntry.getAsJsonObject();
                 String id = object.get("id").getAsString();
                 long price = object.get("price").getAsLong();
+                EquipmentSlot slot = object.has("slot")
+                        ? EquipmentSlot.byName(object.get("slot").getAsString())
+                        : EquipmentSlot.HEAD;
                 ItemStack item = ItemStack.STRICT_SINGLE_ITEM_CODEC.parse(ops, object.get("item"))
                         .getOrThrow(IllegalArgumentException::new);
-                Entry entry = validatedEntry(id, price, item);
+                Entry entry = validatedEntry(id, price, slot, item);
                 if (loadedEntries.putIfAbsent(entry.id(), entry) != null) {
                     throw new IllegalArgumentException("Duplicate cosmetic id: " + entry.id());
                 }
@@ -85,6 +88,16 @@ public final class CosmeticCatalog {
     }
 
     public synchronized MutationResult add(RegistryAccess registryAccess, String id, long price, ItemStack item) {
+        return add(registryAccess, id, price, EquipmentSlot.HEAD, item);
+    }
+
+    public synchronized MutationResult add(
+            RegistryAccess registryAccess,
+            String id,
+            long price,
+            EquipmentSlot slot,
+            ItemStack item
+    ) {
         if (!available) {
             return MutationResult.UNAVAILABLE;
         }
@@ -93,7 +106,7 @@ public final class CosmeticCatalog {
         }
         Entry entry;
         try {
-            entry = validatedEntry(id, price, item);
+            entry = validatedEntry(id, price, slot, item);
         } catch (IllegalArgumentException exception) {
             return MutationResult.INVALID;
         }
@@ -110,12 +123,28 @@ public final class CosmeticCatalog {
             return MutationResult.UNAVAILABLE;
         }
         Entry previous = entries.get(id);
+        return previous == null
+                ? MutationResult.MISSING
+                : update(registryAccess, id, price, previous.slot(), item);
+    }
+
+    public synchronized MutationResult update(
+            RegistryAccess registryAccess,
+            String id,
+            long price,
+            EquipmentSlot slot,
+            ItemStack item
+    ) {
+        if (!available) {
+            return MutationResult.UNAVAILABLE;
+        }
+        Entry previous = entries.get(id);
         if (previous == null) {
             return MutationResult.MISSING;
         }
         Entry entry;
         try {
-            entry = validatedEntry(id, price, item);
+            entry = validatedEntry(id, price, slot, item);
         } catch (IllegalArgumentException exception) {
             return MutationResult.INVALID;
         }
@@ -159,6 +188,7 @@ public final class CosmeticCatalog {
                 JsonObject serializedEntry = new JsonObject();
                 serializedEntry.addProperty("id", entry.id());
                 serializedEntry.addProperty("price", entry.price());
+                serializedEntry.addProperty("slot", entry.slot().getSerializedName());
                 serializedEntry.add("item", ItemStack.STRICT_SINGLE_ITEM_CODEC.encodeStart(ops, entry.item())
                         .getOrThrow(IllegalArgumentException::new));
                 serializedEntries.add(serializedEntry);
@@ -185,18 +215,19 @@ public final class CosmeticCatalog {
         }
     }
 
-    private static Entry validatedEntry(String id, long price, ItemStack item) {
-        if (id == null || id.isBlank() || price < 0 || item == null || item.isEmpty()) {
+    private static Entry validatedEntry(String id, long price, EquipmentSlot slot, ItemStack item) {
+        if (id == null || id.isBlank() || price < 0 || !CosmeticItemSupport.supports(slot)
+                || item == null || item.isEmpty()) {
             throw new IllegalArgumentException("Invalid cosmetic entry.");
         }
         Equippable equippable = item.get(DataComponents.EQUIPPABLE);
-        if (equippable == null || equippable.slot() != EquipmentSlot.HEAD) {
-            throw new IllegalArgumentException("Cosmetic item must be equippable in the head slot.");
+        if (equippable == null || equippable.slot() != slot) {
+            throw new IllegalArgumentException("Cosmetic item must be equippable in its configured slot.");
         }
-        return new Entry(id, price, item.copyWithCount(1));
+        return new Entry(id, price, slot, item.copyWithCount(1));
     }
 
-    public record Entry(String id, long price, ItemStack item) {
+    public record Entry(String id, long price, EquipmentSlot slot, ItemStack item) {
     }
 
     public enum MutationResult {

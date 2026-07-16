@@ -16,6 +16,7 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.buildguide.BuildAction;
 import kim.biryeong.semiontd.buildguide.BuildGuide;
 import kim.biryeong.semiontd.cosmetic.CosmeticCatalog;
+import kim.biryeong.semiontd.cosmetic.CosmeticItemSupport;
 import kim.biryeong.semiontd.cosmetic.CosmeticService;
 import kim.biryeong.semiontd.game.*;
 import kim.biryeong.semiontd.job.JobRegistry;
@@ -63,6 +64,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 
 public final class SemionCommands {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
@@ -514,7 +516,18 @@ public final class SemionCommands {
                                                 cosmeticService,
                                                 StringArgumentType.getString(context, "id"),
                                                 LongArgumentType.getLong(context, "price")
-                                        )))))
+                                        ))
+                                        .then(argument("slot", StringArgumentType.word())
+                                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                        List.of("head", "offhand"), builder
+                                                ))
+                                                .executes(context -> addCosmetic(
+                                                        context.getSource(),
+                                                        cosmeticService,
+                                                        StringArgumentType.getString(context, "id"),
+                                                        LongArgumentType.getLong(context, "price"),
+                                                        StringArgumentType.getString(context, "slot")
+                                                ))))))
                 .then(literal("update")
                         .requires(source -> source.hasPermission(2))
                         .then(argument("id", StringArgumentType.word())
@@ -528,7 +541,18 @@ public final class SemionCommands {
                                                 cosmeticService,
                                                 StringArgumentType.getString(context, "id"),
                                                 LongArgumentType.getLong(context, "price")
-                                        )))))
+                                        ))
+                                        .then(argument("slot", StringArgumentType.word())
+                                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                        List.of("head", "offhand"), builder
+                                                ))
+                                                .executes(context -> updateCosmetic(
+                                                        context.getSource(),
+                                                        cosmeticService,
+                                                        StringArgumentType.getString(context, "id"),
+                                                        LongArgumentType.getLong(context, "price"),
+                                                        StringArgumentType.getString(context, "slot")
+                                                ))))))
                 .then(literal("remove")
                         .requires(source -> source.hasPermission(2))
                         .then(argument("id", StringArgumentType.word())
@@ -560,18 +584,44 @@ public final class SemionCommands {
             String id,
             long price
     ) throws CommandSyntaxException {
+        return addCosmetic(source, cosmeticService, id, price, EquipmentSlot.HEAD);
+    }
+
+    private static int addCosmetic(
+            CommandSourceStack source,
+            CosmeticService cosmeticService,
+            String id,
+            long price,
+            String slotName
+    ) throws CommandSyntaxException {
+        EquipmentSlot slot = cosmeticSlot(slotName);
+        if (slot == null) {
+            failure(source, "슬롯은 head 또는 offhand여야 합니다.");
+            return 0;
+        }
+        return addCosmetic(source, cosmeticService, id, price, slot);
+    }
+
+    private static int addCosmetic(
+            CommandSourceStack source,
+            CosmeticService cosmeticService,
+            String id,
+            long price,
+            EquipmentSlot slot
+    ) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         if (player.getMainHandItem().isEmpty()) {
-            failure(source, "주 손에 등록할 머리 아이템을 들어 주세요.");
+            failure(source, "주 손에 등록할 치장 아이템을 들어 주세요.");
             return 0;
         }
         CosmeticCatalog.MutationResult result = cosmeticService.add(
-                source.getServer(), id, price, player.getMainHandItem()
+                source.getServer(), id, price, slot, player.getMainHandItem()
         );
         if (result != CosmeticCatalog.MutationResult.SUCCESS) {
             return cosmeticMutationFailure(source, result, true);
         }
-        success(source, "치장 아이템 '" + id + "'을(를) " + price + " 포인트로 등록했습니다.");
+        success(source, "치장 아이템 '" + id + "'을(를) " + price + " 포인트, "
+                + CosmeticItemSupport.slotName(slot) + " 슬롯으로 등록했습니다.");
         return 1;
     }
 
@@ -583,7 +633,7 @@ public final class SemionCommands {
     ) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         if (player.getMainHandItem().isEmpty()) {
-            failure(source, "주 손에 교체할 머리 아이템을 들어 주세요.");
+            failure(source, "주 손에 교체할 치장 아이템을 들어 주세요.");
             return 0;
         }
         CosmeticCatalog.MutationResult result = cosmeticService.update(
@@ -594,6 +644,41 @@ public final class SemionCommands {
         }
         success(source, "치장 아이템 '" + id + "'의 아이템과 가격을 갱신했습니다.");
         return 1;
+    }
+
+    private static int updateCosmetic(
+            CommandSourceStack source,
+            CosmeticService cosmeticService,
+            String id,
+            long price,
+            String slotName
+    ) throws CommandSyntaxException {
+        EquipmentSlot slot = cosmeticSlot(slotName);
+        if (slot == null) {
+            failure(source, "슬롯은 head 또는 offhand여야 합니다.");
+            return 0;
+        }
+        ServerPlayer player = source.getPlayerOrException();
+        if (player.getMainHandItem().isEmpty()) {
+            failure(source, "주 손에 교체할 치장 아이템을 들어 주세요.");
+            return 0;
+        }
+        CosmeticCatalog.MutationResult result = cosmeticService.update(
+                source.getServer(), id, price, slot, player.getMainHandItem()
+        );
+        if (result != CosmeticCatalog.MutationResult.SUCCESS) {
+            return cosmeticMutationFailure(source, result, false);
+        }
+        success(source, "치장 아이템 '" + id + "'의 아이템, 가격, 착용 슬롯을 갱신했습니다.");
+        return 1;
+    }
+
+    private static EquipmentSlot cosmeticSlot(String name) {
+        return switch (name) {
+            case "head" -> EquipmentSlot.HEAD;
+            case "offhand" -> EquipmentSlot.OFFHAND;
+            default -> null;
+        };
     }
 
     private static int removeCosmetic(CommandSourceStack source, CosmeticService cosmeticService, String id) {
@@ -617,7 +702,8 @@ public final class SemionCommands {
         }
         success(source, "치장 아이템 " + entries.size() + "개:");
         for (CosmeticCatalog.Entry entry : entries) {
-            source.sendSuccess(() -> Component.literal("- " + entry.id() + ": " + entry.price()), false);
+            source.sendSuccess(() -> Component.literal("- " + entry.id() + ": " + entry.price()
+                    + " [" + entry.slot().getSerializedName() + "]"), false);
         }
         return entries.size();
     }
@@ -639,7 +725,7 @@ public final class SemionCommands {
         String message = switch (result) {
             case DUPLICATE -> "이미 같은 ID의 치장 아이템이 있습니다.";
             case MISSING -> "해당 ID의 치장 아이템이 없습니다.";
-            case INVALID -> "주 손 아이템은 머리 슬롯에 착용 가능한 아이템이어야 합니다.";
+            case INVALID -> "주 손 아이템은 지정한 슬롯에 착용 가능한 아이템이어야 합니다.";
             case SAVE_FAILED -> "치장 목록을 저장하지 못해 변경을 취소했습니다.";
             case UNAVAILABLE -> "치장 목록을 불러오지 못해 변경할 수 없습니다.";
             default -> adding ? "치장 아이템을 등록하지 못했습니다." : "치장 아이템을 변경하지 못했습니다.";

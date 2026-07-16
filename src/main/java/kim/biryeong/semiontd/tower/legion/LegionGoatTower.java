@@ -28,6 +28,7 @@ import net.minecraft.resources.ResourceLocation;
 public class LegionGoatTower extends SupportTower {
     private static final int MAX_STACKS = 3;
     private static final ResourceLocation[] DAMAGE_SOURCES = stackSources("goat_damage");
+    private static final ResourceLocation[] DAMAGE_REDUCTION_SOURCES = stackSources("goat_damage_reduction");
     private static final ResourceLocation[] CLONE_DAMAGE_SOURCES = stackSources("goat_clone_damage");
     private static final ResourceLocation[] CLONE_DAMAGE_REDUCTION_SOURCES = stackSources("goat_clone_damage_reduction");
     private static final Comparator<LegionGoatTower> STACK_ORDER = Comparator
@@ -90,6 +91,12 @@ public class LegionGoatTower extends SupportTower {
                         TimedEffectType.TOWER_DAMAGE_BONUS,
                         DAMAGE_SOURCES[stackIndex.getAsInt()],
                         value("damageBonus")
+                );
+                applied |= applyEffect(
+                        entity,
+                        TimedEffectType.TOWER_DAMAGE_REDUCTION,
+                        DAMAGE_REDUCTION_SOURCES[stackIndex.getAsInt()],
+                        value("damageReduction")
                 );
             }
             return applied ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED;

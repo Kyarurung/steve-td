@@ -8635,7 +8635,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 0.02, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat should buff a player's Legion tower during prepare.")) {
             return;
         }
+        if (!assertClose(context, 0.02, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat should temporarily reduce incoming damage for a player's Legion tower during prepare.")) {
+            return;
+        }
         if (!assertTrue(context, towerTimedEffectBody(targetEntity).contains("피해 증가 +2.0%"), "Right-click tower details should show the active goat damage buff.")) {
+            return;
+        }
+        if (!assertTrue(context, towerTimedEffectBody(targetEntity).contains("받피 감소 +2.0%"), "Right-click tower details should show the active goat damage reduction buff.")) {
             return;
         }
 
@@ -8664,6 +8670,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         int buffDurationTicks = TowerBalanceRuntime.abilityTicks(goat.type().id(), "buffDurationTicks");
         if (!assertEquals(context, buffDurationTicks, targetEntity.activeTimedEffectTicks(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat should refresh its buff every configured pulse interval.")) {
+            return;
+        }
+        if (!assertEquals(context, buffDurationTicks, targetEntity.activeTimedEffectTicks(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat should refresh its damage reduction every configured pulse interval.")) {
             return;
         }
         context.succeed();
@@ -8737,6 +8746,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         thirdGoat.tick(lane);
         fourthGoat.tick(lane);
         if (!assertClose(context, 0.15, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat body damage buff should stack up to three times.")) {
+            return;
+        }
+        if (!assertClose(context, 0.195, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat body damage reduction should stack up to three times.")) {
             return;
         }
         if (!assertClose(context, 0.195, cloneEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat clone damage buff should stack up to three times.")) {

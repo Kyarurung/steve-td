@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.ProgressionConfig;
 import kim.biryeong.semiontd.progression.ProgressionService.CosmeticUpdateResult;
@@ -27,13 +28,16 @@ final class CosmeticProgressionTest {
         assertEquals(CosmeticUpdateResult.SUCCESS, service.purchaseCosmetic(playerId, "Player", "crown", 40));
         assertEquals(CosmeticUpdateResult.ALREADY_OWNED, service.purchaseCosmetic(playerId, "Player", "crown", 40));
         assertEquals(CosmeticUpdateResult.INSUFFICIENT_FUNDS, service.purchaseCosmetic(playerId, "Player", "halo", 61));
-        assertEquals(CosmeticUpdateResult.SUCCESS, service.selectCosmetic(playerId, "Player", "crown"));
+        assertEquals(CosmeticUpdateResult.SUCCESS, service.purchaseCosmetic(playerId, "Player", "rabbit", 20));
+        assertEquals(CosmeticUpdateResult.SUCCESS,
+                service.selectCosmetics(playerId, "Player", List.of("crown", "rabbit")));
 
         ProgressionService reloaded = new ProgressionService(ProgressionConfig.defaultConfig(), path);
         SemionPlayerProfile profile = reloaded.profile(null, playerId, "Player");
-        assertEquals(60, profile.cosmeticCurrency());
+        assertEquals(40, profile.cosmeticCurrency());
         assertEquals("crown", profile.selectedCosmeticId());
-        assertEquals(java.util.List.of("crown"), profile.ownedCosmeticIds());
+        assertEquals(List.of("crown", "rabbit"), profile.selectedCosmeticIds());
+        assertEquals(List.of("crown", "rabbit"), profile.ownedCosmeticIds());
     }
 
     @Test

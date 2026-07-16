@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd;
 
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
+import kim.biryeong.semiontd.cosmetic.CosmeticItemSupport;
 import kim.biryeong.semiontd.cosmetic.CosmeticService;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.SemionPlayerProtectionService;
@@ -14,6 +15,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import xyz.nucleoid.stimuli.Stimuli;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerConsumeHungerEvent;
+import xyz.nucleoid.stimuli.event.player.PlayerSwapWithOffhandEvent;
 
 public final class Events {
 
@@ -60,6 +62,11 @@ public final class Events {
         });
 
         Stimuli.global().listen(PlayerConsumeHungerEvent.EVENT, ((serverPlayer, i, v, v1) -> EventResult.DENY));
+        Stimuli.global().listen(PlayerSwapWithOffhandEvent.EVENT, player ->
+                CosmeticItemSupport.isLockedOffhandCosmetic(player.getOffhandItem())
+                        ? EventResult.DENY
+                        : EventResult.PASS
+        );
     }
 
     private Events() throws IllegalAccessException {
