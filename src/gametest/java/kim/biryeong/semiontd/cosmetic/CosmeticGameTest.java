@@ -280,12 +280,14 @@ public final class CosmeticGameTest {
         CommandSourceStack nonOp = context.getLevel().getServer().createCommandSourceStack().withPermission(0);
         CommandSourceStack op = context.getLevel().getServer().createCommandSourceStack().withPermission(2);
         assertTrue(cosmetic.canUse(nonOp), "Players should be able to open the shop.");
-        for (String childName : List.of("add", "update", "remove", "list", "reload")) {
+        for (String childName : List.of("points", "add", "update", "remove", "list", "reload")) {
             var child = cosmetic.getChild(childName);
             assertTrue(child != null, "Missing cosmetic subcommand " + childName);
             assertFalse(child.canUse(nonOp), childName + " should require permission level 2.");
             assertTrue(child.canUse(op), childName + " should allow permission level 2.");
         }
+        assertTrue(cosmetic.getChild("points").getChild("give").getChild("player").getChild("amount") != null,
+                "Points command should accept one target player and a positive amount.");
         assertTrue(cosmetic.getChild("add").getChild("id").getChild("price").getChild("slot") != null,
                 "Add command should accept an explicit slot.");
         assertTrue(cosmetic.getChild("update").getChild("id").getChild("price").getChild("slot") != null,

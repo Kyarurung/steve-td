@@ -55,4 +55,17 @@ final class CosmeticProgressionTest {
         assertTrue(Files.exists(tempDir.resolve("progression-fallback.log")));
         assertFalse(Files.readString(tempDir.resolve("progression-fallback.log")).contains("crown"));
     }
+
+    @Test
+    void cosmeticCurrencyGrantPersistsAndRejectsOverflow() {
+        Path path = tempDir.resolve("profiles.json");
+        UUID playerId = UUID.randomUUID();
+        ProgressionService service = new ProgressionService(ProgressionConfig.defaultConfig(), path);
+
+        assertEquals(125L, service.grantCosmeticCurrency(playerId, "Player", 125).orElseThrow().cosmeticCurrency());
+        assertTrue(service.grantCosmeticCurrency(playerId, "Player", Long.MAX_VALUE).isEmpty());
+
+        ProgressionService reloaded = new ProgressionService(ProgressionConfig.defaultConfig(), path);
+        assertEquals(125L, reloaded.profile(null, playerId, "Player").cosmeticCurrency());
+    }
 }

@@ -70,6 +70,7 @@
 | `/semiontd playerlimit remove <player>` | 정원 초과 입장 허용 목록에서 플레이어를 제거합니다. |
 | `/semiontd playerlimit list` | 정원 초과 입장 허용 목록을 봅니다. |
 | `/semiontd cosmetic add <id> <price> [slot]` | 주 손 아이템을 1개로 복사해 판매 목록에 추가합니다. `slot`은 `head` 또는 `offhand`이며 생략하면 `head`입니다. |
+| `/semiontd cosmetic points give <player> <amount>` | 지정한 플레이어에게 치장 포인트를 지급하고 즉시 저장합니다. 권한 레벨 2 이상만 사용할 수 있습니다. |
 | `/semiontd cosmetic update <id> <price> [slot]` | 기존 상품을 주 손 아이템과 새 가격으로 교체합니다. 슬롯을 생략하면 기존 슬롯을 유지합니다. |
 | `/semiontd cosmetic remove <id>` | 상품을 판매 목록에서 제거하고 해당 상품의 착용을 해제합니다. 구매 기록은 유지합니다. |
 | `/semiontd cosmetic list` | 등록된 상품 ID, 가격, 착용 슬롯을 봅니다. |

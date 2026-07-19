@@ -142,6 +142,22 @@ public record SemionPlayerProfile(
         );
     }
 
+    public SemionPlayerProfile grantCosmeticCurrency(String playerName, long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Cosmetic currency grant must be positive.");
+        }
+        return copy(
+                playerName == null ? "" : playerName,
+                Math.addExact(cosmeticCurrency, amount),
+                ownedCosmeticIds,
+                selectedCosmeticIds,
+                selectedJobId,
+                selectedSkyboxId,
+                tipsEnabled,
+                recentBuildCodes
+        );
+    }
+
     public SemionPlayerProfile rememberRecentBuildCode(String playerName, String code) {
         String normalized = playerName == null ? "" : playerName;
         String normalizedCode = code == null ? "" : code.trim().toUpperCase(java.util.Locale.ROOT);

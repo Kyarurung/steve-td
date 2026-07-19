@@ -669,6 +669,10 @@ public final class SemionGameManager {
         return progressionService.profile(server, playerId, playerName);
     }
 
+    public Optional<SemionPlayerProfile> grantCosmeticCurrency(UUID playerId, String playerName, long amount) {
+        return progressionService.grantCosmeticCurrency(playerId, playerName, amount);
+    }
+
     public Optional<PlayerRatingProfile> ratingProfile(UUID playerId) {
         return ratingProfileCache.profile(playerId, ratingService::profile);
     }

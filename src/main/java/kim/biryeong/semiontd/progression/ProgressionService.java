@@ -80,6 +80,23 @@ public final class ProgressionService {
         return store.putProfile(playerId, updated);
     }
 
+    public synchronized Optional<SemionPlayerProfile> grantCosmeticCurrency(
+            UUID playerId,
+            String playerName,
+            long amount
+    ) {
+        if (playerId == null || amount <= 0) {
+            return Optional.empty();
+        }
+        SemionPlayerProfile updated;
+        try {
+            updated = store.getOrCreateProfile(playerId, playerName).grantCosmeticCurrency(playerName, amount);
+        } catch (ArithmeticException exception) {
+            return Optional.empty();
+        }
+        return store.putProfilePersisted(playerId, updated) ? Optional.of(updated) : Optional.empty();
+    }
+
     public synchronized CosmeticUpdateResult purchaseCosmetic(UUID playerId, String playerName, String cosmeticId, long price) {
         SemionPlayerProfile current = store.getOrCreateProfile(playerId, playerName);
         if (current.ownsCosmetic(cosmeticId)) {

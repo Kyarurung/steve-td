@@ -191,7 +191,7 @@ public final class SemionCommands {
                                         )))))
                 .then(literal("profile")
                         .executes(context -> profile(context.getSource(), gameManager)))
-                .then(cosmeticCommand("cosmetic", cosmeticService))
+                .then(cosmeticCommand("cosmetic", gameManager, cosmeticService))
                 .then(skyboxCommand("skybox", skyboxService))
                 .then(tipCommand("tip", gameManager, tipService))
                 .then(literal("rating")
@@ -503,10 +503,22 @@ public final class SemionCommands {
 
     private static LiteralArgumentBuilder<CommandSourceStack> cosmeticCommand(
             String rootName,
+            SemionGameManager gameManager,
             CosmeticService cosmeticService
     ) {
         return literal(rootName)
                 .executes(context -> openCosmeticShop(context.getSource(), cosmeticService))
+                .then(literal("points")
+                        .requires(source -> source.hasPermission(2))
+                        .then(literal("give")
+                                .then(argument("player", GameProfileArgument.gameProfile())
+                                        .then(argument("amount", LongArgumentType.longArg(1))
+                                                .executes(context -> grantCosmeticPoints(
+                                                        context.getSource(),
+                                                        gameManager,
+                                                        GameProfileArgument.getGameProfiles(context, "player"),
+                                                        LongArgumentType.getLong(context, "amount")
+                                                ))))))
                 .then(literal("add")
                         .requires(source -> source.hasPermission(2))
                         .then(argument("id", StringArgumentType.word())
@@ -571,6 +583,31 @@ public final class SemionCommands {
                 .then(literal("reload")
                         .requires(source -> source.hasPermission(2))
                         .executes(context -> reloadCosmetics(context.getSource(), cosmeticService)));
+    }
+
+    private static int grantCosmeticPoints(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            Collection<GameProfile> targets,
+            long amount
+    ) {
+        if (targets.size() != 1) {
+            failure(source, "치장 포인트는 한 번에 한 플레이어에게만 지급할 수 있습니다.");
+            return 0;
+        }
+        GameProfile target = targets.iterator().next();
+        String targetName = target.getName() == null || target.getName().isBlank()
+                ? target.getId().toString()
+                : target.getName();
+        var updated = gameManager.grantCosmeticCurrency(target.getId(), targetName, amount);
+        if (updated.isEmpty()) {
+            failure(source, "치장 포인트를 저장하지 못했거나 보유량 최대치를 초과했습니다.");
+            return 0;
+        }
+        String feedback = targetName + "에게 치장 포인트 " + amount
+                + "개를 지급했습니다. 현재 포인트=" + updated.get().cosmeticCurrency();
+        source.sendSuccess(() -> SemionText.prefixedPlain(feedback), true);
+        return 1;
     }
 
     private static int openCosmeticShop(CommandSourceStack source, CosmeticService cosmeticService) throws CommandSyntaxException {
