@@ -110,6 +110,75 @@ public final class TowerVfxGameTest {
     }
 
     @GameTest
+    public void warlockSacrificeEmitsVfxFromVictimToWarlock(GameTestHelper context) {
+        List<Vec3> sacrificedCenters = new ArrayList<>();
+        List<Vec3> warlockCenters = new ArrayList<>();
+        TowerVfxService.setWarlockSacrificeTestObserver((sacrificed, warlock) -> {
+            sacrificedCenters.add(sacrificed);
+            warlockCenters.add(warlock);
+        });
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("warlock-sacrifice-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            TestTower runtimeTower = new TestTower(WarlockTowers.BASE_WARLOCK_TOWER, owner);
+            SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            tower.setPos(2.0, 2.0, 2.0);
+            tower.configure(runtimeTower, null);
+            Vec3 sacrificedCenter = new Vec3(5.0, 3.0, 2.0);
+
+            TowerVfxService.showWarlockSacrifice(tower, sacrificedCenter);
+
+            if (sacrificedCenters.size() != 1
+                    || sacrificedCenters.getFirst().distanceTo(sacrificedCenter) > 1.0E-6
+                    || warlockCenters.getFirst().distanceTo(tower.position()) > 2.0) {
+                throw new AssertionError("Warlock sacrifice should emit one victim-to-warlock VFX event");
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setWarlockSacrificeTestObserver(null);
+        }
+    }
+
+    @GameTest
+    public void transcendenceBatchesAllAffectedTowerCenters(GameTestHelper context) {
+        List<List<Vec3>> observed = new ArrayList<>();
+        TowerVfxService.setTranscendenceTestObserver(observed::add);
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("transcendence-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            SemionTowerEntity first = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            first.setPos(2.0, 2.0, 2.0);
+            first.configure(new TestTower(WarlockTowers.BASE_WARLOCK_TOWER, owner), null);
+            SemionTowerEntity second = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            second.setPos(5.0, 2.0, 2.0);
+            second.configure(new TestTower(WarlockTowers.BASE_WARLOCK_TOWER, owner), null);
+
+            TowerVfxService.showTranscendence(List.of(first, second));
+
+            if (observed.size() != 1
+                    || observed.getFirst().size() != 2
+                    || Math.abs(observed.getFirst().get(0).x - 2.0) > 1.0E-6
+                    || Math.abs(observed.getFirst().get(1).x - 5.0) > 1.0E-6) {
+                throw new AssertionError("Transcendence should enqueue one batched VFX event for every affected tower");
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setTranscendenceTestObserver(null);
+        }
+    }
+
+    @GameTest
+    public void transcendenceDebugCommandParses(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        var parsed = dispatcher.parse(
+                "semiontd-debug vfx transcendence",
+                context.getLevel().getServer().createCommandSourceStack()
+        );
+        if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+            throw new AssertionError("Expected /semiontd-debug vfx transcendence to parse completely");
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void rayDensityKeepsEveryAttackVisibleAfterSoftBudgetIsExhausted(GameTestHelper context) {
         if (TowerVfxService.preferredRayPointCount(100.0) != 64
                 || TowerVfxService.adaptiveRayPointCount(100.0, 0) != 12) {

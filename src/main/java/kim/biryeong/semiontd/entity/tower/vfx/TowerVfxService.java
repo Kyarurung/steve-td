@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import kim.biryeong.gcbserver.packet.s2c.GCBParticleS2CPacket;
 import kim.biryeong.gcbserver.player.GCBPlayer;
@@ -31,6 +32,7 @@ import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
+import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
@@ -66,6 +68,7 @@ public final class TowerVfxService {
     private static final long LANE_STATE_TTL_TICKS = 200L;
     private static final int MIN_RAY_POINTS = 12;
     private static final int MAX_RAY_POINTS = 64;
+    private static final int GCB_BEZIER_SEGMENTS = 4;
     private static final double RAY_POINTS_PER_BLOCK = 5.0;
     private static final float HORIZONTAL_ROTATION_X = (float) (Math.PI / 2.0);
 
@@ -75,6 +78,10 @@ public final class TowerVfxService {
     private static final DustParticleOptions ZOMBIE_TRANSITION_PARTICLE = new DustParticleOptions(0x6D8B3D, 1.0F);
     private static final DustParticleOptions ILLAGER_RAID_POWER_PARTICLE = new DustParticleOptions(0xE53935, 1.2F);
     private static final DustParticleOptions ILLAGER_RAID_ARMOR_PARTICLE = new DustParticleOptions(0xB0BEC5, 1.0F);
+    private static final DustParticleOptions WARLOCK_SACRIFICE_DARK_PARTICLE = new DustParticleOptions(0x512DA8, 1.15F);
+    private static final DustParticleOptions WARLOCK_SACRIFICE_SOUL_PARTICLE = new DustParticleOptions(0xD500F9, 0.95F);
+    private static final DustParticleOptions TRANSCENDENCE_GOLD_PARTICLE = new DustParticleOptions(0xF4D35E, 1.15F);
+    private static final DustParticleOptions TRANSCENDENCE_LIGHT_PARTICLE = new DustParticleOptions(0xFFF4CC, 0.9F);
 
     private static final Set<String> UNDEAD_TOWER_IDS = Set.of(
             UndeadTowers.T1_ZOMBIE_TOWER.id(), UndeadTowers.T2_ZOMBIE_TOWER.id(), UndeadTowers.T3_ZOMBIE_TOWER.id(),
@@ -104,6 +111,8 @@ public final class TowerVfxService {
     private static volatile Consumer<AreaEffectVfxEvent> areaEffectTestObserver;
     private static volatile Consumer<Vec3> netherTransitionTestObserver;
     private static volatile Consumer<Vec3> illagerRaidActivationTestObserver;
+    private static volatile BiConsumer<Vec3, Vec3> warlockSacrificeTestObserver;
+    private static volatile Consumer<List<Vec3>> transcendenceTestObserver;
     private static final Set<net.minecraft.resources.ResourceLocation> MISSING_STYLE_WARNINGS = ConcurrentHashMap.newKeySet();
     private static final Map<net.minecraft.resources.ResourceLocation, Long> STYLE_ERROR_LOG_TICKS = new ConcurrentHashMap<>();
 
@@ -196,6 +205,105 @@ public final class TowerVfxService {
         double radius = Math.max(1.05, Math.min(1.7, tower.getBbWidth() * 0.85));
         double height = Math.max(1.6, Math.min(2.6, tower.getBbHeight() * 0.9));
         enqueue(new IllagerRaidActivationEvent(context, center, radius, height));
+    }
+
+    public static void showWarlockSacrifice(SemionTowerEntity warlock, Vec3 sacrificedCenter) {
+        if (!config.enabled() || warlock == null || sacrificedCenter == null) {
+            return;
+        }
+        Vec3 warlockCenter = towerCenter(warlock);
+        EventContext context = context(warlock, sacrificedCenter);
+        if (context != null) {
+            enqueueWarlockSacrifice(context, sacrificedCenter, warlockCenter);
+        }
+    }
+
+    public static void showTranscendence(List<SemionTowerEntity> towers) {
+        if (!config.enabled() || towers == null) {
+            return;
+        }
+        List<SemionTowerEntity> targets = towers.stream()
+                .filter(Objects::nonNull)
+                .filter(tower -> tower.isAlive() && !tower.isRemoved() && tower.runtimeTower() != null)
+                .toList();
+        if (targets.isEmpty()) {
+            return;
+        }
+        List<Vec3> centers = targets.stream().map(TowerVfxService::towerCenter).toList();
+        EventContext context = context(targets.getFirst(), average(centers));
+        if (context != null) {
+            enqueueTranscendence(context, centers);
+        }
+    }
+
+    public static void showWarlockSacrificeDebug(ServerPlayer player) {
+        if (!config.enabled() || player == null || !(player.level() instanceof ServerLevel level)) {
+            return;
+        }
+        Vec3 look = player.getLookAngle();
+        Vec3 horizontal = new Vec3(look.x, 0.0, look.z);
+        if (horizontal.lengthSqr() < 1.0E-6) {
+            horizontal = new Vec3(0.0, 0.0, 1.0);
+        } else {
+            horizontal = horizontal.normalize();
+        }
+        Vec3 right = new Vec3(-horizontal.z, 0.0, horizontal.x);
+        Vec3 eye = player.getEyePosition();
+        Vec3 sacrificedCenter = eye.add(horizontal.scale(5.0)).add(0.0, -0.35, 0.0);
+        Vec3 warlockCenter = eye.add(horizontal.scale(3.4)).add(right.scale(1.8)).add(0.0, -0.35, 0.0);
+        EventContext context = new EventContext(
+                new VfxLaneKey(level.dimension(), TeamId.RED, 0),
+                player.getUUID(),
+                BuilderPalette.WARLOCK,
+                level.getGameTime(),
+                List.of(Recipient.snapshot(player))
+        );
+        enqueueWarlockSacrifice(context, sacrificedCenter, warlockCenter);
+    }
+
+    public static void showTranscendenceDebug(ServerPlayer player) {
+        if (!config.enabled() || player == null || !(player.level() instanceof ServerLevel level)) {
+            return;
+        }
+        Vec3 look = player.getLookAngle();
+        Vec3 forward = new Vec3(look.x, 0.0, look.z);
+        if (forward.lengthSqr() < 1.0E-6) {
+            forward = new Vec3(0.0, 0.0, 1.0);
+        } else {
+            forward = forward.normalize();
+        }
+        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        Vec3 center = player.position().add(forward.scale(5.0)).add(0.0, 1.0, 0.0);
+        List<Vec3> centers = List.of(
+                center.add(right.scale(-1.6)),
+                center,
+                center.add(right.scale(1.6))
+        );
+        EventContext context = new EventContext(
+                new VfxLaneKey(level.dimension(), TeamId.RED, 0),
+                player.getUUID(),
+                BuilderPalette.RESONANCE,
+                level.getGameTime(),
+                List.of(Recipient.snapshot(player))
+        );
+        enqueueTranscendence(context, centers);
+    }
+
+    private static void enqueueWarlockSacrifice(EventContext context, Vec3 sacrificedCenter, Vec3 warlockCenter) {
+        BiConsumer<Vec3, Vec3> observer = warlockSacrificeTestObserver;
+        if (observer != null) {
+            observer.accept(sacrificedCenter, warlockCenter);
+        }
+        enqueue(new WarlockSacrificeEvent(context, sacrificedCenter, warlockCenter));
+    }
+
+    private static void enqueueTranscendence(EventContext context, List<Vec3> centers) {
+        List<Vec3> snapshot = List.copyOf(centers);
+        Consumer<List<Vec3>> observer = transcendenceTestObserver;
+        if (observer != null) {
+            observer.accept(snapshot);
+        }
+        enqueue(new TranscendenceEvent(context, snapshot));
     }
 
     public static void endServerTick(MinecraftServer server) {
@@ -405,10 +513,29 @@ public final class TowerVfxService {
         illagerRaidActivationTestObserver = observer;
     }
 
+    static void setWarlockSacrificeTestObserver(BiConsumer<Vec3, Vec3> observer) {
+        warlockSacrificeTestObserver = observer;
+    }
+
+    static void setTranscendenceTestObserver(Consumer<List<Vec3>> observer) {
+        transcendenceTestObserver = observer;
+    }
+
     private static Vec3 towerCenter(SemionTowerEntity tower) {
         return tower == null
                 ? Vec3.ZERO
                 : new Vec3(tower.getX(), tower.getY() + Math.max(0.35, tower.getBbHeight() * 0.65), tower.getZ());
+    }
+
+    private static Vec3 average(List<Vec3> positions) {
+        if (positions == null || positions.isEmpty()) {
+            return Vec3.ZERO;
+        }
+        Vec3 sum = Vec3.ZERO;
+        for (Vec3 position : positions) {
+            sum = sum.add(position);
+        }
+        return sum.scale(1.0 / positions.size());
     }
 
     private static EventContext context(SemionTowerEntity tower, Vec3 audienceCenter) {
@@ -526,6 +653,10 @@ public final class TowerVfxService {
                 renderTransition(transition, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             } else if (event instanceof IllagerRaidActivationEvent raidActivation) {
                 renderIllagerRaidActivation(raidActivation, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof WarlockSacrificeEvent sacrifice) {
+                renderWarlockSacrifice(sacrifice, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof TranscendenceEvent transcendence) {
+                renderTranscendence(transcendence, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             }
         }
         long elapsedMicros = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - started);
@@ -700,6 +831,116 @@ public final class TowerVfxService {
         }
     }
 
+    private static void renderWarlockSacrifice(
+            WarlockSacrificeEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 200, 96, true);
+        int outerSpherePoints = points * 25 / 100;
+        int lowerRingPoints = points * 10 / 100;
+        int upperRingPoints = points * 10 / 100;
+        int impactPoints = points * 15 / 100;
+        int trailPoints = Math.max(4, (points - outerSpherePoints - lowerRingPoints - upperRingPoints - impactPoints) / 4);
+
+        sendSphere(event.context(), WARLOCK_SACRIFICE_DARK_PARTICLE, "minecraft:witch",
+                event.sacrificedCenter, 0.92, outerSpherePoints, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), WARLOCK_SACRIFICE_SOUL_PARTICLE, "minecraft:reverse_portal",
+                event.sacrificedCenter.add(0.0, -0.42, 0.0), 0.88, lowerRingPoints,
+                true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), WARLOCK_SACRIFICE_DARK_PARTICLE, "minecraft:witch",
+                event.sacrificedCenter.add(0.0, 0.38, 0.0), 0.58, upperRingPoints,
+                true, config, packetCounts, shapeCounts);
+
+        Vec3 travel = event.warlockCenter.subtract(event.sacrificedCenter);
+        Vec3 horizontal = new Vec3(travel.x, 0.0, travel.z);
+        Vec3 side = horizontal.lengthSqr() < 1.0E-6
+                ? new Vec3(1.0, 0.0, 0.0)
+                : new Vec3(-horizontal.z, 0.0, horizontal.x).normalize();
+        for (int index = 0; index < 4; index++) {
+            double sideOffset = (index - 1.5) * 0.24;
+            Vec3 start = event.sacrificedCenter.add(side.scale(sideOffset)).add(0.0, (index % 2) * 0.28 - 0.14, 0.0);
+            Vec3 control = event.sacrificedCenter.add(travel.scale(0.48))
+                    .add(side.scale(sideOffset * 1.8))
+                    .add(0.0, 0.9 + (index % 2) * 0.3, 0.0);
+            ParticleOptions particle = index % 2 == 0
+                    ? WARLOCK_SACRIFICE_SOUL_PARTICLE
+                    : WARLOCK_SACRIFICE_DARK_PARTICLE;
+            String gcbParticle = index % 2 == 0 ? "minecraft:reverse_portal" : "minecraft:witch";
+            sendTrail(event.context(), particle, gcbParticle, start, control, event.warlockCenter,
+                    trailPoints, true, config, packetCounts, shapeCounts);
+        }
+
+        sendSphere(event.context(), WARLOCK_SACRIFICE_SOUL_PARTICLE, "minecraft:reverse_portal",
+                event.warlockCenter, 0.48, impactPoints, true, config, packetCounts, shapeCounts);
+        int soulPoints = claimVanillaPoints(event.context().lane(), gameTime, config, 18, 0, false);
+        if (soulPoints > 0) {
+            sendSphere(event.context(), ParticleTypes.SOUL, "minecraft:soul", event.sacrificedCenter, 0.62,
+                    soulPoints, false, config, packetCounts, shapeCounts);
+        }
+    }
+
+    private static void renderTranscendence(
+            TranscendenceEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int targetCount = event.centers.size();
+        if (targetCount <= 0) {
+            return;
+        }
+        int points = claimVanillaPoints(
+                event.context().lane(),
+                gameTime,
+                config,
+                targetCount * 56,
+                targetCount * 24,
+                true
+        );
+        int pointsPerTarget = Math.max(24, points / targetCount);
+        for (Vec3 center : event.centers) {
+            int lowerRingPoints = Math.max(4, pointsPerTarget * 20 / 100);
+            int upperRingPoints = Math.max(4, pointsPerTarget * 15 / 100);
+            int sparkPoints = Math.max(4, pointsPerTarget * 20 / 100);
+            int trailPoints = Math.max(
+                    4,
+                    (pointsPerTarget - lowerRingPoints - upperRingPoints - sparkPoints) / 3
+            );
+            Vec3 base = center.add(0.0, -0.65, 0.0);
+            Vec3 crown = center.add(0.0, 0.85, 0.0);
+
+            sendCircle(event.context(), TRANSCENDENCE_GOLD_PARTICLE, "minecraft:electric_spark",
+                    base, 0.76, lowerRingPoints, true, config, packetCounts, shapeCounts);
+            sendCircle(event.context(), TRANSCENDENCE_LIGHT_PARTICLE, "minecraft:end_rod",
+                    center.add(0.0, 0.12, 0.0), 0.48, upperRingPoints,
+                    true, config, packetCounts, shapeCounts);
+            sendSphere(event.context(), ParticleTypes.END_ROD, "minecraft:end_rod",
+                    crown, 0.28, sparkPoints, true, config, packetCounts, shapeCounts);
+
+            for (int index = 0; index < 3; index++) {
+                double angle = Math.PI * 2.0 * index / 3.0;
+                Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
+                sendTrail(
+                        event.context(),
+                        TRANSCENDENCE_GOLD_PARTICLE,
+                        "minecraft:electric_spark",
+                        base.add(direction.scale(0.62)),
+                        center.add(direction.scale(0.85)),
+                        crown.add(direction.scale(0.12)),
+                        trailPoints,
+                        true,
+                        config,
+                        packetCounts,
+                        shapeCounts
+                );
+            }
+        }
+    }
+
     private static void sendLine(
             EventContext context, ParticleOptions particle, String gcbParticle, Vec3 start, Vec3 end, int points,
             boolean essential, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts
@@ -716,7 +957,7 @@ public final class TowerVfxService {
                 gcbVec(start),
                 gcbVec(end)
         );
-        sendGcb(context, gcbParticle, shape, essential, config, shapeCounts);
+        sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
     }
 
     private static void sendCircle(
@@ -732,13 +973,13 @@ public final class TowerVfxService {
         ), config, packetCounts);
         GCBParticleS2CPacket.ShapeData shape = new GCBParticleS2CPacket.Circle(
                 GCBParticleS2CPacket.Vec.UNIT_Y,
-                GCBParticleS2CPacket.Vec.ZERO,
+                new GCBParticleS2CPacket.Vec(radius, 0.0, 0.0),
                 points,
                 360.0,
-                shapeOptions(radius, 0.12),
+                shapeOptions(0.12),
                 gcbVec(center)
         );
-        sendGcb(context, gcbParticle, shape, essential, config, shapeCounts);
+        sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
     }
 
     private static void sendSphere(
@@ -752,9 +993,12 @@ public final class TowerVfxService {
                 particle, 0, vector(center), (float) radius, (float) radius, (float) radius, new Vector3f(), points
         ), config, packetCounts);
         GCBParticleS2CPacket.ShapeData shape = new GCBParticleS2CPacket.Sphere(
-                GCBParticleS2CPacket.Vec.UNIT_Y, points, shapeOptions(radius, 0.12), gcbVec(center)
+                new GCBParticleS2CPacket.Vec(0.0, radius, 0.0),
+                points,
+                shapeOptions(0.12),
+                gcbVec(center)
         );
-        sendGcb(context, gcbParticle, shape, essential, config, shapeCounts);
+        sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
     }
 
     private static void sendBezier(
@@ -766,10 +1010,7 @@ public final class TowerVfxService {
                 particle, 0, new Vector3f(),
                 new QuadraticBezierCurve(vector(start), vector(end), vector(control)), new Vector3f(), points
         ), config, packetCounts);
-        GCBParticleS2CPacket.ShapeData shape = new GCBParticleS2CPacket.Trail(
-                0.0, GCBParticleS2CPacket.ShapeOptions.DEFAULT, gcbVec(start), gcbVec(control), gcbVec(end)
-        );
-        sendGcb(context, gcbParticle, shape, essential, config, shapeCounts);
+        sendGcbBezier(context, particle, gcbParticle, start, control, end, points, essential, config, shapeCounts);
     }
 
     private static void sendTrail(
@@ -789,10 +1030,42 @@ public final class TowerVfxService {
                 particle, 0, new Vector3f(),
                 new QuadraticBezierCurve(vector(start), vector(end), vector(control)), new Vector3f(), points
         ), config, packetCounts);
-        GCBParticleS2CPacket.ShapeData shape = new GCBParticleS2CPacket.Trail(
-                0.0, GCBParticleS2CPacket.ShapeOptions.DEFAULT, gcbVec(start), gcbVec(control), gcbVec(end)
-        );
-        sendGcb(context, gcbParticle, shape, essential, config, shapeCounts);
+        sendGcbBezier(context, particle, gcbParticle, start, control, end, points, essential, config, shapeCounts);
+    }
+
+    private static void sendGcbBezier(
+            EventContext context,
+            ParticleOptions particle,
+            String gcbParticle,
+            Vec3 start,
+            Vec3 control,
+            Vec3 end,
+            int points,
+            boolean essential,
+            VfxConfig config,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int segments = Math.min(GCB_BEZIER_SEGMENTS, Math.max(1, points));
+        int pointsPerSegment = Math.max(1, points / segments);
+        Vec3 segmentStart = start;
+        for (int segment = 1; segment <= segments; segment++) {
+            double t = segment / (double) segments;
+            double inverse = 1.0 - t;
+            Vec3 segmentEnd = start.scale(inverse * inverse)
+                    .add(control.scale(2.0 * inverse * t))
+                    .add(end.scale(t * t));
+            int segmentPoints = segment == segments
+                    ? Math.max(1, points - pointsPerSegment * (segments - 1))
+                    : pointsPerSegment;
+            GCBParticleS2CPacket.ShapeData shape = new GCBParticleS2CPacket.Line(
+                    Math.max(0.01, segmentStart.distanceTo(segmentEnd) / segmentPoints),
+                    GCBParticleS2CPacket.ShapeOptions.DEFAULT,
+                    gcbVec(segmentStart),
+                    gcbVec(segmentEnd)
+            );
+            sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
+            segmentStart = segmentEnd;
+        }
     }
 
     private static void sendParticle(
@@ -801,9 +1074,12 @@ public final class TowerVfxService {
     ) {
         sendVanilla(context, collector -> collector.drawParticle(particle, 0, vector(position)), config, packetCounts);
         GCBParticleS2CPacket.ShapeData shape = new GCBParticleS2CPacket.Sphere(
-                GCBParticleS2CPacket.Vec.UNIT_Y, 1, shapeOptions(0.05, 0.0), gcbVec(position)
+                new GCBParticleS2CPacket.Vec(0.0, 0.05, 0.0),
+                1,
+                shapeOptions(0.0),
+                gcbVec(position)
         );
-        sendGcb(context, gcbParticle, shape, essential, config, shapeCounts);
+        sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
     }
 
     private static void sendVanilla(
@@ -848,6 +1124,7 @@ public final class TowerVfxService {
 
     private static void sendGcb(
             EventContext context,
+            ParticleOptions particleOptions,
             String particle,
             GCBParticleS2CPacket.ShapeData shape,
             boolean essential,
@@ -863,9 +1140,7 @@ public final class TowerVfxService {
             stats(context.lane()).dropped.increment();
             return;
         }
-        GCBParticleS2CPacket payload = new GCBParticleS2CPacket(
-                particle, GCBParticleS2CPacket.Vec.ZERO, 1, 0.0, false, "", shape
-        );
+        GCBParticleS2CPacket payload = gcbPayload(particleOptions, particle, shape);
         Packet<ClientCommonPacketListener> packet = ServerPlayNetworking.createS2CPacket(payload);
         for (Recipient recipient : recipients) {
             recipient.send(packet);
@@ -874,6 +1149,28 @@ public final class TowerVfxService {
         LaneStats stats = stats(context.lane());
         stats.gcbShapes.increment();
         stats.gcbBytes.add(payload.encode().length());
+    }
+
+    static GCBParticleS2CPacket gcbPayload(
+            ParticleOptions particleOptions,
+            String fallbackParticle,
+            GCBParticleS2CPacket.ShapeData shape
+    ) {
+        String particle = fallbackParticle.startsWith("minecraft:")
+                ? fallbackParticle.substring("minecraft:".length())
+                : fallbackParticle;
+        String data = "";
+        if (particleOptions instanceof DustParticleOptions dust) {
+            Vector3f color = dust.getColor();
+            int rgb = Math.round(color.x * 255.0F) << 16
+                    | Math.round(color.y * 255.0F) << 8
+                    | Math.round(color.z * 255.0F);
+            particle = "dust_color_transition";
+            data = rgb + "," + rgb + "," + dust.getScale();
+        }
+        return new GCBParticleS2CPacket(
+                particle, GCBParticleS2CPacket.Vec.ZERO, 1, 0.0, false, data, shape
+        );
     }
 
     private static int claimVanillaPoints(
@@ -902,9 +1199,9 @@ public final class TowerVfxService {
         return claimed;
     }
 
-    private static GCBParticleS2CPacket.ShapeOptions shapeOptions(double expand, double time) {
+    private static GCBParticleS2CPacket.ShapeOptions shapeOptions(double time) {
         return new GCBParticleS2CPacket.ShapeOptions(
-                expand, time,
+                0.0, time,
                 GCBParticleS2CPacket.Vec.UNIT_X,
                 GCBParticleS2CPacket.Vec.UNIT_Y,
                 GCBParticleS2CPacket.Vec.UNIT_Z,
@@ -1098,9 +1395,30 @@ public final class TowerVfxService {
         }
     }
 
+    private static final class WarlockSacrificeEvent extends PendingEvent {
+        private final Vec3 sacrificedCenter;
+        private final Vec3 warlockCenter;
+
+        private WarlockSacrificeEvent(EventContext context, Vec3 sacrificedCenter, Vec3 warlockCenter) {
+            super(context, Phase.KILL_EFFECT);
+            this.sacrificedCenter = sacrificedCenter;
+            this.warlockCenter = warlockCenter;
+        }
+    }
+
+    private static final class TranscendenceEvent extends PendingEvent {
+        private final List<Vec3> centers;
+
+        private TranscendenceEvent(EventContext context, List<Vec3> centers) {
+            super(context, Phase.AREA_DAMAGE);
+            this.centers = centers;
+        }
+    }
+
     private record Recipient(UUID id, ServerGamePacketListenerImpl connection, boolean gcb) {
         static Recipient snapshot(ServerPlayer player) {
-            return new Recipient(player.getUUID(), player.connection, player instanceof GCBPlayer gcbPlayer && gcbPlayer.gcb$hasMod());
+            return new Recipient(player.getUUID(), player.connection, player instanceof GCBPlayer gcbPlayer
+                    && (gcbPlayer.gcb$hasMod() || !"unknown".equals(gcbPlayer.gcb$getModVersion())));
         }
 
         void send(Packet<?> packet) {

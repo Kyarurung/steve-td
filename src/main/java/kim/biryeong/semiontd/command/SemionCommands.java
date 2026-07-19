@@ -427,7 +427,11 @@ public final class SemionCommands {
                         .then(literal("stats")
                                 .executes(context -> debugVfxStats(context.getSource())))
                         .then(literal("reset")
-                                .executes(context -> resetVfxStats(context.getSource()))))
+                                .executes(context -> resetVfxStats(context.getSource())))
+                        .then(literal("warlock_sacrifice")
+                                .executes(context -> debugWarlockSacrificeVfx(context.getSource())))
+                        .then(literal("transcendence")
+                                .executes(context -> debugTranscendenceVfx(context.getSource()))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -492,6 +496,18 @@ public final class SemionCommands {
 
     private static int debugVfxStats(CommandSourceStack source) {
         success(source, TowerVfxService.statsSummary());
+        return 1;
+    }
+
+    private static int debugWarlockSacrificeVfx(CommandSourceStack source) throws CommandSyntaxException {
+        TowerVfxService.showWarlockSacrificeDebug(source.getPlayerOrException());
+        success(source, "흑마법사 흡수 VFX를 재생했습니다.");
+        return 1;
+    }
+
+    private static int debugTranscendenceVfx(CommandSourceStack source) throws CommandSyntaxException {
+        TowerVfxService.showTranscendenceDebug(source.getPlayerOrException());
+        success(source, "초월 VFX를 재생했습니다.");
         return 1;
     }
 

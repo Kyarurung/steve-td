@@ -146,6 +146,7 @@
 | `/semiontd-debug tower ui` | 디버그 타워 UI를 엽니다. |
 | `/semiontd-debug vfx stats` | VFX 큐, 생략량, 일반 packet, GCB 도형 명령 통계를 봅니다. |
 | `/semiontd-debug vfx reset` | VFX 통계만 초기화합니다. 설정과 대기 중인 이벤트는 바꾸지 않습니다. |
+| `/semiontd-debug vfx transcendence` | 플레이어 전방에 초월 발동 VFX를 재생합니다. |
 | `/semiontd-debug summonui [page]` | 디버그 소환 UI를 엽니다. |
 | `/semiontd-debug summon ui [page]` | 디버그 소환 UI를 엽니다. |
 | `/semiontd-debug give diamond <amount> [player]` | 다이아를 지급합니다. |

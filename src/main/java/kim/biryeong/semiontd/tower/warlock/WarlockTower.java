@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -17,6 +18,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.phys.Vec3;
 
 public class WarlockTower extends EntityBackedTower {
     private double permanentHealthBonus;
@@ -177,12 +179,32 @@ public class WarlockTower extends EntityBackedTower {
         double sacrificedHealth = target.currentMaxHealth();
         double sacrificedDamage = target.modifyAttackDamage(null, null, target.type().damage());
         int sacrificedInterval = target.type().attackIntervalTicks();
+        Vec3 sacrificedCenter = sacrificedCenter(lane, target);
         if (!lane.killTower(target)) {
             return false;
         }
 
+        TowerVfxService.showWarlockSacrifice(towerEntity, sacrificedCenter);
         applySacrificeStats(lane, towerEntity, sacrificedHealth, sacrificedDamage, sacrificedInterval);
         return true;
+    }
+
+    private Vec3 sacrificedCenter(PlayerLane lane, Tower target) {
+        if (target instanceof EntityBackedTower entityBacked && entityBacked.entityId().isPresent()) {
+            var entity = lane.arenaWorld().getEntity(entityBacked.entityId().getAsInt());
+            if (entity instanceof SemionTowerEntity towerEntity) {
+                return new Vec3(
+                        towerEntity.getX(),
+                        towerEntity.getY() + Math.max(0.35, towerEntity.getBbHeight() * 0.65),
+                        towerEntity.getZ()
+                );
+            }
+        }
+        return new Vec3(
+                target.position().x() + 0.5,
+                target.position().y() + 1.5,
+                target.position().z() + 0.5
+        );
     }
 
     private void applySacrificeStats(
