@@ -21,6 +21,8 @@ Semion TD는 서버 시작 또는 `/semiontd reload` 시 `config/semion-td/` 아
 | `monster_scaling.json` | 오래 살아남은 몬스터의 체력과 공격력 증가를 설정합니다. |
 | `vfx.json` | 타워 공격과 AOE VFX, 비동기 계획, 전송 예산을 설정합니다. |
 | `tips.json` | 접속 및 경기 중 표시할 팁, 표시 주기, 전체 활성화 여부를 설정합니다. |
+| `traits.json` | 특성 선택 단계의 활성화 여부와 제한 시간을 설정합니다. |
+| `trait_balance.json` | 개별 특성의 효과 수치와 지속 시간을 설정합니다. |
 
 `wave.json`이 현재 파일명입니다. 예전 복수형 파일명은 `wave.json`이 없을 때만 읽는 레거시 경로입니다.
 
@@ -105,6 +107,81 @@ Semion TD는 서버 시작 또는 `/semiontd reload` 시 `config/semion-td/` 아
 - `messages`: 경기 중 순서대로 반복할 MiniMessage 문자열 목록입니다. 빈 문자열은 무시합니다.
 
 플레이어는 `/semiontd tip off`로 팁을 끄고 `/semiontd tip on`으로 다시 켤 수 있습니다. 이 선택은 `profiles.json`에 저장됩니다. 설정 파일 변경은 `/semiontd reload`로 반영합니다.
+
+## `traits.json`
+
+특성 선택 단계만 제어합니다. 개별 특성의 효과 수치는 `trait_balance.json`에서 설정합니다.
+
+```json
+{
+  "enabled": true,
+  "selectionDurationSeconds": 45
+}
+```
+
+- `enabled`: `false`이면 특성 선택 단계를 건너뛰고 모든 참가자를 `(none, none)`으로 기록합니다.
+- `selectionDurationSeconds`: 참가자 확정 후 최종 선택을 기다리는 시간입니다. 0 이하이면 기본값 `45`초를 사용합니다.
+
+등록된 실전 특성이 하나도 없고 `none`만 있으면 `enabled`가 `true`여도 선택 단계를 건너뜁니다. 따라서 특성 기획 전에는 기존 게임 시작 시간이 늘어나지 않으며, 첫 실전 특성을 등록하면 별도 코드 플래그 없이 선택 단계가 열립니다. 변경 사항은 `/semiontd reload`로 다음 경기부터 반영합니다.
+
+## `trait_balance.json`
+
+개별 특성의 주특성 기준 수치를 설정합니다. 비율은 `0.15 = 15%` 형식이며 부특성에는 자동으로 50%가 적용됩니다. 파일이 없거나 새 특성·필드가 빠져 있으면 기본값을 자동으로 추가합니다.
+
+```json
+{
+  "traits": {
+    "mobilization_grant": {
+      "startingDiamond": 150.0
+    },
+    "clean_lane_bonus": {
+      "incomeRatio": 0.15
+    },
+    "rapid_deployment": {
+      "refundRateAfterWave": 0.9
+    },
+    "berserk_summons": {
+      "attackDamageBonus": 0.2,
+      "attackSpeedBonus": 0.1
+    },
+    "interception_doctrine": {
+      "damageBonus": 0.15
+    },
+    "opening_salvo": {
+      "attackSpeedBonus": 0.15,
+      "durationSeconds": 15.0
+    },
+    "wavebreaker_doctrine": {
+      "damageBonus": 0.15
+    },
+    "fortitude": {
+      "maxHealthBonus": 0.2,
+      "warlockCoreMaxHealthBonus": 0.1
+    },
+    "double_edged_sword": {
+      "outgoingDamageBonus": 0.25,
+      "incomingDamageBonus": 0.25
+    },
+    "strength_in_numbers": {
+      "damageBonusPerTower": 0.02
+    },
+    "diversity": {
+      "damageBonusPerType": 0.02
+    },
+    "supply_depot": {
+      "towerLimitBonus": 4.0
+    },
+    "transcendence": {
+      "activationDelaySeconds": 20.0,
+      "damageBonus": 0.3
+    }
+  }
+}
+```
+
+`/semiontd reload`로 다시 읽으면 이후 계산과 특성 선택 UI에 같은 값이 반영됩니다. 이미 발동한 스피드러너 시간제 효과는 유지되고, 다음 웨이브 발동부터 새 수치와 지속 시간을 사용합니다.
+
+`supply_depot.towerLimitBonus`는 모든 라운드의 타워 제한에 더해집니다. 예를 들어 기본 초기 제한 5와 상한 23은 주특성에서 각각 9와 27, 부특성에서 각각 7과 25가 됩니다.
 
 ## `economy.json`
 

@@ -31,6 +31,7 @@ import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.config.SummonConfig;
 import kim.biryeong.semiontd.config.TipConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import kim.biryeong.semiontd.config.TraitBalanceRuntime;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.map.ArenaLoadException;
@@ -75,6 +76,7 @@ import kim.biryeong.semiontd.tower.illager.IllagerRaidBossBarService;
 import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvReputationBossBarService;
 import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitRegistry;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import kim.biryeong.semiontd.trait.TraitSelectionSession;
 import kim.biryeong.semiontd.trait.TraitSelectionSnapshot;
@@ -101,7 +103,6 @@ public final class SemionGameManager {
     public static final int MATCH_RESULT_DELAY_TICKS = 5 * 20;
     public static final int MATCH_RESULT_DIALOG_AFTER_LOBBY_DELAY_TICKS = 2 * 20;
     static final int RATING_RETRY_DELAY_TICKS = 20;
-    private static final boolean TRAIT_FEATURE_ENABLED = false;
     private static final DateTimeFormatter RATING_BACKUP_TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS").withZone(ZoneOffset.UTC);
 
@@ -117,6 +118,7 @@ public final class SemionGameManager {
     private IncomeLaneRoutingConfig incomeLaneRoutingConfig = IncomeLaneRoutingConfig.defaultConfig();
     private MonsterScalingConfig monsterScalingConfig = MonsterScalingConfig.defaultConfig();
     private TipConfig tipConfig = TipConfig.defaultConfig();
+    private TraitSelectionConfig traitSelectionConfig = TraitSelectionConfig.defaultConfig();
     private Path configDir;
     private Path progressionStorePath;
     private ProgressionService progressionService = new ProgressionService(progressionConfig, null);
@@ -516,8 +518,10 @@ public final class SemionGameManager {
         }
 
         LoadedConfigs configs = SemionConfigLoader.load(configDir, SemionTd.LOGGER);
+        TraitBalanceRuntime.apply(configs.traitBalance());
         TowerVfxService.configure(configs.vfx());
         configureTips(configs.tips());
+        configureTraits(configs.traits());
         configure(
                 configs.economy(),
                 configs.waves(),
@@ -643,6 +647,12 @@ public final class SemionGameManager {
 
     public void configureTips(TipConfig tipConfig) {
         this.tipConfig = tipConfig == null ? TipConfig.defaultConfig() : tipConfig;
+    }
+
+    public void configureTraits(TraitSelectionConfig traitSelectionConfig) {
+        this.traitSelectionConfig = traitSelectionConfig == null
+                ? TraitSelectionConfig.defaultConfig()
+                : traitSelectionConfig;
     }
 
     public TipConfig tipConfig() {
@@ -988,6 +998,15 @@ public final class SemionGameManager {
             return SandboxStartResult.PLAYER_IN_MATCH;
         }
 
+        SemionGame previousSandbox = sandboxGames.get(playerId);
+        TraitLoadout previousTraitLoadout = TraitLoadout.none();
+        if (traitsEnabled()) {
+            previousTraitLoadout = previousSandbox != null
+                    ? previousSandbox.selectedTraitLoadoutOrDefault(playerId)
+                    : activeGame != null && activeGame.canConfigureRoster()
+                            ? activeGame.selectedTraitLoadoutOrDefault(playerId)
+                            : TraitLoadout.none();
+        }
         releaseActiveMatchSpectator(playerId);
         boolean replacing = stopSandbox(playerId);
         SemionGame sandbox = new SemionGame(
@@ -1001,6 +1020,8 @@ public final class SemionGameManager {
         );
         sandbox.enableSandboxMode();
         sandbox.disableWaveSpawnsForTeam(TeamId.BLUE);
+        sandbox.selectTrait(playerId, TraitSlot.PRIMARY, previousTraitLoadout.primaryTraitId());
+        sandbox.selectTrait(playerId, TraitSlot.SECONDARY, previousTraitLoadout.secondaryTraitId());
         if (!applyPersistedJobSelection(server, sandbox, playerId, playerName)) {
             applyFallbackSandboxJob(sandbox, playerId);
         }
@@ -1013,7 +1034,11 @@ public final class SemionGameManager {
                 Set.of(),
                 2
         );
-        if (!sandbox.start(server, plan)) {
+        TraitSelectionSnapshot traitSnapshot = new TraitSelectionSnapshot(Map.of(
+                playerId,
+                sandbox.selectedTraitLoadoutOrDefault(playerId)
+        ));
+        if (!sandbox.start(server, plan, traitSnapshot)) {
             sandbox.close();
             return SandboxStartResult.FAILED;
         }
@@ -1164,7 +1189,7 @@ public final class SemionGameManager {
     }
 
     public boolean traitsEnabled() {
-        return TRAIT_FEATURE_ENABLED;
+        return traitSelectionConfig.enabled();
     }
 
     public int traitSelectionSecondsRemaining() {
@@ -1201,7 +1226,7 @@ public final class SemionGameManager {
         }
 
         closeSandboxesFor(plan);
-        if (!TRAIT_FEATURE_ENABLED) {
+        if (!traitsEnabled() || !hasSelectableTraits()) {
             pendingStartPlan = plan;
             pendingStartTraitSnapshot = TraitSelectionSnapshot.empty();
             startCountdownTicks = START_COUNTDOWN_TICKS;
@@ -1213,7 +1238,7 @@ public final class SemionGameManager {
         pendingTraitSelection = new TraitSelectionSession(
                 plan,
                 activeGame.selectedTraitLoadouts(),
-                TraitSelectionConfig.DEFAULT_DURATION_TICKS
+                traitSelectionConfig.selectionDurationTicks()
         );
         announceTraitSelectionStarted(server, pendingTraitSelection);
         showTraitSelectionToActiveParticipants(server, pendingTraitSelection);
@@ -1229,8 +1254,12 @@ public final class SemionGameManager {
             TraitSlot slot,
             ResourceLocation traitId
     ) {
-        if (!TRAIT_FEATURE_ENABLED) {
+        if (!traitsEnabled()) {
             return TraitSelectionSession.SelectionResult.DISABLED;
+        }
+        SemionGame sandbox = sandboxGames.get(playerId);
+        if (sandbox != null) {
+            return sandbox.selectTrait(playerId, slot, traitId);
         }
         if (activeGame == null) {
             return TraitSelectionSession.SelectionResult.NOT_PARTICIPANT;
@@ -1249,6 +1278,10 @@ public final class SemionGameManager {
     }
 
     public TraitLoadout traitLoadoutOrDefault(UUID playerId) {
+        SemionGame sandbox = sandboxGames.get(playerId);
+        if (sandbox != null) {
+            return sandbox.selectedTraitLoadoutOrDefault(playerId);
+        }
         if (pendingTraitSelection != null) {
             return pendingTraitSelection.loadoutOrDefault(playerId);
         }
@@ -1343,6 +1376,15 @@ public final class SemionGameManager {
 
             if (activeGame != null && activeGame.canConfigureRoster()) {
                 applyPersistedJobSelection(server, activeGame, player);
+                TraitSelectionSession session = pendingTraitSelection;
+                if (session != null && session.plan().activeParticipants().stream()
+                        .anyMatch(participant -> participant.uuid().equals(player.getUUID()))) {
+                    dialogService.showTraitSelection(
+                            player,
+                            session.loadoutOrDefault(player.getUUID()),
+                            session.remainingSeconds()
+                    );
+                }
             }
             try {
                 sendPlayerToLobby(server, player);
@@ -1468,9 +1510,19 @@ public final class SemionGameManager {
             finishTraitSelectionAndScheduleCountdown(server, false);
             return;
         }
-        if (pendingTraitSelection.tick()) {
+        int previousSeconds = pendingTraitSelection.remainingSeconds();
+        boolean timedOut = pendingTraitSelection.tick();
+        int secondsRemaining = pendingTraitSelection.remainingSeconds();
+        if (!timedOut && secondsRemaining < previousSeconds) {
+            announceTraitSelectionCountdown(server, secondsRemaining);
+        }
+        if (timedOut) {
             finishTraitSelectionAndScheduleCountdown(server, true);
         }
+    }
+
+    private static boolean hasSelectableTraits() {
+        return TraitRegistry.all().stream().anyMatch(trait -> !TraitLoadout.isNone(trait.id()));
     }
 
     private void finishTraitSelectionAndScheduleCountdown(MinecraftServer server, boolean timeout) {
@@ -1505,6 +1557,38 @@ public final class SemionGameManager {
                         + session.remainingSeconds()
                         + "초</yellow> 안에 /특성 으로 주특성/부특성을 선택하세요."),
                 false
+        );
+        if (shouldPlayTraitSelectionChime(session.remainingSeconds())) {
+            playTraitSelectionChime(server);
+        }
+    }
+
+    private void announceTraitSelectionCountdown(MinecraftServer server, int secondsRemaining) {
+        if (shouldAnnounceTraitSelectionCountdown(secondsRemaining)) {
+            server.getPlayerList().broadcastSystemMessage(
+                    SemionText.prefixedMini("<aqua><bold>특성 선택</bold></aqua> 종료까지 <yellow>"
+                            + secondsRemaining + "초</yellow> 남았습니다."),
+                    false
+            );
+        }
+        if (shouldPlayTraitSelectionChime(secondsRemaining)) {
+            playTraitSelectionChime(server);
+        }
+    }
+
+    static boolean shouldAnnounceTraitSelectionCountdown(int secondsRemaining) {
+        return secondsRemaining == 30
+                || secondsRemaining == 15
+                || secondsRemaining >= 1 && secondsRemaining <= 10;
+    }
+
+    static boolean shouldPlayTraitSelectionChime(int secondsRemaining) {
+        return secondsRemaining > 0 && secondsRemaining % 5 == 0;
+    }
+
+    private static void playTraitSelectionChime(MinecraftServer server) {
+        server.getPlayerList().getPlayers().forEach(player ->
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.MASTER, 1.0F, 1.0F)
         );
     }
 

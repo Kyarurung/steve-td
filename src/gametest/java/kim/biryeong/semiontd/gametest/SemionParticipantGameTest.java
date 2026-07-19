@@ -197,6 +197,10 @@ import kim.biryeong.semiontd.tower.warlock.WarlockSacrificeTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
+import kim.biryeong.semiontd.trait.BuiltInTraits;
+import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitSelectionConfig;
+import kim.biryeong.semiontd.trait.TraitSelectionSnapshot;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHudTextService;
@@ -3467,18 +3471,26 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void buyingTowerLimitAddsPlayerSpecificTowerSlots(GameTestHelper context) {
         UUID playerId = stableUuid("red-tower-limit-buyer");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        game.players().get(playerId).assignTraitLoadout(new TraitLoadout(
+                BuiltInTraits.SUPPLY_DEPOT_ID,
+                BuiltInTraits.NONE_ID
+        ));
         PlayerEconomy economy = game.players().get(playerId).economy();
         int roundLimit = game.towerLimitForCurrentRound();
+        int traitLimit = roundLimit + 4;
         long diamondCost = game.economyConfig().towerLimit().initialPurchaseDiamondCost();
         long emeraldCost = game.economyConfig().towerLimit().initialPurchaseEmeraldCost();
 
-        if (!assertEquals(context, roundLimit, game.towerLimitForPlayer(playerId), "Player limit should start at the round limit.")) {
+        if (!assertEquals(context, 9, traitLimit, "Primary Supply Depot should raise the initial tower limit from 5 to 9.")) {
+            return;
+        }
+        if (!assertEquals(context, traitLimit, game.towerLimitForPlayer(playerId), "Supply Depot should add four tower slots.")) {
             return;
         }
         if (!assertTrue(context, game.purchaseTowerLimit(playerId), "Player should be able to buy an extra tower slot.")) {
             return;
         }
-        if (!assertEquals(context, roundLimit + game.economyConfig().towerLimit().purchaseIncreaseAmount(), game.towerLimitForPlayer(playerId), "Purchased slots should increase the player's tower limit.")) {
+        if (!assertEquals(context, traitLimit + game.economyConfig().towerLimit().purchaseIncreaseAmount(), game.towerLimitForPlayer(playerId), "Purchased slots should stack with Supply Depot.")) {
             return;
         }
         if (!assertEquals(context, EconomyConfig.defaultConfig().startingMineral() - diamondCost, economy.mineral(), "Tower slot purchase should spend the configured diamond cost.")) {
@@ -5102,6 +5114,70 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
         }
         if (!assertEquals(context, 12, tower.spawnedCloneEntities().size(), "All queued clones should spawn within 40 ticks.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void illusionCloneInheritsSourceTraitEffects(GameTestHelper context) {
+        UUID playerId = stableUuid("red-illusion-trait-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        lane.assignTraitLoadout(new TraitLoadout(
+                BuiltInTraits.STRENGTH_IN_NUMBERS_ID,
+                BuiltInTraits.FORTITUDE_ID
+        ));
+        GridPosition position = GridPosition.from(towerPlacementPos(lane));
+        TowerType towerType = new TowerType("illusion_trait_fixture", "Illusion Trait Fixture", TowerCategory.DIRECT, 0, 100.0, 10.0, 20.0, 12, 7);
+        FixtureIllusionTower tower = new FixtureIllusionTower(
+                towerType,
+                playerId,
+                TeamId.RED,
+                1,
+                position,
+                new IllusionProfile(1, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
+        );
+        lane.addTower(tower);
+        lane.markWaveStarted(1);
+
+        SemionTowerEntity sourceEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().orElseThrow());
+        sourceEntity.refreshTimedEffect(
+                TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
+                BuiltInTraits.OPENING_SALVO_ID,
+                0.15,
+                100
+        );
+        sourceEntity.setPersistentEffect(
+                TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                BuiltInTraits.TRANSCENDENCE_ID,
+                0.30
+        );
+        tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
+        if (!assertEquals(context, 1, tower.spawnedCloneEntities().size(), "One illusion clone should spawn.")) {
+            return;
+        }
+        SemionTowerEntity cloneEntity = tower.spawnedCloneEntities().getFirst();
+        for (TimedEffectType type : List.of(
+                TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS,
+                TimedEffectType.TOWER_ATTACK_SPEED_BONUS
+        )) {
+            if (!assertEquals(
+                    context,
+                    sourceEntity.activeEffectMagnitude(type),
+                    cloneEntity.activeEffectMagnitude(type),
+                    "Illusion clone should inherit source trait effect: " + type
+            )) {
+                return;
+            }
+        }
+        if (!assertEquals(
+                context,
+                sourceEntity.applyTraitOutgoingDamage(null, 100.0),
+                cloneEntity.applyTraitOutgoingDamage(null, 100.0),
+                "Illusion clone should apply inherited trait effects to actual damage."
+        )) {
             return;
         }
         context.succeed();

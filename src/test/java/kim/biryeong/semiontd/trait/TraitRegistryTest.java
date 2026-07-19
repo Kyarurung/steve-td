@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.trait;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,7 +17,6 @@ final class TraitRegistryTest {
         BuiltInTraits.register();
 
         assertTrue(TraitRegistry.find(BuiltInTraits.NONE_ID).isPresent());
-        assertTrue(TraitRegistry.find(BuiltInTraits.STARTER_MINERAL_TRAINING_ID).isPresent());
     }
 
     @Test
@@ -26,5 +26,20 @@ final class TraitRegistryTest {
 
         assertThrows(IllegalArgumentException.class, () ->
                 TraitRegistry.register(new SemionTrait(id, Component.literal("중복 테스트 2"), List.of()) {}));
+    }
+
+    @Test
+    void loadoutSnapshotFreezesRegisteredTraitVersion() {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "versioned_test_trait");
+        TraitRegistry.register(new SemionTrait(id, 3, Component.literal("버전 테스트"), List.of()) {});
+
+        TraitLoadoutSnapshot snapshot = TraitLoadoutSnapshot.from(
+                new TraitLoadout(id, BuiltInTraits.NONE_ID)
+        );
+
+        assertEquals(id.toString(), snapshot.primaryTraitId());
+        assertEquals(3, snapshot.primaryTraitVersion());
+        assertEquals(BuiltInTraits.NONE_ID.toString(), snapshot.secondaryTraitId());
+        assertEquals(0, snapshot.secondaryTraitVersion());
     }
 }

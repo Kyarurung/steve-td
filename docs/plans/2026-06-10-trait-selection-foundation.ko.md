@@ -1,5 +1,7 @@
 # 세미온 TD 특성 선택 뼈대 구현 기획안
 
+> **현재 작업 순서:** 뼈대 구현 이후의 재활성화와 통계 확장 순서는 [특성 시스템 재활성화 작업 순서](./2026-07-17-trait-system-reactivation-roadmap.ko.md)를 따른다.
+>
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** 세미온 TD 경기 시작 전에 참가자가 `주특성`과 `부특성`을 선택하고, 주특성은 100%, 부특성은 50% 효과로 적용되는 확장 가능한 특성 시스템의 뼈대를 만든다.

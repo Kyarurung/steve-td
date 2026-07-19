@@ -92,9 +92,11 @@ public final class SemionDialogService {
     private static final int BUTTON_WIDTH = 180;
     private static final int COMPACT_BUTTON_WIDTH = 118;
     private static final int SUMMON_BUTTON_WIDTH = 82;
+    private static final int TRAIT_BUTTON_WIDTH = 82;
     private static final int TEAM_TARGET_BUTTON_WIDTH = 82;
     private static final int TEAM_TARGET_COLUMNS = 4;
     private static final int SUMMON_COLUMNS = 5;
+    private static final int TRAIT_COLUMNS = 5;
     private static final int SUMMON_PAGE_SIZE = 25;
     private static final int BUILD_GUIDE_PAGE_SIZE = 4;
     private static final DateTimeFormatter STATISTICS_TIME_FORMAT = DateTimeFormatter
@@ -379,11 +381,18 @@ public final class SemionDialogService {
     }
 
     public void showTraitSelection(ServerPlayer player, TraitLoadout loadout, int secondsRemaining) {
+        String selectionTime = secondsRemaining < 0 ? "제한 없음" : secondsRemaining + "초";
+        String reopenHint = secondsRemaining < 0
+                ? "<gray>샌드박스에서는 /특성으로 언제든 다시 열 수 있습니다.</gray>"
+                : "<gray>창을 닫아도 제한 시간 안에는 /특성으로 다시 열 수 있습니다.</gray>";
         String body = "<gradient:#67e8f9:#a78bfa><bold>특성 선택</bold></gradient>\n"
-                + "<gray>주특성</gray> <yellow>" + traitName(loadout.primaryTraitId()) + "</yellow> <gray>(100%)</gray>\n"
-                + "<gray>부특성</gray> <yellow>" + traitName(loadout.secondaryTraitId()) + "</yellow> <gray>(50%)</gray>\n"
-                + "<gray>남은 시간</gray> <aqua>" + secondsRemaining + "초</aqua>\n"
-                + "<gray>아래 버튼으로 주특성/부특성을 각각 선택하세요.</gray>";
+                + "<gray>주특성 100%</gray> <yellow>" + traitName(loadout.primaryTraitId()) + "</yellow>"
+                + " <dark_gray>·</dark_gray> <aqua>" + traitEffectSummary(loadout.primaryTraitId(), TraitSlot.PRIMARY) + "</aqua>\n"
+                + "<gray>부특성 50%</gray> <yellow>" + traitName(loadout.secondaryTraitId()) + "</yellow>"
+                + " <dark_gray>·</dark_gray> <aqua>" + traitEffectSummary(loadout.secondaryTraitId(), TraitSlot.SECONDARY) + "</aqua>\n"
+                + "<gray>남은 시간</gray> <aqua>" + selectionTime + "</aqua>\n"
+                + "<gray>아래 버튼으로 주특성/부특성을 각각 선택하세요.</gray>\n"
+                + reopenHint;
         ArrayList<ActionButton> actions = new ArrayList<>();
         actions.add(actionButton(
                 "주특성 선택/변경",
@@ -399,21 +408,44 @@ public final class SemionDialogService {
         showActions(player, "세미온 TD 특성", body, actions, 2);
     }
 
+    public void showAppliedTraits(ServerPlayer player, TraitLoadout loadout) {
+        String body = "<gradient:#67e8f9:#a78bfa><bold>현재 적용 중인 특성</bold></gradient>\n"
+                + "<gray>주특성 100%</gray> <yellow>" + traitName(loadout.primaryTraitId()) + "</yellow>"
+                + " <dark_gray>·</dark_gray> <aqua>" + traitEffectSummary(loadout.primaryTraitId(), TraitSlot.PRIMARY) + "</aqua>\n"
+                + "<gray>부특성 50%</gray> <yellow>" + traitName(loadout.secondaryTraitId()) + "</yellow>"
+                + " <dark_gray>·</dark_gray> <aqua>" + traitEffectSummary(loadout.secondaryTraitId(), TraitSlot.SECONDARY) + "</aqua>\n\n"
+                + "<gray>이번 게임에 실제 적용된 특성입니다.</gray>";
+        show(player, "세미온 TD 현재 특성", body);
+    }
+
     public void showTraitSelection(ServerPlayer player, TraitLoadout loadout, int secondsRemaining, TraitSlot slot) {
+        String selectionTime = secondsRemaining < 0 ? "제한 없음" : secondsRemaining + "초";
+        String reopenHint = secondsRemaining < 0
+                ? "<gray>샌드박스에서는 /특성으로 언제든 다시 열 수 있습니다.</gray>"
+                : "<gray>창을 닫아도 제한 시간 안에는 /특성으로 다시 열 수 있습니다.</gray>";
         String body = "<gradient:#67e8f9:#a78bfa><bold>" + slot.displayName() + " 선택</bold></gradient>\n"
                 + "<gray>현재 " + slot.displayName() + "</gray> <yellow>" + traitName(loadout.traitId(slot)) + "</yellow> "
-                + "<gray>(" + Math.round(slot.effectScale() * 100.0D) + "%)</gray>\n"
+                + "<gray>(" + Math.round(slot.effectScale() * 100.0D) + "%)</gray>"
+                + " <dark_gray>·</dark_gray> <aqua>" + traitEffectSummary(loadout.traitId(slot), slot) + "</aqua>\n"
                 + "<gray>주특성</gray> <yellow>" + traitName(loadout.primaryTraitId()) + "</yellow> <gray>(100%)</gray>\n"
                 + "<gray>부특성</gray> <yellow>" + traitName(loadout.secondaryTraitId()) + "</yellow> <gray>(50%)</gray>\n"
-                + "<gray>남은 시간</gray> <aqua>" + secondsRemaining + "초</aqua>\n"
-                + "<gray>같은 non-none 특성은 주/부특성에 동시에 선택할 수 없습니다.</gray>";
+                + "<gray>남은 시간</gray> <aqua>" + selectionTime + "</aqua>\n"
+                + "<gray>같은 non-none 특성은 주/부특성에 동시에 선택할 수 없습니다.</gray>\n"
+                + "<gray>버튼에 마우스를 올리면 효과와 설명이 표시됩니다.</gray>\n"
+                + reopenHint;
         ArrayList<ActionButton> actions = new ArrayList<>();
         for (SemionTrait trait : TraitRegistry.all()) {
             actions.add(traitButton(trait, slot, loadout.traitId(slot).equals(trait.id())));
         }
-        actions.add(actionButton("뒤로", "/semiontd trait ui", "특성 선택 요약으로 돌아갑니다."));
 
-        showActions(player, "세미온 TD " + slot.displayName(), body, actions, 2);
+        showActions(
+                player,
+                "세미온 TD " + slot.displayName(),
+                body,
+                actions,
+                actionButton("뒤로", "/semiontd trait ui", "특성 선택 요약으로 돌아갑니다."),
+                TRAIT_COLUMNS
+        );
     }
 
     public void showTowerControl(ServerPlayer player, SemionGame game) {
@@ -511,6 +543,16 @@ public final class SemionDialogService {
     }
 
     public void showTowerDetails(ServerPlayer player, SemionGame game, Tower tower, BuildGuideService buildGuideService) {
+        showTowerDetails(player, game, tower, buildGuideService, null);
+    }
+
+    public void showTowerDetails(
+            ServerPlayer player,
+            SemionGame game,
+            Tower tower,
+            BuildGuideService buildGuideService,
+            SemionTowerEntity knownTowerEntity
+    ) {
         if (tower == null) {
             show(player, "세미온 TD 타워", "<red>타워 정보를 찾을 수 없습니다.</red>");
             return;
@@ -521,9 +563,11 @@ public final class SemionDialogService {
         boolean sameLane = semionPlayer != null
                 && semionPlayer.teamId() == tower.teamId()
                 && semionPlayer.laneId() == tower.laneId();
-        Optional<SemionTowerEntity> towerEntity = towerEntity(game, tower);
+        Optional<SemionTowerEntity> towerEntity = knownTowerEntity == null
+                ? towerEntity(game, tower)
+                : Optional.of(knownTowerEntity);
         double currentDamage = towerEntity
-                .map(entity -> entity.attackDamageAmount(null))
+                .map(entity -> entity.applyTraitOutgoingDamage(null, entity.attackDamageAmount(null)))
                 .orElseGet(() -> tower.modifyAttackDamage(null, null, tower.type().damage()));
         double currentRange = towerEntity
                 .map(SemionTowerEntity::attackRange)
@@ -923,6 +967,12 @@ public final class SemionDialogService {
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_MAX_HEALTH_BONUS, "<green>❤ 최대체력 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_INCOME_DAMAGE_BONUS, "<green>⚔ 인컴 피해 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_WAVE_DAMAGE_BONUS, "<green>⚔ 웨이브 피해 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS, "<green>⚔ 특성 피해 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_TRAIT_INCOME_DAMAGE_BONUS, "<green>⚔ 특성 인컴 피해 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_TRAIT_WAVE_DAMAGE_BONUS, "<green>⚔ 특성 웨이브 피해 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_FINAL_DAMAGE_BONUS, "<green>⚔ 최종 피해 증가 +", "</green>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS, "<red>🛡 받는 피해 증가 +", "</red>");
+        appendTimedEffect(effects, entity, TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS, "<green>❤ 특성 최대체력 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_HEAL_AMOUNT_BONUS, "<green>❤ 회복량 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_ABILITY_INTERVAL_REDUCTION, "<green>⏱ 주기 감소 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION, "<red>⚡ 공속 감소 -", "</red>");
@@ -965,18 +1015,23 @@ public final class SemionDialogService {
             String prefix,
             String suffix
     ) {
-        double magnitude = entity.activeTimedEffectMagnitude(type);
+        double magnitude = entity.activeEffectMagnitude(type);
         int ticks = entity.activeTimedEffectTicks(type);
-        if (magnitude <= 0.0 || ticks <= 0) {
+        boolean persistent = entity.hasPersistentEffect(type);
+        if (magnitude <= 0.0 || (!persistent && ticks <= 0)) {
             return;
         }
         body.append("<dark_gray>-</dark_gray> ")
                 .append(prefix)
                 .append(percent(magnitude))
-                .append(suffix)
-                .append(" <gray>")
-                .append(oneDecimal(ticks / 20.0))
-                .append("초</gray>\n");
+                .append(suffix);
+        if (persistent) {
+            body.append(" <gray>지속</gray>\n");
+        } else {
+            body.append(" <gray>")
+                    .append(oneDecimal(ticks / 20.0))
+                    .append("초</gray>\n");
+        }
     }
 
     private void show(ServerPlayer player, String title, String body) {
@@ -1004,6 +1059,17 @@ public final class SemionDialogService {
     }
 
     private void showActions(ServerPlayer player, String title, String body, List<ActionButton> actions, int columns) {
+        showActions(player, title, body, actions, actionButton("닫기", "", "창을 닫습니다."), columns);
+    }
+
+    private void showActions(
+            ServerPlayer player,
+            String title,
+            String body,
+            List<ActionButton> actions,
+            ActionButton exitAction,
+            int columns
+    ) {
         if (actions.isEmpty()) {
             show(player, title, body);
             return;
@@ -1019,7 +1085,7 @@ public final class SemionDialogService {
                         List.of()
                 ),
                 actions,
-                Optional.of(actionButton("닫기", "", "창을 닫습니다.")),
+                Optional.of(exitAction),
                 columns
         );
         player.connection.send(new ClientboundShowDialogPacket(Holder.direct(dialog)));
@@ -1122,10 +1188,10 @@ public final class SemionDialogService {
 
     private static ActionButton traitButton(SemionTrait trait, TraitSlot slot, boolean selected) {
         return actionButton(
-                traitButtonLabel(trait, slot, selected),
+                traitButtonLabel(trait, selected),
                 traitSelectionCommand(trait, slot),
                 traitTooltip(trait, slot, selected),
-                BUTTON_WIDTH
+                TRAIT_BUTTON_WIDTH
         );
     }
 
@@ -1142,6 +1208,18 @@ public final class SemionDialogService {
         return TraitRegistry.find(traitId)
                 .map(trait -> trait.displayName().getString())
                 .orElse(traitId.toString());
+    }
+
+    private static String traitEffectSummary(net.minecraft.resources.ResourceLocation traitId, TraitSlot slot) {
+        return TraitRegistry.find(traitId)
+                .map(trait -> trait.effectSummary(slot).getString())
+                .orElse("효과 정보 없음");
+    }
+
+    private static String traitName(String traitId) {
+        net.minecraft.resources.ResourceLocation parsed =
+                traitId == null ? null : net.minecraft.resources.ResourceLocation.tryParse(traitId);
+        return parsed == null ? String.valueOf(traitId) : traitName(parsed);
     }
 
     public static Component jobButtonLabel(SemionJob job, boolean selected) {
@@ -1162,16 +1240,16 @@ public final class SemionDialogService {
         return tooltip;
     }
 
-    private static Component traitButtonLabel(SemionTrait trait, TraitSlot slot, boolean selected) {
-        String prefix = selected ? "✓ " : "";
-        return Component.literal(prefix + slot.displayName() + ": " + trait.displayName().getString())
+    private static Component traitButtonLabel(SemionTrait trait, boolean selected) {
+        return trait.displayName().copy()
                 .withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.WHITE);
     }
 
     private static Component traitTooltip(SemionTrait trait, TraitSlot slot, boolean selected) {
         MutableComponent tooltip = Component.literal(slot.displayName() + " " + Math.round(slot.effectScale() * 100.0D) + "%")
                 .withStyle(selected ? ChatFormatting.GREEN : ChatFormatting.AQUA)
-                .append(Component.literal("\n").append(trait.displayName().copy().withStyle(ChatFormatting.YELLOW)));
+                .append(Component.literal("\n").append(trait.displayName().copy().withStyle(ChatFormatting.YELLOW)))
+                .append(Component.literal("\n").append(trait.effectSummary(slot).copy().withStyle(ChatFormatting.GOLD)));
         if (selected) {
             tooltip.append(Component.literal("\n현재 선택된 특성입니다.").withStyle(ChatFormatting.GREEN));
         }

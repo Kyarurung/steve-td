@@ -12,13 +12,28 @@ import kim.biryeong.semiontd.game.AssignedParticipant;
 import kim.biryeong.semiontd.game.MatchMode;
 import kim.biryeong.semiontd.game.ParticipantSelectionPlan;
 import kim.biryeong.semiontd.game.TeamId;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 final class TraitSelectionSessionTest {
+    private static final ResourceLocation TEST_TRAIT =
+            ResourceLocation.fromNamespaceAndPath("semion-td", "selection_session_test");
     private static final UUID RED = UUID.nameUUIDFromBytes("trait-session-red".getBytes());
     private static final UUID BLUE = UUID.nameUUIDFromBytes("trait-session-blue".getBytes());
     private static final UUID SPECTATOR = UUID.nameUUIDFromBytes("trait-session-spectator".getBytes());
+
+    @BeforeAll
+    static void registerTestTrait() {
+        BuiltInTraits.register();
+        TraitRegistry.registerIfAbsent(new SemionTrait(
+                TEST_TRAIT,
+                Component.literal("선택 세션 테스트"),
+                List.of()
+        ) {
+        });
+    }
 
     @Test
     void activeParticipantsAllNeedBothSlotsBeforeComplete() {
@@ -27,7 +42,7 @@ final class TraitSelectionSessionTest {
 
         assertFalse(session.complete());
         assertEquals(TraitSelectionSession.SelectionResult.SELECTED,
-                session.select(RED, TraitSlot.PRIMARY, BuiltInTraits.STARTER_MINERAL_TRAINING_ID));
+                session.select(RED, TraitSlot.PRIMARY, TEST_TRAIT));
         assertEquals(TraitSelectionSession.SelectionResult.SELECTED,
                 session.select(RED, TraitSlot.SECONDARY, BuiltInTraits.NONE_ID));
         assertFalse(session.complete());
@@ -58,21 +73,21 @@ final class TraitSelectionSessionTest {
         TraitSelectionSession session = new TraitSelectionSession(plan(), Map.of(), 90);
 
         assertEquals(TraitSelectionSession.SelectionResult.SELECTED,
-                session.select(RED, TraitSlot.PRIMARY, BuiltInTraits.STARTER_MINERAL_TRAINING_ID));
+                session.select(RED, TraitSlot.PRIMARY, TEST_TRAIT));
         assertEquals(TraitSelectionSession.SelectionResult.DUPLICATE_TRAIT,
-                session.select(RED, TraitSlot.SECONDARY, BuiltInTraits.STARTER_MINERAL_TRAINING_ID));
+                session.select(RED, TraitSlot.SECONDARY, TEST_TRAIT));
     }
 
     @Test
     void snapshotFillsMissingSlotsWithNoneOnTimeout() {
         BuiltInTraits.register();
         TraitSelectionSession session = new TraitSelectionSession(plan(), Map.of(), 1);
-        session.select(RED, TraitSlot.PRIMARY, BuiltInTraits.STARTER_MINERAL_TRAINING_ID);
+        session.select(RED, TraitSlot.PRIMARY, TEST_TRAIT);
 
         assertTrue(session.tick());
         TraitSelectionSnapshot snapshot = session.snapshot();
 
-        assertEquals(BuiltInTraits.STARTER_MINERAL_TRAINING_ID, snapshot.loadoutOrDefault(RED).primaryTraitId());
+        assertEquals(TEST_TRAIT, snapshot.loadoutOrDefault(RED).primaryTraitId());
         assertEquals(BuiltInTraits.NONE_ID, snapshot.loadoutOrDefault(RED).secondaryTraitId());
         assertEquals(TraitLoadout.none(), snapshot.loadoutOrDefault(BLUE));
     }

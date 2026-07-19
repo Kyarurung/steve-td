@@ -1,8 +1,19 @@
 package kim.biryeong.semiontd.trait;
 
-public final class TraitSelectionConfig {
-    public static final int DEFAULT_DURATION_TICKS = 90 * 20;
+public record TraitSelectionConfig(boolean enabled, int selectionDurationSeconds) {
+    public static final int DEFAULT_SELECTION_DURATION_SECONDS = 45;
 
-    private TraitSelectionConfig() {
+    public TraitSelectionConfig {
+        selectionDurationSeconds = selectionDurationSeconds <= 0
+                ? DEFAULT_SELECTION_DURATION_SECONDS
+                : selectionDurationSeconds;
+    }
+
+    public static TraitSelectionConfig defaultConfig() {
+        return new TraitSelectionConfig(true, DEFAULT_SELECTION_DURATION_SECONDS);
+    }
+
+    public int selectionDurationTicks() {
+        return selectionDurationSeconds * 20;
     }
 }

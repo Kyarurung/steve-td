@@ -1,10 +1,13 @@
 package kim.biryeong.semiontd.game;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.WaveMonsterEntry;
@@ -15,10 +18,18 @@ import kim.biryeong.semiontd.entity.defender.DefenderEntityState;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.MonsterState;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.effect.TimedEffectType;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
+import kim.biryeong.semiontd.tower.EntityBackedTower;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
+import kim.biryeong.semiontd.trait.BuiltInTraits;
+import kim.biryeong.semiontd.trait.TraitEffects;
+import kim.biryeong.semiontd.trait.TraitLoadout;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -30,7 +41,6 @@ public final class PlayerLane {
     private static final int FORCED_FINAL_DEFENSE_ROWS = 20;
     private static final double FORCED_FINAL_DEFENSE_COLUMN_SPACING = 0.9;
     private static final double FORCED_FINAL_DEFENSE_ROW_SPACING = 0.9;
-
     private final TeamId teamId;
     private final int laneId;
     private final UUID ownerPlayer;
@@ -50,6 +60,8 @@ public final class PlayerLane {
     private int waveMonsterSpawnIntervalTicks = 1;
     private int waveMonsterSpawnCooldownTicks;
     private FinalDefenseSlotAllocator finalDefenseSlotAllocator;
+    private TraitLoadout traitLoadout = TraitLoadout.none();
+    private boolean transcendenceTriggeredThisRound;
 
     public PlayerLane(
             TeamId teamId,
@@ -115,8 +127,50 @@ public final class PlayerLane {
         return towers;
     }
 
+    public TraitLoadout traitLoadout() {
+        return traitLoadout;
+    }
+
+    public void assignTraitLoadout(TraitLoadout traitLoadout) {
+        clearTranscendence();
+        this.traitLoadout = traitLoadout == null ? TraitLoadout.none() : traitLoadout;
+        for (Tower tower : towers) {
+            tower.attachToLane(this, this.traitLoadout);
+            syncStaticTraitEffects(tower);
+            clearRoundTraitEffects(tower);
+        }
+    }
+
+    public List<TowerCompositionEntry> towerComposition() {
+        Map<TowerCompositionKey, Integer> counts = new LinkedHashMap<>();
+        for (Tower tower : towers) {
+            if (tower.health() <= 0.0) {
+                continue;
+            }
+            TowerCompositionKey key = new TowerCompositionKey(
+                    tower.type().id(),
+                    ProductionTowerCatalog.entry(tower.type())
+                            .map(ProductionTowerCatalog.CatalogEntry::tier)
+                            .orElse(0)
+            );
+            counts.merge(key, 1, Integer::sum);
+        }
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey(Comparator.comparing(TowerCompositionKey::towerTypeId)
+                        .thenComparingInt(TowerCompositionKey::tier)))
+                .map(entry -> new TowerCompositionEntry(
+                        entry.getKey().towerTypeId(),
+                        entry.getKey().tier(),
+                        entry.getValue()
+                ))
+                .toList();
+    }
+
     public List<DefenderEntity> defenderEntities() {
         return defenderEntities;
+    }
+
+    private record TowerCompositionKey(String towerTypeId, int tier) {
     }
 
     public boolean clearedThisRound() {
@@ -132,6 +186,7 @@ public final class PlayerLane {
     }
 
     public void resetForRound() {
+        clearTranscendence();
         clearedThisRound = false;
         leakedThisRound = false;
         towersMovedToFinalDefense = false;
@@ -194,8 +249,10 @@ public final class PlayerLane {
     }
 
     public void addTower(Tower tower) {
+        tower.attachToLane(this, traitLoadout);
         towers.add(tower);
         tower.onPlaced(this);
+        syncStaticTraitEffects(tower);
     }
 
     public boolean canPlaceTowerAt(BlockPos blockPos) {
@@ -220,8 +277,11 @@ public final class PlayerLane {
         }
 
         existing.onRemoved(this);
+        existing.detachFromLane(this);
+        replacement.attachToLane(this, traitLoadout);
         towers.set(index, replacement);
         replacement.onPlaced(this);
+        syncStaticTraitEffects(replacement);
         return true;
     }
 
@@ -230,6 +290,7 @@ public final class PlayerLane {
             return false;
         }
         tower.onRemoved(this);
+        tower.detachFromLane(this);
         return true;
     }
 
@@ -246,10 +307,14 @@ public final class PlayerLane {
     }
 
     public void markWaveStarted(int currentRound) {
+        clearTranscendence();
         for (Tower tower : towers) {
             tower.markWaveStarted(currentRound);
             tower.onWaveStarted(this, currentRound);
+            syncStaticTraitEffects(tower);
         }
+        applyRoundTraitEffects();
+        applyOpeningAttackSpeed();
     }
 
     public void addDefenderEntity(DefenderEntity defenderEntity) {
@@ -274,6 +339,7 @@ public final class PlayerLane {
         spawnQueuedWaveMonster(players);
         spawnQueuedMonster(summonedMonsterSpawnQueue, players, false);
 
+        applyTranscendenceIfReady(roundElapsedTicks);
         tickTowers();
 
         Iterator<Monster> iterator = activeMonsters.iterator();
@@ -316,8 +382,163 @@ public final class PlayerLane {
     public void clearTowers() {
         for (Tower tower : towers) {
             tower.onRemoved(this);
+            tower.detachFromLane(this);
         }
         towers.clear();
+    }
+
+    private void applyOpeningAttackSpeed() {
+        double magnitude = TraitEffects.openingAttackSpeedBonus(traitLoadout);
+        if (magnitude <= 0.0) {
+            return;
+        }
+        for (Tower tower : towers) {
+            if (tower.health() <= 0.0) {
+                continue;
+            }
+            SemionTowerEntity towerEntity = towerEntity(tower);
+            if (towerEntity != null && towerEntity.isAlive()) {
+                towerEntity.refreshTimedEffect(
+                        TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
+                        BuiltInTraits.OPENING_SALVO_ID,
+                        magnitude,
+                        TraitEffects.openingAttackSpeedDurationTicks()
+                );
+            }
+        }
+    }
+
+    private void applyTranscendenceIfReady(int roundElapsedTicks) {
+        if (transcendenceTriggeredThisRound
+                || roundElapsedTicks < TraitEffects.transcendenceActivationDelayTicks()) {
+            return;
+        }
+        transcendenceTriggeredThisRound = true;
+        double magnitude = TraitEffects.transcendenceDamageBonus(traitLoadout);
+        if (magnitude <= 0.0) {
+            return;
+        }
+        List<SemionTowerEntity> targets = towerEntities().stream()
+                .filter(entity -> entity.isAlive() && !entity.isRemoved())
+                .filter(entity -> entity.runtimeTower().health() > 0.0)
+                .toList();
+        for (SemionTowerEntity target : targets) {
+            target.setPersistentEffect(
+                    TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                    BuiltInTraits.TRANSCENDENCE_ID,
+                    magnitude
+            );
+        }
+        TowerVfxService.showTranscendence(targets);
+    }
+
+    public void clearTranscendence() {
+        if (!transcendenceTriggeredThisRound) {
+            return;
+        }
+        for (SemionTowerEntity target : towerEntities()) {
+            target.setPersistentEffect(
+                    TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                    BuiltInTraits.TRANSCENDENCE_ID,
+                    0.0
+            );
+        }
+        transcendenceTriggeredThisRound = false;
+    }
+
+    private List<SemionTowerEntity> towerEntities() {
+        return StreamSupport.stream(arenaWorld.getAllEntities().spliterator(), false)
+                .filter(SemionTowerEntity.class::isInstance)
+                .map(SemionTowerEntity.class::cast)
+                .filter(entity -> ownerPlayer.equals(entity.ownerPlayer()))
+                .filter(entity -> entity.teamId() == teamId)
+                .filter(entity -> entity.laneId() == laneId)
+                .filter(entity -> entity.runtimeTower() != null)
+                .toList();
+    }
+
+    private void syncStaticTraitEffects(Tower tower) {
+        SemionTowerEntity towerEntity = towerEntity(tower);
+        if (towerEntity == null) {
+            return;
+        }
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_TRAIT_INCOME_DAMAGE_BONUS,
+                BuiltInTraits.INTERCEPTION_DOCTRINE_ID,
+                TraitEffects.incomeTargetDamageBonus(traitLoadout)
+        );
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_TRAIT_WAVE_DAMAGE_BONUS,
+                BuiltInTraits.WAVEBREAKER_DOCTRINE_ID,
+                TraitEffects.waveTargetDamageBonus(traitLoadout)
+        );
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_FINAL_DAMAGE_BONUS,
+                BuiltInTraits.DOUBLE_EDGED_SWORD_ID,
+                TraitEffects.doubleEdgedOutgoingDamageBonus(traitLoadout)
+        );
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS,
+                BuiltInTraits.DOUBLE_EDGED_SWORD_ID,
+                TraitEffects.doubleEdgedIncomingDamageBonus(traitLoadout)
+        );
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS,
+                BuiltInTraits.FORTITUDE_ID,
+                TraitEffects.towerMaxHealthBonus(traitLoadout, tower)
+        );
+    }
+
+    private void applyRoundTraitEffects() {
+        for (Tower tower : towers) {
+            if (tower.health() <= 0.0) {
+                continue;
+            }
+            SemionTowerEntity towerEntity = towerEntity(tower);
+            if (towerEntity == null || !towerEntity.isAlive()) {
+                continue;
+            }
+            towerEntity.setPersistentEffect(
+                    TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                    BuiltInTraits.STRENGTH_IN_NUMBERS_ID,
+                    TraitEffects.sameTypeDamageBonus(traitLoadout, this, tower)
+            );
+            towerEntity.setPersistentEffect(
+                    TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                    BuiltInTraits.DIVERSITY_ID,
+                    TraitEffects.diversityDamageBonus(traitLoadout, this, tower)
+            );
+        }
+    }
+
+    private void clearRoundTraitEffects(Tower tower) {
+        SemionTowerEntity towerEntity = towerEntity(tower);
+        if (towerEntity == null) {
+            return;
+        }
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                BuiltInTraits.STRENGTH_IN_NUMBERS_ID,
+                0.0
+        );
+        towerEntity.setPersistentEffect(
+                TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS,
+                BuiltInTraits.DIVERSITY_ID,
+                0.0
+        );
+    }
+
+    private SemionTowerEntity towerEntity(Tower tower) {
+        if (!(tower instanceof EntityBackedTower entityBackedTower)) {
+            return null;
+        }
+        return entityBackedTower.entityId()
+                .stream()
+                .mapToObj(arenaWorld::getEntity)
+                .filter(SemionTowerEntity.class::isInstance)
+                .map(SemionTowerEntity.class::cast)
+                .findFirst()
+                .orElse(null);
     }
 
     public List<DefenderEntity> forceFinalDefense() {

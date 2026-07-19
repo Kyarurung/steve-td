@@ -7,17 +7,42 @@ import net.minecraft.resources.ResourceLocation;
 
 public abstract class SemionTrait {
     private final ResourceLocation id;
+    private final int version;
     private final Component displayName;
     private final List<Component> description;
+    private final Component primaryEffectSummary;
+    private final Component secondaryEffectSummary;
 
     protected SemionTrait(ResourceLocation id, Component displayName, List<Component> description) {
+        this(id, 1, displayName, description);
+    }
+
+    protected SemionTrait(ResourceLocation id, int version, Component displayName, List<Component> description) {
+        this(id, version, displayName, description, Component.empty(), Component.empty());
+    }
+
+    protected SemionTrait(
+            ResourceLocation id,
+            int version,
+            Component displayName,
+            List<Component> description,
+            Component primaryEffectSummary,
+            Component secondaryEffectSummary
+    ) {
         this.id = Objects.requireNonNull(id, "id");
+        this.version = Math.max(0, version);
         this.displayName = Objects.requireNonNull(displayName, "displayName");
         this.description = List.copyOf(description == null ? List.of() : description);
+        this.primaryEffectSummary = Objects.requireNonNull(primaryEffectSummary, "primaryEffectSummary");
+        this.secondaryEffectSummary = Objects.requireNonNull(secondaryEffectSummary, "secondaryEffectSummary");
     }
 
     public ResourceLocation id() {
         return id;
+    }
+
+    public int version() {
+        return version;
     }
 
     public Component displayName() {
@@ -26,6 +51,10 @@ public abstract class SemionTrait {
 
     public List<Component> description() {
         return description;
+    }
+
+    public Component effectSummary(TraitSlot slot) {
+        return slot == TraitSlot.PRIMARY ? primaryEffectSummary : secondaryEffectSummary;
     }
 
     public long modifyStartingMineral(TraitContext context, TraitSlot slot, long value) {

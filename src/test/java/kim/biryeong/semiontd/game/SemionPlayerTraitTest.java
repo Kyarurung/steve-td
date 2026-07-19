@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.UUID;
 import kim.biryeong.semiontd.config.EconomyConfig;
+import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.TraitLoadout;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 final class SemionPlayerTraitTest {
@@ -15,7 +17,10 @@ final class SemionPlayerTraitTest {
 
         assertEquals(TraitLoadout.none(), player.traitLoadout());
 
-        TraitLoadout loadout = new TraitLoadout(BuiltInTraits.STARTER_MINERAL_TRAINING_ID, BuiltInTraits.NONE_ID);
+        TraitLoadout loadout = new TraitLoadout(
+                ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "test_trait"),
+                BuiltInTraits.NONE_ID
+        );
         player.assignTraitLoadout(loadout);
 
         assertEquals(loadout, player.traitLoadout());

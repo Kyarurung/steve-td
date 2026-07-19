@@ -36,6 +36,7 @@ import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
+import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitRegistry;
 import kim.biryeong.semiontd.trait.TraitSelectionSession;
@@ -287,7 +288,8 @@ public final class SemionGame {
         int purchasedBonus = player == null
                 ? 0
                 : economyConfig.towerLimit().purchasedBonus(player.economy().towerLimitPurchaseCount());
-        return towerLimitForCurrentRound() + purchasedBonus;
+        int traitBonus = player == null ? 0 : TraitEffects.towerLimitBonus(player.traitLoadout());
+        return towerLimitForCurrentRound() + purchasedBonus + traitBonus;
     }
 
     public long nextTowerLimitPurchaseDiamondCost(UUID playerId) {
@@ -550,11 +552,16 @@ public final class SemionGame {
     }
 
     public TraitLoadout selectedTraitLoadoutOrDefault(UUID playerId) {
+        SemionPlayer player = players.get(playerId);
+        if (player != null) {
+            return player.traitLoadout();
+        }
         return selectedTraitLoadouts.getOrDefault(playerId, TraitLoadout.none());
     }
 
     public TraitSelectionSession.SelectionResult selectTrait(UUID playerId, TraitSlot slot, ResourceLocation traitId) {
-        if (!canConfigureRoster()) {
+        boolean runningSandboxParticipant = sandboxMode && isActiveParticipant(playerId);
+        if (!canConfigureRoster() && !runningSandboxParticipant) {
             return TraitSelectionSession.SelectionResult.STARTED;
         }
         ResourceLocation normalizedTraitId = traitId == null ? BuiltInTraits.NONE_ID : traitId;
@@ -566,6 +573,11 @@ public final class SemionGame {
             return TraitSelectionSession.SelectionResult.DUPLICATE_TRAIT;
         }
         selectedTraitLoadouts.put(playerId, next);
+        if (runningSandboxParticipant) {
+            SemionPlayer player = players.get(playerId);
+            player.assignTraitLoadout(next);
+            playerLane(playerId).ifPresent(lane -> lane.assignTraitLoadout(next));
+        }
         return TraitSelectionSession.SelectionResult.SELECTED;
     }
 
@@ -769,6 +781,10 @@ public final class SemionGame {
         int scheduledRound = phase == RoundPhase.LANE_WAVE ? currentRound + 1 : currentRound;
         Monster monster = type.get().createMonster(summonContext, targetTeam.get().id(), targetLane.get().laneId(), scheduledRound);
         monster.setSenderName(player.name());
+        monster.applyAttackModifiers(
+                TraitEffects.incomeAttackDamageMultiplier(player.traitLoadout()),
+                TraitEffects.incomeAttackSpeedMultiplier(player.traitLoadout())
+        );
         player.matchStats().recordSentIncomeThreat(monster.attributionThreat());
         job.onSummonedMonster(jobContext, type.get(), monster);
         type.get().onSummoned(summonContext, monster);
@@ -996,8 +1012,17 @@ public final class SemionGame {
             return;
         }
         if (currentWaveTeamIds.stream().allMatch(this::isCurrentWaveTeamResolved)) {
+            clearTranscendenceEffects();
             phase = RoundPhase.ROUND_PAYOUT;
             phaseTicks = 0;
+        }
+    }
+
+    private void clearTranscendenceEffects() {
+        for (SemionTeam team : teams.values()) {
+            for (PlayerLane lane : team.laneGroup().lanes()) {
+                lane.clearTranscendence();
+            }
         }
     }
 
@@ -1334,6 +1359,8 @@ public final class SemionGame {
         if (!team.addPlayer(player, teamArena.get().world(), laneLayout.get())) {
             return false;
         }
+        team.laneGroup().lane(participant.laneId())
+                .ifPresent(lane -> lane.assignTraitLoadout(player.traitLoadout()));
         players.put(participant.uuid(), player);
         return true;
     }
@@ -1530,6 +1557,7 @@ public final class SemionGame {
         long gas = economy.gas();
         long income = economy.income();
         long gasPerSec = economy.gasPerSec();
+        mineral += TraitEffects.startingMineralBonus(player.traitLoadout());
         for (TraitSlot slot : TraitSlot.values()) {
             ResourceLocation traitId = player.traitLoadout().traitId(slot);
             Optional<SemionTrait> trait = TraitRegistry.find(traitId);
@@ -1594,7 +1622,18 @@ public final class SemionGame {
             if (team != null && team.active() && !team.eliminated()) {
                 player.job().ifPresent(job -> job.onRoundEnded(new JobContext(this, player), round));
                 notifyTraitRoundEnded(player, round);
+                awardCleanLaneBonus(player, round);
             }
+        }
+    }
+
+    private void awardCleanLaneBonus(SemionPlayer player, int round) {
+        if (!clearedRoundsByPlayer.getOrDefault(player.uuid(), Set.of()).contains(round)) {
+            return;
+        }
+        long bonus = TraitEffects.cleanLaneBonus(player.traitLoadout(), player.economy().income());
+        if (bonus > 0) {
+            player.economy().addMineral(bonus);
         }
     }
 

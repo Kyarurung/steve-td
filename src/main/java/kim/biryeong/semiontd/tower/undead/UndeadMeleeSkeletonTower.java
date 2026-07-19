@@ -33,7 +33,7 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
 
     @Override
     public double currentMaxHealth() {
-        return maxHealth() + killStacks * healthPerStack();
+        return applyTraitMaxHealth(maxHealth() + killStacks * healthPerStack());
     }
 
     @Override

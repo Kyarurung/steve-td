@@ -45,6 +45,9 @@ import kim.biryeong.semiontd.summon.SummonRole;
 import kim.biryeong.semiontd.summon.SummonTier;
 import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
+import kim.biryeong.semiontd.trait.BuiltInTraits;
+import kim.biryeong.semiontd.trait.TraitSelectionSession;
+import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -283,7 +286,27 @@ public final class SemionSandboxGameTest {
             MinecraftServer server = context.getLevel().getServer();
             UUID sandboxOwnerId = uuid("sandbox-job-owner");
             String playerName = "sandbox-job-owner";
+            SemionGame lobby = manager.createGame(server);
+            if (!assertTrue(context, lobby.selectJob(sandboxOwnerId, AnimalTowerJob.ID), "Lobby should accept the selected job.")) {
+                return;
+            }
             manager.saveSelectedJob(server, sandboxOwnerId, playerName, AnimalTowerJob.ID);
+            if (!assertEquals(
+                    context,
+                    TraitSelectionSession.SelectionResult.SELECTED,
+                    lobby.selectTrait(sandboxOwnerId, TraitSlot.PRIMARY, BuiltInTraits.FORTITUDE_ID),
+                    "Lobby should accept the selected primary trait."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    TraitSelectionSession.SelectionResult.SELECTED,
+                    lobby.selectTrait(sandboxOwnerId, TraitSlot.SECONDARY, BuiltInTraits.MOBILIZATION_GRANT_ID),
+                    "Lobby should accept the selected secondary trait."
+            )) {
+                return;
+            }
 
             SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
                     server,
@@ -304,6 +327,22 @@ public final class SemionSandboxGameTest {
                     AnimalTowerJob.ID,
                     sandboxPlayer.job().orElseThrow().id(),
                     "Sandbox should use the player's persisted selected job instead of a fixed built-in job."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    BuiltInTraits.FORTITUDE_ID,
+                    sandboxPlayer.traitLoadout().primaryTraitId(),
+                    "Sandbox should inherit the primary trait selected in the waiting lobby."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    BuiltInTraits.MOBILIZATION_GRANT_ID,
+                    sandboxPlayer.traitLoadout().secondaryTraitId(),
+                    "Sandbox should inherit the secondary trait selected in the waiting lobby."
             )) {
                 return;
             }
@@ -917,6 +956,116 @@ public final class SemionSandboxGameTest {
             context.succeed();
         } catch (Exception exception) {
             context.fail(Component.literal("Sandbox reset economy test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxTraitSelectionAppliesImmediatelyAndSurvivesReset(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            UUID sandboxOwnerId = uuid("sandbox-trait-owner");
+            SemionGameManager.SandboxStartResult startResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    "sandbox-trait-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.STARTED, startResult, "Sandbox should start before selecting traits.")) {
+                return;
+            }
+
+            SemionGame sandbox = manager.sandboxGame(sandboxOwnerId).orElseThrow();
+            PlayerLane sandboxLane = sandbox.playerLane(sandboxOwnerId).orElseThrow();
+            String starterTowerId = ProductionTowerService.availableTowers(sandbox, sandboxOwnerId).stream()
+                    .findFirst()
+                    .orElseThrow()
+                    .type()
+                    .id();
+            BlockPos towerPos = sandboxLane.laneLayout().laneArea().min();
+            if (!assertEquals(
+                    context,
+                    TowerPlacementResult.SUCCESS,
+                    ProductionTowerService.placeTower(sandbox, sandboxOwnerId, towerPos, starterTowerId),
+                    "Sandbox tower placement should succeed before trait selection."
+            )) {
+                return;
+            }
+            double baseMaxHealth = sandboxLane.towers().getFirst().currentMaxHealth();
+
+            if (!assertEquals(
+                    context,
+                    TraitSelectionSession.SelectionResult.SELECTED,
+                    manager.selectTrait(server, sandboxOwnerId, TraitSlot.PRIMARY, BuiltInTraits.FORTITUDE_ID),
+                    "Running sandbox should accept a primary trait."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    Math.abs(sandboxLane.towers().getFirst().currentMaxHealth() - baseMaxHealth * 1.20D) < 0.0001D,
+                    "Fortitude should immediately update an existing sandbox tower."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    TraitSelectionSession.SelectionResult.SELECTED,
+                    manager.selectTrait(server, sandboxOwnerId, TraitSlot.SECONDARY, BuiltInTraits.MOBILIZATION_GRANT_ID),
+                    "Running sandbox should accept a secondary trait."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    BuiltInTraits.FORTITUDE_ID,
+                    sandbox.players().get(sandboxOwnerId).traitLoadout().primaryTraitId(),
+                    "Sandbox player should receive the selected trait immediately."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    BuiltInTraits.MOBILIZATION_GRANT_ID,
+                    sandboxLane.traitLoadout().secondaryTraitId(),
+                    "Sandbox lane should receive the selected trait immediately."
+            )) {
+                return;
+            }
+
+            SemionGameManager.SandboxStartResult resetResult = manager.startSandbox(
+                    server,
+                    sandboxOwnerId,
+                    "sandbox-trait-owner",
+                    SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(new BlockPos(200, 0, 0)))
+            );
+            if (!assertEquals(context, SemionGameManager.SandboxStartResult.REPLACED, resetResult, "Sandbox reset should retain trait selection.")) {
+                return;
+            }
+            SemionGame resetSandbox = manager.sandboxGame(sandboxOwnerId).orElseThrow();
+            if (!assertEquals(
+                    context,
+                    BuiltInTraits.MOBILIZATION_GRANT_ID,
+                    manager.traitLoadoutOrDefault(sandboxOwnerId).secondaryTraitId(),
+                    "Sandbox reset should retain the selected secondary trait."
+            )) {
+                return;
+            }
+            long expectedDiamond = EconomyConfig.defaultConfig().startingDiamond() + 75L;
+            if (!assertEquals(
+                    context,
+                    expectedDiamond,
+                    resetSandbox.players().get(sandboxOwnerId).economy().diamond(),
+                    "Starting-resource traits should apply when the sandbox is reset."
+            )) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox trait selection test failed: " + exception.getMessage()));
         } finally {
             manager.shutdown();
         }

@@ -917,14 +917,19 @@ public final class SemionCommands {
         applyPlanToVanillaTeams(source, plan.get());
         assignUnreadyPlayersToSpectatorTeam(source, game, plan.get());
         String lobbyLoaded = gameManager.lobbyWorld().isPresent() ? ", lobbyLoaded=true" : ", lobbyLoaded=false";
-        success(source, "특성 선택 단계를 시작했습니다. 참가자="
+        String startStage = gameManager.traitSelectionActive()
+                ? "특성 선택 단계를 시작했습니다."
+                : "시작 카운트다운을 시작했습니다.";
+        success(source, startStage + " 참가자="
                 + plan.get().activePlayerCount()
                 + ", 팀=" + plan.get().activeTeamCount()
                 + ", 구성=" + plan.get().compositionSummary()
                 + ", 관전자=" + plan.get().spectatorCount()
                 + ", 준비=" + game.readyPlayerCount()
                 + ", 모드=" + gameManager.matchMode()
-                + ", 선택시간=" + gameManager.traitSelectionSecondsRemaining() + "초"
+                + (gameManager.traitSelectionActive()
+                ? ", 선택시간=" + gameManager.traitSelectionSecondsRemaining() + "초"
+                : "")
                 + lobbyLoaded);
         return 1;
     }
@@ -1870,14 +1875,21 @@ public final class SemionCommands {
         }
         ServerPlayer player = source.getPlayerOrException();
         SemionGame game = gameManager.activeGame().orElse(null);
-        if (game == null) {
-            failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
+        boolean sandbox = gameManager.sandboxGame(player.getUUID()).isPresent();
+        if (game == null && !sandbox) {
+            failure(source, "참여 중인 로비 또는 샌드박스가 없습니다.");
             return 0;
+        }
+        SemionPlayer semionPlayer = game == null ? null : game.players().get(player.getUUID());
+        if (!sandbox && game.phase() != RoundPhase.WAITING && semionPlayer != null) {
+            gameManager.dialogService().showAppliedTraits(player, semionPlayer.traitLoadout());
+            success(source, "현재 적용 중인 특성을 열었습니다.");
+            return 1;
         }
         gameManager.dialogService().showTraitSelection(
                 player,
                 gameManager.traitLoadoutOrDefault(player.getUUID()),
-                Math.max(0, gameManager.traitSelectionSecondsRemaining())
+                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining())
         );
         success(source, "특성 선택 창을 열었습니다.");
         return 1;
@@ -1889,8 +1901,9 @@ public final class SemionCommands {
         }
         ServerPlayer player = source.getPlayerOrException();
         SemionGame game = gameManager.activeGame().orElse(null);
-        if (game == null) {
-            failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
+        boolean sandbox = gameManager.sandboxGame(player.getUUID()).isPresent();
+        if (game == null && !sandbox) {
+            failure(source, "참여 중인 로비 또는 샌드박스가 없습니다.");
             return 0;
         }
         TraitSlot slot;
@@ -1903,7 +1916,7 @@ public final class SemionCommands {
         gameManager.dialogService().showTraitSelection(
                 player,
                 gameManager.traitLoadoutOrDefault(player.getUUID()),
-                Math.max(0, gameManager.traitSelectionSecondsRemaining()),
+                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining()),
                 slot
         );
         success(source, slot.displayName() + " 선택 창을 열었습니다.");
@@ -1915,8 +1928,8 @@ public final class SemionCommands {
             return 0;
         }
         ServerPlayer player = source.getPlayerOrException();
-        if (gameManager.activeGame().isEmpty()) {
-            failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
+        if (gameManager.activeGame().isEmpty() && gameManager.sandboxGame(player.getUUID()).isEmpty()) {
+            failure(source, "참여 중인 로비 또는 샌드박스가 없습니다.");
             return 0;
         }
         TraitLoadout loadout = gameManager.traitLoadoutOrDefault(player.getUUID());
@@ -1944,8 +1957,10 @@ public final class SemionCommands {
         if (!ensureTraitsEnabled(source, gameManager)) {
             return 0;
         }
-        if (gameManager.activeGame().isEmpty()) {
-            failure(source, "열린 로비가 없습니다. 먼저 /semiontd create를 실행하세요.");
+        ServerPlayer player = source.getPlayerOrException();
+        boolean sandbox = gameManager.sandboxGame(player.getUUID()).isPresent();
+        if (gameManager.activeGame().isEmpty() && !sandbox) {
+            failure(source, "참여 중인 로비 또는 샌드박스가 없습니다.");
             return 0;
         }
         TraitSlot slot;
@@ -1962,7 +1977,6 @@ public final class SemionCommands {
             failure(source, exception.getMessage());
             return 0;
         }
-        ServerPlayer player = source.getPlayerOrException();
         TraitSelectionSession.SelectionResult result = gameManager.selectTrait(
                 source.getServer(),
                 player.getUUID(),
@@ -1981,7 +1995,7 @@ public final class SemionCommands {
         gameManager.dialogService().showTraitSelection(
                 player,
                 loadout,
-                Math.max(0, gameManager.traitSelectionSecondsRemaining())
+                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining())
         );
         return 1;
     }

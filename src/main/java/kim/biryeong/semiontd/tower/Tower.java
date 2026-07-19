@@ -8,6 +8,8 @@ import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.trait.TraitEffects;
+import kim.biryeong.semiontd.trait.TraitLoadout;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,6 +36,8 @@ public abstract class Tower {
     private boolean deployedAtFinalDefense;
     private boolean deathNotifiedThisRound;
     private final Map<TowerDataKey<?>, Object> data = new HashMap<>();
+    private TraitLoadout traitLoadout = TraitLoadout.none();
+    private double traitMaxHealthBonus;
 
     protected Tower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         this(type, ownerPlayer, teamId, laneId, position, position);
@@ -101,17 +105,30 @@ public abstract class Tower {
     }
 
     public double currentMaxHealth() {
-        return maxHealth;
+        return applyTraitMaxHealth(maxHealth);
     }
 
     public void syncMaxHealth(double maxHealth, boolean healIncrease) {
-        double previousMaxHealth = this.maxHealth;
+        double previousMaxHealth = currentMaxHealth();
         this.maxHealth = Math.max(1.0, maxHealth);
-        if (healIncrease && this.maxHealth > previousMaxHealth) {
-            health = Math.min(this.maxHealth, health + (this.maxHealth - previousMaxHealth));
+        double nextMaxHealth = currentMaxHealth();
+        if (healIncrease && nextMaxHealth > previousMaxHealth) {
+            health = Math.min(nextMaxHealth, health + (nextMaxHealth - previousMaxHealth));
             return;
         }
         syncHealth(health);
+    }
+
+    public void syncEffectMaxHealth(double maxHealth, double traitMaxHealthBonus) {
+        double previousMaxHealth = currentMaxHealth();
+        this.maxHealth = Math.max(1.0, maxHealth);
+        this.traitMaxHealthBonus = Math.max(0.0, traitMaxHealthBonus);
+        double nextMaxHealth = currentMaxHealth();
+        if (nextMaxHealth > previousMaxHealth) {
+            health = Math.min(nextMaxHealth, health + (nextMaxHealth - previousMaxHealth));
+        } else {
+            syncHealth(health);
+        }
     }
 
     public double health() {
@@ -216,8 +233,18 @@ public abstract class Tower {
     }
 
     public long sellRefundAmount() {
-        double rate = waveStartedAfterPlacement ? 0.5 : 1.0;
+        double rate = TraitEffects.sellRefundRate(traitLoadout, waveStartedAfterPlacement);
         return Math.round(paidMineralCost * rate);
+    }
+
+    public void attachToLane(PlayerLane lane, TraitLoadout traitLoadout) {
+        this.traitLoadout = traitLoadout == null ? TraitLoadout.none() : traitLoadout;
+    }
+
+    public void detachFromLane(PlayerLane lane) {
+        traitLoadout = TraitLoadout.none();
+        traitMaxHealthBonus = 0.0;
+        syncHealth(health);
     }
 
     public void onPlaced(PlayerLane lane) {
@@ -262,7 +289,8 @@ public abstract class Tower {
         if (runtimeMonster != null) {
             runtimeMonster.recordLastHit(ownerPlayer, KillSourceKind.TOWER);
         }
-        double damageAmount = target.towerDamageTaken(baseDamage);
+        double traitDamage = towerEntity.applyTraitOutgoingDamage(runtimeMonster, baseDamage);
+        double damageAmount = target.towerDamageTaken(traitDamage);
 
         float previousHealth = target.getHealth();
         target.hurt(towerEntity.damageSources().mobAttack(towerEntity), (float) damageAmount);
@@ -345,6 +373,10 @@ public abstract class Tower {
 
     protected static String percent(double value) {
         return oneDecimal(value * 100.0) + "%";
+    }
+
+    protected final double applyTraitMaxHealth(double baseMaxHealth) {
+        return baseMaxHealth * (1.0 + traitMaxHealthBonus);
     }
 
     public int adjustAttackInterval(int baseIntervalTicks) {

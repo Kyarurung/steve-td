@@ -41,6 +41,8 @@ public final class Monster {
     private final double movementSpeedMultiplier;
     private final double attackRange;
     private final int attackIntervalTicks;
+    private double attackDamageMultiplier = 1.0;
+    private double attackSpeedMultiplier = 1.0;
     private double health;
     private double laneProgress;
     private int minecraftEntityId = -1;
@@ -370,7 +372,7 @@ public final class Monster {
     }
 
     public double attackDamage() {
-        return attackDamage;
+        return attackDamage * attackDamageMultiplier;
     }
 
     public AttackKind attackKind() {
@@ -402,7 +404,12 @@ public final class Monster {
     }
 
     public int attackIntervalTicks() {
-        return attackIntervalTicks;
+        return Math.max(1, (int) Math.ceil(attackIntervalTicks / attackSpeedMultiplier));
+    }
+
+    public void applyAttackModifiers(double damageMultiplier, double speedMultiplier) {
+        attackDamageMultiplier = Math.max(0.0, damageMultiplier);
+        attackSpeedMultiplier = Math.max(0.01, speedMultiplier);
     }
 
     public void enterFinalDefenseCombat() {

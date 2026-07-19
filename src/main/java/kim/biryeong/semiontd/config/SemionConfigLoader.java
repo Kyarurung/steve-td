@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import kim.biryeong.semiontd.persistence.SemionPersistenceConfig;
 import kim.biryeong.semiontd.rating.RatingConfig;
+import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import org.slf4j.Logger;
 
 public final class SemionConfigLoader {
@@ -39,7 +40,9 @@ public final class SemionConfigLoader {
                     IncomeLaneRoutingConfig.defaultConfig(),
                     MonsterScalingConfig.defaultConfig(),
                     VfxConfig.defaultConfig(),
-                    TipConfig.defaultConfig()
+                    TipConfig.defaultConfig(),
+                    TraitSelectionConfig.defaultConfig(),
+                    TraitBalanceConfig.defaultConfig()
             );
         }
 
@@ -114,7 +117,18 @@ public final class SemionConfigLoader {
                 TipConfig.defaultConfig(),
                 logger
         );
-        return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting, monsterScaling, vfx, tips);
+        TraitSelectionConfig traits = loadOrCreate(
+                configDir.resolve("traits.json"),
+                TraitSelectionConfig.defaultConfig(),
+                TraitSelectionConfig.class,
+                logger
+        );
+        TraitBalanceConfig traitBalance = loadOrCreateTraitBalance(
+                configDir.resolve("trait_balance.json"),
+                TraitBalanceConfig.defaultConfig(),
+                logger
+        );
+        return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting, monsterScaling, vfx, tips, traits, traitBalance);
     }
 
     private static <T> T loadOrCreate(Path path, T defaults, Class<T> type, Logger logger) {
@@ -375,6 +389,30 @@ public final class SemionConfigLoader {
         }
     }
 
+    private static TraitBalanceConfig loadOrCreateTraitBalance(
+            Path path,
+            TraitBalanceConfig defaults,
+            Logger logger
+    ) {
+        if (Files.notExists(path)) {
+            write(path, defaults, logger);
+            return defaults;
+        }
+
+        try (Reader reader = Files.newBufferedReader(path)) {
+            TraitBalanceConfig value = GSON.fromJson(reader, TraitBalanceConfig.class);
+            TraitBalanceConfig loaded = value == null ? defaults : value;
+            TraitBalanceConfig merged = loaded.withMissingDefaults(defaults);
+            if (!merged.equals(loaded)) {
+                write(path, merged, logger);
+            }
+            return merged;
+        } catch (IOException | JsonParseException | IllegalArgumentException exception) {
+            logger.warn("Failed to load config {}; using defaults.", path, exception);
+            return defaults;
+        }
+    }
+
     private static String migrateLegacyVillagerAdvBuffs(String json, TowerBalanceConfig defaults) {
         JsonElement root = JsonParser.parseString(json);
         if (!root.isJsonObject()) {
@@ -539,7 +577,9 @@ public final class SemionConfigLoader {
             IncomeLaneRoutingConfig incomeLaneRouting,
             MonsterScalingConfig monsterScaling,
             VfxConfig vfx,
-            TipConfig tips
+            TipConfig tips,
+            TraitSelectionConfig traits,
+            TraitBalanceConfig traitBalance
     ) {
     }
 }

@@ -11,6 +11,7 @@ import kim.biryeong.semiontd.rating.RatingConfig;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,6 +27,62 @@ final class SemionConfigLoaderTest {
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    void loadCreatesTraitConfigFileWithEnabledDefaults() {
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(Files.exists(tempDir.resolve("traits.json")));
+        assertEquals(TraitSelectionConfig.defaultConfig(), configs.traits());
+    }
+
+    @Test
+    void loadReadsTraitConfigOverrides() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("traits.json"), """
+                {
+                  "enabled": false,
+                  "selectionDurationSeconds": 30
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertEquals(false, configs.traits().enabled());
+        assertEquals(30, configs.traits().selectionDurationSeconds());
+    }
+
+    @Test
+    void loadCreatesTraitBalanceConfigWithDefaults() {
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(Files.exists(tempDir.resolve("trait_balance.json")));
+        assertEquals(0.15, configs.traitBalance().value("opening_salvo", "attackSpeedBonus", -1.0));
+        assertEquals(15.0, configs.traitBalance().value("opening_salvo", "durationSeconds", -1.0));
+    }
+
+    @Test
+    void loadBackfillsTraitBalanceDefaultsWithoutReplacingOverrides() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("trait_balance.json"), """
+                {
+                  "traits": {
+                    "opening_salvo": {
+                      "attackSpeedBonus": 0.12
+                    }
+                  }
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertEquals(0.12, configs.traitBalance().value("opening_salvo", "attackSpeedBonus", -1.0));
+        assertEquals(15.0, configs.traitBalance().value("opening_salvo", "durationSeconds", -1.0));
+        assertEquals(150.0, configs.traitBalance().value("mobilization_grant", "startingDiamond", -1.0));
+        String written = Files.readString(tempDir.resolve("trait_balance.json"));
+        assertTrue(written.contains("durationSeconds"));
+        assertTrue(written.contains("mobilization_grant"));
     }
 
     @Test

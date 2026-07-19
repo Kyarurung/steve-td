@@ -26,6 +26,7 @@ import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.entity.tower.goal.TowerAttackMonsterGoal;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
+import kim.biryeong.semiontd.trait.BuiltInTraits;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
@@ -296,6 +297,23 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         return Math.max(0.0, damageAmount);
     }
 
+    public double applyTraitOutgoingDamage(Monster target, double damageAmount) {
+        double additiveBonus = activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS);
+        if (target != null) {
+            additiveBonus += target.senderTeam().isPresent()
+                    ? activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_INCOME_DAMAGE_BONUS)
+                    : activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_WAVE_DAMAGE_BONUS);
+        }
+        return Math.max(0.0, damageAmount)
+                * (1.0 + additiveBonus)
+                * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_FINAL_DAMAGE_BONUS));
+    }
+
+    public double applyTraitIncomingDamage(double damageAmount) {
+        return Math.max(0.0, damageAmount)
+                * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS));
+    }
+
     public int attackIntervalTicks() {
         int adjustedInterval = runtimeTower == null ? attackIntervalTicks : runtimeTower.adjustAttackInterval(attackIntervalTicks);
         double attackSpeedMultiplier = 1.0
@@ -409,8 +427,59 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         return refreshed;
     }
 
-    public double activeTimedEffectMagnitude(TimedEffectType type) {
+    public boolean setPersistentEffect(TimedEffectType type, ResourceLocation sourceId, double magnitude) {
+        boolean changed = timedEffects.setPersistent(type, sourceId, magnitude);
+        if (changed) {
+            syncMaxHealthEffect(type);
+        }
+        return changed;
+    }
+
+    public void inheritTraitEffectsFrom(SemionTowerEntity source) {
+        if (source == null) {
+            return;
+        }
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS, BuiltInTraits.STRENGTH_IN_NUMBERS_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS, BuiltInTraits.DIVERSITY_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS, BuiltInTraits.TRANSCENDENCE_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_TRAIT_INCOME_DAMAGE_BONUS, BuiltInTraits.INTERCEPTION_DOCTRINE_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_TRAIT_WAVE_DAMAGE_BONUS, BuiltInTraits.WAVEBREAKER_DOCTRINE_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_FINAL_DAMAGE_BONUS, BuiltInTraits.DOUBLE_EDGED_SWORD_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS, BuiltInTraits.DOUBLE_EDGED_SWORD_ID);
+        copyPersistentTraitEffect(source, TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS, BuiltInTraits.FORTITUDE_ID);
+
+        double openingMagnitude = source.timedEffects.magnitude(
+                TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
+                BuiltInTraits.OPENING_SALVO_ID
+        );
+        int openingTicks = source.timedEffects.remainingTicks(
+                TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
+                BuiltInTraits.OPENING_SALVO_ID
+        );
+        if (openingMagnitude > 0.0 && openingTicks > 0) {
+            refreshTimedEffect(
+                    TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
+                    BuiltInTraits.OPENING_SALVO_ID,
+                    openingMagnitude,
+                    openingTicks
+            );
+        }
+    }
+
+    private void copyPersistentTraitEffect(
+            SemionTowerEntity source,
+            TimedEffectType type,
+            ResourceLocation sourceId
+    ) {
+        setPersistentEffect(type, sourceId, source.timedEffects.persistentMagnitude(type, sourceId));
+    }
+
+    public double activeEffectMagnitude(TimedEffectType type) {
         return timedEffects.magnitude(type);
+    }
+
+    public double activeTimedEffectMagnitude(TimedEffectType type) {
+        return activeEffectMagnitude(type);
     }
 
     public int activeTimedEffectTicks(TimedEffectType type) {
@@ -419,6 +488,14 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     public boolean hasTimedEffectSource(TimedEffectType type, ResourceLocation sourceId) {
         return timedEffects.hasSource(type, sourceId);
+    }
+
+    public boolean hasPersistentEffect(TimedEffectType type) {
+        return timedEffects.hasPersistent(type);
+    }
+
+    public boolean hasPersistentEffect(TimedEffectType type, ResourceLocation sourceId) {
+        return timedEffects.hasPersistent(type, sourceId);
     }
 
     public <T> void setTowerData(TowerDataKey<T> key, T value) {
@@ -440,13 +517,17 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     private void syncMaxHealthEffect(TimedEffectType type) {
-        if (runtimeTower == null || type != TimedEffectType.TOWER_MAX_HEALTH_BONUS) {
+        if (runtimeTower == null
+                || (type != TimedEffectType.TOWER_MAX_HEALTH_BONUS
+                && type != TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS)) {
             return;
         }
-        double previousMaxHealth = runtimeTower.currentMaxHealth();
         double nextMaxHealth = runtimeTower.type().maxHealth()
-                * (1.0 + activeTimedEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS));
-        runtimeTower.syncMaxHealth(nextMaxHealth, nextMaxHealth > previousMaxHealth);
+                * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS));
+        runtimeTower.syncEffectMaxHealth(
+                nextMaxHealth,
+                activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS)
+        );
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(runtimeTower.currentMaxHealth());
         setHealth((float) runtimeTower.health());
     }
@@ -620,6 +701,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
         double damageAmount = amount * (1.0 - timedEffects.magnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION));
         if (runtimeTower != null) {
+            damageAmount = applyTraitIncomingDamage(damageAmount);
             damageAmount = runtimeTower.modifyIncomingDamage(this, damageSource, damageAmount);
         }
         if (damageAmount <= 0.0) {

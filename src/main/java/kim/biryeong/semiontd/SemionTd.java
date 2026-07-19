@@ -7,6 +7,7 @@ import kim.biryeong.semiontd.balance.BalancePatchNotifier;
 import kim.biryeong.semiontd.command.SemionCommands;
 import kim.biryeong.semiontd.config.SemionConfigLoader;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
+import kim.biryeong.semiontd.config.TraitBalanceRuntime;
 import kim.biryeong.semiontd.cosmetic.CosmeticService;
 import kim.biryeong.semiontd.cosmetic.SemionCosmeticItems;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
@@ -64,6 +65,7 @@ public class SemionTd implements ModInitializer {
 
         Path configDir = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
         LoadedConfigs configs = SemionConfigLoader.load(configDir, LOGGER);
+        TraitBalanceRuntime.apply(configs.traitBalance());
         ProductionTowerCatalogs.reloadBuiltIns(configs.towerBalance());
         IncomeSummons.reloadBuiltIns(configs.summons());
         SemionPolymerEntityDataWarmup.warm(configs, LOGGER);
@@ -90,6 +92,7 @@ public class SemionTd implements ModInitializer {
                 configDir.resolve("profiles.json")
         );
         gameManager.configureTips(configs.tips());
+        gameManager.configureTraits(configs.traits());
         gameManager.configureMusic(musicService);
         CosmeticService cosmeticService = new CosmeticService(gameManager, configDir.resolve("cosmetics.json"));
         SemionTipService tipService = new SemionTipService(gameManager);

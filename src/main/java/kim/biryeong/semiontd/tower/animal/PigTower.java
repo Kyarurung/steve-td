@@ -34,7 +34,7 @@ public class PigTower extends AnimalStackTower {
 
     @Override
     public double currentMaxHealth() {
-        return maxHealth() + currentStacks() * value("healthPerStack");
+        return applyTraitMaxHealth(maxHealth() + currentStacks() * value("healthPerStack"));
     }
 
     @Override

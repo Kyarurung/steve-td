@@ -131,11 +131,15 @@ public abstract class IllusionSummonerTower extends SummonerTower {
         );
         GridPosition clonePosition = GridPosition.from(BlockPos.containing(spawnPosition.x, spawnPosition.y - 1.0, spawnPosition.z));
         Tower cloneTower = createCloneTower(sourceTower, profile, clonePosition);
+        cloneTower.attachToLane(lane, lane.traitLoadout());
 
         SemionTowerEntity entity = new SemionTowerEntity(SemionEntityTypes.TOWER, lane.arenaWorld());
         entity.configure(cloneTower, lane.laneLayout());
         entity.markIllusionClone();
-        sourceTowerEntity(lane, sourceTower).ifPresent(entity::useAttackTargetFrom);
+        sourceTowerEntity(lane, sourceTower).ifPresent(sourceEntity -> {
+            entity.useAttackTargetFrom(sourceEntity);
+            entity.inheritTraitEffectsFrom(sourceEntity);
+        });
         entity.setPos(spawnPosition.x, spawnPosition.y, spawnPosition.z);
 
         if (lane.arenaWorld().addFreshEntity(entity)) {

@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 public final class TimedEffectSet {
     private final EnumMap<TimedEffectType, ActiveTimedEffect> effects = new EnumMap<>(TimedEffectType.class);
     private final EnumMap<TimedEffectType, Map<ResourceLocation, ActiveTimedEffect>> sourcedEffects = new EnumMap<>(TimedEffectType.class);
+    private final EnumMap<TimedEffectType, Map<ResourceLocation, Double>> persistentEffects = new EnumMap<>(TimedEffectType.class);
 
     public void apply(TimedEffectType type, double magnitude, int durationTicks) {
         if (type == null || durationTicks <= 0) {
@@ -87,7 +88,33 @@ public final class TimedEffectSet {
         return active.remainingTicks != previousTicks;
     }
 
+    public boolean setPersistent(TimedEffectType type, ResourceLocation sourceId, double magnitude) {
+        if (type == null || sourceId == null) {
+            return false;
+        }
+
+        double sanitizedMagnitude = Math.max(0.0, magnitude);
+        Map<ResourceLocation, Double> effectsBySource = persistentEffects.get(type);
+        if (sanitizedMagnitude <= 0.0) {
+            if (effectsBySource == null) {
+                return false;
+            }
+            boolean removed = effectsBySource.remove(sourceId) != null;
+            if (effectsBySource.isEmpty()) {
+                persistentEffects.remove(type);
+            }
+            return removed;
+        }
+
+        effectsBySource = persistentEffects.computeIfAbsent(type, ignored -> new HashMap<>());
+        Double previous = effectsBySource.put(sourceId, sanitizedMagnitude);
+        return previous == null || Double.compare(previous, sanitizedMagnitude) != 0;
+    }
+
     public double magnitude(TimedEffectType type) {
+        if (type == null) {
+            return 0.0;
+        }
         ActiveTimedEffect active = effects.get(type);
         double totalMagnitude = active == null ? 0.0 : active.magnitude;
         Map<ResourceLocation, ActiveTimedEffect> effectsBySource = sourcedEffects.get(type);
@@ -96,7 +123,13 @@ public final class TimedEffectSet {
                 totalMagnitude += sourcedEffect.magnitude;
             }
         }
-        return type == null ? 0.0 : totalMagnitude;
+        Map<ResourceLocation, Double> persistentBySource = persistentEffects.get(type);
+        if (persistentBySource != null) {
+            for (double persistentMagnitude : persistentBySource.values()) {
+                totalMagnitude += persistentMagnitude;
+            }
+        }
+        return totalMagnitude;
     }
 
     public int remainingTicks(TimedEffectType type) {
@@ -119,9 +152,27 @@ public final class TimedEffectSet {
         return effectsBySource != null && effectsBySource.containsKey(sourceId);
     }
 
+    public boolean hasPersistent(TimedEffectType type) {
+        Map<ResourceLocation, Double> effectsBySource = persistentEffects.get(type);
+        return effectsBySource != null && !effectsBySource.isEmpty();
+    }
+
+    public boolean hasPersistent(TimedEffectType type, ResourceLocation sourceId) {
+        if (type == null || sourceId == null) {
+            return false;
+        }
+        Map<ResourceLocation, Double> effectsBySource = persistentEffects.get(type);
+        return effectsBySource != null && effectsBySource.containsKey(sourceId);
+    }
+
     public double magnitude(TimedEffectType type, ResourceLocation sourceId) {
         ActiveTimedEffect active = sourcedEffect(type, sourceId);
         return active == null ? 0.0 : active.magnitude;
+    }
+
+    public double persistentMagnitude(TimedEffectType type, ResourceLocation sourceId) {
+        Map<ResourceLocation, Double> effectsBySource = persistentEffects.get(type);
+        return effectsBySource == null ? 0.0 : effectsBySource.getOrDefault(sourceId, 0.0);
     }
 
     public int remainingTicks(TimedEffectType type, ResourceLocation sourceId) {
