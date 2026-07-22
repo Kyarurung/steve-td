@@ -485,13 +485,6 @@ public final class SemionConfigLoader {
                 150L,
                 200L
         );
-        String removedLegacyKey = TowerBalanceConfig.upgradeKey(
-                EndTowers.T2_ENDERMAN_TOWER.id(),
-                "t3_enderman_tower"
-        );
-        if (upgradeCosts.remove(removedLegacyKey) != null) {
-            changed = true;
-        }
         if (object.has("abilities") && object.get("abilities").isJsonObject()) {
             JsonObject abilities = object.getAsJsonObject("abilities");
             if (abilities.has(EndTower.CONFIG_ID) && abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
@@ -606,11 +599,13 @@ public final class SemionConfigLoader {
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.30);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackIntervalEvery", 15.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 40.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 20.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangePerStep", 1.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangeCap", 5.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 10.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationPerStep", 5.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationCap", 50.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationCap", 15.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalSplashEvery", 10.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashRadiusPerStep", 0.5);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashRadiusCap", 5.0);

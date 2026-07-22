@@ -132,6 +132,7 @@ public final class TowerDescriptionTemplate {
         return switch (format) {
             case "integer", "int" -> Long.toString(Math.round(value));
             case "percent" -> formatNumber(value * 100.0) + "%";
+            case "percent_integer" -> Math.round(value * 100.0) + "%";
             case "seconds", "second" -> formatNumber(value / 20.0) + "초";
             case "blocks", "block" -> formatNumber(value) + "블록";
             case "number", "" -> formatNumber(value);
