@@ -15,7 +15,6 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -33,7 +32,6 @@ public final class OceanWaterTower extends EntityBackedTower {
             .setValue(LightBlock.WATERLOGGED, true);
 
     private boolean waveActive;
-    private boolean supplyTargetsCaptured;
     private Set<UUID> supplyTargetIds = Set.of();
     private BlockPos placedWaterPos;
     private BlockState replacedState;
@@ -139,16 +137,11 @@ public final class OceanWaterTower extends EntityBackedTower {
     protected void copyRuntimeStateFrom(Tower previousTower) {
         if (previousTower instanceof OceanWaterTower waterTower) {
             waveActive = waterTower.waveActive;
-            supplyTargetsCaptured = waterTower.supplyTargetsCaptured;
             supplyTargetIds = Set.copyOf(waterTower.supplyTargetIds);
         }
     }
 
     private void captureSupplyTargets(PlayerLane lane) {
-        if (supplyTargetsCaptured) {
-            return;
-        }
-        supplyTargetsCaptured = true;
         supplyTargetIds = nearbyTargets(lane).stream()
                 .map(OceanWaterTower::supplyTargetId)
                 .collect(Collectors.toUnmodifiableSet());
@@ -226,47 +219,11 @@ public final class OceanWaterTower extends EntityBackedTower {
     private void showSupplyVfx(PlayerLane lane, List<OceanTower> targets, boolean burst) {
         BlockPos center = waterBlockPos(position());
         int tier = OceanTowers.tier(type());
-        int bubbles = burst ? tier * 5 : tier * 2;
-        lane.arenaWorld().sendParticles(
-                ParticleTypes.BUBBLE,
-                center.getX() + 0.5,
-                center.getY() + 0.5,
-                center.getZ() + 0.5,
-                bubbles,
-                0.35,
-                0.35,
-                0.35,
-                0.02
-        );
-        if (tier >= 2) {
-            lane.arenaWorld().sendParticles(
-                    ParticleTypes.SPLASH,
-                    center.getX() + 0.5,
-                    center.getY() + 0.8,
-                    center.getZ() + 0.5,
-                    burst ? tier * 2 : tier,
-                    0.3,
-                    0.1,
-                    0.3,
-                    0.02
-            );
-        }
-        if (tier == 3 && burst) {
-            lane.arenaWorld().sendParticles(
-                    ParticleTypes.NAUTILUS,
-                    center.getX() + 0.5,
-                    center.getY() + 0.5,
-                    center.getZ() + 0.5,
-                    8,
-                    0.45,
-                    0.2,
-                    0.45,
-                    0.05
-            );
-        }
+        Vec3 source = new Vec3(center.getX() + 0.5, center.getY() + 1.03, center.getZ() + 0.5);
+        OceanVfx.showWaterSourcePulse(lane.arenaWorld(), source, tier, burst);
         OceanVfx.showWaterTransfer(
                 lane.arenaWorld(),
-                new Vec3(center.getX() + 0.5, center.getY() + 0.55, center.getZ() + 0.5),
+                source,
                 targets,
                 burst
         );

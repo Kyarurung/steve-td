@@ -2675,6 +2675,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
+        lane.resetForRound();
+        lane.markWaveStarted(2);
+        if (!assertEquals(context, 70.0, lateNearbyTower.water(), "The next wave should capture newly placed nearby towers.")) {
+            return;
+        }
+
         BlockPos freeWaterPos = waterPos.offset(4, 0, 0);
         lane.arenaWorld().setBlock(freeWaterPos.below(), Blocks.STONE.defaultBlockState(), 3);
         lane.arenaWorld().setBlock(freeWaterPos.east().below(), Blocks.STONE.defaultBlockState(), 3);
@@ -2708,6 +2714,90 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
             context.succeed();
         });
+    }
+
+    @GameTest
+    public void oceanTankWaterTransferRespectsCooldown(GameTestHelper context) {
+        UUID playerId = stableUuid("ocean-tank-transfer-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, OceanTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+        GridPosition tankPosition = GridPosition.from(base);
+        GridPosition targetPosition = GridPosition.from(base.east());
+        OceanTower tank = new OceanTower(
+                TowerBalanceRuntime.resolve(OceanTowers.T1_PUFFERFISH),
+                playerId,
+                TeamId.RED,
+                1,
+                tankPosition
+        );
+        OceanTower target = new OceanTower(
+                TowerBalanceRuntime.resolve(OceanTowers.T1_COD),
+                playerId,
+                TeamId.RED,
+                1,
+                targetPosition
+        );
+        lane.addTower(tank);
+        lane.addTower(target);
+        if (!(lane.arenaWorld().getEntity(tank.entityId().orElseThrow()) instanceof SemionTowerEntity tankEntity)) {
+            context.fail(Component.literal("Ocean tank should spawn a tower entity."));
+            return;
+        }
+
+        tank.onDamaged(tankEntity, null, 30.0, 100.0, 70.0);
+        if (!assertEquals(context, 74.0, target.water(), "The first hit should transfer the doubled tier-one cap.")) {
+            return;
+        }
+        if (!assertEquals(context, 49.0, tank.water(), "A successful transfer should spend water once.")) {
+            return;
+        }
+
+        tank.onDamaged(tankEntity, null, 30.0, 70.0, 40.0);
+        if (!assertEquals(context, 74.0, target.water(), "Hits during the transfer cooldown should not create water.")) {
+            return;
+        }
+        if (!assertEquals(context, 49.0, tank.water(), "Hits during the transfer cooldown should not spend water.")) {
+            return;
+        }
+
+        for (int tick = 0; tick < 49; tick++) {
+            tank.tick(lane);
+        }
+        tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
+        if (!assertEquals(context, 74.0, target.water(), "The ability should remain blocked before fifty ticks pass.")) {
+            return;
+        }
+
+        tank.tick(lane);
+        tank.onDamaged(tankEntity, null, 10.0, 10.0, 0.0);
+        if (!assertEquals(context, 74.0, target.water(), "A fatal hit should not create water.")) {
+            return;
+        }
+        if (!assertEquals(context, 49.0, tank.water(), "A fatal hit should not spend transfer water.")) {
+            return;
+        }
+
+        tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
+        if (!assertEquals(context, 98.0, target.water(), "The ability should become ready after fifty ticks.")) {
+            return;
+        }
+        if (!assertEquals(context, 48.0, tank.water(), "The next ready transfer should spend water exactly once.")) {
+            return;
+        }
+
+        target.syncHealth(0.0);
+        for (int tick = 0; tick < 50; tick++) {
+            tank.tick(lane);
+        }
+        tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
+        if (!assertEquals(context, 98.0, target.water(), "A dead tower should not receive transferred water.")) {
+            return;
+        }
+        if (!assertEquals(context, 48.0, tank.water(), "No water should be spent when every nearby target is dead.")) {
+            return;
+        }
+        context.succeed();
     }
 
     @GameTest

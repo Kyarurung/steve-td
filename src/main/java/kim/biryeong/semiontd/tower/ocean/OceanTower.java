@@ -30,6 +30,7 @@ public final class OceanTower extends EntityBackedTower {
     private double water;
     private boolean waveActive;
     private int dehydrationTicks;
+    private int transferCooldownTicks;
     private PlayerLane currentLane;
 
     public OceanTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
@@ -92,6 +93,7 @@ public final class OceanTower extends EntityBackedTower {
     public void resetForRound(PlayerLane lane) {
         waveActive = false;
         dehydrationTicks = 0;
+        transferCooldownTicks = 0;
         currentLane = lane;
         super.resetForRound(lane);
     }
@@ -100,6 +102,9 @@ public final class OceanTower extends EntityBackedTower {
     public void tick(PlayerLane lane) {
         currentLane = lane;
         super.tick(lane);
+        if (transferCooldownTicks > 0) {
+            transferCooldownTicks--;
+        }
         tickDehydration(lane);
     }
 
@@ -184,7 +189,8 @@ public final class OceanTower extends EntityBackedTower {
             double previousHealth,
             double currentHealth
     ) {
-        if (!OceanTowers.isTank(type()) || currentLane == null || water <= 0.0) {
+        if (!OceanTowers.isTank(type()) || currentLane == null || currentHealth <= 0.0
+                || water <= 0.0 || transferCooldownTicks > 0) {
             return;
         }
         double received = Math.max(0.0, previousHealth - currentHealth);
@@ -200,6 +206,7 @@ public final class OceanTower extends EntityBackedTower {
         }
         double share = pool / recipients.size();
         recipients.forEach(target -> target.addWater(share));
+        transferCooldownTicks = Math.max(1, ticks("transferCooldownTicks"));
         OceanVfx.showWaterTransfer(
                 currentLane.arenaWorld(),
                 new net.minecraft.world.phys.Vec3(
@@ -242,6 +249,10 @@ public final class OceanTower extends EntityBackedTower {
         if (OceanTowers.isSupport(type())) {
             lines.add("능력당 물 -" + oneDecimal(value("abilityWaterCost")));
         }
+        if (OceanTowers.isTank(type())) {
+            lines.add("물 분배 최대 " + oneDecimal(value("transferCap"))
+                    + " / " + oneDecimal(value("transferCooldownTicks") / 20.0) + "초");
+        }
         if (water <= 0.0) {
             lines.add("탈수: 능력 정지, 공격력·공격 속도 감소");
         }
@@ -256,6 +267,7 @@ public final class OceanTower extends EntityBackedTower {
         water = oceanTower.water;
         waveActive = oceanTower.waveActive;
         dehydrationTicks = oceanTower.dehydrationTicks;
+        transferCooldownTicks = oceanTower.transferCooldownTicks;
     }
 
     private void splash(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {

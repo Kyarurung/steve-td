@@ -1166,9 +1166,9 @@ public record TowerBalanceConfig(
         putAbilities(abilities, OceanTowers.T2_SPRING_WATER.id(), oceanSupplyAbilities(30.0, 1.75));
         putAbilities(abilities, OceanTowers.T3_CURRENT.id(), oceanSupplyAbilities(40.0, 2.5));
 
-        putAbilities(abilities, OceanTowers.T1_PUFFERFISH.id(), oceanTankAbilities(0.50, 2.0, 0.05, 1.0, 12.0));
-        putAbilities(abilities, OceanTowers.T2_GUARDIAN.id(), oceanTankAbilities(0.75, 3.0, 0.10, 1.0, 25.0));
-        putAbilities(abilities, OceanTowers.T3_ELDER_GUARDIAN.id(), oceanTankAbilities(1.00, 5.0, 0.15, 2.0, 45.0));
+        putAbilities(abilities, OceanTowers.T1_PUFFERFISH.id(), oceanTankAbilities(0.50, 2.0, 0.05, 1.0, 24.0));
+        putAbilities(abilities, OceanTowers.T2_GUARDIAN.id(), oceanTankAbilities(0.75, 3.0, 0.10, 1.0, 50.0));
+        putAbilities(abilities, OceanTowers.T3_ELDER_GUARDIAN.id(), oceanTankAbilities(1.00, 5.0, 0.15, 2.0, 90.0));
 
         putAbilities(abilities, OceanTowers.T1_TROPICAL_FISH.id(), oceanSupportAbilities(8.0, 0.08, 0.10, 100.0));
         putAbilities(abilities, OceanTowers.T2_LARGE_TROPICAL_FISH.id(), oceanSupportAbilities(14.0, 0.12, 0.15, 90.0));
@@ -1204,6 +1204,7 @@ public record TowerBalanceConfig(
         values.put("transferWaterCost", transferCost);
         values.put("transferRadius", 2.0);
         values.put("transferCap", transferCap);
+        values.put("transferCooldownTicks", 50.0);
         return values;
     }
 

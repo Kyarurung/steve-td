@@ -126,6 +126,40 @@ final class OceanTowerCatalogTest {
     }
 
     @Test
+    void tankWaterTransferUsesTwoAndAHalfSecondCooldownAndDoubledCaps() {
+        TowerBalanceConfig config = TowerBalanceConfig.defaultConfig();
+
+        assertEquals(50.0, config.ability(OceanTowers.T1_PUFFERFISH.id(), "transferCooldownTicks", -1.0), EPSILON);
+        assertEquals(50.0, config.ability(OceanTowers.T2_GUARDIAN.id(), "transferCooldownTicks", -1.0), EPSILON);
+        assertEquals(50.0, config.ability(OceanTowers.T3_ELDER_GUARDIAN.id(), "transferCooldownTicks", -1.0), EPSILON);
+        assertEquals(24.0, config.ability(OceanTowers.T1_PUFFERFISH.id(), "transferCap", -1.0), EPSILON);
+        assertEquals(50.0, config.ability(OceanTowers.T2_GUARDIAN.id(), "transferCap", -1.0), EPSILON);
+        assertEquals(90.0, config.ability(OceanTowers.T3_ELDER_GUARDIAN.id(), "transferCap", -1.0), EPSILON);
+    }
+
+    @Test
+    void oceanTowerDescriptionsRenderConfiguredMechanics() {
+        List<TowerType> oceanTypes = List.of(
+                OceanTowers.T1_WATER, OceanTowers.T2_SPRING_WATER, OceanTowers.T3_CURRENT,
+                OceanTowers.T1_PUFFERFISH, OceanTowers.T2_GUARDIAN, OceanTowers.T3_ELDER_GUARDIAN,
+                OceanTowers.T1_TROPICAL_FISH, OceanTowers.T2_LARGE_TROPICAL_FISH, OceanTowers.T3_GIANT_TROPICAL_FISH,
+                OceanTowers.T1_SALMON, OceanTowers.T2_LARGE_SALMON, OceanTowers.T3_GIANT_SALMON,
+                OceanTowers.T1_COD, OceanTowers.T2_LARGE_COD, OceanTowers.T3_GIANT_COD
+        );
+
+        for (TowerType type : oceanTypes) {
+            List<String> description = TowerBalanceRuntime.resolve(type).description();
+            assertTrue(description.size() >= 3, type.id() + " should explain its role and mechanics.");
+            assertTrue(description.stream().noneMatch(line -> line.contains("{ability.")),
+                    type.id() + " should render every configured value.");
+        }
+
+        String tankDescription = String.join(" ", TowerBalanceRuntime.resolve(OceanTowers.T1_PUFFERFISH).description());
+        assertTrue(tankDescription.contains("2.5초마다"));
+        assertTrue(tankDescription.contains("최대 24"));
+    }
+
+    @Test
     void waterTowerMarkerIsAZeroLightWaterSourceWithoutCollision() {
         var marker = OceanWaterTower.waterMarker();
 
