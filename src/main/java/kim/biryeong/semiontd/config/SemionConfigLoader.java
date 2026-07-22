@@ -614,6 +614,7 @@ public final class SemionConfigLoader {
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "damageReductionCap", 0.25);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonIncomeDebuffResistance", 0.25);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonFinalDamageBonus", 0.25);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonDamageBonus", 0.20);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonIncomeDebuffResistance", 0.05);
         if (endAbilities.remove("endCrystalSplashEvery") != null) {
             changed = true;

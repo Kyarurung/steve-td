@@ -1124,7 +1124,7 @@ public record TowerBalanceConfig(
                 Map.entry("permanentHealthRatio", 0.05),
                 Map.entry("permanentDamageRatio", 0.05),
                 Map.entry("dragonAttackRangeBonus", 2.0),
-                Map.entry("dragonDamageBonus", 0.20),
+                Map.entry("dragonDamageBonus", 0.25),
                 Map.entry("endCrystalAttackIntervalEvery", 30.0),
                 Map.entry("attackIntervalReductionPerStep", 1.0),
                 Map.entry("endCrystalAttackRangeEvery", 60.0),
