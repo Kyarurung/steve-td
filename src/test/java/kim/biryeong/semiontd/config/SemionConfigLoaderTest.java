@@ -210,8 +210,7 @@ final class SemionConfigLoaderTest {
                     "t1_endermite_tower->t2_enderman_tower": 125,
                     "t2_enderman_tower->t3_end_crystal_tower": 200,
                     "t1_shulker_tower->t2_shulker_tower": 125,
-                    "t2_shulker_tower->t3_shulker_tower": 200,
-                    "t2_enderman_tower->t3_enderman_tower": 75
+                    "t2_shulker_tower->t3_shulker_tower": 200
                   },
                   "abilities": {
                     "t2_shulker_tower": {
@@ -220,7 +219,7 @@ final class SemionConfigLoaderTest {
                     "t3_shulker_tower": {
                       "damageReduction": 0.20
                     },
-                    "ender_global": {
+                    "end_global": {
                       "hatchDelayTicks": 200.0,
                       "absorptionDurationTicks": 400.0,
                       "roundAbsorptionAttackIntervalEvery": 2.0,
@@ -265,25 +264,24 @@ final class SemionConfigLoaderTest {
                 EndTowers.T3_SHULKER_TOWER.id(),
                 -1
         ));
-        assertEquals(-1.0, balance.ability("ender_global", "endCrystalSplashEvery", -1.0), 0.0001);
-        assertEquals(15.0, balance.ability("ender_global", "endCrystalSplashThreshold1", -1.0), 0.0001);
-        assertEquals(60.0, balance.ability("ender_global", "endCrystalSplashThreshold2", -1.0), 0.0001);
-        assertEquals(150.0, balance.ability("ender_global", "endCrystalSplashThreshold3", -1.0), 0.0001);
-        assertEquals(300.0, balance.ability("ender_global", "endCrystalSplashThreshold4", -1.0), 0.0001);
-        assertEquals(200.0, balance.ability("ender_global", "absorptionDurationTicks", -1.0), 0.0001);
-        assertEquals(1.0, balance.ability("ender_global", "roundAbsorptionAttackIntervalEvery", -1.0), 0.0001);
-        assertEquals(30.0, balance.ability("ender_global", "endCrystalAttackIntervalEvery", -1.0), 0.0001);
-        assertEquals(0.30, balance.ability("ender_global", "dragonFinalDamageBonus", -1.0), 0.0001);
-        assertEquals(0.10, balance.ability("ender_global", "dragonIncomeDebuffResistance", -1.0), 0.0001);
-        assertEquals(60.0, balance.ability("ender_global", "shulkerReductionEvery", -1.0), 0.0001);
-        assertEquals(0.5, balance.ability("ender_global", "attackRangePerStep", -1.0), 0.0001);
-        assertEquals(15.0, balance.ability("ender_global", "shulkerLifeStealEvery", -1.0), 0.0001);
-        assertEquals(-1.0, balance.ability("ender_global", "splashRadiusPerStep", -1.0), 0.0001);
+        assertEquals(-1.0, balance.ability("end_global", "endCrystalSplashEvery", -1.0), 0.0001);
+        assertEquals(15.0, balance.ability("end_global", "endCrystalSplashThreshold1", -1.0), 0.0001);
+        assertEquals(60.0, balance.ability("end_global", "endCrystalSplashThreshold2", -1.0), 0.0001);
+        assertEquals(150.0, balance.ability("end_global", "endCrystalSplashThreshold3", -1.0), 0.0001);
+        assertEquals(300.0, balance.ability("end_global", "endCrystalSplashThreshold4", -1.0), 0.0001);
+        assertEquals(200.0, balance.ability("end_global", "absorptionDurationTicks", -1.0), 0.0001);
+        assertEquals(1.0, balance.ability("end_global", "roundAbsorptionAttackIntervalEvery", -1.0), 0.0001);
+        assertEquals(30.0, balance.ability("end_global", "endCrystalAttackIntervalEvery", -1.0), 0.0001);
+        assertEquals(0.30, balance.ability("end_global", "dragonFinalDamageBonus", -1.0), 0.0001);
+        assertEquals(0.10, balance.ability("end_global", "dragonIncomeDebuffResistance", -1.0), 0.0001);
+        assertEquals(60.0, balance.ability("end_global", "shulkerReductionEvery", -1.0), 0.0001);
+        assertEquals(0.5, balance.ability("end_global", "attackRangePerStep", -1.0), 0.0001);
+        assertEquals(15.0, balance.ability("end_global", "shulkerLifeStealEvery", -1.0), 0.0001);
+        assertEquals(-1.0, balance.ability("end_global", "splashRadiusPerStep", -1.0), 0.0001);
         assertEquals(0.30, balance.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         assertEquals(0.50, balance.ability(EndTowers.T3_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         assertTrue(written.contains("\"damage\": 10.0"));
-        assertTrue(!written.contains("t2_enderman_tower->t3_enderman_tower"));
         assertTrue(!written.contains("endermanAttackIntervalEvery"));
         assertTrue(!written.contains("endermanLifeStealEvery"));
         assertTrue(!written.contains("hatchDelayTicks"));
@@ -299,7 +297,7 @@ final class SemionConfigLoaderTest {
         Files.writeString(tempDir.resolve("tower_balance.json"), """
                 {
                   "abilities": {
-                    "ender_global": {
+                    "end_global": {
                       "splashRadiusPerStep": 0.25,
                       "splashDamageRatio": 1.0,
                       "lifeStealCap": 0.30
@@ -311,13 +309,13 @@ final class SemionConfigLoaderTest {
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 
         TowerBalanceConfig balance = configs.towerBalance();
-        assertEquals(15.0, balance.ability("ender_global", "endCrystalSplashThreshold1", -1.0), 0.0001);
-        assertEquals(60.0, balance.ability("ender_global", "endCrystalSplashThreshold2", -1.0), 0.0001);
-        assertEquals(150.0, balance.ability("ender_global", "endCrystalSplashThreshold3", -1.0), 0.0001);
-        assertEquals(300.0, balance.ability("ender_global", "endCrystalSplashThreshold4", -1.0), 0.0001);
-        assertEquals(-1.0, balance.ability("ender_global", "splashRadiusPerStep", -1.0), 0.0001);
-        assertEquals(0.60, balance.ability("ender_global", "splashDamageRatio", -1.0), 0.0001);
-        assertEquals(0.20, balance.ability("ender_global", "lifeStealCap", -1.0), 0.0001);
+        assertEquals(15.0, balance.ability("end_global", "endCrystalSplashThreshold1", -1.0), 0.0001);
+        assertEquals(60.0, balance.ability("end_global", "endCrystalSplashThreshold2", -1.0), 0.0001);
+        assertEquals(150.0, balance.ability("end_global", "endCrystalSplashThreshold3", -1.0), 0.0001);
+        assertEquals(300.0, balance.ability("end_global", "endCrystalSplashThreshold4", -1.0), 0.0001);
+        assertEquals(-1.0, balance.ability("end_global", "splashRadiusPerStep", -1.0), 0.0001);
+        assertEquals(0.60, balance.ability("end_global", "splashDamageRatio", -1.0), 0.0001);
+        assertEquals(0.20, balance.ability("end_global", "lifeStealCap", -1.0), 0.0001);
     }
 
     @Test

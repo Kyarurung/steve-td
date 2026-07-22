@@ -161,20 +161,21 @@ public final class EndTowers {
 
     static {
         List<String> dragonDescription = List.of(
-                "<gray>알로 소환되며, 라운드 시작 시 <dark_purple>아기 드래곤</dark_purple>으로 변합니다.</gray>",
-                "<gray><red>최대 체력 {ability.ender_global.dragonEvolutionMaxHealth:integer}</red> 이상이면 <dark_purple>엔더 드래곤</dark_purple>으로 진화합니다.</gray>",
-                "<gray><dark_purple>아기 드래곤</dark_purple> 크기는 <red>최대 체력 100</red>당 0.2씩 증가합니다.</gray>",
-                "<gray>힘 전달 {ability.ender_global.absorptionDurationTicks:seconds} 후 타워 <dark_red>사망</dark_red>, <red>체력 {ability.ender_global.absorptionHealAmount:integer}</red> 회복합니다.</gray>",
-                "<gray>전달 중 타워 당 <red>체력</red>을 초당 <green>+{ability.ender_global.transferHealingPerTower:integer} 재생</green>합니다.</gray>",
-                "<gray><dark_red>공격력</dark_red>: 타워 공격력의 <dark_red>{ability.ender_global.roundDamageRatio:percent}</dark_red>를 임시 획득, <dark_red>{ability.ender_global.permanentDamageRatio:percent}</dark_red> 영구 누적</gray>",
-                "<gray><red>체력</red>: 타워 체력의 <red>{ability.ender_global.roundHealthRatio:percent}</red>를 임시 획득, <red>{ability.ender_global.permanentHealthRatio:percent}</red> 영구 누적</gray>",
-                "<gray><yellow>공격 범위</yellow>: 엔드 수정 <yellow>{ability.ender_global.endCrystalSplashThreshold1:integer} / {ability.ender_global.endCrystalSplashThreshold2:integer} / {ability.ender_global.endCrystalSplashThreshold3:integer} / {ability.ender_global.endCrystalSplashThreshold4:integer}</yellow>스택에서 <yellow>+1</yellow></gray>",
-                "<gray><yellow>공격 속도</yellow>: 엔드 수정 <yellow>{ability.ender_global.endCrystalAttackIntervalEvery:integer}</yellow>스택마다 <yellow>-{ability.ender_global.attackIntervalReductionPerStep:integer}틱</yellow></gray>",
-                "<gray><yellow>사거리</yellow>: 엔드 수정 <yellow>{ability.ender_global.endCrystalAttackRangeEvery:integer}</yellow>스택마다 <yellow>+{ability.ender_global.attackRangePerStep:blocks}</yellow></gray>",
-                "<gray><dark_red>생명력 흡수</dark_red>: 셜커 <dark_red>{ability.ender_global.shulkerLifeStealEvery:integer}</dark_red>스택마다 <dark_red>+{ability.ender_global.lifeStealPerStep:percent}</dark_red></gray>",
-                "<gray><blue>받는 피해 감소</blue>: 셜커 <blue>{ability.ender_global.shulkerReductionEvery:integer}</blue>스택마다 <blue>+{ability.ender_global.damageReductionPerStep:percent}</blue></gray>",
-                "<gray><green>재생</green>: 셜커 <green>{ability.ender_global.shulkerRegenerationEvery:integer}</green>스택마다 초당 <green>+{ability.ender_global.regenerationPerStep:integer}</green></gray>",
-                "<gray><dark_purple>엔더 드래곤</dark_purple> 진화 시 <dark_red>최종 피해</dark_red>: <dark_red>+{ability.ender_global.dragonFinalDamageBonus:percent}</dark_red> / <light_purple>저항</light_purple>: <light_purple>+{ability.ender_global.dragonIncomeDebuffResistance:percent}</light_purple></gray>"
+                "<gray>알로 소환되며, 라운드 시작 시 <#B77DE8>아기 드래곤</#B77DE8>으로 변합니다.</gray>",
+                "<gray><#E66F6F>최대 체력 {ability.end_global.dragonEvolutionMaxHealth:integer}</#E66F6F> 이상이면 <#B77DE8>엔더 드래곤</#B77DE8>으로 진화합니다.</gray>",
+                "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 100</#E66F6F>당 0.2씩 증가합니다.</gray>",
+                "<gray>힘 전달 {ability.end_global.absorptionDurationTicks:seconds} 후 타워 <#D94343>사망</#D94343>, <#E66F6F>체력 {ability.end_global.absorptionHealAmount:integer}</#E66F6F> 회복합니다.</gray>",
+                "<gray>전달 중 타워 당 <#E66F6F>체력</#E66F6F>을 초당 <#79C97B>+{ability.end_global.transferHealingPerTower:integer} 재생</#79C97B>합니다.</gray>",
+                "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>{ability.end_global.roundDamageRatio:percent_integer}</#D94343>를 임시 획득, <#D94343>{ability.end_global.permanentDamageRatio:percent_integer}</#D94343> 영구 누적</gray>",
+                "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>{ability.end_global.roundHealthRatio:percent_integer}</#E66F6F>를 임시 획득, <#E66F6F>{ability.end_global.permanentHealthRatio:percent_integer}</#E66F6F> 영구 누적</gray>",
+                "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>{ability.end_global.endCrystalSplashThreshold1:integer} / {ability.end_global.endCrystalSplashThreshold2:integer} / {ability.end_global.endCrystalSplashThreshold3:integer} / {ability.end_global.endCrystalSplashThreshold4:integer}</#D9B94F>스택에서 <#D9B94F>+1블록</#D9B94F></gray>",
+                "<gray><#D9B94F>공격 속도</#D9B94F>: 엔드 수정 <#D9B94F>{ability.end_global.endCrystalAttackIntervalEvery:integer}</#D9B94F>스택마다 <#D9B94F>-{ability.end_global.attackIntervalReductionPerStep:integer}틱</#D9B94F></gray>",
+                "<gray><#D9B94F>사거리</#D9B94F>: 엔드 수정 <#D9B94F>{ability.end_global.endCrystalAttackRangeEvery:integer}</#D9B94F>스택마다 <#D9B94F>+{ability.end_global.attackRangePerStep:blocks}</#D9B94F></gray>",
+                "<gray><#D94343>생명력 흡수</#D94343>: 셜커 <#D94343>{ability.end_global.shulkerLifeStealEvery:integer}</#D94343>스택마다 <#D94343>+{ability.end_global.lifeStealPerStep:percent_integer}</#D94343></gray>",
+                "<gray><#72A9E6>피해 감소</#72A9E6>: 셜커 <#72A9E6>{ability.end_global.shulkerReductionEvery:integer}</#72A9E6>스택마다 <#72A9E6>+{ability.end_global.damageReductionPerStep:percent_integer}</#72A9E6></gray>",
+                "<gray><#79C97B>재생</#79C97B>: 셜커 <#79C97B>{ability.end_global.shulkerRegenerationEvery:integer}</#79C97B>스택마다 초당 <#79C97B>+{ability.end_global.regenerationPerStep:integer}</#79C97B></gray>",
+                "<gray><#B77DE8>엔더 드래곤</#B77DE8> 진화 시 <#D94343>최종 피해</#D94343>: <#D94343>+{ability.end_global.dragonFinalDamageBonus:percent_integer}</#D94343> / <#C892E3>저항</#C892E3>: <#C892E3>+{ability.end_global.dragonIncomeDebuffResistance:percent_integer}</#C892E3></gray>",
+                "<gray><#D9B94F>추가 사거리</#D9B94F>: <#D9B94F>+{ability.end_global.dragonAttackRangeBonus:blocks}블록</#D9B94F> / <#D94343>공격력 증가율</#D94343>: <#D94343>+{ability.end_global.dragonDamageBonus:percent_integer}</#D94343></gray>"
         );
         TowerDescriptionRegistry.registerTemplate(BASE_END_TOWER, dragonDescription);
         TowerDescriptionRegistry.registerTemplate(T1_ENDERMITE_TOWER, List.of(

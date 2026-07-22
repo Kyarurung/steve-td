@@ -384,6 +384,8 @@ public abstract class Tower {
         return oneDecimal(value * 100.0) + "%";
     }
 
+    protected static String percentInteger(double value) {return Math.round(value * 100.0) + "%";}
+
     protected final double applyTraitMaxHealth(double baseMaxHealth) {
         return baseMaxHealth * (1.0 + traitMaxHealthBonus);
     }
