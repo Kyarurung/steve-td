@@ -14,7 +14,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import kim.biryeong.semiontd.persistence.SemionPersistenceConfig;
 import kim.biryeong.semiontd.rating.RatingConfig;
-import kim.biryeong.semiontd.tower.ender.EnderTowers;
+import kim.biryeong.semiontd.tower.end.EndTower;
+import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import org.slf4j.Logger;
 
@@ -376,9 +377,11 @@ public final class SemionConfigLoader {
         try {
             String json = Files.readString(path);
             String migratedJson = migrateLegacyVillagerAdvBuffs(json, defaults);
-            migratedJson = migrateLegacyEnderUpgradeCosts(migratedJson, defaults);
-            migratedJson = migrateLegacyEnderDragonDamage(migratedJson, defaults);
-            migratedJson = migrateLegacyEnderShulkerDamageReduction(migratedJson, defaults);
+            migratedJson = migrateLegacyEndUpgradeCosts(migratedJson, defaults);
+            migratedJson = migrateLegacyEndBalanceDefaults(migratedJson, defaults);
+            migratedJson = migrateLegacyEndDragonDamage(migratedJson, defaults);
+            migratedJson = migrateLegacyEndDragonAttackInterval(migratedJson, defaults);
+            migratedJson = migrateLegacyEndShulkerDamageReduction(migratedJson, defaults);
             TowerBalanceConfig value = GSON.fromJson(migratedJson, TowerBalanceConfig.class);
             TowerBalanceConfig loaded = value == null ? defaults : value;
             TowerBalanceConfig merged = loaded.withMissingDefaults(defaults);
@@ -440,7 +443,7 @@ public final class SemionConfigLoader {
         return GSON.toJson(object);
     }
 
-    private static String migrateLegacyEnderUpgradeCosts(String json, TowerBalanceConfig defaults) {
+    private static String migrateLegacyEndUpgradeCosts(String json, TowerBalanceConfig defaults) {
         JsonElement root = JsonParser.parseString(json);
         if (!root.isJsonObject()) {
             return json;
@@ -452,26 +455,38 @@ public final class SemionConfigLoader {
         JsonObject upgradeCosts = object.getAsJsonObject("upgradeCosts");
         boolean changed = migrateLegacyUpgradeCost(
                 upgradeCosts,
-                TowerBalanceConfig.upgradeKey(EnderTowers.T1_ENDERMITE_TOWER.id(), EnderTowers.T2_ENDERMAN_TOWER.id()),
-                defaults
+                TowerBalanceConfig.upgradeKey(EndTowers.T1_ENDERMITE_TOWER.id(), EndTowers.T2_ENDERMAN_TOWER.id()),
+                defaults,
+                75L,
+                100L,
+                125L
         );
         changed |= migrateLegacyUpgradeCost(
                 upgradeCosts,
-                TowerBalanceConfig.upgradeKey(EnderTowers.T2_ENDERMAN_TOWER.id(), EnderTowers.T3_END_CRYSTAL_TOWER.id()),
-                defaults
+                TowerBalanceConfig.upgradeKey(EndTowers.T2_ENDERMAN_TOWER.id(), EndTowers.T3_END_CRYSTAL_TOWER.id()),
+                defaults,
+                75L,
+                150L,
+                200L
         );
         changed |= migrateLegacyUpgradeCost(
                 upgradeCosts,
-                TowerBalanceConfig.upgradeKey(EnderTowers.T1_SHULKER_TOWER.id(), EnderTowers.T2_SHULKER_TOWER.id()),
-                defaults
+                TowerBalanceConfig.upgradeKey(EndTowers.T1_SHULKER_TOWER.id(), EndTowers.T2_SHULKER_TOWER.id()),
+                defaults,
+                75L,
+                100L,
+                125L
         );
         changed |= migrateLegacyUpgradeCost(
                 upgradeCosts,
-                TowerBalanceConfig.upgradeKey(EnderTowers.T2_SHULKER_TOWER.id(), EnderTowers.T3_SHULKER_TOWER.id()),
-                defaults
+                TowerBalanceConfig.upgradeKey(EndTowers.T2_SHULKER_TOWER.id(), EndTowers.T3_SHULKER_TOWER.id()),
+                defaults,
+                75L,
+                150L,
+                200L
         );
         String removedLegacyKey = TowerBalanceConfig.upgradeKey(
-                EnderTowers.T2_ENDERMAN_TOWER.id(),
+                EndTowers.T2_ENDERMAN_TOWER.id(),
                 "t3_enderman_tower"
         );
         if (upgradeCosts.remove(removedLegacyKey) != null) {
@@ -479,27 +494,27 @@ public final class SemionConfigLoader {
         }
         if (object.has("abilities") && object.get("abilities").isJsonObject()) {
             JsonObject abilities = object.getAsJsonObject("abilities");
-            if (abilities.has("ender_global") && abilities.get("ender_global").isJsonObject()) {
-                JsonObject enderAbilities = abilities.getAsJsonObject("ender_global");
+            if (abilities.has(EndTower.CONFIG_ID) && abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
+                JsonObject endAbilities = abilities.getAsJsonObject(EndTower.CONFIG_ID);
                 changed |= migrateLegacyAbilityKey(
-                        enderAbilities,
+                        endAbilities,
                         "shulkerSplashEvery",
                         "endCrystalSplashEvery"
                 );
                 changed |= migrateLegacyAbilityKey(
-                        enderAbilities,
+                        endAbilities,
                         "shulkerAttackRangeEvery",
                         "endCrystalSplashEvery"
                 );
                 changed |= migrateLegacyAbilityKey(
-                        enderAbilities,
+                        endAbilities,
                         "attackRangePerStep",
                         "splashRadiusPerStep"
                 );
-                if (enderAbilities.remove("endermanAttackIntervalEvery") != null) {
+                if (endAbilities.remove("endermanAttackIntervalEvery") != null) {
                     changed = true;
                 }
-                if (enderAbilities.remove("endermanLifeStealEvery") != null) {
+                if (endAbilities.remove("endermanLifeStealEvery") != null) {
                     changed = true;
                 }
             }
@@ -507,7 +522,7 @@ public final class SemionConfigLoader {
         return changed ? GSON.toJson(object) : json;
     }
 
-    private static String migrateLegacyEnderDragonDamage(String json, TowerBalanceConfig defaults) {
+    private static String migrateLegacyEndDragonDamage(String json, TowerBalanceConfig defaults) {
         JsonElement root = JsonParser.parseString(json);
         if (!root.isJsonObject()) {
             return json;
@@ -517,7 +532,7 @@ public final class SemionConfigLoader {
             return json;
         }
         JsonObject towers = object.getAsJsonObject("towers");
-        String towerId = EnderTowers.BASE_ENDER_TOWER.id();
+        String towerId = EndTowers.BASE_END_TOWER.id();
         if (!towers.has(towerId) || !towers.get(towerId).isJsonObject()) {
             return json;
         }
@@ -537,7 +552,105 @@ public final class SemionConfigLoader {
         return GSON.toJson(object);
     }
 
-    private static String migrateLegacyEnderShulkerDamageReduction(String json, TowerBalanceConfig defaults) {
+    private static String migrateLegacyEndDragonAttackInterval(String json, TowerBalanceConfig defaults) {
+        JsonElement root = JsonParser.parseString(json);
+        if (!root.isJsonObject()) {
+            return json;
+        }
+        JsonObject object = root.getAsJsonObject();
+        if (!object.has("towers") || !object.get("towers").isJsonObject()) {
+            return json;
+        }
+        JsonObject towers = object.getAsJsonObject("towers");
+        String towerId = EndTowers.BASE_END_TOWER.id();
+        if (!towers.has(towerId) || !towers.get(towerId).isJsonObject()) {
+            return json;
+        }
+        JsonObject endDragon = towers.getAsJsonObject(towerId);
+        JsonElement configuredInterval = endDragon.get("attackIntervalTicks");
+        if (configuredInterval == null
+                || !configuredInterval.isJsonPrimitive()
+                || !configuredInterval.getAsJsonPrimitive().isNumber()
+                || configuredInterval.getAsInt() != 20) {
+            return json;
+        }
+        TowerBalanceConfig.TowerStats defaultStats = defaults.towers().get(towerId);
+        if (defaultStats == null || defaultStats.attackIntervalTicks() == null) {
+            return json;
+        }
+        endDragon.addProperty("attackIntervalTicks", defaultStats.attackIntervalTicks());
+        return GSON.toJson(object);
+    }
+
+    private static String migrateLegacyEndBalanceDefaults(String json, TowerBalanceConfig defaults) {
+        JsonElement root = JsonParser.parseString(json);
+        if (!root.isJsonObject()) {
+            return json;
+        }
+        JsonObject object = root.getAsJsonObject();
+        if (!object.has("abilities") || !object.get("abilities").isJsonObject()) {
+            return json;
+        }
+        JsonObject abilities = object.getAsJsonObject("abilities");
+        if (!abilities.has(EndTower.CONFIG_ID) || !abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
+            return json;
+        }
+        JsonObject endAbilities = abilities.getAsJsonObject(EndTower.CONFIG_ID);
+        boolean changed = migrateLegacyAbilityDefault(endAbilities, defaults, "absorptionDurationTicks", 400.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "roundAbsorptionAttackIntervalEvery", 2.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackIntervalEvery", 20.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "maxAttackIntervalReductionTicks", 15.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerReductionEvery", 20.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashRadiusPerStep", 0.25);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashDamageRatio", 1.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.30);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackIntervalEvery", 15.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 40.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangePerStep", 1.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangeCap", 5.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 10.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationPerStep", 5.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationCap", 50.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalSplashEvery", 10.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashRadiusPerStep", 0.5);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashRadiusCap", 5.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerReductionEvery", 15.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "damageReductionPerStep", 0.025);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "damageReductionCap", 0.25);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonIncomeDebuffResistance", 0.25);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonFinalDamageBonus", 0.25);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonIncomeDebuffResistance", 0.05);
+        if (endAbilities.remove("endCrystalSplashEvery") != null) {
+            changed = true;
+        }
+        if (endAbilities.remove("splashRadiusPerStep") != null) {
+            changed = true;
+        }
+        return changed ? GSON.toJson(object) : json;
+    }
+
+    private static boolean migrateLegacyAbilityDefault(
+            JsonObject abilities,
+            TowerBalanceConfig defaults,
+            String key,
+            double legacyValue
+    ) {
+        JsonElement configured = abilities.get(key);
+        if (configured == null
+                || !configured.isJsonPrimitive()
+                || !configured.getAsJsonPrimitive().isNumber()
+                || Double.compare(configured.getAsDouble(), legacyValue) != 0) {
+            return false;
+        }
+        double defaultValue = defaults.ability(EndTower.CONFIG_ID, key, legacyValue);
+        if (Double.compare(defaultValue, legacyValue) == 0) {
+            return false;
+        }
+        abilities.addProperty(key, defaultValue);
+        return true;
+    }
+
+    private static String migrateLegacyEndShulkerDamageReduction(String json, TowerBalanceConfig defaults) {
         JsonElement root = JsonParser.parseString(json);
         if (!root.isJsonObject()) {
             return json;
@@ -548,22 +661,22 @@ public final class SemionConfigLoader {
         }
         JsonObject abilities = object.getAsJsonObject("abilities");
         boolean changed = false;
-        if (abilities.has("ender_global") && abilities.get("ender_global").isJsonObject()) {
-            JsonObject enderAbilities = abilities.getAsJsonObject("ender_global");
-            if (enderAbilities.remove("hatchDelayTicks") != null) {
+        if (abilities.has(EndTower.CONFIG_ID) && abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
+            JsonObject endAbilities = abilities.getAsJsonObject(EndTower.CONFIG_ID);
+            if (endAbilities.remove("hatchDelayTicks") != null) {
                 changed = true;
             }
         }
         changed |= migrateLegacyTowerAbilityValue(
                 abilities,
-                EnderTowers.T2_SHULKER_TOWER.id(),
+                EndTowers.T2_SHULKER_TOWER.id(),
                 "damageReduction",
                 0.15,
                 defaults
         );
         changed |= migrateLegacyTowerAbilityValue(
                 abilities,
-                EnderTowers.T3_SHULKER_TOWER.id(),
+                EndTowers.T3_SHULKER_TOWER.id(),
                 "damageReduction",
                 0.20,
                 defaults
@@ -600,17 +713,28 @@ public final class SemionConfigLoader {
     private static boolean migrateLegacyUpgradeCost(
             JsonObject upgradeCosts,
             String upgradeKey,
-            TowerBalanceConfig defaults
+            TowerBalanceConfig defaults,
+            long... legacyCosts
     ) {
         JsonElement configured = upgradeCosts.get(upgradeKey);
         if (configured == null
                 || !configured.isJsonPrimitive()
-                || !configured.getAsJsonPrimitive().isNumber()
-                || configured.getAsLong() != 75L) {
+                || !configured.getAsJsonPrimitive().isNumber()) {
+            return false;
+        }
+        long configuredCost = configured.getAsLong();
+        boolean legacyCost = false;
+        for (long candidate : legacyCosts) {
+            if (configuredCost == candidate) {
+                legacyCost = true;
+                break;
+            }
+        }
+        if (!legacyCost) {
             return false;
         }
         Long defaultCost = defaults.upgradeCosts().get(upgradeKey);
-        if (defaultCost == null || defaultCost == 75L) {
+        if (defaultCost == null || defaultCost == configuredCost) {
             return false;
         }
         upgradeCosts.addProperty(upgradeKey, defaultCost);

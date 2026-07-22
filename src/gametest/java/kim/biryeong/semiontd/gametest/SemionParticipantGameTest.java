@@ -106,7 +106,7 @@ import kim.biryeong.semiontd.game.TowerSellResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.game.VanillaTeamBridge;
 import kim.biryeong.semiontd.job.AnimalTowerJob;
-import kim.biryeong.semiontd.job.EnderTowerJob;
+import kim.biryeong.semiontd.job.EndTowerJob;
 import kim.biryeong.semiontd.job.IllagerTowerJob;
 import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
@@ -149,8 +149,8 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
-import kim.biryeong.semiontd.tower.ender.EnderTower;
-import kim.biryeong.semiontd.tower.ender.EnderTowers;
+import kim.biryeong.semiontd.tower.end.EndTower;
+import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
@@ -8637,22 +8637,22 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(NetherTowerJob.ID), "Built-in reload should register the nether tower job.")) {
             return;
         }
-        if (!assertPresent(context, JobRegistry.find(EnderTowerJob.ID), "Built-in reload should register the ender tower job.")) {
+        if (!assertPresent(context, JobRegistry.find(EndTowerJob.ID), "Built-in reload should register the end tower job.")) {
             return;
         }
         if (!assertPresent(context, JobRegistry.find(OceanTowerJob.ID), "Built-in reload should register the ocean tower job.")) {
             return;
         }
-        if (!assertEquals(context, 43L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family including the five ocean paths.")) {
+        if (!assertEquals(context, 43L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family including end and the five ocean paths.")) {
             return;
         }
         context.succeed();
     }
 
     @GameTest
-    public void enderTowerJobLimitsCoreToOne(GameTestHelper context) {
-        UUID playerId = stableUuid("ender-job-tower-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, EnderTowerJob.ID);
+    public void endTowerJobLimitsCoreToOne(GameTestHelper context) {
+        UUID playerId = stableUuid("end-job-tower-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, EndTowerJob.ID);
         PlayerLane lane = redLane(game, 1);
         BlockPos corePos = towerPlacementPos(lane);
         BlockPos secondCorePos = nearbyTowerPlacementPos(lane, corePos);
@@ -8663,28 +8663,28 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(
                 context,
                 Set.of(
-                        EnderTowers.BASE_ENDER_TOWER.id(),
-                        EnderTowers.T1_ENDERMITE_TOWER.id(),
-                        EnderTowers.T1_SHULKER_TOWER.id()
+                        EndTowers.BASE_END_TOWER.id(),
+                        EndTowers.T1_ENDERMITE_TOWER.id(),
+                        EndTowers.T1_SHULKER_TOWER.id()
                 ),
                 starterIds,
-                "Ender job should expose its core and two feeder starters."
+                "End job should expose its core and two feeder starters."
         )) {
             return;
         }
         if (!assertEquals(
                 context,
                 TowerPlacementResult.SUCCESS,
-                ProductionTowerService.placeTower(game, playerId, corePos, EnderTowers.BASE_ENDER_TOWER.id()),
-                "Ender job should place its first core tower."
+                ProductionTowerService.placeTower(game, playerId, corePos, EndTowers.BASE_END_TOWER.id()),
+                "End job should place its first core tower."
         )) {
             return;
         }
         if (!assertEquals(
                 context,
                 TowerPlacementResult.TOWER_NOT_ALLOWED,
-                ProductionTowerService.placeTower(game, playerId, secondCorePos, EnderTowers.BASE_ENDER_TOWER.id()),
-                "Ender job should reject a second core tower."
+                ProductionTowerService.placeTower(game, playerId, secondCorePos, EndTowers.BASE_END_TOWER.id()),
+                "End job should reject a second core tower."
         )) {
             return;
         }
@@ -8692,119 +8692,38 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void enderFeederUpgradePreservesTransferProgress(GameTestHelper context) {
-        UUID playerId = stableUuid("ender-upgrade-progress-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, EnderTowerJob.ID);
+    public void hatchedEndCoreKeepsItsGridHeightDuringEntitySync(GameTestHelper context) {
+        UUID playerId = stableUuid("end-core-height-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, EndTowerJob.ID);
         PlayerLane lane = redLane(game, 1);
         BlockPos corePos = towerPlacementPos(lane);
-        BlockPos sourcePos = nearbyTowerPlacementPos(lane, corePos);
-        if (!assertEquals(context, TowerPlacementResult.SUCCESS,
-                ProductionTowerService.placeTower(game, playerId, corePos, EnderTowers.BASE_ENDER_TOWER.id()),
-                "Ender progress test should place the core.")) {
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                ProductionTowerService.placeTower(game, playerId, corePos, EndTowers.BASE_END_TOWER.id()),
+                "End height test should place its core tower."
+        )) {
             return;
         }
-        if (!assertEquals(context, TowerPlacementResult.SUCCESS,
-                ProductionTowerService.placeTower(game, playerId, sourcePos, EnderTowers.T1_ENDERMITE_TOWER.id()),
-                "Ender progress test should place the feeder.")) {
-            return;
-        }
-        EnderTower core = (EnderTower) lane.towerAt(GridPosition.from(corePos));
+        EndTower core = (EndTower) lane.towerAt(GridPosition.from(corePos));
+        int originalGridY = core.position().y();
         core.onWaveStarted(lane, 1);
-        for (int tick = 0; tick < 100; tick++) {
-            core.tick(lane);
-        }
-        Tower source = lane.towerAt(GridPosition.from(sourcePos));
-        if (!assertTrue(context, source.runtimeDetailLines().stream().anyMatch(line -> line.contains("50.0%")),
-                "A feeder should show 50% carried progress before upgrade.")) {
-            return;
-        }
-        if (!assertEquals(context, TowerUpgradeResult.SUCCESS,
-                ProductionTowerService.upgradeTower(game, playerId, sourcePos, EnderTowers.T2_ENDERMAN_TOWER.id()),
-                "ProductionTowerService should upgrade the feeder.")) {
-            return;
-        }
-        Tower upgraded = lane.towerAt(GridPosition.from(sourcePos));
-        if (!assertTrue(context, upgraded.runtimeDetailLines().stream().anyMatch(line -> line.contains("50.0%")),
-                "The upgraded feeder should inherit its transfer progress.")) {
-            return;
-        }
-        for (int tick = 0; tick < 100; tick++) {
-            core.tick(lane);
-        }
-        if (!assertClose(context, 0.625, core.permanentDamageBonus(), "T1 half plus T2 half should transfer 0.625 permanent damage.")) {
-            return;
-        }
-        if (!assertEquals(context, 2, core.absorbedEndCrystalCount(), "Completion after upgrade should grant the T2 stack weight once.")) {
-            return;
-        }
-        context.succeed();
-    }
+        core.tick(lane);
+        SemionTowerEntity entity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(core.entityId().orElseThrow());
 
-    @GameTest
-    public void evolvedEnderDragonUsesRangeAndDamageBonusesForMainAndSplash(GameTestHelper context) {
-        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> abilities = new java.util.LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> enderAbilities = new java.util.LinkedHashMap<>(abilities.get(EnderTower.CONFIG_ID));
-        enderAbilities.put("dragonEvolutionMaxHealth", 200.0);
-        enderAbilities.put("absorptionDurationTicks", 1.0);
-        enderAbilities.put("endCrystalSplashEvery", 1.0);
-        enderAbilities.put("splashRadiusPerStep", 2.0);
-        abilities.put(EnderTower.CONFIG_ID, enderAbilities);
-        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
-        try {
-            UUID playerId = stableUuid("ender-dragon-damage-owner");
-            SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, EnderTowerJob.ID);
-            PlayerLane lane = redLane(game, 1);
-            BlockPos base = towerPlacementPos(lane);
-            EnderTower core = new EnderTower(
-                    EnderTowers.BASE_ENDER_TOWER,
-                    playerId,
-                    TeamId.RED,
-                    1,
-                    GridPosition.from(base)
-            );
-            EnderTower source = new EnderTower(
-                    EnderTowers.T1_ENDERMITE_TOWER,
-                    playerId,
-                    TeamId.RED,
-                    1,
-                    GridPosition.from(base.offset(1, 0, 0))
-            );
-            lane.addTower(core);
-            lane.addTower(source);
-            core.onWaveStarted(lane, 1);
-            core.tick(lane);
+        for (int index = 0; index < 5; index++) {
+            core.isDestroyed(lane);
+            core.onStateChanged(lane);
+        }
 
-            SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
-            if (!assertEquals(context, EntityType.ENDER_DRAGON, coreEntity.getPolymerEntityType(null), "The core should evolve for the damage test.")) {
-                return;
-            }
-            if (!assertClose(context, 7.0, core.adjustAttackRange(core.type().range()), "Dragon range should be 7 blocks.")) {
-                return;
-            }
-            Vec3 targetPosition = coreEntity.position().add(2.0, 0.0, 0.0);
-            SemionMonsterEntity primary = spawnRoleMonsterEntity(context, "ender-dragon-primary", Optional.empty(), TeamId.RED, 1, targetPosition, 100.0, List.of(SummonRole.RUSH));
-            SemionMonsterEntity nearby = spawnRoleMonsterEntity(context, "ender-dragon-nearby", Optional.empty(), TeamId.RED, 1, targetPosition.add(1.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
-            double damage = coreEntity.attackDamageAmount(primary);
-            if (!assertClose(context, 19.375, damage, "Dragon main damage should apply +25% after base and absorbed damage.")) {
-                return;
-            }
-            boolean killed = coreEntity.damageTarget(primary, damage);
-            coreEntity.recordAttack(primary, damage, killed);
-            if (!assertClose(context, 80.625, primary.runtimeMonster().health(), "Dragon main damage should update logical health.")) {
-                return;
-            }
-            if (!assertClose(context, primary.runtimeMonster().health(), primary.getHealth(), "Dragon main damage should synchronize entity health.")) {
-                return;
-            }
-            if (!assertClose(context, 80.625, nearby.runtimeMonster().health(), "Dragon splash should use the same +25% damage.")) {
-                return;
-            }
-            if (!assertClose(context, nearby.runtimeMonster().health(), nearby.getHealth(), "Dragon splash should synchronize entity health.")) {
-                return;
-            }
-        } finally {
-            TowerBalanceRuntime.apply(defaults);
+        if (!assertEquals(context, originalGridY, core.position().y(),
+                "Hatched End core entity sync must not increase its grid Y coordinate.")) {
+            return;
+        }
+        if (!assertClose(context, originalGridY + 2.0, entity.getY(),
+                "Phantom should remain exactly one visual block above the normal tower anchor.")) {
+            return;
         }
         context.succeed();
     }
@@ -10439,8 +10358,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void endCrystalVisualUsesSmallServerCollisionBox(GameTestHelper context) {
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
-        EnderTower tower = new EnderTower(
-                EnderTowers.T3_END_CRYSTAL_TOWER,
+        EndTower tower = new EndTower(
+                EndTowers.T3_END_CRYSTAL_TOWER,
                 stableUuid("end-crystal-hitbox-owner"),
                 TeamId.RED,
                 1,
@@ -10464,11 +10383,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void enderEggPhantomAndDragonAreStatesOfOneRuntimeTower(GameTestHelper context) {
+    public void endEggPhantomAndDragonAreStatesOfOneRuntimeTower(GameTestHelper context) {
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
-        EnderTower tower = new EnderTower(
-                EnderTowers.BASE_ENDER_TOWER,
-                stableUuid("ender-dragon-scale-owner"),
+        EndTower tower = new EndTower(
+                EndTowers.BASE_END_TOWER,
+                stableUuid("end-dragon-scale-owner"),
                 TeamId.RED,
                 1,
                 new GridPosition(0, 0, 0)
@@ -10493,7 +10412,19 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (entity.hasBilModelHolder()) {
-            throw new AssertionError("The Ender core must not load a BIL model in PHANTOM state.");
+            throw new AssertionError("The End core must not load a BIL model in PHANTOM state.");
+        }
+        if (entity.hasEndCoreInteractionHitbox()) {
+            throw new AssertionError("PHANTOM state should not create a dedicated right-click interaction hitbox.");
+        }
+        if (!assertTrue(context, entity.isNoGravity(), "PHANTOM state should be gravity-free to remain stable above its tower block.")) {
+            return;
+        }
+        if (!assertClose(context, 1.0, entity.getBbWidth(), "PHANTOM state should have a one-block-wide server hitbox.")) {
+            return;
+        }
+        if (!assertClose(context, 1.0, entity.getBbHeight(), "PHANTOM state should have a one-block-high server hitbox.")) {
+            return;
         }
         if (!assertClose(context, 1.0, entity.getScale(), "Phantom growth must not enlarge the server collision box.")) {
             return;
@@ -10510,16 +10441,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 .findFirst()
                 .orElseThrow()
                 .base();
-        if (!assertClose(context, EnderTowers.phantomScaleForMaxHealth(tower.currentMaxHealth()), clientScale, "Phantom growth should remain visible to clients.")) {
+        if (!assertClose(context, EndTowers.phantomScaleForMaxHealth(tower.currentMaxHealth()), clientScale, "Phantom growth should remain visible to clients.")) {
             return;
         }
         if (entity.runtimeTower() != tower) {
-            throw new AssertionError("Visual state changes must retain the real Ender tower used by right-click details.");
+            throw new AssertionError("Visual state changes must retain the real End tower used by right-click details.");
         }
 
         tower.syncMaxHealth(1999.99, true);
         tower.tick(null);
-        if (!assertEquals(context, kim.biryeong.semiontd.tower.ender.EnderTowerState.PHANTOM, tower.state(), "Exactly 2000 max health must remain PHANTOM.")) {
+        if (!assertEquals(context, kim.biryeong.semiontd.tower.end.EndTowerState.PHANTOM, tower.state(), "Exactly 2000 max health must remain PHANTOM.")) {
             return;
         }
         tower.syncMaxHealth(2000.0, true);
@@ -10531,10 +10462,34 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (entity.hasBilModelHolder()) {
             throw new AssertionError("The evolved vanilla Ender Dragon must not load a BIL model holder.");
         }
-        if (!entity.hasEnderDragonInteractionHitbox()) {
-            throw new AssertionError("DRAGON state should add a redirected Interaction hitbox for reliable tower detail clicks.");
+        if (!entity.hasEndCoreInteractionHitbox()) {
+            throw new AssertionError("DRAGON state should use the upstream 16x8 redirected interaction hitbox.");
+        }
+        if (!assertTrue(context, entity.isNoGravity(), "DRAGON state should be gravity-free to remain stable above its tower block.")) {
+            return;
+        }
+        if (!assertClose(context, 1.0, entity.getBbWidth(), "DRAGON state should have a one-block-wide server hitbox.")) {
+            return;
+        }
+        if (!assertClose(context, 1.0, entity.getBbHeight(), "DRAGON state should have a one-block-high server hitbox.")) {
+            return;
         }
         if (!assertClose(context, 1.0, entity.getScale(), "Max-health-proportional scale must stop after evolving into the Ender Dragon.")) {
+            return;
+        }
+        if (!assertClose(context, 13.0, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant 30% final damage.")) {
+            return;
+        }
+        if (!assertClose(context, 0.10, tower.incomeDebuffResistance(), "DRAGON state should reduce income-monster debuff magnitudes by 10%.")) {
+            return;
+        }
+        SemionMonsterEntity facingTarget = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        facingTarget.setPos(entity.getX() + 10.0, entity.getY(), entity.getZ());
+        entity.faceAttackTarget(facingTarget);
+        if (!assertClose(context, 90.0, entity.getYRot(), "DRAGON model should rotate toward its attack target instead of facing backward.")) {
+            return;
+        }
+        if (!assertClose(context, entity.getYRot(), entity.yBodyRot, "DRAGON body rotation should match its attack direction.")) {
             return;
         }
         entity.playAnimation(SemionAnimationState.IDLE);
