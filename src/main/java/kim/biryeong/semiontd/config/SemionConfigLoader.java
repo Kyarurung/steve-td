@@ -597,12 +597,14 @@ public final class SemionConfigLoader {
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashRadiusPerStep", 0.25);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashDamageRatio", 1.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.30);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.20);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackIntervalEvery", 15.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 40.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 20.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangePerStep", 1.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangeCap", 5.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 10.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 15.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationPerStep", 5.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationCap", 50.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationCap", 15.0);
@@ -614,10 +616,14 @@ public final class SemionConfigLoader {
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "damageReductionCap", 0.25);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonIncomeDebuffResistance", 0.25);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonFinalDamageBonus", 0.25);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonFinalDamageBonus", 0.30);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonDamageBonus", 0.20);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonDamageBonus", 0.25);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "dragonIncomeDebuffResistance", 0.05);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "roundHealthRatio", 1.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "roundDamageRatio", 1.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "roundHealthRatio", 0.50);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "roundDamageRatio", 0.50);
         if (endAbilities.remove("endCrystalSplashEvery") != null) {
             changed = true;
         }
