@@ -282,7 +282,7 @@ final class SemionConfigLoaderTest {
         assertEquals(0.10, balance.ability("end_global", "dragonIncomeDebuffResistance", -1.0), 0.0001);
         assertEquals(60.0, balance.ability("end_global", "shulkerReductionEvery", -1.0), 0.0001);
         assertEquals(0.5, balance.ability("end_global", "attackRangePerStep", -1.0), 0.0001);
-        assertEquals(15.0, balance.ability("end_global", "shulkerLifeStealEvery", -1.0), 0.0001);
+        assertEquals(20.0, balance.ability("end_global", "shulkerLifeStealEvery", -1.0), 0.0001);
         assertEquals(-1.0, balance.ability("end_global", "splashRadiusPerStep", -1.0), 0.0001);
         assertEquals(0.30, balance.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         assertEquals(0.50, balance.ability(EndTowers.T3_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);

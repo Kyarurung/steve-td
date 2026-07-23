@@ -1134,7 +1134,7 @@ public record TowerBalanceConfig(
                 Map.entry("endCrystalAttackRangeEvery", 60.0),
                 Map.entry("attackRangePerStep", 0.5),
                 Map.entry("attackRangeCap", 3.0),
-                Map.entry("shulkerLifeStealEvery", 15.0),
+                Map.entry("shulkerLifeStealEvery", 20.0),
                 Map.entry("lifeStealPerStep", 0.01),
                 Map.entry("lifeStealCap", 0.15),
                 Map.entry("shulkerRegenerationEvery", 20.0),
