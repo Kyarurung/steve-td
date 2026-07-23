@@ -8,12 +8,14 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity.RemovalReason;
 
 /**
  * Tower runtime backed by a {@link SemionTowerEntity}; this does not imply that the tower attacks.
  */
 public abstract class EntityBackedTower extends Tower {
     private int entityId = -1;
+    private SemionTowerEntity entity;
 
     protected EntityBackedTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -36,13 +38,18 @@ public abstract class EntityBackedTower extends Tower {
 
     @Override
     public void onPlaced(PlayerLane lane) {
-        SemionTowerEntity entity = new SemionTowerEntity(SemionEntityTypes.TOWER, lane.arenaWorld());
-        entity.configure(this, lane.laneLayout());
-        entity.setPos(anchorX(), anchorY(), anchorZ());
+        spawnEntity(lane);
+    }
 
-        if (lane.arenaWorld().addFreshEntity(entity)) {
-            entityId = entity.getId();
-            configureEntityAfterSpawn(entity, lane);
+    private void spawnEntity(PlayerLane lane) {
+        SemionTowerEntity spawnedEntity = new SemionTowerEntity(SemionEntityTypes.TOWER, lane.arenaWorld());
+        spawnedEntity.configure(this, lane.laneLayout());
+        spawnedEntity.setPos(anchorX(), anchorY(), anchorZ());
+
+        if (lane.arenaWorld().addFreshEntity(spawnedEntity)) {
+            entity = spawnedEntity;
+            entityId = spawnedEntity.getId();
+            configureEntityAfterSpawn(spawnedEntity, lane);
         }
     }
 
@@ -52,8 +59,8 @@ public abstract class EntityBackedTower extends Tower {
     @Override
     public void onStateChanged(PlayerLane lane) {
         entityId().ifPresent(id -> {
-            var entity = lane.arenaWorld().getEntity(id);
-            if (entity instanceof SemionTowerEntity towerEntity) {
+            var currentEntity = lane.arenaWorld().getEntity(id);
+            if (currentEntity instanceof SemionTowerEntity towerEntity) {
                 towerEntity.syncTowerState(this);
                 towerEntity.setPos(anchorX(), anchorY(), anchorZ());
             }
@@ -63,11 +70,12 @@ public abstract class EntityBackedTower extends Tower {
     @Override
     public void onRemoved(PlayerLane lane) {
         entityId().ifPresent(id -> {
-            var entity = lane.arenaWorld().getEntity(id);
-            if (entity != null) {
-                entity.discard();
+            var currentEntity = lane.arenaWorld().getEntity(id);
+            if (currentEntity != null) {
+                currentEntity.discard();
             }
         });
+        entity = null;
         entityId = -1;
     }
 
@@ -89,19 +97,21 @@ public abstract class EntityBackedTower extends Tower {
             return super.isDestroyed(lane);
         }
 
-        var entity = lane.arenaWorld().getEntity(entityId);
-        if (entity instanceof SemionTowerEntity towerEntity) {
+        var currentEntity = lane.arenaWorld().getEntity(entityId);
+        if (currentEntity instanceof SemionTowerEntity towerEntity) {
             syncHealth(towerEntity.getHealth());
             syncPosition(GridPosition.from(BlockPos.containing(
                     towerEntity.getX(),
                     towerEntity.getY() - entityAnchorYOffset(),
                     towerEntity.getZ()
             )));
-        } else if (entity == null || entity.isRemoved()) {
-            syncHealth(0.0);
+            return !towerEntity.isAlive();
         }
-
-        return entity == null || entity.isRemoved() || !entity.isAlive();
+        if (entityWasUnloaded()) {
+            return super.isDestroyed(lane);
+        }
+        syncHealth(0.0);
+        return true;
     }
 
     private boolean shouldRespawnEntity(PlayerLane lane) {
@@ -112,13 +122,31 @@ public abstract class EntityBackedTower extends Tower {
             return true;
         }
 
-        var entity = lane.arenaWorld().getEntity(entityId);
-        return !(entity instanceof SemionTowerEntity towerEntity) || towerEntity.isRemoved() || !towerEntity.isAlive();
+        var currentEntity = lane.arenaWorld().getEntity(entityId);
+        return !(currentEntity instanceof SemionTowerEntity towerEntity)
+                || towerEntity.isRemoved()
+                || !towerEntity.isAlive();
     }
 
     @Override
     public void tick(PlayerLane lane) {
+        if (entityWasUnloaded() && isAnchorChunkLoaded(lane)) {
+            spawnEntity(lane);
+        }
         super.tick(lane);
+    }
+
+    protected final boolean entityWasUnloaded() {
+        if (entity == null || !entity.isRemoved()) {
+            return false;
+        }
+        RemovalReason reason = entity.getRemovalReason();
+        return reason == RemovalReason.UNLOADED_TO_CHUNK || reason == RemovalReason.UNLOADED_WITH_PLAYER;
+    }
+
+    private boolean isAnchorChunkLoaded(PlayerLane lane) {
+        BlockPos anchor = BlockPos.containing(anchorX(), anchorY(), anchorZ());
+        return lane.arenaWorld().getChunkSource().hasChunk(anchor.getX() >> 4, anchor.getZ() >> 4);
     }
 
     @Override

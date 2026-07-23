@@ -95,6 +95,9 @@ public class NetherTower extends EntityBackedTower {
 
     @Override
     public boolean isDestroyed(PlayerLane lane) {
+        if (entityWasUnloaded()) {
+            return super.isDestroyed(lane);
+        }
         if (state() != NetherTowerState.NETHER || entityId().isEmpty()) {
             return super.isDestroyed(lane);
         }
