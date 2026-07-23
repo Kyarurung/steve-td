@@ -20,6 +20,7 @@ public final class SemionEntityTypes {
     public static final EntityType<SemionMonsterEntity> MONSTER = register(
             "monster",
             EntityType.Builder.of(SemionMonsterEntity::new, MobCategory.MONSTER)
+                    .noSave()
                     .sized(0.6F, 1.95F)
                     .clientTrackingRange(8)
                     .updateInterval(2)
@@ -27,6 +28,7 @@ public final class SemionEntityTypes {
     public static final EntityType<SemionBossEntity> BOSS = register(
             "boss",
             EntityType.Builder.of(SemionBossEntity::new, MobCategory.MONSTER)
+                    .noSave()
                     .sized(1.4F, 2.9F)
                     .clientTrackingRange(10)
                     .updateInterval(2)
@@ -34,6 +36,7 @@ public final class SemionEntityTypes {
     public static final EntityType<SemionTowerEntity> TOWER = register(
             "tower",
             EntityType.Builder.of(SemionTowerEntity::new, MobCategory.MISC)
+                    .noSave()
                     .sized(0.8F, 1.8F)
                     .clientTrackingRange(8)
                     .updateInterval(2)
@@ -82,4 +85,3 @@ public final class SemionEntityTypes {
         return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, builder.build(key));
     }
 }
-

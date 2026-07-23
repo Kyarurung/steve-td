@@ -22,6 +22,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamLaneGroup;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.GameArena;
+import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.tower.TowerCategory;
@@ -36,8 +37,19 @@ import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import xyz.nucleoid.map_templates.BlockBounds;
 
 public final class SemionWaveGameTest {
+    @GameTest
+    public void runtimeEntitiesAreNotSavedWithChunks(GameTestHelper context) {
+        if (SemionEntityTypes.MONSTER.canSerialize()
+                || SemionEntityTypes.BOSS.canSerialize()
+                || SemionEntityTypes.TOWER.canSerialize()) {
+            throw new AssertionError("Runtime-only Semion entities must not be serialized with chunks.");
+        }
+        context.succeed();
+    }
+
     @GameTest
     public void roundRobinWaveUsesConfiguredIntervalAndCombatStats(GameTestHelper context) {
         PlayerLane lane = lane(context, "wave-runtime");
@@ -253,6 +265,72 @@ public final class SemionWaveGameTest {
             throw new AssertionError("An unloaded living monster should be restored with a new entity.");
         }
         assertClose(0.4, runtimeMonster.laneProgress(), "restored lane progress");
+        context.succeed();
+    }
+
+    @GameTest
+    public void missingMonsterEntityDoesNotForceItsChunkToLoad(GameTestHelper context) {
+        BlockPos remoteBlock = context.absolutePos(BlockPos.ZERO).offset(16_384, 0, 16_384);
+        Vec3 remotePosition = Vec3.atCenterOf(remoteBlock);
+        LaneRegionLayout layout = new LaneRegionLayout(
+                1,
+                remotePosition,
+                List.of(),
+                remotePosition,
+                BlockBounds.of(remoteBlock, remoteBlock),
+                List.of(GridPosition.from(remoteBlock))
+        );
+        PlayerLane lane = new PlayerLane(
+                TeamId.RED,
+                1,
+                UUID.nameUUIDFromBytes("monster-unloaded-chunk".getBytes()),
+                context.getLevel(),
+                layout
+        );
+        Monster monster = Monster.fromWaveEntry(
+                entry("unloaded-chunk", AttackKind.MELEE, 1, 0.0, 1.0, 2.5, 13),
+                TeamId.RED,
+                1
+        );
+        monster.markMinecraftEntitySpawned(Integer.MAX_VALUE, remotePosition.x, remotePosition.y, remotePosition.z);
+        lane.activeMonsters().add(monster);
+        int chunkX = remoteBlock.getX() >> 4;
+        int chunkZ = remoteBlock.getZ() >> 4;
+        if (context.getLevel().getChunkSource().hasChunk(chunkX, chunkZ)) {
+            throw new AssertionError("Remote test chunk must start unloaded.");
+        }
+
+        lane.tick(context.getLevel().getServer());
+
+        if (context.getLevel().getChunkSource().hasChunk(chunkX, chunkZ)) {
+            throw new AssertionError("A missing runtime monster must not force its chunk to load.");
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void unloadedLivingTowerEntityIsRestoredWithoutKillingTower(GameTestHelper context) {
+        PlayerLane lane = lane(context, "tower-unload-restore");
+        TestTower tower = new TestTower(
+                lane.ownerPlayer(),
+                TeamId.RED,
+                1,
+                GridPosition.from(lane.laneLayout().laneArea().min())
+        );
+        lane.addTower(tower);
+        int previousEntityId = tower.entityId().orElseThrow();
+        SemionTowerEntity entity = (SemionTowerEntity) context.getLevel().getEntity(previousEntityId);
+        entity.remove(RemovalReason.UNLOADED_TO_CHUNK);
+
+        lane.tick(context.getLevel().getServer());
+
+        if (tower.isDestroyed(lane) || tower.health() <= 0.0) {
+            throw new AssertionError("An unloaded living tower must not be treated as destroyed.");
+        }
+        if (tower.entityId().orElseThrow() == previousEntityId
+                || !(context.getLevel().getEntity(tower.entityId().orElseThrow()) instanceof SemionTowerEntity)) {
+            throw new AssertionError("An unloaded living tower should be restored with a new entity.");
+        }
         context.succeed();
     }
 

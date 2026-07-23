@@ -815,7 +815,9 @@ public final class PlayerLane {
         }
         Vec3 position = laneLayout.positionAt(monster.laneProgress());
         BlockPos blockPos = BlockPos.containing(position);
-        arenaWorld.getChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4);
+        if (!arenaWorld.getChunkSource().hasChunk(blockPos.getX() >> 4, blockPos.getZ() >> 4)) {
+            return;
+        }
         spawnMinecraftEntity(monster, position);
     }
 
