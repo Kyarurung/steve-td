@@ -36,11 +36,11 @@ public final class EndTower extends EntityBackedTower {
     private static final double TRANSFER_PARTICLE_SOURCE_HEIGHT = 1.25;
     private static final double TRANSFER_PARTICLE_TARGET_HEIGHT = 3.0;
     private static final TowerDataKey<EndTowerState> STATE = TowerDataKey.of(
-            ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "ender_tower_state"),
+            ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_tower_state"),
             EndTowerState.class
     );
     private static final TowerDataKey<Double> TRANSFER_PROGRESS = TowerDataKey.of(
-            ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "ender_transfer_progress"),
+            ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_transfer_progress"),
             Double.class
     );
 
