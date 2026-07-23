@@ -6506,7 +6506,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void bossAttackDamagesNearbyMonstersWithSplash(GameTestHelper context) {
         Vec3 anchor = context.absolutePos(BlockPos.ZERO).getCenter().add(4.0, 2.0, 4.0);
         SemionBossEntity boss = new SemionBossEntity(SemionEntityTypes.BOSS, context.getLevel());
-        boss.configure(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        boss.configure(TeamId.PURPLE, BossMonster.defaultBoss(TeamId.PURPLE));
         boss.setPos(anchor);
         boss.setAnchorPosition(anchor);
         boss.setNoAi(true);
@@ -7380,7 +7380,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
         });
 
-        context.runAfterDelay(120, () -> {
+        context.runAfterDelay(100, () -> {
             lane.tick(context.getLevel().getServer(), new EconomyService(game.economyConfig()), game.players());
             if (!assertEquals(context, 209L, game.players().get(playerId).economy().mineral(), "Tower owner should receive wave monster mineral reward.")) {
                 return;
@@ -11160,7 +11160,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     private static SemionMonsterEntity spawnBossTargetMonster(GameTestHelper context, String id, Vec3 position) {
         Monster monster = new Monster(
                 id,
-                TeamId.RED,
+                TeamId.PURPLE,
                 1,
                 Optional.empty(),
                 Optional.of(TeamId.BLUE),
