@@ -323,7 +323,7 @@ class EndTowerAbsorptionTest {
         assertEquals(5.0, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(1.0, dragon.splashRadius(), 0.0001);
         assertEquals(5, dragon.adjustAttackInterval(20));
-        assertEquals(100.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
+        assertEquals(99.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertTrue(plainRuntimeDetails(dragon).contains("엔드 수정, 셜커 스택: 20 / 20"));
         assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 0%"));
 
@@ -358,6 +358,7 @@ class EndTowerAbsorptionTest {
                 Map.entry("shulkerLifeStealEvery", 1.0),
                 Map.entry("lifeStealCap", 0.02),
                 Map.entry("shulkerReductionEvery", 1.0),
+                Map.entry("damageReductionPerStep", 0.02),
                 Map.entry("damageReductionCap", 0.05)
         ));
         PlayerLane lane = lane();
@@ -438,7 +439,7 @@ class EndTowerAbsorptionTest {
         assertEquals(6, dragon.adjustAttackInterval(15));
         assertEquals(3.0, dragon.splashRadius(), 0.0001);
         assertEquals(7.0, dragon.adjustAttackRange(5.0), 0.0001);
-        assertEquals(84.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
+        assertEquals(81.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(9.0, dragon.regenerationPerSecond(), 0.0001);
         assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 9%"));
 

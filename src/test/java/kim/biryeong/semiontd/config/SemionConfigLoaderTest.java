@@ -201,47 +201,47 @@ final class SemionConfigLoaderTest {
     void loadMigratesLegacyEndUpgradePricesToTargetTowerMineralCosts() throws Exception {
         Files.createDirectories(tempDir);
         Files.writeString(tempDir.resolve("tower_balance.json"), """
-            {
-              "towers": {
-                "base_ender_dragon": {
-                  "damage": 10.0,
-                  "attackIntervalTicks": 15
-                }
-              },
-              "upgradeCosts": {
-                "t1_endermite_tower->t2_enderman_tower": 80,
-                "t2_enderman_tower->t3_end_crystal_tower": 130,
-                "t1_shulker_tower->t2_shulker_tower": 80,
-                "t2_shulker_tower->t3_shulker_tower": 130
-              },
-              "abilities": {
-                "t2_shulker_tower": {
-                  "damageReduction": 0.3
-                },
-                "t3_shulker_tower": {
-                  "damageReduction": 0.5
-                },
-                "end_global": {
-                  "hatchDelayTicks": 200.0,
-                  "absorptionDurationTicks": 400.0,
-                  "roundHealthRatio": 1.0,
-                  "roundDamageRatio": 1.0,
-                  "roundStatBonusCapRatio": 0.5,
-                  "roundAbsorptionAttackIntervalEvery": 2.0,
-                  "dragonFinalDamageBonus": 0.25,
-                  "dragonIncomeDebuffResistance": 0.05,
-                  "endCrystalAttackIntervalEvery": 20.0,
-                  "endermanAttackIntervalEvery": 10.0,
-                  "attackRangePerStep": 0.5,
-                  "shulkerAttackRangeEvery": 14.0,
-                  "shulkerSplashEvery": 12.0,
-                  "endermanLifeStealEvery": 20.0,
-                  "shulkerRegenerationEvery": 20.0,
-                  "shulkerReductionEvery": 20.0
-                }
-              }
+        {
+          "towers": {
+            "base_ender_dragon": {
+              "damage": 10.0,
+              "attackIntervalTicks": 15
             }
-            """);
+          },
+          "upgradeCosts": {
+            "t1_endermite_tower->t2_enderman_tower": 80,
+            "t2_enderman_tower->t3_end_crystal_tower": 130,
+            "t1_shulker_tower->t2_shulker_tower": 80,
+            "t2_shulker_tower->t3_shulker_tower": 130
+          },
+          "abilities": {
+            "t2_shulker_tower": {
+              "damageReduction": 0.3
+            },
+            "t3_shulker_tower": {
+              "damageReduction": 0.5
+            },
+            "end_global": {
+              "hatchDelayTicks": 200.0,
+              "absorptionDurationTicks": 400.0,
+              "roundHealthRatio": 1.0,
+              "roundDamageRatio": 1.0,
+              "roundStatBonusCapRatio": 0.5,
+              "roundAbsorptionAttackIntervalEvery": 2.0,
+              "dragonFinalDamageBonus": 0.25,
+              "dragonIncomeDebuffResistance": 0.05,
+              "endCrystalAttackIntervalEvery": 20.0,
+              "endermanAttackIntervalEvery": 10.0,
+              "attackRangePerStep": 0.5,
+              "shulkerAttackRangeEvery": 14.0,
+              "shulkerSplashEvery": 12.0,
+              "endermanLifeStealEvery": 20.0,
+              "shulkerRegenerationEvery": 20.0,
+              "shulkerReductionEvery": 20.0
+            }
+          }
+        }
+        """);
 
         TowerBalanceConfig balance = SemionConfigLoader.load(
                 tempDir,
@@ -283,7 +283,9 @@ final class SemionConfigLoaderTest {
         assertEquals(30.0, balance.ability("end_global", "endCrystalAttackIntervalEvery", -1.0), 0.0001);
         assertEquals(0.10, balance.ability("end_global", "dragonFinalDamageBonus", -1.0), 0.0001);
         assertEquals(0.10, balance.ability("end_global", "dragonIncomeDebuffResistance", -1.0), 0.0001);
-        assertEquals(60.0, balance.ability("end_global", "shulkerReductionEvery", -1.0), 0.0001);
+        assertEquals(15.0, balance.ability("end_global", "shulkerReductionEvery", -1.0), 0.0001);
+        assertEquals(0.01, balance.ability("end_global", "damageReductionPerStep", -1.0), 0.0001);
+        assertEquals(0.20, balance.ability("end_global", "damageReductionCap", -1.0), 0.0001);
         assertEquals(30.0, balance.ability("end_global", "shulkerRegenerationEvery", -1.0), 0.0001);
         assertEquals(0.5, balance.ability("end_global", "attackRangePerStep", -1.0), 0.0001);
         assertEquals(30.0, balance.ability("end_global", "shulkerLifeStealEvery", -1.0), 0.0001);
