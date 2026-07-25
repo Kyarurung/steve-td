@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower;
 import java.util.OptionalInt;
 import java.util.UUID;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
+import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
