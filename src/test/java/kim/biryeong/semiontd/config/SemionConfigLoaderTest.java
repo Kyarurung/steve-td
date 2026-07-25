@@ -81,6 +81,9 @@ final class SemionConfigLoaderTest {
         assertEquals(0.12, configs.traitBalance().value("opening_salvo", "attackSpeedBonus", -1.0));
         assertEquals(15.0, configs.traitBalance().value("opening_salvo", "durationSeconds", -1.0));
         assertEquals(150.0, configs.traitBalance().value("mobilization_grant", "startingDiamond", -1.0));
+        assertEquals(180.0, configs.traitBalance().value("weekly_holiday_pay", "intervalSeconds", -1.0));
+        assertEquals(0.0075, configs.traitBalance().value("ignite", "attackDamageRatioPerRound", -1.0));
+        assertEquals(0.15, configs.traitBalance().value("performance_bonus", "teamIncomeRatio", -1.0));
         String written = Files.readString(tempDir.resolve("trait_balance.json"));
         assertTrue(written.contains("durationSeconds"));
         assertTrue(written.contains("mobilization_grant"));
@@ -285,6 +288,12 @@ final class SemionConfigLoaderTest {
         assertEquals(30.0, balance.ability("end_global", "shulkerRegenerationEvery", -1.0), 0.0001);
         assertEquals(0.5, balance.ability("end_global", "attackRangePerStep", -1.0), 0.0001);
         assertEquals(20.0, balance.ability("end_global", "shulkerLifeStealEvery", -1.0), 0.0001);
+        assertEquals(250.0, balance.ability("end_global", "attackDamageCap", -1.0), 0.0001);
+        assertEquals(1.0, balance.ability("end_global", "splashRadiusPerThreshold", -1.0), 0.0001);
+        assertEquals(1.0, balance.ability("end_global", "phantomBaseScale", -1.0), 0.0001);
+        assertEquals(100.0, balance.ability("end_global", "phantomScaleHealthInterval", -1.0), 0.0001);
+        assertEquals(0.2, balance.ability("end_global", "phantomScalePerInterval", -1.0), 0.0001);
+        assertEquals(5.0, balance.ability("end_global", "phantomScaleCap", -1.0), 0.0001);
         assertEquals(-1.0, balance.ability("end_global", "splashRadiusPerStep", -1.0), 0.0001);
         assertEquals(0.30, balance.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         assertEquals(0.50, balance.ability(EndTowers.T3_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);

@@ -35,6 +35,12 @@ public final class EndTower extends EntityBackedTower {
     public static final String CONFIG_ID = "end_global";
     private static final double TRANSFER_PARTICLE_SOURCE_HEIGHT = 1.25;
     private static final double TRANSFER_PARTICLE_TARGET_HEIGHT = 3.0;
+    private static final List<String> SPLASH_THRESHOLD_KEYS = List.of(
+            "endCrystalSplashThreshold1",
+            "endCrystalSplashThreshold2",
+            "endCrystalSplashThreshold3",
+            "endCrystalSplashThreshold4"
+    );
     private static final TowerDataKey<EndTowerState> STATE = TowerDataKey.of(
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_tower_state"),
             EndTowerState.class
@@ -191,7 +197,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedAttackDamage() {
-        return type().damage() + permanentDamageBonus + roundDamageBonus;
+        return cappedAttackDamage(type().damage() + permanentDamageBonus + roundDamageBonus);
     }
 
     public int previewHatchedAttackIntervalTicks() {
@@ -228,7 +234,10 @@ public final class EndTower extends EntityBackedTower {
             return damageAmount;
         }
         double absorbedDamage = damageAmount * (1.0 + (permanentDamageBonus + roundDamageBonus) / type().damage());
-        return isDragon() ? absorbedDamage * (1.0 + Math.max(0.0, global("dragonDamageBonus"))) : absorbedDamage;
+        double modifiedDamage = isDragon()
+                ? absorbedDamage * (1.0 + Math.max(0.0, global("dragonDamageBonus")))
+                : absorbedDamage;
+        return cappedAttackDamage(modifiedDamage);
     }
 
     @Override
@@ -296,6 +305,7 @@ public final class EndTower extends EntityBackedTower {
         double maximumAttackRange = type().range()
                 + Math.max(0.0, global("attackRangeCap"))
                 + (isDragon() ? Math.max(0.0, global("dragonAttackRangeBonus")) : 0.0);
+        double maximumAttackDamage = attackDamageCap();
         double maximumSplashRadius = Math.max(0.0, global("splashRadiusCap"));
         double maximumLifeSteal = Math.max(0.0, global("lifeStealCap"));
         double maximumDamageReduction = Math.max(0.0, global("damageReductionCap"));
@@ -308,8 +318,9 @@ public final class EndTower extends EntityBackedTower {
 
         lines.add("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>");
         lines.add("<white>엔드 수정, 셜커 스택: " + absorbedEndCrystalCount + " / " + absorbedShulkerCount + "</white>");
-        lines.add("<#D94343>추가 공격력: " + oneDecimal(additionalAttackDamage) + "</#D94343><white> / " +
-                "</white><#D9B94F>사거리: " + oneDecimal(currentAttackRange) + "블록 / " + oneDecimal(maximumAttackRange) + "블록</#D9B94F>");
+        lines.add("<#D94343>추가 공격력: " + oneDecimal(additionalAttackDamage) + "</#D94343><white> / </white>" +
+                "<#D94343>공격력 상한: " + oneDecimal(maximumAttackDamage) + "</#D94343><white> / </white>" +
+                "<#D9B94F>사거리: " + oneDecimal(currentAttackRange) + "블록 / " + oneDecimal(maximumAttackRange) + "블록</#D9B94F>");
         lines.add("<#D9B94F>공격 속도: -" + attackIntervalReductionTicks + "틱 / -" + maximumAttackIntervalReductionTicks + "틱</#D9B94F><white> / " +
                 "</white><#D9B94F>공격 범위: " + Math.round(currentSplashRadius) + "블록 / " + Math.round(maximumSplashRadius) + "블록</#D9B94F>");
         lines.add("<#E66F6F>추가 체력: " + oneDecimal(additionalHealth) +
@@ -625,13 +636,14 @@ public final class EndTower extends EntityBackedTower {
 
     public double splashRadius() {
         int unlockedSteps = 0;
-        for (int index = 1; index <= 4; index++) {
-            int threshold = Math.max(1, globalInt("endCrystalSplashThreshold" + index));
+        for (String thresholdKey : SPLASH_THRESHOLD_KEYS) {
+            int threshold = Math.max(1, globalInt(thresholdKey));
             if (absorbedEndCrystalCount >= threshold) {
                 unlockedSteps++;
             }
         }
-        return Math.min(Math.max(0.0, global("splashRadiusCap")), unlockedSteps);
+        double radiusPerThreshold = Math.max(0.0, global("splashRadiusPerThreshold"));
+        return Math.min(Math.max(0.0, global("splashRadiusCap")), unlockedSteps * radiusPerThreshold);
     }
 
     private void applySplashDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
@@ -733,6 +745,14 @@ public final class EndTower extends EntityBackedTower {
 
     private double shulkerDamageReduction() {
         return Math.max(0.0, Math.min(1.0, TowerBalanceRuntime.ability(type().id(), "damageReduction")));
+    }
+
+    private double cappedAttackDamage(double damage) {
+        return Math.min(attackDamageCap(), Math.max(0.0, damage));
+    }
+
+    private double attackDamageCap() {
+        return Math.max(0.0, global("attackDamageCap"));
     }
 
     private void heal(SemionTowerEntity towerEntity, double amount) {

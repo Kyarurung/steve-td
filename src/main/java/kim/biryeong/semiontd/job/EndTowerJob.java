@@ -1,9 +1,13 @@
 package kim.biryeong.semiontd.job;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import kim.biryeong.semiontd.SemionTd;
+import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.network.chat.Component;
@@ -27,9 +31,12 @@ public final class EndTowerJob extends SemionJob {
     public List<Component> description() {
         return List.of(
                 SemionText.mini("<gray>아군 타워의 체력과 공격력을</gray>"),
-                SemionText.mini("<gray>10초에 걸쳐 힘을 받습니다.</gray>"),
-                SemionText.mini("<gray>50%는 일시적으로 증가하고,</gray>"),
-                SemionText.mini("<gray>5%는 영구적으로 누적됩니다.</gray>"),
+                SemionText.mini("<gray>" + seconds("absorptionDurationTicks") + "에 걸쳐 힘을 받습니다.</gray>"),
+                SemionText.mini("<gray>체력 " + percent("roundHealthRatio") + ", 공격력 "
+                        + percent("roundDamageRatio") + "를 해당 라운드 동안 얻고,</gray>"),
+                SemionText.mini("<gray>체력 " + percent("permanentHealthRatio") + ", 공격력 "
+                        + percent("permanentDamageRatio") + "를 영구 누적합니다.</gray>"),
+                SemionText.mini("<gray>공격력은 최대 " + number("attackDamageCap") + "까지 증가합니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<gray>엔드 수정 계열은 공격 능력을,</gray>"),
                 SemionText.mini("<gray>셜커 계열은 내구력을 강화합니다.</gray>"),
@@ -52,5 +59,24 @@ public final class EndTowerJob extends SemionJob {
                         .map(Tower::type)
                         .noneMatch(EndTowers::isBaseEndTower))
                 .orElse(true);
+    }
+
+    private static String seconds(String key) {
+        return number(TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key) / 20.0) + "초";
+    }
+
+    private static String percent(String key) {
+        return number(TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key) * 100.0) + "%";
+    }
+
+    private static String number(String key) {
+        return number(TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key));
+    }
+
+    private static String number(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .toPlainString();
     }
 }

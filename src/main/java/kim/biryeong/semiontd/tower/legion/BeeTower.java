@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
@@ -60,6 +61,11 @@ public class BeeTower extends EntityBackedTower {
                 abilityTicks("poisonDurationTicks"),
                 abilityTicks("poisonTickIntervalTicks")
         ));
+        target.applyTimedEffect(
+                TimedEffectType.MONSTER_POISONED,
+                1.0,
+                abilityTicks("poisonDurationTicks")
+        );
     }
 
     @Override
@@ -145,7 +151,7 @@ public class BeeTower extends EntityBackedTower {
 
     private void applyPoisonDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double baseDamage) {
         var runtimeMonster = target.runtimeMonster();
-        double traitDamage = towerEntity.applyTraitOutgoingDamage(runtimeMonster, baseDamage);
+        double traitDamage = towerEntity.applyTraitOutgoingDamageAgainst(target, baseDamage);
         double damageAmount = target.towerDamageTaken(traitDamage);
         if (damageAmount <= 0.0) {
             return;

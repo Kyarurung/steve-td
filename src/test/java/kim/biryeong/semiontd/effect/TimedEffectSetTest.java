@@ -27,4 +27,17 @@ final class TimedEffectSetTest {
         assertFalse(effects.hasPersistent(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS));
         assertEquals(0.0, effects.magnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), 0.000_001);
     }
+
+    @Test
+    void monsterDebuffTypesExcludeBeneficialEffects() {
+        assertTrue(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS.isMonsterDebuff());
+        assertTrue(TimedEffectType.MONSTER_MOVE_SPEED_REDUCTION.isMonsterDebuff());
+        assertTrue(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION.isMonsterDebuff());
+        assertTrue(TimedEffectType.MONSTER_ATTACK_SPEED_REDUCTION.isMonsterDebuff());
+        assertTrue(TimedEffectType.MONSTER_POISONED.isMonsterDebuff());
+        assertTrue(TimedEffectType.MONSTER_MARKED.isMonsterDebuff());
+        assertTrue(TimedEffectType.MONSTER_IGNITED.isMonsterDebuff());
+        assertFalse(TimedEffectType.MONSTER_DAMAGE_REDUCTION.isMonsterDebuff());
+        assertFalse(TimedEffectType.MONSTER_MOVE_SPEED_BONUS.isMonsterDebuff());
+    }
 }

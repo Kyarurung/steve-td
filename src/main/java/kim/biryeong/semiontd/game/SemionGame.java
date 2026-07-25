@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.game;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -96,6 +97,7 @@ public final class SemionGame {
     private boolean rosterLocked;
     private int currentRound = 1;
     private long tickCounter;
+    private long activeMatchTicks;
     private int phaseTicks;
     private boolean finalDefenseForcedThisRound;
     private boolean emeraldIncomeBoostAnnounced;
@@ -664,6 +666,7 @@ public final class SemionGame {
         startedAtEpochMillis = System.currentTimeMillis();
         endedAtEpochMillis = 0L;
         emeraldIncomeBoostAnnounced = false;
+        activeMatchTicks = 0L;
         rosterLocked = true;
         notifyMatchStarted();
         if (buildGuideService != null) {
@@ -948,8 +951,14 @@ public final class SemionGame {
     public void tick(MinecraftServer server) {
         tickCounter++;
         VillagerAdvStates.applyPending(this);
-        if (phase != RoundPhase.WAITING && phase != RoundPhase.ENDED && tickCounter % 20 == 0) {
-            economyService.tickGas(players.values(), teams, currentRound);
+        if (phase != RoundPhase.WAITING && phase != RoundPhase.ENDED) {
+            activeMatchTicks++;
+            if (activeMatchTicks % 20 == 0) {
+                economyService.tickGas(players.values(), teams, currentRound);
+            }
+            if (TraitEffects.weeklyHolidayPayDue(activeMatchTicks)) {
+                awardWeeklyHolidayPay();
+            }
         }
 
         switch (phase) {
@@ -1621,6 +1630,7 @@ public final class SemionGame {
             if (team != null && team.active() && !team.eliminated()) {
                 player.job().ifPresent(job -> job.onRoundStarted(new JobContext(this, player), round));
                 notifyTraitRoundStarted(player, round);
+                awardPerformanceBonus(player, round);
             }
         }
     }
@@ -1644,6 +1654,40 @@ public final class SemionGame {
         if (bonus > 0) {
             player.economy().addMineral(bonus);
         }
+    }
+
+    private void awardWeeklyHolidayPay() {
+        for (SemionPlayer player : players.values()) {
+            SemionTeam team = teams.get(player.teamId());
+            if (team == null || !team.active() || team.eliminated()) {
+                continue;
+            }
+            long bonus = TraitEffects.weeklyHolidayPay(player.traitLoadout(), player.economy().income());
+            if (bonus > 0L) {
+                player.economy().addDiamond(bonus);
+            }
+        }
+    }
+
+    private void awardPerformanceBonus(SemionPlayer player, int round) {
+        long bonus = TraitEffects.performanceBonus(
+                player.traitLoadout(),
+                teamIncome(players.values(), player.teamId()),
+                round
+        );
+        if (bonus > 0L) {
+            player.economy().addEmerald(bonus, economyConfig.emeraldCapForRound(round));
+        }
+    }
+
+    static long teamIncome(Collection<SemionPlayer> players, TeamId teamId) {
+        if (players == null || teamId == null) {
+            return 0L;
+        }
+        return players.stream()
+                .filter(teammate -> teammate.teamId() == teamId)
+                .mapToLong(teammate -> teammate.economy().income())
+                .sum();
     }
 
     private void notifyTraitRoundStarted(SemionPlayer player, int round) {

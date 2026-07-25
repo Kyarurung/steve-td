@@ -6,6 +6,7 @@ import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.effect.TimedEffectSet;
 import kim.biryeong.semiontd.effect.TimedEffectType;
@@ -19,6 +20,9 @@ import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.summon.SummonRegistry;
+import kim.biryeong.semiontd.trait.TraitEffects;
+import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.trait.TraitVfx;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -55,6 +59,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     private SemionAnimationState animationState = SemionAnimationState.IDLE;
     private final List<Goal> summonAbilityGoals = new ArrayList<>();
     private final TimedEffectSet timedEffects = new TimedEffectSet();
+    private IgniteState ignite;
     private LivingEntityHolder<SemionMonsterEntity> holder;
     private EntityAttachment holderAttachment;
 
@@ -143,6 +148,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     @Override
     public void aiStep() {
         super.aiStep();
+        tickIgnite();
         timedEffects.tick();
 
         if (getTarget() instanceof LaneDefenseEntity defenseEntity && runtimeMonster != null) {
@@ -355,6 +361,58 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         return timedEffects.remainingTicks(type);
     }
 
+    public boolean hasDebuff() {
+        if (ignite != null) {
+            return true;
+        }
+        for (TimedEffectType type : TimedEffectType.values()) {
+            if (type.isMonsterDebuff() && timedEffects.magnitude(type) > 0.0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void applyIgnite(
+            UUID sourcePlayer,
+            TraitLoadout sourceLoadout,
+            double damagePerTick,
+            double additiveTraitBonus,
+            double finalTraitMultiplier,
+            int durationTicks,
+            int tickIntervalTicks
+    ) {
+        if (sourcePlayer == null || damagePerTick <= 0.0 || durationTicks <= 0 || tickIntervalTicks <= 0 || !isAlive()) {
+            return;
+        }
+        int ticksUntilDamage = ignite == null
+                ? tickIntervalTicks
+                : Math.max(1, Math.min(ignite.ticksUntilDamage(), tickIntervalTicks));
+        if (ignite == null || damagePerTick > ignite.damagePerTick()) {
+            ignite = new IgniteState(
+                    sourcePlayer,
+                    sourceLoadout == null ? TraitLoadout.none() : sourceLoadout,
+                    damagePerTick,
+                    additiveTraitBonus,
+                    finalTraitMultiplier,
+                    durationTicks,
+                    ticksUntilDamage
+            );
+        } else {
+            ignite = new IgniteState(
+                    ignite.sourcePlayer(),
+                    ignite.sourceLoadout(),
+                    ignite.damagePerTick(),
+                    ignite.additiveTraitBonus(),
+                    ignite.finalTraitMultiplier(),
+                    durationTicks,
+                    ticksUntilDamage
+            );
+        }
+        timedEffects.apply(TimedEffectType.MONSTER_IGNITED, 1.0, durationTicks);
+        TraitVfx.showIgniteApplied(this);
+    }
+
     public boolean hasTimedEffectSource(TimedEffectType type, ResourceLocation sourceId) {
         return timedEffects.hasSource(type, sourceId);
     }
@@ -372,8 +430,80 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         return Math.max(0.0, baseDamage) * Math.max(0.0, 1.0 - damageReduction + damageTakenBonus);
     }
 
+    private void tickIgnite() {
+        if (ignite == null) {
+            return;
+        }
+        if (runtimeMonster == null || isRemoved() || !isAlive()) {
+            ignite = null;
+            return;
+        }
+
+        int remainingTicks = ignite.remainingTicks() - 1;
+        int ticksUntilDamage = ignite.ticksUntilDamage() - 1;
+        if (tickCount % 5 == 0) {
+            TraitVfx.showIgniteActive(this);
+        }
+        if (ticksUntilDamage <= 0) {
+            applyIgniteDamage(ignite);
+            ticksUntilDamage = Math.max(1, TraitEffects.igniteTickIntervalTicks());
+        }
+        if (remainingTicks <= 0 || isRemoved() || !isAlive()) {
+            ignite = null;
+            return;
+        }
+        ignite = new IgniteState(
+                ignite.sourcePlayer(),
+                ignite.sourceLoadout(),
+                ignite.damagePerTick(),
+                ignite.additiveTraitBonus(),
+                ignite.finalTraitMultiplier(),
+                remainingTicks,
+                ticksUntilDamage
+        );
+    }
+
+    private void applyIgniteDamage(IgniteState state) {
+        TraitVfx.showIgniteTick(this);
+        double conditionalBonus = TraitEffects.conditionalTargetDamageBonus(
+                state.sourceLoadout(),
+                runtimeMonster,
+                hasDebuff()
+        );
+        double traitDamage = state.damagePerTick()
+                * Math.max(0.0, 1.0 + state.additiveTraitBonus() + conditionalBonus)
+                * state.finalTraitMultiplier();
+        double damageAmount = towerDamageTaken(traitDamage);
+        if (damageAmount <= 0.0) {
+            return;
+        }
+        double previousHealth = runtimeMonster.health();
+        applyRuntimeDamage(damageSources().onFire(), damageAmount, DamageType.MAGIC);
+        if (runtimeMonster.health() < previousHealth) {
+            runtimeMonster.recordLastHit(state.sourcePlayer(), KillSourceKind.TOWER);
+        }
+    }
+
     private double followRangeFor(Monster monster) {
         return Math.max(DEFAULT_FOLLOW_RANGE, monster.attackRange() + 2.0);
+    }
+
+    private record IgniteState(
+            UUID sourcePlayer,
+            TraitLoadout sourceLoadout,
+            double damagePerTick,
+            double additiveTraitBonus,
+            double finalTraitMultiplier,
+            int remainingTicks,
+            int ticksUntilDamage
+    ) {
+        private IgniteState {
+            damagePerTick = Math.max(0.0, damagePerTick);
+            additiveTraitBonus = Math.max(0.0, additiveTraitBonus);
+            finalTraitMultiplier = Math.max(0.0, finalTraitMultiplier);
+            remainingTicks = Math.max(0, remainingTicks);
+            ticksUntilDamage = Math.max(1, ticksUntilDamage);
+        }
     }
 
     @Override

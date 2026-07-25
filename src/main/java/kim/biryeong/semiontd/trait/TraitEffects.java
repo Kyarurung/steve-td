@@ -124,6 +124,89 @@ public final class TraitEffects {
                 * effectScale(loadout, BuiltInTraits.DOUBLE_EDGED_SWORD_ID);
     }
 
+    public static int weeklyHolidayPayIntervalTicks() {
+        return Math.max(1, (int) Math.round(
+                value(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID, "intervalSeconds") * 20.0
+        ));
+    }
+
+    public static boolean weeklyHolidayPayDue(long activeMatchTicks) {
+        return activeMatchTicks > 0L
+                && activeMatchTicks % weeklyHolidayPayIntervalTicks() == 0L;
+    }
+
+    public static long weeklyHolidayPay(TraitLoadout loadout, long income) {
+        double scale = effectScale(loadout, BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID);
+        return Math.max(0L, Math.round((
+                value(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID, "flatDiamond")
+                        + Math.max(0L, income) * value(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID, "incomeRatio")
+        ) * scale));
+    }
+
+    public static int performanceBonusFirstRound() {
+        return Math.max(1, (int) Math.round(
+                value(BuiltInTraits.PERFORMANCE_BONUS_ID, "firstPayoutRound")
+        ));
+    }
+
+    public static long performanceBonus(TraitLoadout loadout, long teamIncome, int round) {
+        if (round < performanceBonusFirstRound()) {
+            return 0L;
+        }
+        return Math.max(0L, Math.round(
+                Math.max(0L, teamIncome)
+                        * value(BuiltInTraits.PERFORMANCE_BONUS_ID, "teamIncomeRatio")
+                        * effectScale(loadout, BuiltInTraits.PERFORMANCE_BONUS_ID)
+        ));
+    }
+
+    public static double conditionalTargetDamageBonus(
+            TraitLoadout loadout,
+            Monster target,
+            boolean debuffed
+    ) {
+        if (target == null) {
+            return 0.0;
+        }
+        double bonus = debuffed
+                ? value(BuiltInTraits.RUTHLESS_ID, "damageBonus")
+                * effectScale(loadout, BuiltInTraits.RUTHLESS_ID)
+                : 0.0;
+        if (target.health() >= value(BuiltInTraits.GIANT_SLAYER_ID, "currentHealthThreshold")) {
+            bonus += value(BuiltInTraits.GIANT_SLAYER_ID, "damageBonus")
+                    * effectScale(loadout, BuiltInTraits.GIANT_SLAYER_ID);
+        }
+        double maxHealth = target.maxHealth();
+        if (maxHealth > 0.0
+                && target.health() / maxHealth <= value(BuiltInTraits.FINISHING_BLOW_ID, "healthRatioThreshold")) {
+            bonus += value(BuiltInTraits.FINISHING_BLOW_ID, "damageBonus")
+                    * effectScale(loadout, BuiltInTraits.FINISHING_BLOW_ID);
+        }
+        return Math.max(0.0, bonus);
+    }
+
+    public static double igniteDamagePerTick(TraitLoadout loadout, double attackDamage, int round) {
+        double scale = effectScale(loadout, BuiltInTraits.IGNITE_ID);
+        return Math.max(0.0, (
+                value(BuiltInTraits.IGNITE_ID, "flatDamagePerTick")
+                        + Math.max(0.0, attackDamage)
+                        * Math.max(1, round)
+                        * value(BuiltInTraits.IGNITE_ID, "attackDamageRatioPerRound")
+        ) * scale);
+    }
+
+    public static int igniteDurationTicks() {
+        return Math.max(1, (int) Math.round(
+                value(BuiltInTraits.IGNITE_ID, "durationSeconds") * 20.0
+        ));
+    }
+
+    public static int igniteTickIntervalTicks() {
+        return Math.max(1, (int) Math.round(
+                value(BuiltInTraits.IGNITE_ID, "tickIntervalSeconds") * 20.0
+        ));
+    }
+
     public static double sameTypeDamageBonus(TraitLoadout loadout, PlayerLane lane, Tower tower) {
         if (lane == null || tower == null) {
             return 0.0;

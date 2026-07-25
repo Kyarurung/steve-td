@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.trait;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -18,10 +19,19 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 final class TraitEffectsTest {
+    @BeforeAll
+    static void bootstrapMinecraft() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
+
     @AfterEach
     void resetTraitBalance() {
         TraitBalanceRuntime.apply(TraitBalanceConfig.defaultConfig());
@@ -48,12 +58,28 @@ final class TraitEffectsTest {
                 BuiltInTraits.STRENGTH_IN_NUMBERS_ID,
                 BuiltInTraits.DIVERSITY_ID,
                 BuiltInTraits.SUPPLY_DEPOT_ID,
-                BuiltInTraits.TRANSCENDENCE_ID
+                BuiltInTraits.TRANSCENDENCE_ID,
+                BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID,
+                BuiltInTraits.RUTHLESS_ID,
+                BuiltInTraits.IGNITE_ID,
+                BuiltInTraits.GIANT_SLAYER_ID,
+                BuiltInTraits.FINISHING_BLOW_ID,
+                BuiltInTraits.PERFORMANCE_BONUS_ID
         )));
 
         SemionTrait goldSpoon = TraitRegistry.find(BuiltInTraits.MOBILIZATION_GRANT_ID).orElseThrow();
         assertEquals("시작 다이아 +150", goldSpoon.effectSummary(TraitSlot.PRIMARY).getString());
         assertEquals("시작 다이아 +75", goldSpoon.effectSummary(TraitSlot.SECONDARY).getString());
+        assertEquals(
+                "180초마다 다이아 +10 + 수입 16%",
+                TraitRegistry.find(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID).orElseThrow()
+                        .effectSummary(TraitSlot.PRIMARY).getString()
+        );
+        assertEquals(
+                "4초간 매초 1 + 공격력×라운드×0.375% 마법 피해",
+                TraitRegistry.find(BuiltInTraits.IGNITE_ID).orElseThrow()
+                        .effectSummary(TraitSlot.SECONDARY).getString()
+        );
     }
 
     @Test
@@ -80,6 +106,86 @@ final class TraitEffectsTest {
                 + TraitEffects.towerLimitBonus(primary(BuiltInTraits.SUPPLY_DEPOT_ID)));
         assertEquals(25, towerLimit.limitForRound(100)
                 + TraitEffects.towerLimitBonus(secondary(BuiltInTraits.SUPPLY_DEPOT_ID)));
+
+        assertEquals(3_600, TraitEffects.weeklyHolidayPayIntervalTicks());
+        assertFalse(TraitEffects.weeklyHolidayPayDue(3_599));
+        assertTrue(TraitEffects.weeklyHolidayPayDue(3_600));
+        assertTrue(TraitEffects.weeklyHolidayPayDue(7_200));
+        assertEquals(26L, TraitEffects.weeklyHolidayPay(primary(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID), 100L));
+        assertEquals(13L, TraitEffects.weeklyHolidayPay(secondary(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID), 100L));
+        assertEquals(2, TraitEffects.performanceBonusFirstRound());
+        assertEquals(0L, TraitEffects.performanceBonus(primary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 1));
+        assertEquals(150L, TraitEffects.performanceBonus(primary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 2));
+        assertEquals(75L, TraitEffects.performanceBonus(secondary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 2));
+    }
+
+    @Test
+    void conditionalDamageTraitsUsePreDamageCurrentHealthAndDebuffs() {
+        Monster target = monster(Optional.empty(), 1_000.0);
+
+        assertEquals(
+                0.25,
+                TraitEffects.conditionalTargetDamageBonus(primary(BuiltInTraits.RUTHLESS_ID), target, true),
+                0.000_001
+        );
+        assertEquals(
+                0.0,
+                TraitEffects.conditionalTargetDamageBonus(primary(BuiltInTraits.RUTHLESS_ID), target, false),
+                0.000_001
+        );
+
+        target.syncHealth(800.0);
+        assertEquals(
+                0.20,
+                TraitEffects.conditionalTargetDamageBonus(primary(BuiltInTraits.GIANT_SLAYER_ID), target, false),
+                0.000_001
+        );
+        target.syncHealth(799.9);
+        assertEquals(
+                0.0,
+                TraitEffects.conditionalTargetDamageBonus(primary(BuiltInTraits.GIANT_SLAYER_ID), target, false),
+                0.000_001
+        );
+
+        target.syncHealth(400.0);
+        assertEquals(
+                0.20,
+                TraitEffects.conditionalTargetDamageBonus(primary(BuiltInTraits.FINISHING_BLOW_ID), target, false),
+                0.000_001
+        );
+        target.syncHealth(400.1);
+        assertEquals(
+                0.0,
+                TraitEffects.conditionalTargetDamageBonus(primary(BuiltInTraits.FINISHING_BLOW_ID), target, false),
+                0.000_001
+        );
+
+        target.syncHealth(800.0);
+        assertEquals(
+                0.35,
+                TraitEffects.conditionalTargetDamageBonus(
+                        new TraitLoadout(BuiltInTraits.RUTHLESS_ID, BuiltInTraits.GIANT_SLAYER_ID),
+                        target,
+                        true
+                ),
+                0.000_001
+        );
+    }
+
+    @Test
+    void igniteUsesRoundScaledAttackDamageAndHalfSecondaryPower() {
+        assertEquals(
+                9.5,
+                TraitEffects.igniteDamagePerTick(primary(BuiltInTraits.IGNITE_ID), 100.0, 10),
+                0.000_001
+        );
+        assertEquals(
+                4.75,
+                TraitEffects.igniteDamagePerTick(secondary(BuiltInTraits.IGNITE_ID), 100.0, 10),
+                0.000_001
+        );
+        assertEquals(80, TraitEffects.igniteDurationTicks());
+        assertEquals(20, TraitEffects.igniteTickIntervalTicks());
     }
 
     @Test
@@ -203,13 +309,17 @@ final class TraitEffectsTest {
     }
 
     private static Monster monster(Optional<TeamId> senderTeam) {
+        return monster(senderTeam, 100.0);
+    }
+
+    private static Monster monster(Optional<TeamId> senderTeam, double maxHealth) {
         return new Monster(
                 "trait-test",
                 TeamId.RED,
                 1,
                 Optional.of(UUID.nameUUIDFromBytes("trait-test-owner".getBytes())),
                 senderTeam,
-                100.0,
+                maxHealth,
                 0.0,
                 10.0,
                 AttackKind.MELEE,

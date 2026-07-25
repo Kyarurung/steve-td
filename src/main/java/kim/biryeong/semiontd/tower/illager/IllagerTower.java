@@ -77,7 +77,7 @@ public class IllagerTower extends EntityBackedTower {
                     .min(Comparator.comparingDouble(monster -> monster.runtimeMonster().health()));
             case HIGH_HEALTH -> candidates.stream()
                     .filter(this::validRuntimeMonster)
-                    .max(Comparator.comparingDouble(monster -> monster.runtimeMonster().health()));
+                    .max(Comparator.comparingDouble(monster -> monster.runtimeMonster().maxHealth()));
             case INCOME -> candidates.stream()
                     .filter(this::validRuntimeMonster)
                     .filter(monster -> monster.runtimeMonster().ownerPlayer().isPresent())
@@ -154,6 +154,7 @@ public class IllagerTower extends EntityBackedTower {
                 position(),
                 forceTargetRadius
         );
+        target.applyTimedEffect(TimedEffectType.MONSTER_MARKED, 1.0, duration);
     }
 
     protected void applySplash(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {

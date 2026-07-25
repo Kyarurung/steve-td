@@ -54,6 +54,19 @@ class EnderDragonScaleTest {
     }
 
     @Test
+    void phantomScaleFormulaComesFromEndGlobalConfig() {
+        applyEndAbilities(Map.of(
+                "phantomBaseScale", 0.5,
+                "phantomScaleHealthInterval", 50.0,
+                "phantomScalePerInterval", 0.25,
+                "phantomScaleCap", 1.25
+        ));
+
+        assertEquals(1.0, EndTowers.phantomScaleForMaxHealth(100.0), 0.0001);
+        assertEquals(1.25, EndTowers.phantomScaleForMaxHealth(1000.0), 0.0001);
+    }
+
+    @Test
     void phantomBecomesVanillaDragonWhenMaxHealthReachesThreshold() {
         double baseMaxHealth = EndTowers.BASE_END_TOWER.maxHealth();
         applyStateConfig(baseMaxHealth + 0.01);
@@ -96,10 +109,14 @@ class EnderDragonScaleTest {
     }
 
     private static void applyStateConfig(double evolutionMaxHealth) {
+        applyEndAbilities(Map.of("dragonEvolutionMaxHealth", evolutionMaxHealth));
+    }
+
+    private static void applyEndAbilities(Map<String, Double> overrides) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
-        end.put("dragonEvolutionMaxHealth", evolutionMaxHealth);
+        end.putAll(overrides);
         abilities.put(EndTower.CONFIG_ID, end);
         TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
     }
