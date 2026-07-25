@@ -36,7 +36,7 @@ public record TraitBalanceConfig(Map<String, Map<String, Double>> traits) {
         ));
         traits.put("fortitude", Map.of(
                 "maxHealthBonus", 0.20,
-                "warlockCoreMaxHealthBonus", 0.10
+                "CoreMaxHealthBonus", 0.10
         ));
         traits.put("double_edged_sword", Map.of(
                 "outgoingDamageBonus", 0.25,
@@ -54,6 +54,32 @@ public record TraitBalanceConfig(Map<String, Map<String, Double>> traits) {
         traits.put("transcendence", Map.of(
                 "activationDelaySeconds", 20.0,
                 "damageBonus", 0.30
+        ));
+        traits.put("weekly_holiday_pay", Map.of(
+                "intervalSeconds", 180.0,
+                "flatDiamond", 10.0,
+                "incomeRatio", 0.16
+        ));
+        traits.put("ruthless", Map.of(
+                "damageBonus", 0.25
+        ));
+        traits.put("ignite", Map.of(
+                "durationSeconds", 4.0,
+                "tickIntervalSeconds", 1.0,
+                "flatDamagePerTick", 2.0,
+                "attackDamageRatioPerRound", 0.0075
+        ));
+        traits.put("giant_slayer", Map.of(
+                "currentHealthThreshold", 800.0,
+                "damageBonus", 0.20
+        ));
+        traits.put("finishing_blow", Map.of(
+                "healthRatioThreshold", 0.40,
+                "damageBonus", 0.20
+        ));
+        traits.put("performance_bonus", Map.of(
+                "teamIncomeRatio", 0.15,
+                "firstPayoutRound", 2.0
         ));
         return new TraitBalanceConfig(traits);
     }

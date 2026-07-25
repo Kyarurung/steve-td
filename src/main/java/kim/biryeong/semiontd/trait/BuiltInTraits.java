@@ -23,6 +23,12 @@ public final class BuiltInTraits {
     public static final ResourceLocation DIVERSITY_ID = id("diversity");
     public static final ResourceLocation SUPPLY_DEPOT_ID = id("supply_depot");
     public static final ResourceLocation TRANSCENDENCE_ID = id("transcendence");
+    public static final ResourceLocation WEEKLY_HOLIDAY_PAY_ID = id("weekly_holiday_pay");
+    public static final ResourceLocation RUTHLESS_ID = id("ruthless");
+    public static final ResourceLocation IGNITE_ID = id("ignite");
+    public static final ResourceLocation GIANT_SLAYER_ID = id("giant_slayer");
+    public static final ResourceLocation FINISHING_BLOW_ID = id("finishing_blow");
+    public static final ResourceLocation PERFORMANCE_BONUS_ID = id("performance_bonus");
 
     private static boolean registered;
 
@@ -64,6 +70,20 @@ public final class BuiltInTraits {
                 "최대 타워 수가 증가합니다.");
         register(TRANSCENDENCE_ID, 1, "초월",
                 "방어 시작 후 일정 시간이 지나면 살아 있는 내 타워의 피해가 방어 종료까지 증가합니다.");
+        register(WEEKLY_HOLIDAY_PAY_ID, 1, "주휴수당",
+                "경기 시작 후 3분마다 현재 수입에 비례한 다이아를 받습니다.");
+        register(RUTHLESS_ID, 1, "비열",
+                "디버프가 걸린 적에게 입히는 피해가 증가합니다.");
+        register(IGNITE_ID, 1, "점화",
+                "기본 공격이 적을 4초간 점화해 1초마다 마법 피해를 줍니다.",
+                "점화는 디버프로 취급되며 반복 공격 시 더 강한 점화를 유지합니다.");
+        register(GIANT_SLAYER_ID, 1, "거인학살자",
+                "현재 체력이 일정 수치 이상인 적에게 입히는 피해가 증가합니다.");
+        register(FINISHING_BLOW_ID, 1, "마무리타격",
+                "현재 체력이 최대 체력의 일정 비율 이하인 적에게 입히는 피해가 증가합니다.");
+        register(PERFORMANCE_BONUS_ID, 1, "성과급",
+                "2라운드부터 팀 전체의 현재 수입 합계에 비례한 에메랄드를 받습니다.",
+                "자신의 수입도 합산하며 라운드별 에메랄드 상한이 적용됩니다.");
 
         registered = true;
     }
@@ -129,6 +149,30 @@ public final class BuiltInTraits {
             case "transcendence" -> number(value(id, "activationDelaySeconds"))
                     + "초 후 피해 "
                     + signedPercentage(value(id, "damageBonus") * scale);
+            case "weekly_holiday_pay" -> number(value(id, "intervalSeconds"))
+                    + "초마다 다이아 "
+                    + signedNumber(Math.round(value(id, "flatDiamond") * scale))
+                    + " + 수입 "
+                    + percentage(value(id, "incomeRatio") * scale);
+            case "ruthless" -> "디버프 대상 피해 "
+                    + signedPercentage(value(id, "damageBonus") * scale);
+            case "ignite" -> number(value(id, "durationSeconds"))
+                    + "초간 매초 "
+                    + number(value(id, "flatDamagePerTick") * scale)
+                    + " + 공격력×라운드×"
+                    + percentage(value(id, "attackDamageRatioPerRound") * scale)
+                    + " 마법 피해";
+            case "giant_slayer" -> "현재 체력 "
+                    + number(value(id, "currentHealthThreshold"))
+                    + " 이상 피해 "
+                    + signedPercentage(value(id, "damageBonus") * scale);
+            case "finishing_blow" -> "체력 "
+                    + percentage(value(id, "healthRatioThreshold"))
+                    + " 이하 피해 "
+                    + signedPercentage(value(id, "damageBonus") * scale);
+            case "performance_bonus" -> number(value(id, "firstPayoutRound"))
+                    + "라운드부터 팀 수입의 "
+                    + percentage(value(id, "teamIncomeRatio") * scale);
             default -> "";
         };
         return Component.literal(summary);

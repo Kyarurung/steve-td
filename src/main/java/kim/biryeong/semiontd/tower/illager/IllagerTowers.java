@@ -182,7 +182,7 @@ public final class IllagerTowers {
             10,
             byId(EntityType.WITCH),
             List.of(
-                    "<gray>체력이 가장 높은 적에게 표식을 생성합니다.</gray>",
+                    "<gray>최대 체력이 가장 높은 적에게 표식을 생성합니다.</gray>",
                     "<green>주변 우민 타워가 표식 대상을 우선 공격합니다.</green>"
             )
     );
@@ -317,7 +317,7 @@ public final class IllagerTowers {
                 "<green>습격 발동 중 추가로 표식 피해 증가량이 {ability.raidMarkDamageTakenBonus:percent} + 약자 표식 보너스 {ability.raidLowHealthMarkDamageTakenBonus:percent}, 지속시간이 {ability.raidMarkDurationBonusTicks:seconds}, 강제 타게팅 반경이 {ability.raidForceTargetRadiusBonus:blocks} 증가합니다.</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_WITCH_HIGH, List.of(
-                "<gray>현재 체력이 가장 높은 적에게 표식을 생성하는 마녀 타워입니다.</gray>",
+                "<gray>최대 체력이 가장 높은 적에게 표식을 생성하는 마녀 타워입니다.</gray>",
                 commonRaidLine(),
                 "<green>표식 대상은 {ability.markDurationTicks:seconds} 동안 받는 피해가 {ability.markDamageTakenBonus:percent} 증가하고, 이 타워 주변 {ability.forceTargetRadius:blocks} 안의 우민 타워가 해당 적을 우선 공격합니다.</green>",
                 "<green>습격 발동 중 추가로 표식 피해 증가량이 {ability.raidMarkDamageTakenBonus:percent} + 강자 표식 보너스 {ability.raidHighHealthMarkDamageTakenBonus:percent}, 지속시간이 {ability.raidMarkDurationBonusTicks:seconds}, 강제 타게팅 반경이 {ability.raidForceTargetRadiusBonus:blocks} 증가합니다.</green>"
@@ -329,7 +329,7 @@ public final class IllagerTowers {
                 "<green>습격 발동 중 추가로 표식 피해 증가량이 {ability.raidMarkDamageTakenBonus:percent} + 약자 표식 보너스 {ability.raidLowHealthMarkDamageTakenBonus:percent}, 지속시간이 {ability.raidMarkDurationBonusTicks:seconds}, 강제 타게팅 반경이 {ability.raidForceTargetRadiusBonus:blocks} 증가합니다.</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_ILLUSIONER_HIGH, List.of(
-                "<gray>현재 체력이 가장 높은 적을 더 강하게 표식하는 환술사 타워입니다.</gray>",
+                "<gray>최대 체력이 가장 높은 적을 더 강하게 표식하는 환술사 타워입니다.</gray>",
                 commonRaidLine(),
                 "<green>표식 대상은 {ability.markDurationTicks:seconds} 동안 받는 피해가 {ability.markDamageTakenBonus:percent} 증가하고, 주변 {ability.forceTargetRadius:blocks} 안의 우민 타워가 해당 적을 우선 공격합니다.</green>",
                 "<green>습격 발동 중 추가로 표식 피해 증가량이 {ability.raidMarkDamageTakenBonus:percent} + 강자 표식 보너스 {ability.raidHighHealthMarkDamageTakenBonus:percent}, 지속시간이 {ability.raidMarkDurationBonusTicks:seconds}, 강제 타게팅 반경이 {ability.raidForceTargetRadiusBonus:blocks} 증가합니다.</green>"

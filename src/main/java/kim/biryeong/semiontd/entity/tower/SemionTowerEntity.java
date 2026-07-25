@@ -35,6 +35,7 @@ import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowerState;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
+import kim.biryeong.semiontd.trait.TraitEffects;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
@@ -344,15 +345,39 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public double applyTraitOutgoingDamage(Monster target, double damageAmount) {
+        return applyTraitOutgoingDamage(target, damageAmount, 0.0);
+    }
+
+    public double applyTraitOutgoingDamageAgainst(SemionMonsterEntity target, double damageAmount) {
+        Monster runtimeMonster = target == null ? null : target.runtimeMonster();
+        double conditionalBonus = runtimeTower == null
+                ? 0.0
+                : TraitEffects.conditionalTargetDamageBonus(
+                        runtimeTower.traitLoadout(),
+                        runtimeMonster,
+                        target != null && target.hasDebuff()
+                );
+        return applyTraitOutgoingDamage(runtimeMonster, damageAmount, conditionalBonus);
+    }
+
+    private double applyTraitOutgoingDamage(Monster target, double damageAmount, double conditionalBonus) {
+        return Math.max(0.0, damageAmount)
+                * (1.0 + traitAdditiveDamageBonus(target) + Math.max(0.0, conditionalBonus))
+                * traitFinalDamageMultiplier();
+    }
+
+    private double traitAdditiveDamageBonus(Monster target) {
         double additiveBonus = activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS);
         if (target != null) {
             additiveBonus += target.senderTeam().isPresent()
                     ? activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_INCOME_DAMAGE_BONUS)
                     : activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_WAVE_DAMAGE_BONUS);
         }
-        return Math.max(0.0, damageAmount)
-                * (1.0 + additiveBonus)
-                * (1.0 + (runtimeTower == null ? 0.0 : Math.max(0.0, runtimeTower.finalDamageBonus())))
+        return additiveBonus;
+    }
+
+    private double traitFinalDamageMultiplier() {
+        return (1.0 + (runtimeTower == null ? 0.0 : Math.max(0.0, runtimeTower.finalDamageBonus())))
                 * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_FINAL_DAMAGE_BONUS));
     }
 
@@ -420,6 +445,24 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         }
 
         runtimeTower.onAttack(this, target, damageAmount, killedTarget);
+        if (!killedTarget && target != null && target.isAlive() && !target.isRemoved()) {
+            double igniteDamage = TraitEffects.igniteDamagePerTick(
+                    runtimeTower.traitLoadout(),
+                    damageAmount,
+                    runtimeTower.currentRound()
+            );
+            if (igniteDamage > 0.0) {
+                target.applyIgnite(
+                        ownerPlayer,
+                        runtimeTower.traitLoadout(),
+                        igniteDamage,
+                        traitAdditiveDamageBonus(target.runtimeMonster()),
+                        traitFinalDamageMultiplier(),
+                        TraitEffects.igniteDurationTicks(),
+                        TraitEffects.igniteTickIntervalTicks()
+                );
+            }
+        }
         if (killedTarget) {
             runtimeTower.onKill(this, target, damageAmount);
         }

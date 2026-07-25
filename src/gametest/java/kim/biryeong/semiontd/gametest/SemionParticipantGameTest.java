@@ -5073,6 +5073,97 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
+    @GameTest(maxTicks = 20)
+    public void igniteTicksFourTimesAndKeepsTheStrongestCadence(GameTestHelper context) {
+        UUID playerId = stableUuid("ignite-trait-owner");
+        GridPosition sourcePosition = GridPosition.from(context.absolutePos(BlockPos.ZERO));
+        TestTower sourceTower = new TestTower(TestTowerTypes.TEST_DIRECT, playerId, TeamId.RED, 1, sourcePosition);
+        sourceTower.attachToLane(null, new TraitLoadout(BuiltInTraits.IGNITE_ID, BuiltInTraits.NONE_ID));
+        sourceTower.markWaveStarted(10);
+        SemionTowerEntity sourceEntity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+        sourceEntity.configure(sourceTower, null);
+
+        SemionMonsterEntity fourTickTarget = spawnRoleMonsterEntity(
+                context,
+                "ignite-four-tick-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO.east(3))),
+                1_000.0,
+                List.of(SummonRole.SIEGE)
+        );
+        fourTickTarget.setNoAi(true);
+        sourceEntity.recordAttack(fourTickTarget, 100.0, false);
+        for (int tick = 0; tick < 80; tick++) {
+            fourTickTarget.aiStep();
+        }
+        if (!assertClose(context, 962.0, fourTickTarget.runtimeMonster().health(), "Ignite should deal exactly four 9.5-damage ticks.")) {
+            return;
+        }
+        if (!assertTrue(context, playerId.equals(fourTickTarget.runtimeMonster().lastHitPlayerId().orElse(null)), "Ignite should preserve owner attribution.")) {
+            return;
+        }
+
+        SemionMonsterEntity refreshTarget = spawnRoleMonsterEntity(
+                context,
+                "ignite-refresh-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO.east(5))),
+                1_000.0,
+                List.of(SummonRole.SIEGE)
+        );
+        refreshTarget.setNoAi(true);
+        sourceEntity.recordAttack(refreshTarget, 100.0, false);
+        for (int tick = 0; tick < 19; tick++) {
+            refreshTarget.aiStep();
+        }
+        sourceEntity.recordAttack(refreshTarget, 50.0, false);
+        refreshTarget.aiStep();
+        if (!assertClose(context, 990.5, refreshTarget.runtimeMonster().health(), "A weaker refresh should keep the stronger damage and original tick cadence.")) {
+            return;
+        }
+        for (int tick = 0; tick < 10; tick++) {
+            refreshTarget.aiStep();
+        }
+        sourceEntity.recordAttack(refreshTarget, 200.0, false);
+        for (int tick = 0; tick < 9; tick++) {
+            refreshTarget.aiStep();
+        }
+        if (!assertClose(context, 990.5, refreshTarget.runtimeMonster().health(), "A stronger refresh must not reset the pending tick.")) {
+            return;
+        }
+        refreshTarget.aiStep();
+        if (!assertClose(context, 973.5, refreshTarget.runtimeMonster().health(), "The next scheduled tick should use the stronger 17 damage.")) {
+            return;
+        }
+
+        SemionMonsterEntity killTarget = spawnRoleMonsterEntity(
+                context,
+                "ignite-kill-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO.east(7))),
+                20.0,
+                List.of(SummonRole.SIEGE)
+        );
+        killTarget.setNoAi(true);
+        sourceEntity.recordAttack(killTarget, 100.0, false);
+        for (int tick = 0; tick < 60 && killTarget.isAlive(); tick++) {
+            killTarget.aiStep();
+        }
+        if (!assertTrue(context, !killTarget.isAlive(), "Ignite should be able to kill after the source tower is absent from the world.")) {
+            return;
+        }
+        if (!assertTrue(context, killTarget.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Ignite kills should keep tower kill attribution.")) {
+            return;
+        }
+        context.succeed();
+    }
+
     @GameTest(maxTicks = 80)
     public void illusionCloneAttacksSharedSourceTargetInsteadOfScanningOwnTarget(GameTestHelper context) {
         UUID playerId = stableUuid("red-clone-shared-target-owner");
@@ -10135,10 +10226,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void sniperCatPrioritizesHighestCurrentHealthIncludingAdv(GameTestHelper context) {
-        SemionMonsterEntity lowerHealth = spawnRoleMonsterEntity(
+    public void highHealthTargetPoliciesUseMaximumHealth(GameTestHelper context) {
+        SemionMonsterEntity lowerMaxHealth = spawnRoleMonsterEntity(
                 context,
-                "sniper-cat-lower-health",
+                "targeting-lower-max-health",
                 Optional.empty(),
                 TeamId.RED,
                 1,
@@ -10146,9 +10237,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 100.0,
                 List.of(SummonRole.RUSH)
         );
-        SemionMonsterEntity higherHealth = spawnRoleMonsterEntity(
+        SemionMonsterEntity higherMaxHealth = spawnRoleMonsterEntity(
                 context,
-                "sniper-cat-higher-health",
+                "targeting-higher-max-health",
                 Optional.empty(),
                 TeamId.RED,
                 1,
@@ -10156,24 +10247,43 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 200.0,
                 List.of(SummonRole.TANK)
         );
-        lowerHealth.setHealth(80.0F);
-        higherHealth.setHealth(120.0F);
+        lowerMaxHealth.setHealth(80.0F);
+        higherMaxHealth.setHealth(20.0F);
+        GridPosition position = GridPosition.from(context.absolutePos(BlockPos.ZERO));
 
-        for (TowerType type : List.of(
-                VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
-                VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER
+        for (Tower tower : List.of(
+                new AntiTankerCatTower(
+                        VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
+                        stableUuid("maximum-health-sniper-cat"),
+                        TeamId.RED,
+                        1,
+                        position
+                ),
+                new AntiTankerCatTower(
+                        VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER,
+                        stableUuid("maximum-health-adv-sniper-cat"),
+                        TeamId.RED,
+                        1,
+                        position
+                ),
+                new OceanTower(
+                        OceanTowers.T1_COD,
+                        stableUuid("maximum-health-cod"),
+                        TeamId.RED,
+                        1,
+                        position
+                ),
+                ProductionTowerCatalog.find(IllagerTowers.T2_WITCH_HIGH.id()).orElseThrow().create(
+                        stableUuid("maximum-health-witch"),
+                        TeamId.RED,
+                        1,
+                        position
+                )
         )) {
-            AntiTankerCatTower tower = new AntiTankerCatTower(
-                    type,
-                    stableUuid("sniper-cat-" + type.id()),
-                    TeamId.RED,
-                    1,
-                    GridPosition.from(context.absolutePos(BlockPos.ZERO))
-            );
             if (!assertTrue(
                     context,
-                    tower.selectAttackTarget(null, List.of(lowerHealth, higherHealth)).orElse(null) == higherHealth,
-                    type.id() + " should prioritize the target with the highest current health."
+                    tower.selectAttackTarget(null, List.of(lowerMaxHealth, higherMaxHealth)).orElse(null) == higherMaxHealth,
+                    tower.type().id() + " should prioritize the target with the highest maximum health."
             )) {
                 return;
             }

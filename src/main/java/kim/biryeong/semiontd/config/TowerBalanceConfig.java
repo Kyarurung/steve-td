@@ -1117,6 +1117,7 @@ public record TowerBalanceConfig(
         ));
         putAbilities(abilities, EndTower.CONFIG_ID, Map.ofEntries(
                 Map.entry("dragonEvolutionMaxHealth", 2000.0),
+                Map.entry("attackDamageCap", 250.0),
                 Map.entry("absorptionDurationTicks", 200.0),
                 Map.entry("absorptionHealAmount", 25.0),
                 Map.entry("transferHealingPerTower", 1.0),
@@ -1145,6 +1146,7 @@ public record TowerBalanceConfig(
                 Map.entry("endCrystalSplashThreshold2", 60.0),
                 Map.entry("endCrystalSplashThreshold3", 150.0),
                 Map.entry("endCrystalSplashThreshold4", 300.0),
+                Map.entry("splashRadiusPerThreshold", 1.0),
                 Map.entry("splashRadiusCap", 4.0),
                 Map.entry("splashDamageRatio", 0.60),
                 Map.entry("shulkerReductionEvery", 60.0),
@@ -1153,7 +1155,11 @@ public record TowerBalanceConfig(
                 Map.entry("maxAttackIntervalReductionTicks", 10.0),
                 Map.entry("minimumAttackIntervalTicks", 5.0),
                 Map.entry("dragonFinalDamageBonus", 0.10),
-                Map.entry("dragonIncomeDebuffResistance", 0.10)
+                Map.entry("dragonIncomeDebuffResistance", 0.10),
+                Map.entry("phantomBaseScale", 1.0),
+                Map.entry("phantomScaleHealthInterval", 100.0),
+                Map.entry("phantomScalePerInterval", 0.2),
+                Map.entry("phantomScaleCap", 5.0)
         ));
     }
 

@@ -18,6 +18,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
 import net.minecraft.SharedConstants;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.DyeColor;
 import org.junit.jupiter.api.AfterEach;
@@ -46,6 +47,7 @@ class EndTowerCatalogTest {
         assertTrue(config.towers().containsKey(EndTowers.T3_SHULKER_TOWER.id()));
         assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "hatchDelayTicks", -1.0), 0.0001);
         assertEquals(2000.0, config.ability(EndTower.CONFIG_ID, "dragonEvolutionMaxHealth", -1.0), 0.0001);
+        assertEquals(250.0, config.ability(EndTower.CONFIG_ID, "attackDamageCap", -1.0), 0.0001);
         assertEquals(200.0, config.ability(EndTower.CONFIG_ID, "absorptionDurationTicks", -1.0), 0.0001);
         assertEquals(25.0, config.ability(EndTower.CONFIG_ID, "absorptionHealAmount", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "transferHealingPerTower", -1.0), 0.0001);
@@ -69,6 +71,7 @@ class EndTowerCatalogTest {
         assertEquals(60.0, config.ability(EndTower.CONFIG_ID, "endCrystalSplashThreshold2", -1.0), 0.0001);
         assertEquals(150.0, config.ability(EndTower.CONFIG_ID, "endCrystalSplashThreshold3", -1.0), 0.0001);
         assertEquals(300.0, config.ability(EndTower.CONFIG_ID, "endCrystalSplashThreshold4", -1.0), 0.0001);
+        assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "splashRadiusPerThreshold", -1.0), 0.0001);
         assertEquals(4.0, config.ability(EndTower.CONFIG_ID, "splashRadiusCap", -1.0), 0.0001);
         assertEquals(0.60, config.ability(EndTower.CONFIG_ID, "splashDamageRatio", -1.0), 0.0001);
         assertEquals(60.0, config.ability(EndTower.CONFIG_ID, "shulkerReductionEvery", -1.0), 0.0001);
@@ -83,6 +86,10 @@ class EndTowerCatalogTest {
         assertEquals(5.0, config.ability(EndTower.CONFIG_ID, "minimumAttackIntervalTicks", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonFinalDamageBonus", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonIncomeDebuffResistance", -1.0), 0.0001);
+        assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "phantomBaseScale", -1.0), 0.0001);
+        assertEquals(100.0, config.ability(EndTower.CONFIG_ID, "phantomScaleHealthInterval", -1.0), 0.0001);
+        assertEquals(0.2, config.ability(EndTower.CONFIG_ID, "phantomScalePerInterval", -1.0), 0.0001);
+        assertEquals(5.0, config.ability(EndTower.CONFIG_ID, "phantomScaleCap", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTowers.T1_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         assertEquals(0.30, config.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         assertEquals(0.50, config.ability(EndTowers.T3_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
@@ -155,6 +162,7 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("전달 중 타워 당 체력을 초당 +1 재생합니다."));
         assertTrue(description.contains("<#E66F6F>체력</#E66F6F>을 초당 <#79C97B>+1 재생</#79C97B>"));
         assertTrue(plainDescription.contains("타워 공격력의 30%를 임시 획득"));
+        assertTrue(plainDescription.contains("공격력 상한: 250"));
         assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1블록"));
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
         assertTrue(plainDescription.contains("사거리: 엔드 수정 60스택마다 +0.5블록"));
@@ -171,6 +179,20 @@ class EndTowerCatalogTest {
         assertTrue(description.contains("<#D94343>공격력</#D94343>"));
         assertTrue(description.contains("<#E66F6F>체력</#E66F6F>"));
         assertTrue(description.contains("<#72A9E6>피해 감소</#72A9E6>"));
+    }
+
+    @Test
+    void endJobDescriptionUsesConfiguredAbilityValues() {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+
+        String description = new EndTowerJob().description().stream()
+                .map(Component::getString)
+                .reduce("", (left, right) -> left + "\n" + right);
+
+        assertTrue(description.contains("10초에 걸쳐"));
+        assertTrue(description.contains("체력 30%, 공격력 30%"));
+        assertTrue(description.contains("체력 5%, 공격력 5%"));
+        assertTrue(description.contains("최대 250"));
     }
 
     @Test

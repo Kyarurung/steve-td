@@ -348,6 +348,8 @@ class EndTowerAbsorptionTest {
         applyEndAbilities(Map.ofEntries(
                 Map.entry("absorptionDurationTicks", 1.0),
                 Map.entry("endCrystalSplashThreshold1", 1.0),
+                Map.entry("endCrystalSplashThreshold2", 2.0),
+                Map.entry("splashRadiusPerThreshold", 0.25),
                 Map.entry("splashRadiusCap", 0.5),
                 Map.entry("endCrystalAttackIntervalEvery", 1.0),
                 Map.entry("maxAttackIntervalReductionTicks", 2.0),
@@ -379,6 +381,30 @@ class EndTowerAbsorptionTest {
         assertEquals(12, dragon.adjustAttackInterval(20));
         assertEquals(95.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 2%"));
+    }
+
+    @Test
+    void attackDamageCapComesFromEndGlobalConfig() {
+        applyEndAbilities(Map.ofEntries(
+                Map.entry("absorptionDurationTicks", 1.0),
+                Map.entry("roundDamageRatio", 1.0),
+                Map.entry("permanentDamageRatio", 0.0),
+                Map.entry("attackDamageCap", 25.0),
+                Map.entry("dragonDamageBonus", 0.0)
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.tick(lane);
+        lane.towers().add(tower(EndTowers.T3_END_CRYSTAL_TOWER, 1));
+
+        dragon.tick(lane);
+
+        assertEquals(20.0, dragon.roundDamageBonus(), 0.0001);
+        assertEquals(25.0, dragon.previewHatchedAttackDamage(), 0.0001);
+        assertEquals(25.0, dragon.modifyAttackDamage(null, null, 10.0), 0.0001);
+        assertTrue(plainRuntimeDetails(dragon).contains("공격력 상한: 25.0"));
     }
 
     @Test

@@ -38,7 +38,10 @@ public class AntiTankerCatTower extends EntityBackedTower {
         }
         return candidates.stream()
                 .filter(candidate -> candidate != null && candidate.isAlive())
-                .max(Comparator.comparingDouble(SemionMonsterEntity::getHealth));
+                .max(Comparator.comparingDouble(candidate -> {
+                    Monster monster = candidate.runtimeMonster();
+                    return monster == null ? candidate.getMaxHealth() : monster.maxHealth();
+                }));
     }
 
     @Override

@@ -163,7 +163,7 @@ public final class OceanTower extends EntityBackedTower {
         }
         return candidates.stream()
                 .filter(candidate -> candidate != null && candidate.runtimeMonster() != null)
-                .max(Comparator.comparingDouble(candidate -> candidate.runtimeMonster().health()));
+                .max(Comparator.comparingDouble(candidate -> candidate.runtimeMonster().maxHealth()));
     }
 
     @Override

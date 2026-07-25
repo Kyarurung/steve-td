@@ -32,6 +32,7 @@ public abstract class Tower {
     private double health;
     private long paidMineralCost;
     private int placedRound;
+    private int currentRound = 1;
     private boolean waveStartedAfterPlacement;
     private int cooldownTicks;
     private int level = 1;
@@ -186,6 +187,7 @@ public abstract class Tower {
         }
         this.paidMineralCost = Math.max(0, previousTower.paidMineralCost() + Math.max(0, extraPaidMineralCost));
         this.placedRound = previousTower.placedRound();
+        this.currentRound = previousTower.currentRound();
         this.waveStartedAfterPlacement = previousTower.waveStartedAfterPlacement();
     }
 
@@ -234,9 +236,14 @@ public abstract class Tower {
     }
 
     public void markWaveStarted(int currentRound) {
+        this.currentRound = Math.max(1, currentRound);
         if (placedRound > 0 && currentRound >= placedRound) {
             waveStartedAfterPlacement = true;
         }
+    }
+
+    public int currentRound() {
+        return currentRound;
     }
 
     public void onWaveStarted(PlayerLane lane, int currentRound) {
@@ -249,6 +256,10 @@ public abstract class Tower {
 
     public void attachToLane(PlayerLane lane, TraitLoadout traitLoadout) {
         this.traitLoadout = traitLoadout == null ? TraitLoadout.none() : traitLoadout;
+    }
+
+    public TraitLoadout traitLoadout() {
+        return traitLoadout;
     }
 
     public void detachFromLane(PlayerLane lane) {
@@ -304,7 +315,7 @@ public abstract class Tower {
 
     public boolean damageTarget(SemionTowerEntity towerEntity, SemionMonsterEntity target, double baseDamage) {
         Monster runtimeMonster = target.runtimeMonster();
-        double traitDamage = towerEntity.applyTraitOutgoingDamage(runtimeMonster, baseDamage);
+        double traitDamage = towerEntity.applyTraitOutgoingDamageAgainst(target, baseDamage);
         double damageAmount = target.towerDamageTaken(traitDamage);
         if (damageAmount <= 0.0) {
             return false;

@@ -183,7 +183,7 @@ public final class OceanTowers {
             "ocean_cod_t1", "대구 타워", 45, 55.0, 8.0, 6.0, 20, 0,
             EntityVisual.builder(byId(EntityType.COD)).scale(0.7).build(),
             List.of(
-                    "<gray>현재 체력이 가장 높은 적을 우선 공격하는 단일 공격 타워입니다.</gray>",
+                    "<gray>최대 체력이 가장 높은 적을 우선 공격하는 단일 공격 타워입니다.</gray>",
                     "<green>공격할 때 물 {ability.attackWaterCost:number}을 소모하며, 저장한 물이 많을수록 공격력이 증가합니다.</green>",
                     "<green>인컴/소환 적 공격 시 물 {ability.incomeWaterCost:number}을 추가로 소모할 수 있으면, 저장한 물에 따른 공격력 증가 효과가 {ability.ocean_global.incomeCoefficientMultiplier:number}배가 됩니다.</green>"
             )
@@ -192,7 +192,7 @@ public final class OceanTowers {
             "ocean_cod_t2", "큰 대구 타워", 100, 80.0, 11.0, 16.0, 15, 0,
             EntityVisual.builder(byId(EntityType.COD)).build(),
             List.of(
-                    "<gray>현재 체력이 가장 높은 적을 더 빠르게 처리하는 중급 단일 공격 타워입니다.</gray>",
+                    "<gray>최대 체력이 가장 높은 적을 더 빠르게 처리하는 중급 단일 공격 타워입니다.</gray>",
                     "<green>공격할 때 물 {ability.attackWaterCost:number}을 소모하며, 저장한 물이 많을수록 공격력이 증가합니다.</green>",
                     "<green>인컴/소환 적 공격 시 물 {ability.incomeWaterCost:number}을 추가로 소모할 수 있으면, 저장한 물에 따른 공격력 증가 효과가 {ability.ocean_global.incomeCoefficientMultiplier:number}배가 됩니다.</green>"
             )

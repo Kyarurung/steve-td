@@ -44,6 +44,7 @@ import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitRegistry;
 import kim.biryeong.semiontd.trait.TraitSelectionSession;
 import kim.biryeong.semiontd.trait.TraitSlot;
+import kim.biryeong.semiontd.trait.TraitVfx;
 import kim.biryeong.semiontd.ui.SemionText;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -433,6 +434,8 @@ public final class SemionCommands {
                                 .executes(context -> debugWarlockSacrificeVfx(context.getSource())))
                         .then(literal("transcendence")
                                 .executes(context -> debugTranscendenceVfx(context.getSource())))
+                        .then(literal("ignite")
+                                .executes(context -> debugIgniteVfx(context.getSource())))
                         .then(literal("ocean_supply")
                                 .executes(context -> debugOceanSupplyVfx(context.getSource())))
                         .then(literal("ocean_dehydrated")
@@ -513,6 +516,12 @@ public final class SemionCommands {
     private static int debugTranscendenceVfx(CommandSourceStack source) throws CommandSyntaxException {
         TowerVfxService.showTranscendenceDebug(source.getPlayerOrException());
         success(source, "초월 VFX를 재생했습니다.");
+        return 1;
+    }
+
+    private static int debugIgniteVfx(CommandSourceStack source) throws CommandSyntaxException {
+        TraitVfx.showIgniteDebug(source.getPlayerOrException());
+        success(source, "점화 VFX를 4초간 재생합니다.");
         return 1;
     }
 
@@ -2275,8 +2284,7 @@ public final class SemionCommands {
             return 0;
         }
 
-        Object upgradedPosition = position == null ? player.blockPosition() : position;
-        success(source, "타워를 업그레이드했습니다: " + upgradedPosition + ", 업그레이드=" + upgradeId);
+        success(source, "타워 업그레이드가 완료되었습니다.");
         return 1;
     }
 
