@@ -316,7 +316,8 @@ public abstract class Tower {
     public boolean damageTarget(SemionTowerEntity towerEntity, SemionMonsterEntity target, double baseDamage) {
         Monster runtimeMonster = target.runtimeMonster();
         double traitDamage = towerEntity.applyTraitOutgoingDamageAgainst(target, baseDamage);
-        double damageAmount = target.towerDamageTaken(traitDamage);
+        double outgoingDamage = modifyOutgoingDamage(towerEntity, target, traitDamage);
+        double damageAmount = target.towerDamageTaken(outgoingDamage);
         if (damageAmount <= 0.0) {
             return false;
         }
@@ -343,6 +344,8 @@ public abstract class Tower {
 
     public void onNearbyTowerDeath(PlayerLane lane, Tower destroyedTower) {
     }
+
+    public double modifyOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {return damageAmount;}
 
     protected boolean isWithinDeathStackRange(Vec3 deathPosition) {
         if (deathPosition == null) {

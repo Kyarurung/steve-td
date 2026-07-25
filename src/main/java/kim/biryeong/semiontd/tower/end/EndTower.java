@@ -197,7 +197,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedAttackDamage() {
-        return cappedAttackDamage(type().damage() + permanentDamageBonus + roundDamageBonus);
+        return type().damage() + permanentDamageBonus + roundDamageBonus;
     }
 
     public int previewHatchedAttackIntervalTicks() {
@@ -234,10 +234,16 @@ public final class EndTower extends EntityBackedTower {
             return damageAmount;
         }
         double absorbedDamage = damageAmount * (1.0 + (permanentDamageBonus + roundDamageBonus) / type().damage());
-        double modifiedDamage = isDragon()
-                ? absorbedDamage * (1.0 + Math.max(0.0, global("dragonDamageBonus")))
-                : absorbedDamage;
-        return cappedAttackDamage(modifiedDamage);
+        return isDragon() ? absorbedDamage * (1.0 + Math.max(0.0, global("dragonDamageBonus"))) : absorbedDamage;
+    }
+
+    @Override
+    public double modifyOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+        if (!isCoreTower()) {
+            return damageAmount;
+        }
+        return Math.min(attackDamageCap(), Math.max(0.0, damageAmount)
+        );
     }
 
     @Override
@@ -318,8 +324,8 @@ public final class EndTower extends EntityBackedTower {
 
         lines.add("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>");
         lines.add("<white>엔드 수정, 셜커 스택: " + absorbedEndCrystalCount + " / " + absorbedShulkerCount + "</white>");
+        lines.add("<#D94343>피해량 상한: " + oneDecimal(maximumAttackDamage) + "</#D94343>");
         lines.add("<#D94343>추가 공격력: " + oneDecimal(additionalAttackDamage) + "</#D94343><white> / </white>" +
-                "<#D94343>공격력 상한: " + oneDecimal(maximumAttackDamage) + "</#D94343><white> / </white>" +
                 "<#D9B94F>사거리: " + oneDecimal(currentAttackRange) + "블록 / " + oneDecimal(maximumAttackRange) + "블록</#D9B94F>");
         lines.add("<#D9B94F>공격 속도: -" + attackIntervalReductionTicks + "틱 / -" + maximumAttackIntervalReductionTicks + "틱</#D9B94F><white> / " +
                 "</white><#D9B94F>공격 범위: " + Math.round(currentSplashRadius) + "블록 / " + Math.round(maximumSplashRadius) + "블록</#D9B94F>");
@@ -745,10 +751,6 @@ public final class EndTower extends EntityBackedTower {
 
     private double shulkerDamageReduction() {
         return Math.max(0.0, Math.min(1.0, TowerBalanceRuntime.ability(type().id(), "damageReduction")));
-    }
-
-    private double cappedAttackDamage(double damage) {
-        return Math.min(attackDamageCap(), Math.max(0.0, damage));
     }
 
     private double attackDamageCap() {
