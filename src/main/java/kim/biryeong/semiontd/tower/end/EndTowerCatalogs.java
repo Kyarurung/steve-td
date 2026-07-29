@@ -11,6 +11,12 @@ public final class EndTowerCatalogs {
     }
 
     public static void register() {
+        synchronized (ProductionTowerCatalog.class) {
+            registerAll();
+        }
+    }
+
+    private static void registerAll() {
         registerTower(EndTowers.BASE_END_TOWER, 1);
         registerTower(EndTowers.T1_ENDERMITE_TOWER, 1);
         registerTower(EndTowers.T2_ENDERMAN_TOWER, 2);

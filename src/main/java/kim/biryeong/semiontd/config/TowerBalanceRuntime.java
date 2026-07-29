@@ -5,7 +5,7 @@ import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
 
 public final class TowerBalanceRuntime {
     private static final TowerBalanceConfig DEFAULT_CONFIG = TowerBalanceConfig.defaultConfig();
-    private static TowerBalanceConfig current = DEFAULT_CONFIG;
+    private static volatile TowerBalanceConfig current = DEFAULT_CONFIG;
 
     private TowerBalanceRuntime() {
     }
@@ -15,7 +15,9 @@ public final class TowerBalanceRuntime {
     }
 
     public static void apply(TowerBalanceConfig config) {
-        current = config == null ? DEFAULT_CONFIG : config;
+        TowerBalanceConfig next = config == null ? DEFAULT_CONFIG : config;
+        next.validateForRuntime();
+        current = next;
     }
 
     public static TowerType resolve(TowerType defaults) {

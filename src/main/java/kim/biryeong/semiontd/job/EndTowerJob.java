@@ -7,7 +7,6 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.network.chat.Component;
@@ -62,15 +61,15 @@ public final class EndTowerJob extends SemionJob {
     }
 
     private static String seconds(String key) {
-        return number(TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key) / 20.0) + "초";
+        return number(TowerBalanceRuntime.ability(EndTowers.CONFIG_ID, key) / 20.0) + "초";
     }
 
     private static String percent(String key) {
-        return number(TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key) * 100.0) + "%";
+        return number(TowerBalanceRuntime.ability(EndTowers.CONFIG_ID, key) * 100.0) + "%";
     }
 
     private static String number(String key) {
-        return number(TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key));
+        return number(TowerBalanceRuntime.ability(EndTowers.CONFIG_ID, key));
     }
 
     private static String number(double value) {

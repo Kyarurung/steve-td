@@ -77,10 +77,15 @@ public abstract class Tower {
         if (type == null || !this.type.id().equals(type.id())) {
             return;
         }
+        double previousHealth = health;
         this.type = type;
-        this.maxHealth = type.maxHealth();
-        syncHealth(health);
+        refreshMaxHealthAfterTypeChange(lane);
+        syncHealth(previousHealth);
         onStateChanged(lane);
+    }
+
+    protected void refreshMaxHealthAfterTypeChange(PlayerLane lane) {
+        this.maxHealth = type.maxHealth();
     }
 
     public UUID ownerPlayer() {
@@ -121,7 +126,7 @@ public abstract class Tower {
 
     public void syncMaxHealth(double maxHealth, boolean healIncrease) {
         double previousMaxHealth = currentMaxHealth();
-        this.maxHealth = Math.max(1.0, maxHealth);
+        this.maxHealth = finitePositive(maxHealth, 1.0);
         double nextMaxHealth = currentMaxHealth();
         if (healIncrease && nextMaxHealth > previousMaxHealth) {
             health = Math.min(nextMaxHealth, health + (nextMaxHealth - previousMaxHealth));
@@ -131,11 +136,19 @@ public abstract class Tower {
     }
 
     public void syncEffectMaxHealth(double maxHealth, double traitMaxHealthBonus) {
+        syncEffectMaxHealth(maxHealth, traitMaxHealthBonus, true);
+    }
+
+    public void syncEffectMaxHealth(
+            double maxHealth,
+            double traitMaxHealthBonus,
+            boolean healIncrease
+    ) {
         double previousMaxHealth = currentMaxHealth();
-        this.maxHealth = Math.max(1.0, maxHealth);
-        this.traitMaxHealthBonus = Math.max(0.0, traitMaxHealthBonus);
+        this.maxHealth = finitePositive(maxHealth, 1.0);
+        this.traitMaxHealthBonus = finiteNonNegative(traitMaxHealthBonus);
         double nextMaxHealth = currentMaxHealth();
-        if (nextMaxHealth > previousMaxHealth) {
+        if (healIncrease && nextMaxHealth > previousMaxHealth) {
             health = Math.min(nextMaxHealth, health + (nextMaxHealth - previousMaxHealth));
         } else {
             syncHealth(health);
@@ -314,26 +327,85 @@ public abstract class Tower {
     }
 
     public boolean damageTarget(SemionTowerEntity towerEntity, SemionMonsterEntity target, double baseDamage) {
-        Monster runtimeMonster = target.runtimeMonster();
+        return damageTargetResult(towerEntity, target, baseDamage).killed();
+    }
+
+    public DamageResult damageTargetResult(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage
+    ) {
+        if (towerEntity == null || target == null || !Double.isFinite(baseDamage)) {
+            return DamageResult.NONE;
+        }
         double traitDamage = towerEntity.applyTraitOutgoingDamageAgainst(target, baseDamage);
         double outgoingDamage = modifyOutgoingDamage(towerEntity, target, traitDamage);
-        double damageAmount = target.towerDamageTaken(outgoingDamage);
-        if (damageAmount <= 0.0) {
-            return false;
+        return damageResolvedTargetResult(towerEntity, target, outgoingDamage);
+    }
+
+    /**
+     * Applies damage that already passed the source tower's outgoing modifiers.
+     * Target-side mitigation is still evaluated for each target.
+     */
+    public DamageResult damageResolvedTargetResult(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double outgoingDamage
+    ) {
+        if (towerEntity == null
+                || target == null
+                || !Double.isFinite(outgoingDamage)
+                || outgoingDamage <= 0.0) {
+            return DamageResult.NONE;
         }
-        double previousHealth = runtimeMonster == null ? 0.0 : runtimeMonster.health();
+        Monster runtimeMonster = target.runtimeMonster();
+        double damageAmount = target.towerDamageTaken(outgoingDamage);
+        if (!Double.isFinite(damageAmount) || damageAmount <= 0.0) {
+            return DamageResult.NONE;
+        }
+        double previousHealth = runtimeMonster == null ? target.getHealth() : runtimeMonster.health();
         boolean killed = target.applyRuntimeDamage(
                 towerEntity.damageSources().mobAttack(towerEntity),
                 damageAmount,
                 DamageType.PHYSICAL
         );
-        if (runtimeMonster != null && runtimeMonster.health() < previousHealth) {
+        double currentHealth = runtimeMonster == null ? target.getHealth() : runtimeMonster.health();
+        double dealtDamage = Math.max(0.0, previousHealth - currentHealth);
+        if (runtimeMonster != null && dealtDamage > 0.0) {
             runtimeMonster.recordLastHit(ownerPlayer, KillSourceKind.TOWER);
         }
-        return killed;
+        return new DamageResult(killed, dealtDamage, outgoingDamage);
     }
 
     public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
+    }
+
+    public void onAttackResolved(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage,
+            double dealtDamage,
+            boolean killedTarget
+    ) {
+        onAttack(towerEntity, target, attemptedDamage, killedTarget);
+    }
+
+    public void onAttackResolved(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double dealtDamage,
+            boolean killedTarget
+    ) {
+        onAttackResolved(
+                towerEntity,
+                target,
+                attemptedDamage,
+                attemptedDamage,
+                dealtDamage,
+                killedTarget
+        );
     }
 
     public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
@@ -458,4 +530,21 @@ public abstract class Tower {
     }
 
     protected abstract boolean execute(PlayerLane lane);
+
+    private static double finitePositive(double value, double fallback) {
+        return Double.isFinite(value) && value > 0.0 ? value : fallback;
+    }
+
+    private static double finiteNonNegative(double value) {
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
+    }
+
+    public record DamageResult(boolean killed, double dealtDamage, double outgoingDamage) {
+        public static final DamageResult NONE = new DamageResult(false, 0.0, 0.0);
+
+        public DamageResult {
+            dealtDamage = Double.isFinite(dealtDamage) && dealtDamage > 0.0 ? dealtDamage : 0.0;
+            outgoingDamage = Double.isFinite(outgoingDamage) && outgoingDamage > 0.0 ? outgoingDamage : 0.0;
+        }
+    }
 }

@@ -19,18 +19,20 @@ public final class ProductionTowerCatalogs {
     }
 
     public static void reloadBuiltIns(TowerBalanceConfig config) {
-        TowerBalanceRuntime.apply(config);
-        ProductionTowerCatalog.clear();
-        JobRegistry.registerBuiltIns();
-        VillagerTowerCatalogs.register();
-        UndeadTowerCatalogs.register();
-        AnimalTowerCatalogs.register();
-        WarlockTowerCatalogs.register();
-        LegionTowerCatalogs.register();
-        ResonanceTowerCatalogs.register();
-        IllagerTowerCatalogs.register();
-        NetherTowerCatalogs.register();
-        EndTowerCatalogs.register();
-        OceanTowerCatalogs.register();
+        synchronized (ProductionTowerCatalog.class) {
+            TowerBalanceRuntime.apply(config);
+            ProductionTowerCatalog.clear();
+            JobRegistry.registerBuiltIns();
+            VillagerTowerCatalogs.register();
+            UndeadTowerCatalogs.register();
+            AnimalTowerCatalogs.register();
+            WarlockTowerCatalogs.register();
+            LegionTowerCatalogs.register();
+            ResonanceTowerCatalogs.register();
+            IllagerTowerCatalogs.register();
+            NetherTowerCatalogs.register();
+            EndTowerCatalogs.register();
+            OceanTowerCatalogs.register();
+        }
     }
 }

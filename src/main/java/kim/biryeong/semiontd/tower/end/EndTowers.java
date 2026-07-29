@@ -1,11 +1,9 @@
 package kim.biryeong.semiontd.tower.end;
 
-import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.tower;
 import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
 
 import java.util.List;
 import java.util.Set;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.visual.BlockDisplayVisual;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.entity.visual.ShulkerVisual;
@@ -17,6 +15,8 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Blocks;
 
 public final class EndTowers {
+    public static final String CONFIG_ID = "end_global";
+
     public static final EntityVisual DRAGON_EGG_VISUAL = BlockDisplayVisual.builder(Blocks.DRAGON_EGG.defaultBlockState())
             .build();
     public static final EntityVisual PHANTOM_VISUAL = EntityVisual.builder(byId(EntityType.PHANTOM))
@@ -24,119 +24,103 @@ public final class EndTowers {
     public static final EntityVisual DRAGON_VISUAL = EntityVisual.builder(byId(EntityType.ENDER_DRAGON))
             .build();
 
-    public static final TowerType BASE_END_TOWER = tower(
-            "base_ender_dragon",
-            "엔더 드래곤",
-            0,
-            200.0,
-            5.0,
-            10.0,
-            15,
-            100,
-            DRAGON_EGG_VISUAL,
-            List.of(
-                    "<gray>엔더 드래곤이 부화하는 핵심 타워입니다.</gray>"
-            )
-    );
+    public static final TowerType BASE_END_TOWER = TowerType.builder("base_ender_dragon", "엔더 드래곤")
+            .mineralCost(0)
+            .maxHealth(200.0)
+            .range(5.0)
+            .damage(10.0)
+            .attackIntervalTicks(15)
+            .aggroPriority(100)
+            .visual(DRAGON_EGG_VISUAL)
+            .description(dragonDescription())
+            .build();
 
-    public static final TowerType T1_ENDERMITE_TOWER = tower(
-            "t1_endermite_tower",
-            "엔더 마이트",
-            50,
-            50,
-            0,
-            10,
-            20,
-            10,
-            byId(EntityType.ENDERMITE),
-            List.of(
+    public static final TowerType T1_ENDERMITE_TOWER = TowerType.builder("t1_endermite_tower", "엔더 마이트")
+            .mineralCost(50)
+            .maxHealth(50)
+            .range(0)
+            .damage(10)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.ENDERMITE)))
+            .description(List.of(
                     "<gray>공격력이 높은 엔더마이트 입니다.</gray>",
                     "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
-            )
-    );
+            ))
+            .build();
 
-    public static final TowerType T2_ENDERMAN_TOWER = tower(
-            "t2_enderman_tower",
-            "엔더맨",
-            80,
-            50,
-            0,
-            15,
-            20,
-            10,
-            byId(EntityType.ENDERMAN),
-            List.of(
+    public static final TowerType T2_ENDERMAN_TOWER = TowerType.builder("t2_enderman_tower", "엔더맨")
+            .mineralCost(80)
+            .maxHealth(50)
+            .range(0)
+            .damage(15)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.ENDERMAN)))
+            .description(List.of(
                     "<gray>공격력이 높은 엔더맨 입니다.</gray>",
                     "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
-            )
-    );
+            ))
+            .build();
 
-    public static final TowerType T3_END_CRYSTAL_TOWER = tower(
-            "t3_end_crystal_tower",
-            "엔드 수정",
-            130,
-            50,
-            0,
-            20,
-            20,
-            10,
-            byId(EntityType.END_CRYSTAL),
-            List.of(
+    public static final TowerType T3_END_CRYSTAL_TOWER = TowerType.builder("t3_end_crystal_tower", "엔드 수정")
+            .mineralCost(130)
+            .maxHealth(50)
+            .range(0)
+            .damage(20)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.END_CRYSTAL)))
+            .description(List.of(
                     "<gray>공격력이 매우 높은 엔드 수정 입니다.</gray>",
                     "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
-            )
-    );
+            ))
+            .build();
 
-    public static final TowerType T1_SHULKER_TOWER = tower(
-            "t1_shulker_tower",
-            "셜커",
-            50,
-            100,
-            0,
-            5,
-            20,
-            10,
-            byId(EntityType.SHULKER),
-            List.of(
+    public static final TowerType T1_SHULKER_TOWER = TowerType.builder("t1_shulker_tower", "셜커")
+            .mineralCost(50)
+            .maxHealth(100)
+            .range(0)
+            .damage(5)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.SHULKER)))
+            .description(List.of(
                     "<gray>체력이 높은 셜커 입니다.</gray>",
                     "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
                     "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
-            )
-    );
+            ))
+            .build();
 
-    public static final TowerType T2_SHULKER_TOWER = tower(
-            "t2_shulker_tower",
-            "견고한 셜커",
-            80,
-            150,
-            0,
-            5,
-            20,
-            10,
-            ShulkerVisual.builder().color(DyeColor.PURPLE).build(),
-            List.of(
+    public static final TowerType T2_SHULKER_TOWER = TowerType.builder("t2_shulker_tower", "견고한 셜커")
+            .mineralCost(80)
+            .maxHealth(150)
+            .range(0)
+            .damage(5)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(ShulkerVisual.builder().color(DyeColor.PURPLE).build())
+            .description(List.of(
                     "<gray>체력이 높은 견고한 셜커 입니다.</gray>",
                     "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
                     "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
-            )
-    );
+            ))
+            .build();
 
-    public static final TowerType T3_SHULKER_TOWER = tower(
-            "t3_shulker_tower",
-            "완강한 셜커",
-            130,
-            200,
-            0,
-            5,
-            20,
-            10,
-            ShulkerVisual.builder().color(DyeColor.BLACK).build(),
-            List.of(
+    public static final TowerType T3_SHULKER_TOWER = TowerType.builder("t3_shulker_tower", "완강한 셜커")
+            .mineralCost(130)
+            .maxHealth(200)
+            .range(0)
+            .damage(5)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(ShulkerVisual.builder().color(DyeColor.BLACK).build())
+            .description(List.of(
                     "<gray>체력이 매우 높은 완강한 셜커 입니다.</gray>",
                     "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
                     "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
-            )
-    );
+            ))
+            .build();
 
 
 
@@ -158,7 +142,20 @@ public final class EndTowers {
     );
 
     static {
-        List<String> dragonDescription = List.of(
+        TowerDescriptionRegistry.registerTemplate(BASE_END_TOWER, BASE_END_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T1_ENDERMITE_TOWER, T1_ENDERMITE_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T2_ENDERMAN_TOWER, T2_ENDERMAN_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T3_END_CRYSTAL_TOWER, T3_END_CRYSTAL_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T1_SHULKER_TOWER, T1_SHULKER_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T2_SHULKER_TOWER, T2_SHULKER_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T3_SHULKER_TOWER, T3_SHULKER_TOWER.description());
+    }
+
+    private EndTowers() {
+    }
+
+    private static List<String> dragonDescription() {
+        return List.of(
                 "<gray>알로 소환되며, 라운드 시작 시 <#B77DE8>아기 드래곤</#B77DE8>으로 변합니다.</gray>",
                 "<gray><#E66F6F>최대 체력 {ability.end_global.dragonEvolutionMaxHealth:integer}</#E66F6F> 이상이면 <#B77DE8>엔더 드래곤</#B77DE8>으로 진화합니다.</gray>",
                 "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 {ability.end_global.phantomScaleHealthInterval:integer}</#E66F6F>당 {ability.end_global.phantomScalePerInterval:number}씩 증가합니다.</gray>",
@@ -176,37 +173,6 @@ public final class EndTowers {
                 "<gray><#B77DE8>엔더 드래곤</#B77DE8> 진화 시 <#D94343>최종 피해</#D94343>: <#D94343>+{ability.end_global.dragonFinalDamageBonus:percent_integer}</#D94343> / <#C892E3>저항</#C892E3>: <#C892E3>+{ability.end_global.dragonIncomeDebuffResistance:percent_integer}</#C892E3></gray>",
                 "<gray><#D9B94F>추가 사거리</#D9B94F>: <#D9B94F>+{ability.end_global.dragonAttackRangeBonus:blocks}</#D9B94F> / <#D94343>공격력 증가율</#D94343>: <#D94343>+{ability.end_global.dragonDamageBonus:percent_integer}</#D94343></gray>"
         );
-        TowerDescriptionRegistry.registerTemplate(BASE_END_TOWER, dragonDescription);
-        TowerDescriptionRegistry.registerTemplate(T1_ENDERMITE_TOWER, List.of(
-                "<gray>공격력이 높은 엔더마이트 입니다.</gray>",
-                "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
-        ));
-        TowerDescriptionRegistry.registerTemplate(T2_ENDERMAN_TOWER, List.of(
-                "<gray>공격력이 높은 엔더맨 입니다.</gray>",
-                "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
-        ));
-        TowerDescriptionRegistry.registerTemplate(T3_END_CRYSTAL_TOWER, List.of(
-                "<gray>공격력이 매우 높은 엔드 수정 입니다.</gray>",
-                "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
-        ));
-        TowerDescriptionRegistry.registerTemplate(T1_SHULKER_TOWER, List.of(
-                "<gray>체력이 높은 셜커 입니다.</gray>",
-                "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
-                "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
-        ));
-        TowerDescriptionRegistry.registerTemplate(T2_SHULKER_TOWER, List.of(
-                "<gray>체력이 높은 견고한 셜커 입니다.</gray>",
-                "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
-                "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
-        ));
-        TowerDescriptionRegistry.registerTemplate(T3_SHULKER_TOWER, List.of(
-                "<gray>체력이 매우 높은 완강한 셜커 입니다.</gray>",
-                "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
-                "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
-        ));
-    }
-
-    private EndTowers() {
     }
 
     public static boolean isEndTower(TowerType type) {
@@ -233,21 +199,6 @@ public final class EndTowers {
         return ProductionTowerCatalog.entry(type)
                 .map(ProductionTowerCatalog.CatalogEntry::tier)
                 .orElse(0);
-    }
-
-    public static double phantomScaleForMaxHealth(double maxHealth) {
-        double baseScale = Math.max(0.0, global("phantomBaseScale"));
-        double healthInterval = global("phantomScaleHealthInterval");
-        double scalePerInterval = Math.max(0.0, global("phantomScalePerInterval"));
-        double scaleCap = Math.max(0.0, global("phantomScaleCap"));
-        double growth = healthInterval > 0.0
-                ? Math.max(0.0, maxHealth) / healthInterval * scalePerInterval
-                : 0.0;
-        return Math.min(scaleCap, baseScale + growth);
-    }
-
-    private static double global(String key) {
-        return TowerBalanceRuntime.ability(EndTower.CONFIG_ID, key);
     }
 
 }

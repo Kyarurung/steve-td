@@ -10897,7 +10897,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 .findFirst()
                 .orElseThrow()
                 .base();
-        if (!assertClose(context, EndTowers.phantomScaleForMaxHealth(tower.currentMaxHealth()), clientScale, "Phantom growth should remain visible to clients.")) {
+        if (!assertClose(context, tower.phantomScaleForMaxHealth(tower.currentMaxHealth()), clientScale, "Phantom growth should remain visible to clients.")) {
             return;
         }
         if (entity.runtimeTower() != tower) {
@@ -10906,13 +10906,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         tower.syncMaxHealth(1999.99, true);
         tower.tick(null);
-        if (!assertEquals(context, kim.biryeong.semiontd.tower.end.EndTowerState.PHANTOM, tower.state(), "Exactly 2000 max health must remain PHANTOM.")) {
+        if (!assertEquals(context, kim.biryeong.semiontd.tower.end.EndTowerState.PHANTOM, tower.state(), "Max health below 2000 must remain PHANTOM.")) {
             return;
         }
         tower.syncMaxHealth(2000.0, true);
         tower.tick(null);
         entity.syncTowerState(tower);
-        if (!assertEquals(context, EntityType.ENDER_DRAGON, entity.getPolymerEntityType(null), "More than 2000 max health should evolve the Phantom into a vanilla Ender Dragon proxy.")) {
+        if (!assertEquals(context, EntityType.ENDER_DRAGON, entity.getPolymerEntityType(null), "At least 2000 max health should evolve the Phantom into a vanilla Ender Dragon proxy.")) {
             return;
         }
         if (entity.hasBilModelHolder()) {

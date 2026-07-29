@@ -2,7 +2,9 @@ package kim.biryeong.semiontd.config;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.rating.RatingConfig;
 import kim.biryeong.semiontd.tower.end.EndTowers;
@@ -195,6 +197,7 @@ final class SemionConfigLoaderTest {
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         assertTrue(written.contains("t2_strong_goat_tower"));
         assertTrue(written.contains("cloneDamageBonus"));
+        assertTrue(written.contains("\"schemaVersion\": 2"));
     }
 
     @Test
@@ -333,6 +336,148 @@ final class SemionConfigLoaderTest {
         assertEquals(-1.0, balance.ability("end_global", "splashRadiusPerStep", -1.0), 0.0001);
         assertEquals(0.60, balance.ability("end_global", "splashDamageRatio", -1.0), 0.0001);
         assertEquals(0.10, balance.ability("end_global", "lifeStealCap", -1.0), 0.0001);
+    }
+
+    @Test
+    void loadPreservesModernEndValuesThatMatchHistoricalDefaults() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+            {
+              "towers": {
+                "base_ender_dragon": {
+                  "damage": 5.0,
+                  "attackIntervalTicks": 20
+                }
+              },
+              "upgradeCosts": {
+                "t1_endermite_tower->t2_enderman_tower": 75
+              },
+              "abilities": {
+                "t2_shulker_tower": {
+                  "damageReduction": 0.15
+                },
+                "end_global": {
+                  "damageReductionPerStep": 0.025,
+                  "lifeStealCap": 0.20
+                }
+              }
+            }
+            """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+        TowerBalanceConfig balance = configs.towerBalance();
+        assertEquals(5.0, balance.towers().get(EndTowers.BASE_END_TOWER.id()).damage(), 0.0001);
+        assertEquals(20, balance.towers().get(EndTowers.BASE_END_TOWER.id()).attackIntervalTicks());
+        assertEquals(75, balance.upgradeCost(
+                EndTowers.T1_ENDERMITE_TOWER.id(),
+                EndTowers.T2_ENDERMAN_TOWER.id(),
+                -1
+        ));
+        assertEquals(0.15, balance.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
+        assertEquals(0.025, balance.ability("end_global", "damageReductionPerStep", -1.0), 0.0001);
+        assertEquals(0.20, balance.ability("end_global", "lifeStealCap", -1.0), 0.0001);
+    }
+
+    @Test
+    void loadRetainsLastKnownGoodTowerBalanceWhenEndBalanceIsInvalid() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+            {
+              "towers": {
+                "t1_goat_tower": {
+                  "mineralCost": 99
+                }
+              },
+              "abilities": {
+                "end_global": {
+                  "absorptionDurationTicks": 0.0
+                }
+              }
+            }
+            """);
+
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, TowerBalanceConfig.TowerStats> lastKnownTowers =
+                new LinkedHashMap<>(defaults.towers());
+        TowerBalanceConfig.TowerStats goat =
+                lastKnownTowers.get(LegionTowers.T1_GOAT_TOWER.id());
+        lastKnownTowers.put(
+                LegionTowers.T1_GOAT_TOWER.id(),
+                new TowerBalanceConfig.TowerStats(
+                        999L,
+                        goat.maxHealth(),
+                        goat.range(),
+                        goat.damage(),
+                        goat.attackIntervalTicks(),
+                        goat.aggroPriority()
+                )
+        );
+        TowerBalanceConfig lastKnownGood = new TowerBalanceConfig(
+                lastKnownTowers,
+                defaults.upgradeCosts(),
+                defaults.abilities(),
+                defaults.illusionCloneQueue(),
+                defaults.villagerAdv()
+        );
+
+        TowerBalanceConfig balance = SemionConfigLoader.load(
+                tempDir,
+                LoggerFactory.getLogger("test"),
+                lastKnownGood
+        ).towerBalance();
+
+        assertEquals(
+                lastKnownGood.ability("end_global", "absorptionDurationTicks", -1.0),
+                balance.ability("end_global", "absorptionDurationTicks", -1.0),
+                0.0001
+        );
+        assertEquals(99L, balance.towers().get(LegionTowers.T1_GOAT_TOWER.id()).mineralCost());
+    }
+
+    @Test
+    void loadRepairsNegativeEndUpgradeCostWithoutDiscardingUnrelatedChanges() throws Exception {
+        Files.createDirectories(tempDir);
+        String endUpgradeKey = TowerBalanceConfig.upgradeKey(
+                EndTowers.T1_ENDERMITE_TOWER.id(),
+                EndTowers.T2_ENDERMAN_TOWER.id()
+        );
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+            {
+              "schemaVersion": 2,
+              "towers": {
+                "t1_goat_tower": {
+                  "mineralCost": 99
+                }
+              },
+              "upgradeCosts": {
+                "%s": -50
+              }
+            }
+            """.formatted(endUpgradeKey));
+
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig balance = SemionConfigLoader.load(
+                tempDir,
+                LoggerFactory.getLogger("test")
+        ).towerBalance();
+
+        assertEquals(
+                defaults.upgradeCost(
+                        EndTowers.T1_ENDERMITE_TOWER.id(),
+                        EndTowers.T2_ENDERMAN_TOWER.id(),
+                        -1
+                ),
+                balance.upgradeCost(
+                        EndTowers.T1_ENDERMITE_TOWER.id(),
+                        EndTowers.T2_ENDERMAN_TOWER.id(),
+                        -1
+                )
+        );
+        assertEquals(
+                99L,
+                balance.towers().get(LegionTowers.T1_GOAT_TOWER.id()).mineralCost()
+        );
+        assertFalse(Files.readString(tempDir.resolve("tower_balance.json")).contains("-50"));
     }
 
     @Test
