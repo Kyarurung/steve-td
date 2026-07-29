@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.game.MatchId;
+import kim.biryeong.semiontd.game.PlayerMatchStatsSnapshot;
 import kim.biryeong.semiontd.game.TeamId;
 import org.junit.jupiter.api.Test;
 
@@ -129,6 +130,29 @@ final class EloRatingCalculatorTest {
                 .toList());
     }
 
+    @Test
+    void weakContributionDoesNotIncreaseLossAndPerfectDefenseReducesIt() {
+        RatingMatchResult weakLoss = new EloRatingCalculator().calculate(new RatingMatchInput(
+                new MatchId(6L),
+                1000L,
+                List.of(
+                        participant("perfect-winner", TeamId.RED, true, defenseStats(100.0, 0.0)),
+                        participant("weak-loser", TeamId.BLUE, false, defenseStats(100.0, 100.0))
+                )
+        ));
+        RatingMatchResult perfectLoss = new EloRatingCalculator().calculate(new RatingMatchInput(
+                new MatchId(7L),
+                1000L,
+                List.of(
+                        participant("weak-winner", TeamId.RED, true, defenseStats(100.0, 100.0)),
+                        participant("perfect-loser", TeamId.BLUE, false, defenseStats(100.0, 0.0))
+                )
+        ));
+
+        assertEquals(-16.0, weakLoss.adjustments().get(1).muDelta(), 0.000001);
+        assertEquals(-10.2, perfectLoss.adjustments().get(1).muDelta(), 0.000001);
+    }
+
     private static RatingParticipant participant(String name, TeamId teamId, boolean winner) {
         UUID playerId = UUID.nameUUIDFromBytes(name.getBytes());
         return new RatingParticipant(playerId, name, teamId, winner, PlayerRatingProfile.initial(playerId, name));
@@ -137,6 +161,41 @@ final class EloRatingCalculatorTest {
     private static RatingParticipant participant(String name, TeamId teamId, boolean winner, double placementScore) {
         UUID playerId = UUID.nameUUIDFromBytes(name.getBytes());
         return new RatingParticipant(playerId, name, teamId, winner, PlayerRatingProfile.initial(playerId, name), placementScore);
+    }
+
+    private static RatingParticipant participant(
+            String name,
+            TeamId teamId,
+            boolean winner,
+            PlayerMatchStatsSnapshot stats
+    ) {
+        UUID playerId = UUID.nameUUIDFromBytes(name.getBytes());
+        return new RatingParticipant(
+                playerId,
+                name,
+                teamId,
+                winner,
+                PlayerRatingProfile.initial(playerId, name),
+                stats
+        );
+    }
+
+    private static PlayerMatchStatsSnapshot defenseStats(double incomingThreat, double leakedThreat) {
+        return new PlayerMatchStatsSnapshot(
+                0,
+                0,
+                0,
+                0,
+                incomingThreat,
+                leakedThreat,
+                0.0,
+                0.0,
+                0,
+                0,
+                0,
+                0.0,
+                0.0
+        );
     }
 
     private static PlayerRatingProfile profile(UUID playerId, String name, double mu) {

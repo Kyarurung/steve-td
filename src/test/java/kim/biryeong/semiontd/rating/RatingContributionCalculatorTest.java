@@ -70,6 +70,21 @@ final class RatingContributionCalculatorTest {
     }
 
     @Test
+    void defenseContributionUsesTheWholeMatchAsItsBaseline() {
+        RatingContributionCalculator calculator = new RatingContributionCalculator(RatingConfig.defaultConfig());
+        RatingMatchInput input = input(
+                participant("perfect", TeamId.RED, false, attributionStats(0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0)),
+                participant("leaker", TeamId.BLUE, false, attributionStats(0, 0, 0, 0, 100, 100, 0, 0, 0, 0, 0, 0, 0))
+        );
+
+        RatingContributionBreakdown perfect = calculator.breakdown(input, input.participants().get(0));
+        RatingContributionBreakdown leaker = calculator.breakdown(input, input.participants().get(1));
+
+        assertTrue(perfect.defenseScore() > 1.0);
+        assertTrue(leaker.defenseScore() < 1.0);
+    }
+
+    @Test
     void zeroContributionScoresBelowAverageWhenBaselineExists() {
         RatingContributionCalculator calculator = new RatingContributionCalculator(RatingConfig.defaultConfig());
         RatingMatchInput fallbackInput = input(

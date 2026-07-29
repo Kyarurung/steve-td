@@ -116,7 +116,8 @@ final class SemionConfigLoaderTest {
                   "defenseContributionWeight": 0.25,
                   "pressureContributionWeight": 0.25,
                   "economyContributionWeight": 0.25,
-                  "assistContributionWeight": 0.25
+                  "assistContributionWeight": 0.25,
+                  "perfectDefenseLossMultiplier": 0.6
                 }
                 """);
 
@@ -127,6 +128,7 @@ final class SemionConfigLoaderTest {
         assertEquals(25, configs.rating().leaderboardLimit());
         assertEquals(false, configs.rating().teamEloMatchmakingEnabled());
         assertEquals(false, configs.rating().contributionWeightingEnabled());
+        assertEquals(0.6, configs.rating().perfectDefenseLossMultiplier());
     }
 
     @Test
@@ -155,8 +157,10 @@ final class SemionConfigLoaderTest {
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 
         assertEquals(true, configs.rating().teamEloMatchmakingEnabled());
+        assertEquals(0.75, configs.rating().perfectDefenseLossMultiplier());
         String written = Files.readString(tempDir.resolve("rating.json"));
         assertTrue(written.contains("teamEloMatchmakingEnabled"));
+        assertTrue(written.contains("perfectDefenseLossMultiplier"));
     }
 
     @Test

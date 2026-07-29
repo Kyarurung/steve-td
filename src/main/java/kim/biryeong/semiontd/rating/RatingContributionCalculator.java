@@ -19,7 +19,7 @@ public final class RatingContributionCalculator {
                 .toList();
         List<RatingParticipant> matchParticipants = input.participants();
         PlayerMatchStatsSnapshot stats = participant.stats();
-        double defenseScore = defenseScore(stats, teamParticipants);
+        double defenseScore = defenseScore(stats, matchParticipants);
         double pressureScore = pressureScore(stats, matchParticipants);
         double economyScore = economyScore(stats, teamParticipants);
         double assistScore = assistScore(stats, matchParticipants);
@@ -37,8 +37,8 @@ public final class RatingContributionCalculator {
         );
     }
 
-    private static double defenseScore(PlayerMatchStatsSnapshot stats, List<RatingParticipant> teamParticipants) {
-        if (teamParticipants.stream().anyMatch(participant -> participant.stats().ownLaneIncomingThreat() > 0.0)) {
+    private static double defenseScore(PlayerMatchStatsSnapshot stats, List<RatingParticipant> participants) {
+        if (participants.stream().anyMatch(participant -> participant.stats().ownLaneIncomingThreat() > 0.0)) {
             double defenseRate = 1.0;
             if (stats.ownLaneIncomingThreat() > 0.0) {
                 defenseRate = 1.0 - Math.min(stats.ownLaneLeakedThreat(), stats.ownLaneIncomingThreat())
@@ -48,7 +48,7 @@ public final class RatingContributionCalculator {
                     ? 0.0
                     : Math.min(0.10, (stats.incomingIncomeThreat() / stats.ownLaneIncomingThreat()) * 0.15);
             double adjustedDefense = defenseRate + difficultyBonus;
-            double teamAverage = teamParticipants.stream()
+            double teamAverage = participants.stream()
                     .mapToDouble(participant -> {
                         PlayerMatchStatsSnapshot candidate = participant.stats();
                         if (candidate.ownLaneIncomingThreat() <= 0.0) {
@@ -65,9 +65,9 @@ public final class RatingContributionCalculator {
             return ratio(adjustedDefense, teamAverage);
         }
         return weightedAverage(
-                ratio(stats.killMinerals(), averageKillMinerals(teamParticipants)),
+                ratio(stats.killMinerals(), averageKillMinerals(participants)),
                 0.70,
-                ratio(stats.monsterKills(), averageMonsterKills(teamParticipants)),
+                ratio(stats.monsterKills(), averageMonsterKills(participants)),
                 0.30
         );
     }

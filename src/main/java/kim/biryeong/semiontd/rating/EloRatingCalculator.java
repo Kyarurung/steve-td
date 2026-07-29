@@ -8,6 +8,7 @@ public final class EloRatingCalculator implements RatingCalculator {
     private static final double ELO_SCALE = 400.0;
     private final double kFactor;
     private final RatingContributionCalculator contributionCalculator;
+    private final double perfectDefenseLossMultiplier;
 
     public EloRatingCalculator() {
         this(RatingConfig.defaultConfig());
@@ -18,8 +19,7 @@ public final class EloRatingCalculator implements RatingCalculator {
     }
 
     public EloRatingCalculator(double kFactor) {
-        this.kFactor = validateKFactor(kFactor);
-        this.contributionCalculator = new RatingContributionCalculator(new RatingConfig(
+        this(new RatingConfig(
                 true,
                 kFactor,
                 PlayerRatingProfile.INITIAL_DISPLAY_ELO,
@@ -43,6 +43,7 @@ public final class EloRatingCalculator implements RatingCalculator {
         this.contributionCalculator = contributionCalculator == null
                 ? new RatingContributionCalculator(config)
                 : contributionCalculator;
+        this.perfectDefenseLossMultiplier = config.perfectDefenseLossMultiplier();
     }
 
     @Override
@@ -59,9 +60,14 @@ public final class EloRatingCalculator implements RatingCalculator {
             double expectedScore = expectedScore(before.mu(), opponentAverage);
             double baseDelta = teamBalancedBaseDelta(kFactor, actualScore, expectedScore, input, participant);
             RatingContributionBreakdown contribution = contributionCalculator.breakdown(input, participant);
-            double multiplier = baseDelta >= 0.0
-                    ? contribution.appliedMultiplier()
-                    : 2.0 - contribution.appliedMultiplier();
+            double multiplier = contribution.appliedMultiplier();
+            if (baseDelta < 0.0) {
+                multiplier = Math.min(1.0, 2.0 - multiplier);
+                if (participant.stats().ownLaneIncomingThreat() > 0.0
+                        && participant.stats().ownLaneLeakedThreat() == 0.0) {
+                    multiplier *= perfectDefenseLossMultiplier;
+                }
+            }
             double muDelta = baseDelta * multiplier;
             double afterMu = before.mu() + muDelta;
             int afterDisplayElo = (int) Math.round(afterMu);

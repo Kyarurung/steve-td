@@ -171,8 +171,14 @@ public final class SemionConfigLoader {
             RatingConfig loaded = GSON.fromJson(json, RatingConfig.class);
             RatingConfig value = loaded == null ? defaults : loaded;
             boolean teamEloMatchmakingMissing = !hasObjectProperty(json, "teamEloMatchmakingEnabled");
+            boolean perfectDefenseLossMultiplierMissing = !hasObjectProperty(json, "perfectDefenseLossMultiplier");
             if (teamEloMatchmakingMissing) {
                 value = value.withTeamEloMatchmakingEnabled(defaults.teamEloMatchmakingEnabled());
+            }
+            if (perfectDefenseLossMultiplierMissing) {
+                value = value.withPerfectDefenseLossMultiplier(defaults.perfectDefenseLossMultiplier());
+            }
+            if (teamEloMatchmakingMissing || perfectDefenseLossMultiplierMissing) {
                 write(path, value, logger);
             }
             return value;
