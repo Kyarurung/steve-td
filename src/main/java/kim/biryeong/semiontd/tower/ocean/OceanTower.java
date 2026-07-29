@@ -202,7 +202,7 @@ public final class OceanTower extends EntityBackedTower {
             double previousHealth,
             double currentHealth
     ) {
-        if (!OceanTowers.isTank(type()) || currentLane == null || currentHealth <= 0.0
+        if (deployedAtFinalDefense() || !OceanTowers.isTank(type()) || currentLane == null || currentHealth <= 0.0
                 || water <= 0.0 || transferCooldownTicks > 0) {
             return;
         }
@@ -258,6 +258,7 @@ public final class OceanTower extends EntityBackedTower {
         lines.add("물 " + oneDecimal(water));
         if (type().damage() > 0.0) {
             lines.add("물 공격력 " + percent(waterDamageMultiplier() - 1.0));
+            lines.add("물 " + oneDecimal(global("waterSoftCap")) + " 초과분은 공격력에 완만하게 반영");
             lines.add("공격당 물 -" + oneDecimal(value("attackWaterCost")));
         }
         if (OceanTowers.isSupport(type()) || OceanTowers.isHealer(type())) {
@@ -392,12 +393,16 @@ public final class OceanTower extends EntityBackedTower {
         return 1.0 + value("waterDamageCoefficient") * waterRoot();
     }
 
-    private double incomeWaterMultiplier() {
+    double incomeWaterMultiplier() {
         return 1.0 + global("incomeCoefficientMultiplier") * value("waterDamageCoefficient") * waterRoot();
     }
 
     private double waterRoot() {
-        return Math.sqrt(Math.max(0.0, water) / Math.max(EPSILON, global("waterScale")));
+        double softCap = Math.max(EPSILON, global("waterSoftCap"));
+        double effectiveWater = water <= softCap
+                ? Math.max(0.0, water)
+                : softCap + softCap * Math.log1p((water - softCap) / softCap);
+        return Math.sqrt(effectiveWater / Math.max(EPSILON, global("waterScale")));
     }
 
     private boolean isIncomeTarget(SemionMonsterEntity target) {

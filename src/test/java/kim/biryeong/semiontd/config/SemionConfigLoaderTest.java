@@ -196,9 +196,13 @@ final class SemionConfigLoaderTest {
         ));
         assertEquals(2.0, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("maxStacks"));
         assertEquals(0.065, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("cloneDamageBonus"));
+        assertEquals(1_000.0, towerBalance.ability("ocean_global", "waterSoftCap", -1.0));
+        assertEquals(2_500.0, towerBalance.ability("ocean_global", "waterSupplyStopThreshold", -1.0));
+        assertEquals(0.60, towerBalance.ability("ocean_global", "waterSupplyStackDecay", -1.0));
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         assertTrue(written.contains("t2_strong_goat_tower"));
         assertTrue(written.contains("cloneDamageBonus"));
+        assertTrue(written.contains("waterSupplyStopThreshold"));
     }
 
     @Test

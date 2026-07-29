@@ -19,12 +19,14 @@ import net.minecraft.world.level.block.Blocks;
 
 public final class OceanTowers {
     public static final TowerType T1_WATER = tower(
-            "ocean_water_t1", "물 타워", 25, 70.0, 0.0, 0.0, 20, -10,
+            "ocean_water_t1", "물 타워", 35, 70.0, 0.0, 0.0, 20, -10,
             BlockDisplayVisual.builder(Blocks.LIGHT.defaultBlockState()).build(),
             List.of(
                     "<gray>바다 전투 타워에 물을 공급하는 기본 시설입니다.</gray>",
                     "<green>웨이브 시작 시 {ability.supplyRadius:blocks} 안의 살아 있는 바다 전투 타워를 공급 대상으로 고정하고, 물 {ability.waveStartWater:number}을 즉시 공급합니다.</green>",
-                    "<green>웨이브 중에는 고정된 대상에게 초당 물 {ability.waterPerSupply:number}을 계속 공급합니다.</green>"
+                    "<green>웨이브 중에는 고정된 대상에게 초당 물 {ability.waterPerSupply:number}을 계속 공급합니다.</green>",
+                    "<yellow>같은 대상을 공급하는 물 타워 수가 늘어날수록 각 물 타워의 공급량에 중첩 감쇠가 적용됩니다.</yellow>",
+                    "<yellow>추가 연결 체감 계수는 {ability.ocean_global.waterSupplyStackDecay:percent}이며, 연결 수가 많을수록 타워당 평균 공급 효율이 감소합니다. 대상의 물이 충분히 차면 공급을 멈춥니다.</yellow>"
             )
     );
     public static final TowerType T2_SPRING_WATER = tower(
@@ -33,7 +35,9 @@ public final class OceanTowers {
             List.of(
                     "<gray>더 많은 물을 공급하는 중급 시설입니다.</gray>",
                     "<green>웨이브 시작 시 {ability.supplyRadius:blocks} 안의 살아 있는 바다 전투 타워를 공급 대상으로 고정하고, 물 {ability.waveStartWater:number}을 즉시 공급합니다.</green>",
-                    "<green>웨이브 중에는 고정된 대상에게 초당 물 {ability.waterPerSupply:number}을 계속 공급합니다.</green>"
+                    "<green>웨이브 중에는 고정된 대상에게 초당 물 {ability.waterPerSupply:number}을 계속 공급합니다.</green>",
+                    "<yellow>같은 대상을 공급하는 물 타워 수가 늘어날수록 각 물 타워의 공급량에 중첩 감쇠가 적용됩니다.</yellow>",
+                    "<yellow>추가 연결 체감 계수는 {ability.ocean_global.waterSupplyStackDecay:percent}이며, 연결 수가 많을수록 타워당 평균 공급 효율이 감소합니다. 대상의 물이 충분히 차면 공급을 멈춥니다.</yellow>"
             )
     );
     public static final TowerType T3_CURRENT = tower(
@@ -42,7 +46,9 @@ public final class OceanTowers {
             List.of(
                     "<gray>가장 많은 물을 공급하는 최종 시설입니다.</gray>",
                     "<green>웨이브 시작 시 {ability.supplyRadius:blocks} 안의 살아 있는 바다 전투 타워를 공급 대상으로 고정하고, 물 {ability.waveStartWater:number}을 즉시 공급합니다.</green>",
-                    "<green>웨이브 중에는 고정된 대상에게 초당 물 {ability.waterPerSupply:number}을 계속 공급합니다.</green>"
+                    "<green>웨이브 중에는 고정된 대상에게 초당 물 {ability.waterPerSupply:number}을 계속 공급합니다.</green>",
+                    "<yellow>같은 대상을 공급하는 물 타워 수가 늘어날수록 각 물 타워의 공급량에 중첩 감쇠가 적용됩니다.</yellow>",
+                    "<yellow>추가 연결 체감 계수는 {ability.ocean_global.waterSupplyStackDecay:percent}이며, 연결 수가 많을수록 타워당 평균 공급 효율이 감소합니다. 대상의 물이 충분히 차면 공급을 멈춥니다.</yellow>"
             )
     );
 
