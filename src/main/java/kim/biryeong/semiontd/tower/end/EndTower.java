@@ -30,8 +30,8 @@ import net.minecraft.world.phys.Vec3;
 
 public final class EndTower extends EntityBackedTower {
     public static final String CONFIG_ID = EndTowers.CONFIG_ID;
-    private static final double TRANSFER_PARTICLE_SOURCE_HEIGHT = 1.25;
-    private static final double TRANSFER_PARTICLE_TARGET_HEIGHT = 3.0;
+    private static final double TRANSFER_PARTICLE_SOURCE_HEIGHT = 2.25;
+    private static final double TRANSFER_PARTICLE_TARGET_HEIGHT = 4.0;
     private static final int TRANSFER_PARTICLE_INTERVAL_TICKS = 5;
     private static final List<String> SPLASH_THRESHOLD_KEYS = List.of(
             "endCrystalSplashThreshold1",
@@ -839,6 +839,10 @@ public final class EndTower extends EntityBackedTower {
 
     private boolean isDragon() {
         return isCoreTower() && state() == EndTowerState.DRAGON;
+    }
+
+    public boolean stopsBeforeFriendlyTowers() {
+        return isCoreTower() && state() == EndTowerState.PHANTOM;
     }
 
     private boolean isHatched() {

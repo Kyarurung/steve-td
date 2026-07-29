@@ -150,6 +150,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.end.EndTower;
+import kim.biryeong.semiontd.tower.end.EndTowerState;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerDataKey;
@@ -10937,6 +10938,82 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 0.9, entity.getBbHeight(), "End Crystal server collision height should be 0.9 blocks.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void babyEndDragonStopsAtFriendlyTowerButDragonCanAdvance(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        Vec3 babyPosition = Vec3.atBottomCenterOf(
+                context.absolutePos(new BlockPos(1, 2, 1))
+        );
+        EndTower endTower = new EndTower(
+                EndTowers.BASE_END_TOWER,
+                stableUuid("end-movement-blocker-owner"),
+                TeamId.RED,
+                1,
+                GridPosition.from(BlockPos.containing(babyPosition))
+        );
+        endTower.onWaveStarted(null, 1);
+        for (int tick = 0; tick < 200; tick++) {
+            endTower.tick(null);
+        }
+        if (!assertEquals(
+                context,
+                EndTowerState.PHANTOM,
+                endTower.state(),
+                "End core should hatch into the baby dragon before movement checks."
+        )) {
+            return;
+        }
+
+        SemionTowerEntity endEntity = new SemionTowerEntity(
+                SemionEntityTypes.TOWER,
+                context.getLevel()
+        );
+        endEntity.configure(endTower, null);
+        endEntity.setPos(babyPosition);
+        context.getLevel().addFreshEntity(endEntity);
+        spawnTowerEntity(
+                context,
+                TeamId.RED,
+                1,
+                babyPosition.add(1.0, -1.0, 0.0),
+                TestTowerTypes.TEST_DIRECT
+        );
+
+        double blockedX = endEntity.getX();
+        Vec3 targetPosition = babyPosition.add(8.0, 0.0, 0.0);
+        endEntity.moveTowardTarget(targetPosition, endEntity.chaseSpeedModifier());
+        if (!assertClose(
+                context,
+                blockedX,
+                endEntity.getX(),
+                "Baby dragon should stop when a friendly tower occupies its next position."
+        )) {
+            return;
+        }
+
+        endTower.syncMaxHealth(2000.0, true);
+        endTower.tick(null);
+        endEntity.syncTowerState(endTower);
+        if (!assertEquals(
+                context,
+                EndTowerState.DRAGON,
+                endTower.state(),
+                "End core should evolve before testing adult movement."
+        )) {
+            return;
+        }
+
+        endEntity.moveTowardTarget(targetPosition, endEntity.chaseSpeedModifier());
+        if (!assertTrue(
+                context,
+                endEntity.getX() > blockedX,
+                "Adult Ender Dragon should continue toward enemies through friendly towers."
+        )) {
             return;
         }
         context.succeed();

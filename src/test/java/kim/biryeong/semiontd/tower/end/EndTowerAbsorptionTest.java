@@ -845,6 +845,7 @@ class EndTowerAbsorptionTest {
         tower.tick(null);
 
         assertEquals(EndTowerState.PHANTOM, tower.state());
+        assertTrue(tower.stopsBeforeFriendlyTowers());
         assertEquals(2.0, tower.entityAnchorYOffset(), 0.0001);
         assertEquals(EndTowers.BASE_END_TOWER, tower.type());
         assertEquals("minecraft:phantom", tower.visual().entityTypeId());
@@ -856,6 +857,7 @@ class EndTowerAbsorptionTest {
         tower.tick(null);
 
         assertEquals(EndTowerState.DRAGON, tower.state());
+        assertFalse(tower.stopsBeforeFriendlyTowers());
         assertEquals(2.0, tower.entityAnchorYOffset(), 0.0001);
         assertEquals(0.10, tower.finalDamageBonus(), 0.0001);
         assertEquals(0.10, tower.incomeDebuffResistance(), 0.0001);

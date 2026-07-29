@@ -1257,11 +1257,6 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     private void moveToward(Vec3 targetPosition, double speedModifier) {
-        playAnimation(SemionAnimationState.WALK);
-        getNavigation().moveTo(targetPosition.x, targetPosition.y, targetPosition.z, speedModifier);
-        getMoveControl().setWantedPosition(targetPosition.x, targetPosition.y, targetPosition.z, speedModifier);
-        getLookControl().setLookAt(targetPosition.x, targetPosition.y, targetPosition.z);
-
         Vec3 offset = new Vec3(targetPosition.x - getX(), 0.0, targetPosition.z - getZ());
         double distance = offset.length();
         if (distance <= 0.05) {
@@ -1273,9 +1268,50 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
         Vec3 velocity = getDeltaMovement();
         Vec3 step = offset.normalize().scale(Math.min(speedModifier, distance));
+        if (isBabyEndDragonBlockedByFriendlyTower(step)) {
+            getNavigation().stop();
+            getMoveControl().setWantedPosition(getX(), getY(), getZ(), 0.0);
+            setDeltaMovement(0.0, velocity.y, 0.0);
+            playAnimation(SemionAnimationState.IDLE);
+            return;
+        }
+
+        playAnimation(SemionAnimationState.WALK);
+        getNavigation().moveTo(targetPosition.x, targetPosition.y, targetPosition.z, speedModifier);
+        getMoveControl().setWantedPosition(targetPosition.x, targetPosition.y, targetPosition.z, speedModifier);
+        getLookControl().setLookAt(targetPosition.x, targetPosition.y, targetPosition.z);
         move(MoverType.SELF, step);
         clampToFinalDefenseAreaIfNeeded();
         setDeltaMovement(0.0, velocity.y, 0.0);
+    }
+
+    private boolean isBabyEndDragonBlockedByFriendlyTower(Vec3 movement) {
+        if (!(runtimeTower instanceof EndTower endTower)
+                || !endTower.stopsBeforeFriendlyTowers()
+                || movement == null
+                || movement.lengthSqr() <= 0.0) {
+            return false;
+        }
+
+        AABB nextPosition = getBoundingBox()
+                .move(movement)
+                .move(0.0, -1.0, 0.0);
+        return !level().getEntitiesOfClass(
+                SemionTowerEntity.class,
+                nextPosition,
+                this::isLivingFriendlyTower
+        ).isEmpty();
+    }
+
+    private boolean isLivingFriendlyTower(SemionTowerEntity candidate) {
+        return candidate != null
+                && candidate != this
+                && candidate.isAlive()
+                && !candidate.isRemoved()
+                && candidate.runtimeTower != null
+                && candidate.runtimeTower.health() > 0.0
+                && candidate.teamId == teamId
+                && candidate.laneId == laneId;
     }
 
     private void clampToFinalDefenseAreaIfNeeded() {
