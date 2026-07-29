@@ -77,8 +77,18 @@ class EndTowerCatalogTest {
         assertEquals(4.0, config.ability(EndTower.CONFIG_ID, "splashRadiusCap", -1.0), 0.0001);
         assertEquals(0.60, config.ability(EndTower.CONFIG_ID, "splashDamageRatio", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "shulkerLifeStealEvery", -1.0), 0.0001);
-        assertEquals(0.01, config.ability(EndTower.CONFIG_ID, "lifeStealPerStep", -1.0), 0.0001);
-        assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0), 0.0001);
+        assertEquals(0.0125, config.ability(EndTower.CONFIG_ID, "lifeStealPerStep", -1.0), 0.0001);
+        assertEquals(0.125, config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0), 0.0001);
+        assertEquals(
+                300.0,
+                config.ability(EndTower.CONFIG_ID, "shulkerLifeStealEvery", -1.0) * 10.0,
+                0.0001
+        );
+        assertEquals(
+                config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0),
+                config.ability(EndTower.CONFIG_ID, "lifeStealPerStep", -1.0) * 10.0,
+                0.0001
+        );
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "shulkerRegenerationEvery", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "regenerationPerStep", -1.0), 0.0001);
         assertEquals(10.0, config.ability(EndTower.CONFIG_ID, "regenerationCap", -1.0), 0.0001);
@@ -170,7 +180,7 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
         assertTrue(plainDescription.contains("사거리: 엔드 수정 60스택마다 +0.5블록"));
         assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득"));
-        assertTrue(plainDescription.contains("셜커 30스택마다 +1%"));
+        assertTrue(plainDescription.contains("셜커 30스택마다 +1.25%"));
         assertTrue(plainDescription.contains("피해 감소: 셜커 15스택마다 +1%"));
         assertTrue(plainDescription.contains("셜커 30스택마다 초당 +1"));
         assertFalse(plainDescription.contains("(최대"));

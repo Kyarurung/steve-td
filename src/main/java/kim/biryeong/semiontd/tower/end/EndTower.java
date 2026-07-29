@@ -371,7 +371,7 @@ public final class EndTower extends EntityBackedTower {
                 "</white><#D9B94F>공격 범위: " + Math.round(currentSplashRadius) + "블록 / " + Math.round(maximumSplashRadius) + "블록</#D9B94F>");
         lines.add("<#E66F6F>추가 체력: " + oneDecimal(additionalHealth) +
                 "</#E66F6F><white> / </white><#79C97B>재생: " + Math.round(currentRegeneration) + " / " + Math.round(maximumRegeneration) + "/초</#79C97B>");
-        lines.add("<#D94343>생명력 흡수: " + percentInteger(currentLifeSteal) + " / " + percentInteger(maximumLifeSteal) + "</#D94343><white> / " +
+        lines.add("<#D94343>생명력 흡수: " + percent(currentLifeSteal) + " / " + percent(maximumLifeSteal) + "</#D94343><white> / " +
                 "</white><#72A9E6>피해 감소: " + percentInteger(currentDamageReduction) + " / " + percentInteger(maximumDamageReduction) + "</#72A9E6>");
         if ((isEgg() || isDragon()) && maxHealth >= dragonEvolutionMaxHealth()) {
             lines.add("<#D94343>최종 피해: +" + percentInteger(Math.max(0.0, global("dragonFinalDamageBonus"))) + "</#D94343><white> / " +

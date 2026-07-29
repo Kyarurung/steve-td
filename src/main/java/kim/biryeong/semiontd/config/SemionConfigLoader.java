@@ -645,6 +645,10 @@ public final class SemionConfigLoader {
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "splashDamageRatio", 1.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.30);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.20);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.10);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealCap", 0.15);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealPerStep", 0.01);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "lifeStealPerStep", 0.008333333333333333);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackIntervalEvery", 15.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 40.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackRangeEvery", 20.0);
@@ -652,6 +656,7 @@ public final class SemionConfigLoader {
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "attackRangeCap", 5.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 10.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 15.0);
+        changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerLifeStealEvery", 20.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "shulkerRegenerationEvery", 20.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationPerStep", 5.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "regenerationCap", 50.0);

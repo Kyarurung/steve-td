@@ -45,6 +45,11 @@ class EndBalanceRepositoryContractTest {
         assertNotNull(root.get("schemaVersion"), "tower_balance.json must contain schemaVersion.");
         assertEquals(TowerBalanceConfig.CURRENT_SCHEMA_VERSION, root.get("schemaVersion").getAsInt());
         assertEquals(codeKeys, externalKeys);
+        assertEquals(25.0, end.get("absorptionHealAmount").getAsDouble(), 0.0001);
+        assertEquals(0.10, end.get("dragonFinalDamageBonus").getAsDouble(), 0.0001);
+        assertEquals(30.0, end.get("shulkerLifeStealEvery").getAsDouble(), 0.0001);
+        assertEquals(0.0125, end.get("lifeStealPerStep").getAsDouble(), 0.0001);
+        assertEquals(0.125, end.get("lifeStealCap").getAsDouble(), 0.0001);
         assertEquals(15.0, end.get("shulkerReductionEvery").getAsDouble(), 0.0001);
         assertEquals(0.01, end.get("damageReductionPerStep").getAsDouble(), 0.0001);
     }

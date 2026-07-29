@@ -552,7 +552,7 @@ class EndTowerAbsorptionTest {
         assertTrue(eggDetails.contains("공격 범위: 0블록 / 4블록"));
         assertTrue(eggDetails.contains("추가 체력: 4.0"));
         assertTrue(eggDetails.contains("재생: 0 / 10/초"));
-        assertTrue(eggDetails.contains("생명력 흡수: 0% / 10%"));
+        assertTrue(eggDetails.contains("생명력 흡수: 0.0% / 12.5%"));
         assertTrue(eggDetails.contains("피해 감소: 0% / 20%"));
         assertFalse(eggDetails.contains("최종 피해: +"));
         assertFalse(eggDetails.contains("저항"));
@@ -603,7 +603,7 @@ class EndTowerAbsorptionTest {
         assertEquals(5, dragon.adjustAttackInterval(20));
         assertEquals(99.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertTrue(plainRuntimeDetails(dragon).contains("엔드 수정, 셜커 스택: 20 / 20"));
-        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 0%"));
+        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 0.0%"));
 
         dragon.resetRoundTransferBonuses(null);
 
@@ -658,7 +658,7 @@ class EndTowerAbsorptionTest {
         assertEquals(10.0, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(12, dragon.adjustAttackInterval(20));
         assertEquals(95.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 2%"));
+        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 2.0%"));
     }
 
     @Test
@@ -762,7 +762,7 @@ class EndTowerAbsorptionTest {
         assertEquals(7.0, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(81.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(9.0, dragon.regenerationPerSecond(), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 9%"));
+        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 11.3%"));
 
         lane.towers().add(tower(EndTowers.T1_ENDERMITE_TOWER, 203));
         lane.towers().add(tower(EndTowers.T1_SHULKER_TOWER, 204));
@@ -776,7 +776,7 @@ class EndTowerAbsorptionTest {
         assertEquals(7.5, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(80.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(10.0, dragon.regenerationPerSecond(), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 10%"));
+        assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 12.5%"));
     }
 
     @Test
