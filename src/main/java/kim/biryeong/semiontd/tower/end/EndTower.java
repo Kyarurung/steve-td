@@ -364,7 +364,7 @@ public final class EndTower extends EntityBackedTower {
 
         lines.add("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>");
         lines.add("<white>엔드 수정, 셜커 스택: " + absorbedEndCrystalCount + " / " + absorbedShulkerCount + "</white>");
-        lines.add("<#D94343>피해량 상한: " + oneDecimal(maximumAttackDamage) + "</#D94343>");
+        lines.add("<#D94343>피해량 상한(최종 피해 제외): " + compactOneDecimal(maximumAttackDamage) + "</#D94343>");
         lines.add("<#D94343>추가 공격력: " + oneDecimal(additionalAttackDamage) + "</#D94343><white> / </white>" +
                 "<#D9B94F>사거리: " + oneDecimal(currentAttackRange) + "블록 / " + oneDecimal(maximumAttackRange) + "블록</#D9B94F>");
         lines.add("<#D9B94F>공격 속도: -" + attackIntervalReductionTicks + "틱 / -" + maximumAttackIntervalReductionTicks + "틱</#D9B94F><white> / " +
@@ -815,6 +815,11 @@ public final class EndTower extends EntityBackedTower {
 
     private double attackDamageCap() {
         return Math.max(0.0, global("attackDamageCap"));
+    }
+
+    private static String compactOneDecimal(double value) {
+        String formatted = oneDecimal(value);
+        return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
     }
 
     private void heal(SemionTowerEntity towerEntity, double amount) {

@@ -164,7 +164,7 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("10초"));
         assertTrue(plainDescription.contains("전달 중 타워 당 체력을 초당 +1 재생합니다."));
         assertTrue(description.contains("<#E66F6F>체력</#E66F6F>을 초당 <#79C97B>+1 재생</#79C97B>"));
-        assertTrue(plainDescription.contains("피해량 상한: 250"));
+        assertTrue(plainDescription.contains("피해량 상한(최종 피해 제외): 250"));
         assertTrue(plainDescription.contains("타워 공격력의 60%를 임시 획득"));
         assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1블록"));
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));

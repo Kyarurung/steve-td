@@ -345,10 +345,17 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public double applyTraitOutgoingDamage(Monster target, double damageAmount) {
-        return applyTraitOutgoingDamage(target, damageAmount, 0.0);
+        return applyTowerFinalDamageBonus(applyTraitOutgoingDamage(target, damageAmount, 0.0));
     }
 
-    public double applyTraitOutgoingDamageAgainst(SemionMonsterEntity target, double damageAmount) {
+    /**
+     * Applies the existing trait damage calculation without the runtime tower's
+     * own final-damage bonus, allowing only that tower bonus to run after a cap.
+     */
+    public double applyTraitOutgoingDamageBeforeTowerFinalAgainst(
+            SemionMonsterEntity target,
+            double damageAmount
+    ) {
         Monster runtimeMonster = target == null ? null : target.runtimeMonster();
         double conditionalBonus = runtimeTower == null
                 ? 0.0
@@ -360,10 +367,32 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         return applyTraitOutgoingDamage(runtimeMonster, damageAmount, conditionalBonus);
     }
 
-    private double applyTraitOutgoingDamage(Monster target, double damageAmount, double conditionalBonus) {
+    public double applyTraitOutgoingDamageAgainst(SemionMonsterEntity target, double damageAmount) {
+        return applyTowerFinalDamageBonus(
+                applyTraitOutgoingDamageBeforeTowerFinalAgainst(target, damageAmount)
+        );
+    }
+
+    private double applyTraitOutgoingDamage(
+            Monster target,
+            double damageAmount,
+            double conditionalBonus
+    ) {
         return Math.max(0.0, damageAmount)
                 * (1.0 + traitAdditiveDamageBonus(target) + Math.max(0.0, conditionalBonus))
                 * traitFinalDamageMultiplier();
+    }
+
+    /**
+     * Applies only the tower's own final-damage bonus after a tower-specific
+     * damage cap. Trait damage effects retain their original pre-cap behavior.
+     */
+    public double applyTowerFinalDamageBonus(double damageAmount) {
+        if (!Double.isFinite(damageAmount) || damageAmount <= 0.0) {
+            return 0.0;
+        }
+        double finalDamage = damageAmount * towerFinalDamageMultiplier();
+        return Double.isFinite(finalDamage) && finalDamage > 0.0 ? finalDamage : 0.0;
     }
 
     private double traitAdditiveDamageBonus(Monster target) {
@@ -377,8 +406,23 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     private double traitFinalDamageMultiplier() {
-        return (1.0 + (runtimeTower == null ? 0.0 : Math.max(0.0, runtimeTower.finalDamageBonus())))
-                * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_FINAL_DAMAGE_BONUS));
+        return 1.0 + finiteNonNegativeBonus(
+                activeEffectMagnitude(TimedEffectType.TOWER_FINAL_DAMAGE_BONUS)
+        );
+    }
+
+    private double towerFinalDamageMultiplier() {
+        return 1.0 + finiteNonNegativeBonus(
+                runtimeTower == null ? 0.0 : runtimeTower.finalDamageBonus()
+        );
+    }
+
+    private double combinedFinalDamageMultiplier() {
+        return traitFinalDamageMultiplier() * towerFinalDamageMultiplier();
+    }
+
+    private static double finiteNonNegativeBonus(double value) {
+        return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 
     public double applyTraitIncomingDamage(double damageAmount) {
@@ -487,7 +531,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                         runtimeTower.traitLoadout(),
                         igniteDamage,
                         traitAdditiveDamageBonus(target.runtimeMonster()),
-                        traitFinalDamageMultiplier(),
+                        combinedFinalDamageMultiplier(),
                         TraitEffects.igniteDurationTicks(),
                         TraitEffects.igniteTickIntervalTicks()
                 );

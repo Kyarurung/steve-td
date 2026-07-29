@@ -554,7 +554,7 @@ class EndTowerAbsorptionTest {
         assertTrue(eggDetails.contains("재생: 0 / 10/초"));
         assertTrue(eggDetails.contains("생명력 흡수: 0% / 10%"));
         assertTrue(eggDetails.contains("피해 감소: 0% / 20%"));
-        assertFalse(eggDetails.contains("최종 피해"));
+        assertFalse(eggDetails.contains("최종 피해: +"));
         assertFalse(eggDetails.contains("저항"));
         String styledEggDetails = String.join("\n", core.runtimeDetailLines());
         assertTrue(styledEggDetails.contains("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>"));
@@ -684,7 +684,7 @@ class EndTowerAbsorptionTest {
         assertEquals(25.0, dragon.modifyOutgoingDamage(null, null, 30.0), 0.0001);
         assertEquals(20.0, dragon.modifyOutgoingDamage(null, null, 20.0), 0.0001);
         assertEquals(0.0, dragon.modifyOutgoingDamage(null, null, -10.0), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("피해량 상한: 25.0"));
+        assertTrue(plainRuntimeDetails(dragon).contains("피해량 상한(최종 피해 제외): 25"));
     }
 
     @Test

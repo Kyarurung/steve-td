@@ -1,6 +1,8 @@
 package kim.biryeong.semiontd.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -11,11 +13,14 @@ import java.util.stream.Collectors;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+@EnabledIfEnvironmentVariable(named = "SEMIONTD_BALANCE_REPOSITORY", matches = ".+")
 class EndBalanceRepositoryContractTest {
+    private static final String BALANCE_REPOSITORY_ENV = "SEMIONTD_BALANCE_REPOSITORY";
+
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
@@ -24,28 +29,20 @@ class EndBalanceRepositoryContractTest {
 
     @Test
     void siblingBalanceRepositoryMatchesTheEndAbilityContract() throws Exception {
-        Path balancePath = Path.of("")
-                .toAbsolutePath()
-                .getParent()
-                .resolve("semiontd-balance")
-                .resolve("tower_balance.json");
-        Assumptions.assumeTrue(
-                Files.isRegularFile(balancePath),
-                "Sibling semiontd-balance repository is not available."
-        );
+        String repositoryPath = System.getenv(BALANCE_REPOSITORY_ENV);
+        assertNotNull(repositoryPath, BALANCE_REPOSITORY_ENV + " must point to the semiontd-balance repository.");
+        Path balancePath = Path.of(repositoryPath).toAbsolutePath().resolve("tower_balance.json");
+        assertTrue(Files.isRegularFile(balancePath), "tower_balance.json is not available: " + balancePath);
 
-        JsonObject root = JsonParser.parseString(Files.readString(balancePath))
-                .getAsJsonObject();
-        JsonObject end = root.getAsJsonObject("abilities")
-                .getAsJsonObject(EndTower.CONFIG_ID);
+        JsonObject root = JsonParser.parseString(Files.readString(balancePath)).getAsJsonObject();
+        JsonObject abilities = root.getAsJsonObject("abilities");
+        assertNotNull(abilities, "tower_balance.json must contain an abilities object.");
+        JsonObject end = abilities.getAsJsonObject(EndTower.CONFIG_ID);
+        assertNotNull(end, "tower_balance.json must contain abilities." + EndTower.CONFIG_ID + ".");
         Set<String> externalKeys = end.keySet();
-        Set<String> codeKeys = TowerBalanceConfig.defaultConfig()
-                .abilities()
-                .get(EndTower.CONFIG_ID)
-                .keySet()
-                .stream()
-                .collect(Collectors.toUnmodifiableSet());
+        Set<String> codeKeys = TowerBalanceConfig.defaultConfig().abilities().get(EndTower.CONFIG_ID).keySet().stream().collect(Collectors.toUnmodifiableSet());
 
+        assertNotNull(root.get("schemaVersion"), "tower_balance.json must contain schemaVersion.");
         assertEquals(TowerBalanceConfig.CURRENT_SCHEMA_VERSION, root.get("schemaVersion").getAsInt());
         assertEquals(codeKeys, externalKeys);
         assertEquals(15.0, end.get("shulkerReductionEvery").getAsDouble(), 0.0001);
