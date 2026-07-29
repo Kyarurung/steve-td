@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
@@ -65,7 +67,7 @@ final class OceanTowerCatalogTest {
                 .toList();
 
         assertEquals(6, starters.size());
-        assertStarter(OceanTowers.T1_WATER, "물 타워", 25);
+        assertStarter(OceanTowers.T1_WATER, "물 타워", 35);
         assertStarter(OceanTowers.T1_PUFFERFISH, "복어 타워", 40);
         assertStarter(OceanTowers.T1_TROPICAL_FISH, "열대어 타워", 40);
         assertStarter(OceanTowers.T1_SQUID, "오징어 타워", 50);
@@ -100,7 +102,7 @@ final class OceanTowerCatalogTest {
     }
 
     @Test
-    void waterHasNoCapPersistsThroughUpgradeAndUsesSquareRootDamageScaling() {
+    void waterHasNoCapPersistsThroughUpgradeAndSoftensDamageAboveThreshold() {
         UUID owner = UUID.nameUUIDFromBytes("ocean-water-state".getBytes());
         GridPosition position = new GridPosition(0, 64, 0);
         OceanTower tierOne = new OceanTower(OceanTowers.T1_COD, owner, TeamId.RED, 1, position);
@@ -113,12 +115,61 @@ final class OceanTowerCatalogTest {
         OceanTower tierTwo = new OceanTower(OceanTowers.T2_LARGE_COD, owner, TeamId.RED, 1, position);
         tierTwo.copyFrom(tierOne, 100);
         assertEquals(tierOne.water(), tierTwo.water(), EPSILON);
-        assertEquals(1.0 + 0.75 * Math.sqrt(tierTwo.water() / 100.0), tierTwo.waterDamageMultiplier(), EPSILON);
+        double effectiveWater = 1_000.0 + 1_000.0 * Math.log1p((tierTwo.water() - 1_000.0) / 1_000.0);
+        assertEquals(1.0 + 0.75 * Math.sqrt(effectiveWater / 100.0), tierTwo.waterDamageMultiplier(), EPSILON);
 
         assertTrue(tierTwo.spendWater(tierTwo.water()));
         assertEquals(0.0, tierTwo.water(), EPSILON);
         assertEquals(0.30, tierTwo.waterDamageMultiplier(), EPSILON);
         assertEquals(38, tierTwo.adjustAttackInterval(OceanTowers.T2_LARGE_COD.attackIntervalTicks()));
+    }
+
+    @Test
+    void liveHighWaterDamageAndSixSourceSupplyUseInflationControls() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(OceanTower.CONFIG_ID));
+        global.put("initialWater", 100.0);
+        global.put("waterScale", 250.0);
+        abilities.put(OceanTower.CONFIG_ID, global);
+        LinkedHashMap<String, Double> cod = new LinkedHashMap<>(abilities.get(OceanTowers.T3_GIANT_COD.id()));
+        cod.put("waterDamageCoefficient", 1.4);
+        abilities.put(OceanTowers.T3_GIANT_COD.id(), cod);
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+
+        OceanTower tower = new OceanTower(
+                OceanTowers.T3_GIANT_COD,
+                UUID.nameUUIDFromBytes("ocean-live-high-water".getBytes()),
+                TeamId.RED,
+                1,
+                new GridPosition(0, 64, 0)
+        );
+        tower.addWater(9_900.0);
+        double tenThousandEffective = 1_000.0 + 1_000.0 * Math.log1p(9.0);
+        double tenThousandRoot = Math.sqrt(tenThousandEffective / 250.0);
+        assertEquals(1.0 + 1.4 * tenThousandRoot, tower.waterDamageMultiplier(), EPSILON);
+        assertEquals(1.0 + 1.5 * 1.4 * tenThousandRoot, tower.incomeWaterMultiplier(), EPSILON);
+
+        tower.addWater(90_000.0);
+        double hundredThousandEffective = 1_000.0 + 1_000.0 * Math.log1p(99.0);
+        double hundredThousandRoot = Math.sqrt(hundredThousandEffective / 250.0);
+        assertEquals(1.0 + 1.4 * hundredThousandRoot, tower.waterDamageMultiplier(), EPSILON);
+        assertEquals(1.0 + 1.5 * 1.4 * hundredThousandRoot, tower.incomeWaterMultiplier(), EPSILON);
+
+        double sixSourceMultiplier = OceanWaterTower.stackedSupplyMultiplier(6, 0.60);
+        assertEquals(2.38336, sixSourceMultiplier * 6.0, EPSILON);
+        assertEquals(2.9792, 1.25 * sixSourceMultiplier * 6.0, EPSILON);
+        assertEquals(16.68352, 7.0 * sixSourceMultiplier * 6.0, EPSILON);
+    }
+
+    @Test
+    void oceanInflationControlDefaultsAreConfigurable() {
+        TowerBalanceConfig config = TowerBalanceConfig.defaultConfig();
+
+        assertEquals(1_000.0, config.ability(OceanTower.CONFIG_ID, "waterSoftCap", -1.0), EPSILON);
+        assertEquals(2_500.0, config.ability(OceanTower.CONFIG_ID, "waterSupplyStopThreshold", -1.0), EPSILON);
+        assertEquals(0.60, config.ability(OceanTower.CONFIG_ID, "waterSupplyStackDecay", -1.0), EPSILON);
+        assertEquals(1.50, config.ability(OceanTower.CONFIG_ID, "incomeCoefficientMultiplier", -1.0), EPSILON);
     }
 
     @Test
@@ -167,6 +218,24 @@ final class OceanTowerCatalogTest {
         String tankDescription = String.join(" ", TowerBalanceRuntime.resolve(OceanTowers.T1_PUFFERFISH).description());
         assertTrue(tankDescription.contains("2.5초마다"));
         assertTrue(tankDescription.contains("최대 24"));
+
+        for (TowerType type : List.of(OceanTowers.T1_WATER, OceanTowers.T2_SPRING_WATER, OceanTowers.T3_CURRENT)) {
+            String description = String.join(" ", TowerBalanceRuntime.resolve(type).description());
+            assertTrue(description.contains("같은 대상을 공급하는 물 타워 수"));
+            assertTrue(description.contains("추가 연결 체감 계수는 60%"));
+            assertTrue(description.contains("타워당 평균 공급 효율이 감소"));
+        }
+
+        OceanWaterTower waterTower = new OceanWaterTower(
+                OceanTowers.T1_WATER,
+                UUID.nameUUIDFromBytes("ocean-water-details".getBytes()),
+                TeamId.RED,
+                1,
+                new GridPosition(0, 64, 0)
+        );
+        String waterDetails = String.join(" ", waterTower.runtimeDetailLines());
+        assertTrue(waterDetails.contains("중첩 체감 계수 60.0%"));
+        assertTrue(waterDetails.contains("타워당 공급 효율 감소"));
     }
 
     @Test

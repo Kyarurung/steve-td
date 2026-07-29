@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 public final class OceanWaterTower extends EntityBackedTower {
+    private static final double EPSILON = 1.0E-9;
     private static final TowerDataKey<UUID> SUPPLY_TARGET_ID = TowerDataKey.of(
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "ocean/water_supply_target"),
             UUID.class
@@ -136,6 +137,10 @@ public final class OceanWaterTower extends EntityBackedTower {
         lines.add("공급 반경 " + oneDecimal(value("supplyRadius")) + "블록");
         lines.add("웨이브 시작 물 +" + oneDecimal(value("waveStartWater")));
         lines.add("초당 물 +" + oneDecimal(value("waterPerSupply") * 20.0 / Math.max(1, ticks("supplyIntervalTicks"))));
+        lines.add("중첩 체감 계수 " + percent(global("waterSupplyStackDecay"))
+                + " (같은 대상 연결 수 증가 시 타워당 공급 효율 감소)");
+        lines.add("물 " + oneDecimal(global("waterSoftCap")) + "부터 공급 감소, "
+                + oneDecimal(global("waterSupplyStopThreshold")) + " 이상 공급 중단");
         return lines;
     }
 
@@ -154,7 +159,7 @@ public final class OceanWaterTower extends EntityBackedTower {
     }
 
     private List<OceanTower> supply(PlayerLane lane, double amount) {
-        if (lane == null || amount <= 0.0 || supplyTargetIds.isEmpty()) {
+        if (deployedAtFinalDefense() || lane == null || amount <= 0.0 || supplyTargetIds.isEmpty()) {
             return List.of();
         }
         List<OceanTower> targets = lane.towers().stream()
@@ -163,8 +168,19 @@ public final class OceanWaterTower extends EntityBackedTower {
                 .filter(target -> target.health() > 0.0)
                 .filter(target -> target.getData(SUPPLY_TARGET_ID).filter(supplyTargetIds::contains).isPresent())
                 .toList();
-        targets.forEach(target -> target.addWater(amount));
-        return targets;
+        ArrayList<OceanTower> suppliedTargets = new ArrayList<>();
+        for (OceanTower target : targets) {
+            double remainingCapacity = Math.max(0.0, global("waterSupplyStopThreshold") - target.water());
+            double supplied = Math.min(
+                    remainingCapacity,
+                    amount * supplyStackMultiplier(lane, target) * supplyEfficiency(target.water())
+            );
+            if (supplied > EPSILON) {
+                target.addWater(supplied);
+                suppliedTargets.add(target);
+            }
+        }
+        return List.copyOf(suppliedTargets);
     }
 
     private List<OceanTower> nearbyTargets(PlayerLane lane) {
@@ -188,10 +204,36 @@ public final class OceanWaterTower extends EntityBackedTower {
     }
 
     private double distanceSqr(Tower target) {
-        double x = target.position().x() - originalPosition().x();
-        double y = target.position().y() - originalPosition().y();
-        double z = target.position().z() - originalPosition().z();
+        double x = target.originalPosition().x() - originalPosition().x();
+        double y = target.originalPosition().y() - originalPosition().y();
+        double z = target.originalPosition().z() - originalPosition().z();
         return x * x + y * y + z * z;
+    }
+
+    private double supplyStackMultiplier(PlayerLane lane, OceanTower target) {
+        int sourceCount = (int) lane.towers().stream()
+                .filter(OceanWaterTower.class::isInstance)
+                .map(OceanWaterTower.class::cast)
+                .filter(source -> source.health() > 0.0 && !source.deployedAtFinalDefense())
+                .filter(source -> source.distanceSqr(target) <= source.value("supplyRadius") * source.value("supplyRadius"))
+                .count();
+        return stackedSupplyMultiplier(Math.max(1, sourceCount), global("waterSupplyStackDecay"));
+    }
+
+    static double stackedSupplyMultiplier(int sourceCount, double decay) {
+        int sources = Math.max(1, sourceCount);
+        double clampedDecay = Math.max(0.0, Math.min(1.0, decay));
+        if (sources == 1 || 1.0 - clampedDecay <= EPSILON) {
+            return 1.0;
+        }
+        return (1.0 - Math.pow(clampedDecay, sources)) / (sources * (1.0 - clampedDecay));
+    }
+
+    private double supplyEfficiency(double water) {
+        double softCap = Math.max(0.0, global("waterSoftCap"));
+        double stopThreshold = Math.max(softCap, global("waterSupplyStopThreshold"));
+        double efficiency = (stopThreshold - water) / Math.max(EPSILON, stopThreshold - softCap);
+        return Math.max(0.0, Math.min(1.0, efficiency));
     }
 
     private void placeWater(PlayerLane lane) {
@@ -241,5 +283,9 @@ public final class OceanWaterTower extends EntityBackedTower {
 
     private int ticks(String key) {
         return TowerBalanceRuntime.abilityTicks(type().id(), key);
+    }
+
+    private double global(String key) {
+        return TowerBalanceRuntime.ability(OceanTower.CONFIG_ID, key);
     }
 }

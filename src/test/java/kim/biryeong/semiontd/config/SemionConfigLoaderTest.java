@@ -118,7 +118,8 @@ final class SemionConfigLoaderTest {
                   "defenseContributionWeight": 0.25,
                   "pressureContributionWeight": 0.25,
                   "economyContributionWeight": 0.25,
-                  "assistContributionWeight": 0.25
+                  "assistContributionWeight": 0.25,
+                  "perfectDefenseLossMultiplier": 0.6
                 }
                 """);
 
@@ -129,6 +130,7 @@ final class SemionConfigLoaderTest {
         assertEquals(25, configs.rating().leaderboardLimit());
         assertEquals(false, configs.rating().teamEloMatchmakingEnabled());
         assertEquals(false, configs.rating().contributionWeightingEnabled());
+        assertEquals(0.6, configs.rating().perfectDefenseLossMultiplier());
     }
 
     @Test
@@ -157,8 +159,10 @@ final class SemionConfigLoaderTest {
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 
         assertEquals(true, configs.rating().teamEloMatchmakingEnabled());
+        assertEquals(0.75, configs.rating().perfectDefenseLossMultiplier());
         String written = Files.readString(tempDir.resolve("rating.json"));
         assertTrue(written.contains("teamEloMatchmakingEnabled"));
+        assertTrue(written.contains("perfectDefenseLossMultiplier"));
     }
 
     @Test
@@ -194,10 +198,42 @@ final class SemionConfigLoaderTest {
         ));
         assertEquals(2.0, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("maxStacks"));
         assertEquals(0.065, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("cloneDamageBonus"));
+        assertEquals(1_000.0, towerBalance.ability("ocean_global", "waterSoftCap", -1.0));
+        assertEquals(2_500.0, towerBalance.ability("ocean_global", "waterSupplyStopThreshold", -1.0));
+        assertEquals(0.60, towerBalance.ability("ocean_global", "waterSupplyStackDecay", -1.0));
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         assertTrue(written.contains("t2_strong_goat_tower"));
         assertTrue(written.contains("cloneDamageBonus"));
         assertTrue(written.contains("\"schemaVersion\": 2"));
+        assertTrue(written.contains("waterSupplyStopThreshold"));
+    }
+
+    @Test
+    void loadRejectsFutureTowerBalanceSchemaAndRetainsLastKnownGood() throws Exception {
+        Files.createDirectories(tempDir);
+        Path towerBalancePath = tempDir.resolve("tower_balance.json");
+        Files.writeString(towerBalancePath, """
+                {
+                  "schemaVersion": 3,
+                  "towers": {
+                    "t1_goat_tower": {
+                      "mineralCost": 99
+                    }
+                  }
+                }
+                """);
+
+        TowerBalanceConfig lastKnownGood = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig balance = SemionConfigLoader.load(
+                tempDir,
+                LoggerFactory.getLogger("test"),
+                lastKnownGood
+        ).towerBalance();
+
+        assertEquals(lastKnownGood, balance);
+        String unchanged = Files.readString(towerBalancePath);
+        assertTrue(unchanged.contains("\"schemaVersion\": 3"));
+        assertTrue(unchanged.contains("\"mineralCost\": 99"));
     }
 
     @Test

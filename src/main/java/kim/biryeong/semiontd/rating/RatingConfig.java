@@ -17,7 +17,8 @@ public record RatingConfig(
         double defenseContributionWeight,
         double pressureContributionWeight,
         double economyContributionWeight,
-        double assistContributionWeight
+        double assistContributionWeight,
+        double perfectDefenseLossMultiplier
 ) {
     public RatingConfig(
             boolean enabled,
@@ -45,7 +46,8 @@ public record RatingConfig(
                 0.40,
                 0.25,
                 0.20,
-                0.15
+                0.15,
+                0.75
         );
     }
 
@@ -82,7 +84,8 @@ public record RatingConfig(
                 defenseContributionWeight,
                 pressureContributionWeight,
                 economyContributionWeight,
-                assistContributionWeight
+                assistContributionWeight,
+                0.75
         );
     }
 
@@ -110,6 +113,11 @@ public record RatingConfig(
                 || contributionMultiplierMin <= 0.0
                 || contributionMultiplierMax < contributionMultiplierMin) {
             throw new IllegalArgumentException("Contribution multiplier bounds are invalid");
+        }
+        if (!Double.isFinite(perfectDefenseLossMultiplier)
+                || perfectDefenseLossMultiplier < 0.0
+                || perfectDefenseLossMultiplier > 1.0) {
+            throw new IllegalArgumentException("Perfect defense loss multiplier must be between 0.0 and 1.0");
         }
         double weightSum = defenseContributionWeight
                 + pressureContributionWeight
@@ -145,7 +153,30 @@ public record RatingConfig(
                 defenseContributionWeight,
                 pressureContributionWeight,
                 economyContributionWeight,
-                assistContributionWeight
+                assistContributionWeight,
+                perfectDefenseLossMultiplier
+        );
+    }
+
+    public RatingConfig withPerfectDefenseLossMultiplier(double multiplier) {
+        return new RatingConfig(
+                enabled,
+                teamEloMatchmakingEnabled,
+                eloKFactor,
+                initialDisplayElo,
+                initialMu,
+                initialSigma,
+                leaderboardLimit,
+                minimumParticipants,
+                excludeSpectators,
+                contributionWeightingEnabled,
+                contributionMultiplierMin,
+                contributionMultiplierMax,
+                defenseContributionWeight,
+                pressureContributionWeight,
+                economyContributionWeight,
+                assistContributionWeight,
+                multiplier
         );
     }
 
@@ -166,7 +197,8 @@ public record RatingConfig(
                 0.40,
                 0.25,
                 0.20,
-                0.15
+                0.15,
+                0.75
         );
     }
 }

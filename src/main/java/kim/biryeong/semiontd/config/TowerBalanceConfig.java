@@ -1076,7 +1076,7 @@ public record TowerBalanceConfig(
                 mergedAbilities,
                 mergedIllusionCloneQueue,
                 mergedVillagerAdv,
-                CURRENT_SCHEMA_VERSION
+                schemaVersion
         );
     }
 
@@ -1492,16 +1492,19 @@ public record TowerBalanceConfig(
     }
 
     private static void putOceanAbilities(Map<String, Map<String, Double>> abilities) {
-        putAbilities(abilities, OceanTower.CONFIG_ID, Map.of(
-                "initialWater", 50.0,
-                "waterScale", 100.0,
-                "incomeCoefficientMultiplier", 2.0,
-                "empoweredAbilityWaterThreshold", 100.0,
-                "empoweredAbilityWaterCostMultiplier", 2.0,
-                "empoweredAbilityEffectMultiplier", 1.5,
-                "dehydratedDamageMultiplier", 0.30,
-                "dehydratedAttackSpeedReduction", 0.60,
-                "dehydrationMaxHealthDamagePerSecond", 0.02
+        putAbilities(abilities, OceanTower.CONFIG_ID, Map.ofEntries(
+                Map.entry("initialWater", 50.0),
+                Map.entry("waterScale", 100.0),
+                Map.entry("waterSoftCap", 1_000.0),
+                Map.entry("waterSupplyStopThreshold", 2_500.0),
+                Map.entry("waterSupplyStackDecay", 0.60),
+                Map.entry("incomeCoefficientMultiplier", 1.50),
+                Map.entry("empoweredAbilityWaterThreshold", 100.0),
+                Map.entry("empoweredAbilityWaterCostMultiplier", 2.0),
+                Map.entry("empoweredAbilityEffectMultiplier", 1.5),
+                Map.entry("dehydratedDamageMultiplier", 0.30),
+                Map.entry("dehydratedAttackSpeedReduction", 0.60),
+                Map.entry("dehydrationMaxHealthDamagePerSecond", 0.02)
         ));
 
         putAbilities(abilities, OceanTowers.T1_WATER.id(), oceanSupplyAbilities(20.0, 1.0));

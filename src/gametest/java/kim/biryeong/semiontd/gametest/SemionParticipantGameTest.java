@@ -2793,6 +2793,98 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
+        lane.moveTowersToFinalDefense();
+        double waterAtFinalDefense = codTower.water();
+        for (int tick = 0; tick < 25; tick++) {
+            lane.tick(context.getLevel().getServer());
+        }
+        if (!assertEquals(
+                context,
+                waterAtFinalDefense,
+                codTower.water(),
+                "Water towers should stop supplying after moving to final defense."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void oceanWaterTowerStackingSoftCapAndSourceRemoval(GameTestHelper context) {
+        UUID playerId = stableUuid("ocean-water-inflation-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, OceanTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        GridPosition targetPosition = GridPosition.from(towerPlacementPos(lane));
+        OceanTower target = new OceanTower(
+                TowerBalanceRuntime.resolve(OceanTowers.T1_COD),
+                playerId,
+                TeamId.RED,
+                1,
+                targetPosition
+        );
+        lane.addTower(target);
+
+        int[][] offsets = {
+                {-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-2, 0}, {2, 0}
+        };
+        ArrayList<OceanWaterTower> sources = new ArrayList<>();
+        for (int[] offset : offsets) {
+            OceanWaterTower source = new OceanWaterTower(
+                    TowerBalanceRuntime.resolve(OceanTowers.T1_WATER),
+                    playerId,
+                    TeamId.RED,
+                    1,
+                    new GridPosition(
+                            targetPosition.x() + offset[0],
+                            targetPosition.y(),
+                            targetPosition.z() + offset[1]
+                    )
+            );
+            sources.add(source);
+            lane.addTower(source);
+        }
+
+        sources.forEach(source -> source.onWaveStarted(lane, 1));
+        double decay = TowerBalanceRuntime.ability(OceanTower.CONFIG_ID, "waterSupplyStackDecay");
+        double equivalentSources = (1.0 - Math.pow(decay, sources.size())) / (1.0 - decay);
+        double expectedAfterSixSources = TowerBalanceRuntime.ability(OceanTower.CONFIG_ID, "initialWater")
+                + TowerBalanceRuntime.ability(OceanTowers.T1_WATER.id(), "waveStartWater") * equivalentSources;
+        if (!assertClose(
+                context,
+                expectedAfterSixSources,
+                target.water(),
+                "Six water towers should supply only 2.38336 equivalent sources."
+        )) {
+            return;
+        }
+
+        double stopThreshold = TowerBalanceRuntime.ability(OceanTower.CONFIG_ID, "waterSupplyStopThreshold");
+        target.addWater(stopThreshold - target.water());
+        sources.forEach(source -> source.onWaveStarted(lane, 2));
+        if (!assertClose(context, stopThreshold, target.water(), "Water towers should stop supplying at the configured threshold.")) {
+            return;
+        }
+
+        if (!assertTrue(context, target.spendWater(500.0), "Target should spend stored water below the supply threshold.")) {
+            return;
+        }
+        for (int index = 1; index < sources.size(); index++) {
+            lane.removeTower(sources.get(index));
+        }
+        double waterBeforeRemainingSupply = target.water();
+        sources.getFirst().onWaveStarted(lane, 3);
+        double softCap = TowerBalanceRuntime.ability(OceanTower.CONFIG_ID, "waterSoftCap");
+        double efficiency = (stopThreshold - waterBeforeRemainingSupply) / (stopThreshold - softCap);
+        double expectedAfterRemoval = waterBeforeRemainingSupply
+                + TowerBalanceRuntime.ability(OceanTowers.T1_WATER.id(), "waveStartWater") * efficiency;
+        if (!assertClose(
+                context,
+                expectedAfterRemoval,
+                target.water(),
+                "Removing five sources should restore the remaining source to full stacking weight."
+        )) {
+            return;
+        }
         context.succeed();
     }
 
@@ -2885,6 +2977,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, 48.0, tank.water(), "The next ready transfer should spend water exactly once.")) {
+            return;
+        }
+
+        lane.moveTowersToFinalDefense();
+        for (int tick = 0; tick < 50; tick++) {
+            tank.tick(lane);
+        }
+        tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
+        if (!assertEquals(context, 98.0, target.water(), "Ocean tanks should stop supplying water at final defense.")) {
+            return;
+        }
+        if (!assertEquals(context, 48.0, tank.water(), "Stopped final-defense transfers should not spend water.")) {
             return;
         }
 
