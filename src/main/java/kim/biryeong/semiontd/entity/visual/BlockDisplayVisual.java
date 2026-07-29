@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.entity.visual;
 
+import java.util.Objects;
 import net.minecraft.world.level.block.state.BlockState;
 
 public final class BlockDisplayVisual {
@@ -28,7 +29,10 @@ public final class BlockDisplayVisual {
         private final EntityVisual.Builder visual = EntityVisual.builder(ENTITY_TYPE_ID);
 
         private Builder(BlockState blockState) {
-            visual.propertyValue(EntityVisualProperties.BLOCK_STATE, blockState);
+            visual.propertyValue(
+                    EntityVisualProperties.BLOCK_STATE,
+                    Objects.requireNonNull(blockState, "blockState")
+            );
         }
 
         public Builder scale(double scale) {

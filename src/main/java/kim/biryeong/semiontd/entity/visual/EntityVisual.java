@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.entity.visual;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -22,7 +23,7 @@ public record EntityVisual(
             entityTypeId = DEFAULT_TOWER_ENTITY_TYPE;
         }
         scale = normalizeScale(scale);
-        properties = withoutScaleProperty(properties);
+        properties = immutableProperties(withoutScaleProperty(properties));
     }
 
     public EntityVisual(String entityTypeId, String blockbenchModelId, Map<String, Object> properties) {
@@ -94,6 +95,13 @@ public record EntityVisual(
         return withoutScale;
     }
 
+    private static Map<String, Object> immutableProperties(Map<String, Object> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return Map.of();
+        }
+        return Collections.unmodifiableMap(new LinkedHashMap<>(properties));
+    }
+
     private static void putNormalized(Map<String, Object> properties, String key, Object value) {
         if (key == null || key.isBlank() || value == null) {
             return;
@@ -163,6 +171,9 @@ public record EntityVisual(
         }
 
         public Builder scale(double scale) {
+            if (!Double.isFinite(scale) || scale <= 0.0) {
+                throw new IllegalArgumentException("Entity visual scale must be finite and positive.");
+            }
             this.scale = scale;
             return this;
         }

@@ -433,22 +433,52 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public boolean damageTarget(SemionMonsterEntity target, double baseDamage) {
+        return damageTargetResult(target, baseDamage).killed();
+    }
+
+    public Tower.DamageResult damageTargetResult(SemionMonsterEntity target, double baseDamage) {
         if (runtimeTower == null || target == null) {
-            return false;
+            return Tower.DamageResult.NONE;
         }
-        return runtimeTower.damageTarget(this, target, baseDamage);
+        return runtimeTower.damageTargetResult(this, target, baseDamage);
     }
 
     public void recordAttack(SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
+        recordAttack(target, damageAmount, damageAmount, damageAmount, killedTarget);
+    }
+
+    public void recordAttack(
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double dealtDamage,
+            boolean killedTarget
+    ) {
+        recordAttack(target, attemptedDamage, attemptedDamage, dealtDamage, killedTarget);
+    }
+
+    public void recordAttack(
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage,
+            double dealtDamage,
+            boolean killedTarget
+    ) {
         if (runtimeTower == null) {
             return;
         }
 
-        runtimeTower.onAttack(this, target, damageAmount, killedTarget);
+        runtimeTower.onAttackResolved(
+                this,
+                target,
+                attemptedDamage,
+                resolvedOutgoingDamage,
+                dealtDamage,
+                killedTarget
+        );
         if (!killedTarget && target != null && target.isAlive() && !target.isRemoved()) {
             double igniteDamage = TraitEffects.igniteDamagePerTick(
                     runtimeTower.traitLoadout(),
-                    damageAmount,
+                    attemptedDamage,
                     runtimeTower.currentRound()
             );
             if (igniteDamage > 0.0) {
@@ -464,7 +494,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             }
         }
         if (killedTarget) {
-            runtimeTower.onKill(this, target, damageAmount);
+            runtimeTower.onKill(this, target, attemptedDamage);
         }
     }
 
@@ -607,6 +637,10 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     private void syncMaxHealthEffect(TimedEffectType type) {
+        syncMaxHealthEffect(type, true);
+    }
+
+    private void syncMaxHealthEffect(TimedEffectType type, boolean healIncrease) {
         if (runtimeTower == null
                 || (type != TimedEffectType.TOWER_MAX_HEALTH_BONUS
                 && type != TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS)) {
@@ -616,7 +650,8 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                 * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS));
         runtimeTower.syncEffectMaxHealth(
                 nextMaxHealth,
-                activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS)
+                activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS),
+                healIncrease
         );
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(runtimeTower.currentMaxHealth());
         applyVisualScale(visual);
@@ -624,7 +659,20 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public void refreshMaxHealthEffects() {
-        syncMaxHealthEffect(TimedEffectType.TOWER_MAX_HEALTH_BONUS);
+        refreshMaxHealthEffects(true);
+    }
+
+    public void refreshMaxHealthEffects(boolean healIncrease) {
+        syncMaxHealthEffect(TimedEffectType.TOWER_MAX_HEALTH_BONUS, healIncrease);
+    }
+
+    public void refreshCombatStats() {
+        if (runtimeTower == null) {
+            return;
+        }
+        attackRange = runtimeTower.adjustAttackRange(runtimeTower.type().range());
+        targetAcquireRange = Math.max(attackRange + 4.0, DEFAULT_TARGET_ACQUIRE_RANGE);
+        getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(targetAcquireRange);
     }
 
     public String blockbenchModelId() {
@@ -920,7 +968,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                 || endTower.state() != EndTowerState.PHANTOM) {
             return;
         }
-        double renderScale = EndTowers.phantomScaleForMaxHealth(runtimeTower.currentMaxHealth());
+        double renderScale = endTower.phantomScaleForMaxHealth(runtimeTower.currentMaxHealth());
         for (int index = 0; index < data.size(); index++) {
             ClientboundUpdateAttributesPacket.AttributeSnapshot snapshot = data.get(index);
             if (snapshot.attribute().equals(Attributes.SCALE)) {

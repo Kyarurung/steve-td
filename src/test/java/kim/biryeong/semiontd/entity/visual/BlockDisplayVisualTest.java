@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.entity.visual;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import net.minecraft.SharedConstants;
@@ -25,5 +26,25 @@ class BlockDisplayVisualTest {
         assertTrue(BlockDisplayVisual.matches(visual));
         assertEquals(Blocks.DRAGON_EGG.defaultBlockState(), BlockDisplayVisual.blockState(visual));
         assertEquals(0.75, visual.scale(), 0.0001);
+    }
+
+    @Test
+    void builtVisualIsImmutableAndBuilderRejectsInvalidRequiredValues() {
+        EntityVisual visual = BlockDisplayVisual.builder(Blocks.DRAGON_EGG.defaultBlockState())
+                .build();
+
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> visual.properties().put("unexpected", Blocks.AIR.defaultBlockState())
+        );
+        assertThrows(NullPointerException.class, () -> BlockDisplayVisual.builder(null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> EntityVisual.builder("minecraft:phantom").scale(Double.NaN)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> EntityVisual.builder("minecraft:phantom").scale(0.0)
+        );
     }
 }

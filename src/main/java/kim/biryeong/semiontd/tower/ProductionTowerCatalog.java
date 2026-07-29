@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -18,44 +19,44 @@ public final class ProductionTowerCatalog {
     private ProductionTowerCatalog() {
     }
 
-    public static Optional<CatalogEntry> find(String towerId) {
+    public static synchronized Optional<CatalogEntry> find(String towerId) {
         return Optional.ofNullable(ENTRIES.get(towerId));
     }
 
-    public static Collection<CatalogEntry> all() {
+    public static synchronized Collection<CatalogEntry> all() {
         return List.copyOf(ENTRIES.values());
     }
 
-    public static Optional<CatalogEntry> entry(TowerType type) {
+    public static synchronized Optional<CatalogEntry> entry(TowerType type) {
         return type == null ? Optional.empty() : find(type.id());
     }
 
-    public static void clear() {
+    public static synchronized void clear() {
         ENTRIES.clear();
         UPGRADES.clear();
     }
 
-    public static CatalogEntry registerStarter(TowerType type) {
+    public static synchronized CatalogEntry registerStarter(TowerType type) {
         return register(type, ProductionTowerDefinitions.DEFAULT_TOWER_FACTORY, 1);
     }
 
-    public static CatalogEntry registerStarter(TowerType type, TowerFactory factory) {
+    public static synchronized CatalogEntry registerStarter(TowerType type, TowerFactory factory) {
         return register(type, factory, 1);
     }
 
-    public static CatalogEntry register(TowerType type) {
+    public static synchronized CatalogEntry register(TowerType type) {
         return register(type, ProductionTowerDefinitions.DEFAULT_TOWER_FACTORY, 2);
     }
 
-    public static CatalogEntry register(TowerType type, TowerFactory factory) {
+    public static synchronized CatalogEntry register(TowerType type, TowerFactory factory) {
         return register(type, factory, 2);
     }
 
-    public static CatalogEntry register(TowerType type, int tier) {
+    public static synchronized CatalogEntry register(TowerType type, int tier) {
         return register(type, ProductionTowerDefinitions.DEFAULT_TOWER_FACTORY, tier);
     }
 
-    public static TowerUpgradeOption linkUpgrade(TowerType from, String id, String displayName, TowerType to, long mineralCost) {
+    public static synchronized TowerUpgradeOption linkUpgrade(TowerType from, String id, String displayName, TowerType to, long mineralCost) {
         requireRegistered(from);
         requireRegistered(to);
         TowerUpgradeOption option = new TowerUpgradeOption(id, displayName, to, mineralCost);
@@ -67,18 +68,18 @@ public final class ProductionTowerCatalog {
         return option;
     }
 
-    public static List<TowerUpgradeOption> upgrades(TowerType type) {
+    public static synchronized List<TowerUpgradeOption> upgrades(TowerType type) {
         if (type == null) {
             return List.of();
         }
         return List.copyOf(UPGRADES.getOrDefault(type.id(), List.of()));
     }
 
-    public static boolean hasUpgrades(TowerType type) {
+    public static synchronized boolean hasUpgrades(TowerType type) {
         return !upgrades(type).isEmpty();
     }
 
-    public static Optional<TowerUpgradeOption> upgrade(TowerType type, String upgradeId) {
+    public static synchronized Optional<TowerUpgradeOption> upgrade(TowerType type, String upgradeId) {
         if (type == null || upgradeId == null) {
             return Optional.empty();
         }
@@ -87,7 +88,7 @@ public final class ProductionTowerCatalog {
                 .findFirst();
     }
 
-    public static Optional<TowerUpgradeOption> findUpgrade(String upgradeId) {
+    public static synchronized Optional<TowerUpgradeOption> findUpgrade(String upgradeId) {
         if (upgradeId == null) {
             return Optional.empty();
         }
@@ -97,7 +98,7 @@ public final class ProductionTowerCatalog {
                 .findFirst();
     }
 
-    public static CatalogEntry register(TowerType type, TowerFactory factory, int tier) {
+    public static synchronized CatalogEntry register(TowerType type, TowerFactory factory, int tier) {
         CatalogEntry entry = new CatalogEntry(type, factory, tier);
         CatalogEntry previous = ENTRIES.putIfAbsent(type.id(), entry);
         if (previous != null) {
@@ -127,7 +128,11 @@ public final class ProductionTowerCatalog {
 
     public record CatalogEntry(TowerType type, TowerFactory factory, int tier) {
         public CatalogEntry {
+            Objects.requireNonNull(type, "type");
             factory = factory == null ? ProductionTowerDefinitions.DEFAULT_TOWER_FACTORY : factory;
+            if (tier < 1) {
+                throw new IllegalArgumentException("Tower tier must be positive: " + tier);
+            }
         }
 
         public boolean starter() {

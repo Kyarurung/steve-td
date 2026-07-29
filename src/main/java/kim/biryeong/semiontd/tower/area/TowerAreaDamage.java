@@ -32,13 +32,39 @@ public final class TowerAreaDamage {
             boolean propagateKills,
             AfterDamage afterDamage
     ) {
+        return apply(tower, source, request, damage, propagateKills, afterDamage, false);
+    }
+
+    public static AreaEffectResult<SemionMonsterEntity> applyResolved(
+            Tower tower,
+            SemionTowerEntity source,
+            MonsterAreaEffectRequest request,
+            ToDoubleFunction<SemionMonsterEntity> damage,
+            boolean propagateKills,
+            AfterDamage afterDamage
+    ) {
+        return apply(tower, source, request, damage, propagateKills, afterDamage, true);
+    }
+
+    private static AreaEffectResult<SemionMonsterEntity> apply(
+            Tower tower,
+            SemionTowerEntity source,
+            MonsterAreaEffectRequest request,
+            ToDoubleFunction<SemionMonsterEntity> damage,
+            boolean propagateKills,
+            AfterDamage afterDamage,
+            boolean resolvedOutgoingDamage
+    ) {
         return SemionTdApi.areaEffects().applyToMonsters(request, target -> {
             double amount = Math.max(0.0, damage.applyAsDouble(target));
             if (amount <= 0.0) {
                 return AreaEffectOutcome.UNCHANGED;
             }
-            boolean killed = tower.damageTarget(source, target, amount);
-            afterDamage.accept(target, amount, killed);
+            Tower.DamageResult damageResult = resolvedOutgoingDamage
+                    ? tower.damageResolvedTargetResult(source, target, amount)
+                    : tower.damageTargetResult(source, target, amount);
+            boolean killed = damageResult.killed();
+            afterDamage.accept(target, damageResult.dealtDamage(), killed);
             if (killed && propagateKills) {
                 tower.onKill(source, target, amount);
             }

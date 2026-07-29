@@ -93,8 +93,15 @@ public final class TowerAttackMonsterGoal extends Goal {
         double damageAmount = tower.attackDamageAmount(target);
         float healthBeforeAttack = tower.getHealth();
         playRangedAttackSound();
-        boolean killedPrimaryTarget = tower.damageTarget(target, damageAmount);
-        tower.recordAttack(target, damageAmount, killedPrimaryTarget);
+        var damageResult = tower.damageTargetResult(target, damageAmount);
+        boolean killedPrimaryTarget = damageResult.killed();
+        tower.recordAttack(
+                target,
+                damageAmount,
+                damageResult.outgoingDamage(),
+                damageResult.dealtDamage(),
+                killedPrimaryTarget
+        );
         TowerVfxService.showAttack(
                 tower,
                 target,

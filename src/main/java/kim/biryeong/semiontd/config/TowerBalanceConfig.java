@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
-import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
@@ -25,10 +24,20 @@ public record TowerBalanceConfig(
         Map<String, Long> upgradeCosts,
         Map<String, Map<String, Double>> abilities,
         IllusionCloneQueueConfig illusionCloneQueue,
-        VillagerAdvConfig villagerAdv
+        VillagerAdvConfig villagerAdv,
+        int schemaVersion
 ) {
+    public static final int CURRENT_SCHEMA_VERSION = 2;
+
     public TowerBalanceConfig(Map<String, TowerStats> towers, Map<String, Long> upgradeCosts, Map<String, Map<String, Double>> abilities) {
-        this(towers, upgradeCosts, abilities, IllusionCloneQueueConfig.defaultConfig(), VillagerAdvConfig.defaultConfig());
+        this(
+                towers,
+                upgradeCosts,
+                abilities,
+                IllusionCloneQueueConfig.defaultConfig(),
+                VillagerAdvConfig.defaultConfig(),
+                CURRENT_SCHEMA_VERSION
+        );
     }
 
     public TowerBalanceConfig(
@@ -37,7 +46,24 @@ public record TowerBalanceConfig(
             Map<String, Map<String, Double>> abilities,
             IllusionCloneQueueConfig illusionCloneQueue
     ) {
-        this(towers, upgradeCosts, abilities, illusionCloneQueue, VillagerAdvConfig.defaultConfig());
+        this(
+                towers,
+                upgradeCosts,
+                abilities,
+                illusionCloneQueue,
+                VillagerAdvConfig.defaultConfig(),
+                CURRENT_SCHEMA_VERSION
+        );
+    }
+
+    public TowerBalanceConfig(
+            Map<String, TowerStats> towers,
+            Map<String, Long> upgradeCosts,
+            Map<String, Map<String, Double>> abilities,
+            IllusionCloneQueueConfig illusionCloneQueue,
+            VillagerAdvConfig villagerAdv
+    ) {
+        this(towers, upgradeCosts, abilities, illusionCloneQueue, villagerAdv, CURRENT_SCHEMA_VERSION);
     }
 
     public TowerBalanceConfig {
@@ -46,6 +72,7 @@ public record TowerBalanceConfig(
         abilities = abilities == null ? Map.of() : copyAbilities(abilities);
         illusionCloneQueue = illusionCloneQueue == null ? IllusionCloneQueueConfig.defaultConfig() : illusionCloneQueue;
         villagerAdv = villagerAdv == null ? VillagerAdvConfig.defaultConfig() : villagerAdv;
+        schemaVersion = schemaVersion <= 0 ? CURRENT_SCHEMA_VERSION : schemaVersion;
     }
 
     public static TowerBalanceConfig defaultConfig() {
@@ -793,11 +820,225 @@ public record TowerBalanceConfig(
     }
 
     public int abilityTicks(String towerId, String key, int fallback) {
-        return Math.max(0, (int) Math.round(ability(towerId, key, fallback)));
+        return roundedNonNegativeInt(ability(towerId, key, fallback), fallback);
     }
 
     public int abilityInt(String towerId, String key, int fallback) {
-        return Math.max(0, (int) Math.round(ability(towerId, key, fallback)));
+        return roundedNonNegativeInt(ability(towerId, key, fallback), fallback);
+    }
+
+    public void validateForRuntime() {
+        if (schemaVersion > CURRENT_SCHEMA_VERSION) {
+            throw new IllegalArgumentException(
+                    "Unsupported tower balance schema version: " + schemaVersion
+            );
+        }
+        towers.forEach(TowerBalanceConfig::validateTowerStats);
+        upgradeCosts.forEach((key, cost) -> {
+            if (cost < 0L) {
+                throw new IllegalArgumentException(
+                        "Tower upgrade cost must be non-negative: " + key
+                );
+            }
+        });
+
+        Map<String, Double> end = abilities.get(EndTowers.CONFIG_ID);
+        if (end == null) {
+            return;
+        }
+
+        end.forEach((key, value) -> {
+            if (value == null || !Double.isFinite(value) || value < 0.0) {
+                throw new IllegalArgumentException("End balance ability must be finite and non-negative: " + key);
+            }
+        });
+
+        requirePositive(end,
+                "dragonEvolutionMaxHealth",
+                "attackDamageCap",
+                "absorptionDurationTicks",
+                "transferHealingIntervalTicks",
+                "roundAbsorptionAttackIntervalEvery",
+                "endCrystalAttackIntervalEvery",
+                "minimumAttackIntervalTicks",
+                "endCrystalAttackRangeEvery",
+                "endCrystalSplashThreshold1",
+                "endCrystalSplashThreshold2",
+                "endCrystalSplashThreshold3",
+                "endCrystalSplashThreshold4",
+                "shulkerLifeStealEvery",
+                "shulkerRegenerationEvery",
+                "regenerationIntervalTicks",
+                "shulkerReductionEvery",
+                "phantomScaleHealthInterval"
+        );
+        requireRatio(end,
+                "roundHealthRatio",
+                "roundDamageRatio",
+                "permanentHealthRatio",
+                "permanentDamageRatio",
+                "dragonIncomeDebuffResistance",
+                "splashDamageRatio",
+                "lifeStealPerStep",
+                "lifeStealCap",
+                "damageReductionPerStep",
+                "damageReductionCap"
+        );
+        requirePositive(end, "phantomBaseScale", "phantomScaleCap");
+        validateAtLeast(end, "phantomScaleCap", "phantomBaseScale");
+        validateStrictlyIncreasing(end,
+                "endCrystalSplashThreshold1",
+                "endCrystalSplashThreshold2",
+                "endCrystalSplashThreshold3",
+                "endCrystalSplashThreshold4"
+        );
+        requireIntegralIntRange(end,
+                "absorptionDurationTicks",
+                "transferHealingIntervalTicks",
+                "roundAbsorptionAttackIntervalEvery",
+                "roundAbsorptionAttackIntervalReductionTicks",
+                "endCrystalAttackIntervalEvery",
+                "attackIntervalReductionPerStep",
+                "maxAttackIntervalReductionTicks",
+                "minimumAttackIntervalTicks",
+                "endCrystalAttackRangeEvery",
+                "endCrystalSplashThreshold1",
+                "endCrystalSplashThreshold2",
+                "endCrystalSplashThreshold3",
+                "endCrystalSplashThreshold4",
+                "shulkerLifeStealEvery",
+                "shulkerRegenerationEvery",
+                "regenerationIntervalTicks",
+                "shulkerReductionEvery"
+        );
+        validateMinimumAttackInterval(end);
+        validateTowerRatio(EndTowers.T1_SHULKER_TOWER.id(), "damageReduction");
+        validateTowerRatio(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction");
+        validateTowerRatio(EndTowers.T3_SHULKER_TOWER.id(), "damageReduction");
+    }
+
+    private static void requirePositive(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            Double value = values.get(key);
+            if (value != null && value <= 0.0) {
+                throw new IllegalArgumentException("End balance ability must be positive: " + key);
+            }
+        }
+    }
+
+    private static void requireRatio(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            Double value = values.get(key);
+            if (value != null && value > 1.0) {
+                throw new IllegalArgumentException("End balance ratio must be between 0 and 1: " + key);
+            }
+        }
+    }
+
+    private static void validateStrictlyIncreasing(Map<String, Double> values, String... keys) {
+        Double previous = null;
+        for (String key : keys) {
+            Double value = values.get(key);
+            if (value == null) {
+                return;
+            }
+            if (previous != null && value <= previous) {
+                throw new IllegalArgumentException("End balance thresholds must be strictly increasing.");
+            }
+            previous = value;
+        }
+    }
+
+    private static void validateAtLeast(
+            Map<String, Double> values,
+            String valueKey,
+            String minimumKey
+    ) {
+        Double value = values.get(valueKey);
+        Double minimum = values.get(minimumKey);
+        if (value != null && minimum != null && value < minimum) {
+            throw new IllegalArgumentException(
+                    "End balance " + valueKey + " must be at least " + minimumKey
+            );
+        }
+    }
+
+    private static void requireIntegralIntRange(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            Double value = values.get(key);
+            if (value == null) {
+                continue;
+            }
+            if (value > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("End balance integer is too large: " + key);
+            }
+            if (value != Math.rint(value)) {
+                throw new IllegalArgumentException("End balance integer must not be fractional: " + key);
+            }
+        }
+    }
+
+    private void validateMinimumAttackInterval(Map<String, Double> end) {
+        Double minimum = end.get("minimumAttackIntervalTicks");
+        TowerStats base = towers.get(EndTowers.BASE_END_TOWER.id());
+        if (minimum != null
+                && base != null
+                && base.attackIntervalTicks() != null
+                && minimum > base.attackIntervalTicks()) {
+            throw new IllegalArgumentException(
+                    "End minimumAttackIntervalTicks cannot exceed the base End tower attack interval"
+            );
+        }
+    }
+
+    private static void validateTowerStats(String towerId, TowerStats stats) {
+        if (stats == null) {
+            return;
+        }
+        if (stats.mineralCost != null && stats.mineralCost < 0) {
+            throw new IllegalArgumentException("Tower mineral cost must be non-negative: " + towerId);
+        }
+        validateFiniteAtLeast(towerId, "maxHealth", stats.maxHealth, 1.0);
+        validateFiniteAtLeast(towerId, "range", stats.range, 0.0);
+        validateFiniteAtLeast(towerId, "damage", stats.damage, 0.0);
+        if (stats.attackIntervalTicks != null && stats.attackIntervalTicks < 1) {
+            throw new IllegalArgumentException("Tower attack interval must be positive: " + towerId);
+        }
+    }
+
+    private static void validateFiniteAtLeast(
+            String towerId,
+            String field,
+            Double value,
+            double minimum
+    ) {
+        if (value != null && (!Double.isFinite(value) || value < minimum)) {
+            throw new IllegalArgumentException(
+                    "Tower " + field + " must be finite and at least " + minimum + ": " + towerId
+            );
+        }
+    }
+
+    private static int roundedNonNegativeInt(double value, int fallback) {
+        double resolved = Double.isFinite(value) ? value : fallback;
+        if (!Double.isFinite(resolved) || resolved <= 0.0) {
+            return 0;
+        }
+        if (resolved >= Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.max(0, (int) Math.round(resolved));
+    }
+
+    private void validateTowerRatio(String towerId, String key) {
+        Map<String, Double> values = abilities.get(towerId);
+        if (values == null) {
+            return;
+        }
+        Double value = values.get(key);
+        if (value != null && (!Double.isFinite(value) || value < 0.0 || value > 1.0)) {
+            throw new IllegalArgumentException("Tower balance ratio must be between 0 and 1: " + towerId + "." + key);
+        }
     }
 
     public TowerBalanceConfig withMissingDefaults(TowerBalanceConfig defaults) {
@@ -829,7 +1070,94 @@ public record TowerBalanceConfig(
         IllusionCloneQueueConfig mergedIllusionCloneQueue = illusionCloneQueue.withMissingDefaults(defaults.illusionCloneQueue);
         VillagerAdvConfig mergedVillagerAdv = villagerAdv.withMissingDefaults(defaults.villagerAdv);
 
-        return new TowerBalanceConfig(mergedTowers, mergedUpgradeCosts, mergedAbilities, mergedIllusionCloneQueue, mergedVillagerAdv);
+        return new TowerBalanceConfig(
+                mergedTowers,
+                mergedUpgradeCosts,
+                mergedAbilities,
+                mergedIllusionCloneQueue,
+                mergedVillagerAdv,
+                schemaVersion
+        );
+    }
+
+    public TowerBalanceConfig withEndBalanceFrom(TowerBalanceConfig fallback) {
+        TowerBalanceConfig source = fallback == null ? defaultConfig() : fallback;
+        LinkedHashMap<String, TowerStats> repairedTowers = new LinkedHashMap<>(towers);
+        LinkedHashMap<String, Long> repairedUpgradeCosts =
+                new LinkedHashMap<>(upgradeCosts);
+        LinkedHashMap<String, Map<String, Double>> repairedAbilities =
+                new LinkedHashMap<>(abilities);
+
+        for (String towerId : endTowerIds()) {
+            replaceValue(repairedTowers, towerId, source.towers.get(towerId));
+            replaceValue(repairedAbilities, towerId, source.abilities.get(towerId));
+        }
+        replaceValue(
+                repairedAbilities,
+                EndTowers.CONFIG_ID,
+                source.abilities.get(EndTowers.CONFIG_ID)
+        );
+        for (String upgradeKey : endUpgradeKeys()) {
+            replaceValue(
+                    repairedUpgradeCosts,
+                    upgradeKey,
+                    source.upgradeCosts.get(upgradeKey)
+            );
+        }
+
+        return new TowerBalanceConfig(
+                repairedTowers,
+                repairedUpgradeCosts,
+                repairedAbilities,
+                illusionCloneQueue,
+                villagerAdv,
+                CURRENT_SCHEMA_VERSION
+        );
+    }
+
+    private static Iterable<String> endTowerIds() {
+        return java.util.List.of(
+                EndTowers.BASE_END_TOWER.id(),
+                EndTowers.T1_ENDERMITE_TOWER.id(),
+                EndTowers.T2_ENDERMAN_TOWER.id(),
+                EndTowers.T3_END_CRYSTAL_TOWER.id(),
+                EndTowers.T1_SHULKER_TOWER.id(),
+                EndTowers.T2_SHULKER_TOWER.id(),
+                EndTowers.T3_SHULKER_TOWER.id()
+        );
+    }
+
+    private static Iterable<String> endUpgradeKeys() {
+        return java.util.List.of(
+                upgradeKey(
+                        EndTowers.T1_ENDERMITE_TOWER.id(),
+                        EndTowers.T2_ENDERMAN_TOWER.id()
+                ),
+                upgradeKey(
+                        EndTowers.T2_ENDERMAN_TOWER.id(),
+                        EndTowers.T3_END_CRYSTAL_TOWER.id()
+                ),
+                upgradeKey(
+                        EndTowers.T1_SHULKER_TOWER.id(),
+                        EndTowers.T2_SHULKER_TOWER.id()
+                ),
+                upgradeKey(
+                        EndTowers.T2_SHULKER_TOWER.id(),
+                        EndTowers.T3_SHULKER_TOWER.id()
+                ),
+                EndTowers.T2_ENDERMAN_TOWER.id(),
+                EndTowers.T3_END_CRYSTAL_TOWER.id(),
+                EndTowers.T2_SHULKER_TOWER.id(),
+                EndTowers.T3_SHULKER_TOWER.id()
+        );
+    }
+
+    private static <T> void replaceValue(Map<String, T> values, String key, T replacement) {
+        if (replacement == null) {
+            values.remove(key);
+        } else {
+            values.put(key, replacement);
+        }
     }
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
@@ -1115,7 +1443,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, EndTowers.T3_SHULKER_TOWER.id(), Map.of(
                 "damageReduction", 0.50
         ));
-        putAbilities(abilities, EndTower.CONFIG_ID, Map.ofEntries(
+        putAbilities(abilities, EndTowers.CONFIG_ID, Map.ofEntries(
                 Map.entry("dragonEvolutionMaxHealth", 2000.0),
                 Map.entry("attackDamageCap", 250.0),
                 Map.entry("absorptionDurationTicks", 200.0),
@@ -1402,7 +1730,7 @@ public record TowerBalanceConfig(
         LinkedHashMap<String, Long> copy = new LinkedHashMap<>();
         values.forEach((key, value) -> {
             if (key != null && !key.isBlank() && value != null) {
-                copy.put(key, Math.max(0, value));
+                copy.put(key, value);
             }
         });
         return Collections.unmodifiableMap(copy);
@@ -1731,6 +2059,7 @@ public record TowerBalanceConfig(
         }
 
         public TowerStats mergedWith(TowerType defaults) {
+            validateTowerStats(defaults.id(), this);
             return new TowerStats(
                     mineralCost == null ? defaults.mineralCost() : Math.max(0, mineralCost),
                     maxHealth == null ? defaults.maxHealth() : Math.max(1.0, maxHealth),

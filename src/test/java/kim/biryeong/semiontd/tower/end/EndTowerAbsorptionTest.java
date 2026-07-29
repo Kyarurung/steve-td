@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.end;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -120,6 +121,212 @@ class EndTowerAbsorptionTest {
     }
 
     @Test
+    void interruptedTransferAlsoRollsBackDragonEvolutionState() {
+        applyEndAbilities(Map.of(
+                "absorptionDurationTicks", 4.0,
+                "dragonEvolutionMaxHealth", 220.0,
+                "roundHealthRatio", 0.50,
+                "permanentHealthRatio", 0.0
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower shulker = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.tick(lane);
+        lane.towers().add(shulker);
+
+        tick(dragon, lane, 2);
+
+        assertEquals(EndTowerState.DRAGON, dragon.state());
+        assertEquals(225.0, dragon.currentMaxHealth(), 0.0001);
+
+        lane.towers().remove(shulker);
+        dragon.tick(lane);
+
+        assertEquals(EndTowerState.PHANTOM, dragon.state());
+        assertEquals(200.0, dragon.currentMaxHealth(), 0.0001);
+        assertEquals(0.0, dragon.finalDamageBonus(), 0.0001);
+    }
+
+    @Test
+    void interruptedHealthTransferNeverHealsTheCoreForFree() {
+        applyEndAbilities(Map.of(
+                "absorptionDurationTicks", 4.0,
+                "roundHealthRatio", 0.50,
+                "permanentHealthRatio", 0.0,
+                "transferHealingPerTower", 0.0,
+                "absorptionHealAmount", 0.0
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower firstShulker = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.syncHealth(100.0);
+        lane.towers().add(firstShulker);
+
+        tick(dragon, lane, 2);
+
+        assertEquals(225.0, dragon.currentMaxHealth(), 0.0001);
+        assertEquals(100.0, dragon.health(), 0.0001);
+
+        lane.towers().remove(firstShulker);
+        dragon.tick(lane);
+
+        assertEquals(200.0, dragon.currentMaxHealth(), 0.0001);
+        assertEquals(100.0, dragon.health(), 0.0001);
+
+        EndTower secondShulker = tower(EndTowers.T1_SHULKER_TOWER, 2);
+        lane.towers().add(secondShulker);
+        tick(dragon, lane, 2);
+        lane.towers().remove(secondShulker);
+        dragon.tick(lane);
+
+        assertEquals(200.0, dragon.currentMaxHealth(), 0.0001);
+        assertEquals(100.0, dragon.health(), 0.0001);
+    }
+
+    @Test
+    void typeRefreshPreservesHealthAfterAbsorbedMaxHealthIsRecalculated() {
+        applyAbsorptionDuration(1);
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower shulker = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.tick(lane);
+        lane.towers().add(shulker);
+        dragon.tick(lane);
+        dragon.syncHealth(250.0);
+
+        dragon.refreshType(dragon.type(), lane);
+
+        assertEquals(254.0, dragon.currentMaxHealth(), 0.0001);
+        assertEquals(250.0, dragon.health(), 0.0001);
+    }
+
+    @Test
+    void typeRefreshRestartsAnActiveTransferWithTheNewBalanceSnapshot() {
+        applyEndAbilities(Map.of(
+                "absorptionDurationTicks", 4.0,
+                "roundHealthRatio", 0.50,
+                "permanentHealthRatio", 0.0
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower shulker = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        lane.towers().add(dragon);
+        lane.towers().add(shulker);
+        dragon.onWaveStarted(lane, 1);
+        tick(dragon, lane, 2);
+
+        assertEquals(0.50, shulker.transferProgress(), 0.0001);
+        assertEquals(25.0, dragon.roundHealthBonus(), 0.0001);
+
+        applyEndAbilities(Map.of(
+                "absorptionDurationTicks", 1.0,
+                "roundHealthRatio", 0.20,
+                "permanentHealthRatio", 0.0
+        ));
+        dragon.refreshType(dragon.type(), lane);
+
+        assertEquals(0.0, shulker.transferProgress(), 0.0001);
+        assertEquals(0.0, dragon.roundHealthBonus(), 0.0001);
+
+        dragon.tick(lane);
+
+        assertEquals(20.0, dragon.roundHealthBonus(), 0.0001);
+        assertEquals(0.0, shulker.health(), 0.0001);
+    }
+
+    @Test
+    void invalidEndBalanceIsRejectedBeforeItBecomesRuntimeState() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
+        end.put("absorptionDurationTicks", 0.0);
+        abilities.put(EndTower.CONFIG_ID, end);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                abilities
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalid));
+    }
+
+    @Test
+    void malformedEndRatiosIntegerSettingsAndCrossFieldRangesAreRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(endConfig(Map.of("splashDamageRatio", 1.01)))
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(endConfig(Map.of("absorptionDurationTicks", 1.5)))
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(endConfig(Map.of(
+                        "phantomBaseScale", 2.0,
+                        "phantomScaleCap", 1.0
+                )))
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(endConfig(Map.of("minimumAttackIntervalTicks", 16.0)))
+        );
+    }
+
+    @Test
+    void nonFiniteTowerStatsAndOversizedEndIntegersAreRejected() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, TowerBalanceConfig.TowerStats> towers =
+                new LinkedHashMap<>(defaults.towers());
+        TowerBalanceConfig.TowerStats base =
+                towers.get(EndTowers.BASE_END_TOWER.id());
+        towers.put(
+                EndTowers.BASE_END_TOWER.id(),
+                new TowerBalanceConfig.TowerStats(
+                        base.mineralCost(),
+                        Double.NaN,
+                        base.range(),
+                        base.damage(),
+                        base.attackIntervalTicks(),
+                        base.aggroPriority()
+                )
+        );
+        TowerBalanceConfig invalidStats = new TowerBalanceConfig(
+                towers,
+                defaults.upgradeCosts(),
+                defaults.abilities()
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(invalidStats)
+        );
+
+        Map<String, Map<String, Double>> abilities =
+                new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> end =
+                new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
+        end.put("absorptionDurationTicks", (double) Integer.MAX_VALUE + 1.0);
+        abilities.put(EndTower.CONFIG_ID, end);
+        TowerBalanceConfig oversizedInteger = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                abilities
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(oversizedInteger)
+        );
+    }
+
+    @Test
     void everyShulkerOrEndCrystalAbsorptionReducesAttackIntervalForTheCurrentRoundOnly() {
         applyEndAbilities(Map.of(
                 "absorptionDurationTicks", 1.0,
@@ -180,7 +387,7 @@ class EndTowerAbsorptionTest {
         assertEquals(50.0, dragon.roundHealthBonus(), 0.0001);
         assertEquals(4.0, dragon.permanentHealthBonus(), 0.0001);
         assertEquals(254.0, dragon.currentMaxHealth(), 0.0001);
-        assertEquals(89.0, dragon.health(), 0.0001);
+        assertEquals(35.0, dragon.health(), 0.0001);
         assertEquals(0.0, shulker.health(), 0.0001);
         assertEquals(1, dragon.roundCompletedTransferCount());
         assertEquals(19, dragon.adjustAttackInterval(20));
@@ -242,7 +449,78 @@ class EndTowerAbsorptionTest {
         assertEquals(12.0, dragon.health(), 0.0001);
 
         tick(dragon, lane, 20);
-        assertEquals(14.0, dragon.health(), 0.0001);
+        assertEquals(12.0, dragon.health(), 0.0001);
+        assertEquals(2, dragon.roundCompletedTransferCount());
+    }
+
+    @Test
+    void completedTransferDoesNotReceiveAnExtraPeriodicTransferHeal() {
+        applyEndAbilities(Map.of(
+                "absorptionDurationTicks", 1.0,
+                "absorptionHealAmount", 0.0,
+                "transferHealingPerTower", 10.0,
+                "transferHealingIntervalTicks", 1.0
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.syncHealth(10.0);
+        lane.towers().add(tower(EndTowers.T1_ENDERMITE_TOWER, 1));
+
+        dragon.tick(lane);
+
+        assertEquals(10.0, dragon.health(), 0.0001);
+        assertEquals(1, dragon.roundCompletedTransferCount());
+    }
+
+    @Test
+    void copyingTheCoreRollsBackIncompleteTransferContributions() {
+        applyEndAbilities(Map.of(
+                "absorptionDurationTicks", 4.0,
+                "roundHealthRatio", 0.50,
+                "permanentHealthRatio", 0.04
+        ));
+        PlayerLane lane = lane();
+        EndTower original = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower source = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        lane.towers().add(original);
+        lane.towers().add(source);
+        original.onWaveStarted(lane, 1);
+        tick(original, lane, 2);
+
+        assertEquals(25.0, original.roundHealthBonus(), 0.0001);
+        assertEquals(2.0, original.permanentHealthBonus(), 0.0001);
+
+        EndTower replacement = tower(EndTowers.BASE_END_TOWER, 2);
+        replacement.copyFrom(original, 0);
+
+        assertEquals(0.0, original.roundHealthBonus(), 0.0001);
+        assertEquals(0.0, original.permanentHealthBonus(), 0.0001);
+        assertEquals(0.0, replacement.roundHealthBonus(), 0.0001);
+        assertEquals(0.0, replacement.permanentHealthBonus(), 0.0001);
+        assertEquals(0.0, source.transferProgress(), 0.0001);
+    }
+
+    @Test
+    void upgradingAnAbsorptionTargetKeepsWaveStateButRestartsItsProgress() {
+        applyAbsorptionDuration(4);
+        PlayerLane lane = lane();
+        EndTower core = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower source = tower(EndTowers.T1_ENDERMITE_TOWER, 1);
+        lane.towers().add(core);
+        lane.towers().add(source);
+        core.onWaveStarted(lane, 1);
+        source.onWaveStarted(lane, 1);
+        tick(core, lane, 2);
+
+        assertEquals(0.5, source.transferProgress(), 0.0001);
+
+        EndTower upgraded = tower(EndTowers.T2_ENDERMAN_TOWER, 1);
+        upgraded.copyFrom(source, 0);
+
+        assertEquals(0.0, upgraded.transferProgress(), 0.0001);
+        assertTrue(upgraded.runtimeDetailLines().getFirst().contains("%"));
     }
 
     @Test
@@ -410,6 +688,49 @@ class EndTowerAbsorptionTest {
     }
 
     @Test
+    void splashRatioUsesDamageAfterThePrimaryAttackCap() {
+        applyEndAbilities(Map.of(
+                "attackDamageCap", 25.0,
+                "splashDamageRatio", 0.60
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+
+        double resolvedPrimaryDamage = dragon.modifyOutgoingDamage(null, null, 1_000.0);
+
+        assertEquals(25.0, resolvedPrimaryDamage, 0.0001);
+        assertEquals(15.0, dragon.resolvedSplashDamage(resolvedPrimaryDamage), 0.0001);
+        assertEquals(0.0, dragon.resolvedSplashDamage(Double.NaN), 0.0001);
+    }
+
+    @Test
+    void extremeAttackIntervalConfigurationCannotOverflow() {
+        applyEndAbilities(Map.ofEntries(
+                Map.entry("absorptionDurationTicks", 1.0),
+                Map.entry("endCrystalAttackIntervalEvery", 1.0),
+                Map.entry("attackIntervalReductionPerStep", (double) Integer.MAX_VALUE),
+                Map.entry("maxAttackIntervalReductionTicks", (double) Integer.MAX_VALUE),
+                Map.entry("roundAbsorptionAttackIntervalEvery", 1.0),
+                Map.entry("roundAbsorptionAttackIntervalReductionTicks", (double) Integer.MAX_VALUE),
+                Map.entry("minimumAttackIntervalTicks", 5.0)
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        lane.towers().add(dragon);
+        dragon.onWaveStarted(lane, 1);
+        lane.towers().add(tower(EndTowers.T3_END_CRYSTAL_TOWER, 1));
+
+        dragon.tick(lane);
+
+        assertEquals(3, dragon.absorbedEndCrystalCount());
+        assertEquals(1, dragon.roundCompletedTransferCount());
+        assertEquals(5, dragon.adjustAttackInterval(20));
+        assertEquals(5, dragon.previewHatchedAttackIntervalTicks());
+    }
+
+    @Test
     void everyStackBasedStatReachesItsCapAtThreeHundredStacks() {
         applyEndAbilities(Map.ofEntries(
                 Map.entry("absorptionDurationTicks", 1.0),
@@ -572,12 +893,16 @@ class EndTowerAbsorptionTest {
     }
 
     private static void applyEndAbilities(Map<String, Double> overrides) {
+        TowerBalanceRuntime.apply(endConfig(overrides));
+    }
+
+    private static TowerBalanceConfig endConfig(Map<String, Double> overrides) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
         end.putAll(overrides);
         abilities.put(EndTower.CONFIG_ID, end);
-        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+        return new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities);
     }
 
     private static EndTower tower(kim.biryeong.semiontd.tower.TowerType type, int x) {

@@ -39,6 +39,9 @@ public abstract class EntityBackedTower extends Tower {
 
     @Override
     public void onPlaced(PlayerLane lane) {
+        if (lane == null || lane.arenaWorld() == null) {
+            return;
+        }
         spawnEntity(lane);
     }
 
@@ -59,6 +62,9 @@ public abstract class EntityBackedTower extends Tower {
 
     @Override
     public void onStateChanged(PlayerLane lane) {
+        if (lane == null || lane.arenaWorld() == null) {
+            return;
+        }
         entityId().ifPresent(id -> {
             var currentEntity = lane.arenaWorld().getEntity(id);
             if (currentEntity instanceof SemionTowerEntity towerEntity) {
@@ -70,12 +76,14 @@ public abstract class EntityBackedTower extends Tower {
 
     @Override
     public void onRemoved(PlayerLane lane) {
-        entityId().ifPresent(id -> {
-            var currentEntity = lane.arenaWorld().getEntity(id);
-            if (currentEntity != null) {
-                currentEntity.discard();
-            }
-        });
+        if (lane != null && lane.arenaWorld() != null) {
+            entityId().ifPresent(id -> {
+                var currentEntity = lane.arenaWorld().getEntity(id);
+                if (currentEntity != null) {
+                    currentEntity.discard();
+                }
+            });
+        }
         entity = null;
         entityId = -1;
     }
@@ -95,6 +103,9 @@ public abstract class EntityBackedTower extends Tower {
     @Override
     public boolean isDestroyed(PlayerLane lane) {
         if (entityId < 0) {
+            return super.isDestroyed(lane);
+        }
+        if (lane == null || lane.arenaWorld() == null) {
             return super.isDestroyed(lane);
         }
 
@@ -146,6 +157,9 @@ public abstract class EntityBackedTower extends Tower {
     }
 
     private boolean isAnchorChunkLoaded(PlayerLane lane) {
+        if (lane == null || lane.arenaWorld() == null) {
+            return false;
+        }
         BlockPos anchor = BlockPos.containing(anchorX(), anchorY(), anchorZ());
         return lane.arenaWorld().getChunkSource().hasChunk(anchor.getX() >> 4, anchor.getZ() >> 4);
     }

@@ -1,18 +1,15 @@
 package kim.biryeong.semiontd.tower.end;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.api.area.AreaVfxSpec;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -32,9 +29,10 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.phys.Vec3;
 
 public final class EndTower extends EntityBackedTower {
-    public static final String CONFIG_ID = "end_global";
+    public static final String CONFIG_ID = EndTowers.CONFIG_ID;
     private static final double TRANSFER_PARTICLE_SOURCE_HEIGHT = 1.25;
     private static final double TRANSFER_PARTICLE_TARGET_HEIGHT = 3.0;
+    private static final int TRANSFER_PARTICLE_INTERVAL_TICKS = 5;
     private static final List<String> SPLASH_THRESHOLD_KEYS = List.of(
             "endCrystalSplashThreshold1",
             "endCrystalSplashThreshold2",
@@ -50,13 +48,9 @@ public final class EndTower extends EntityBackedTower {
             Double.class
     );
 
-    private final Map<Tower, AbsorptionProgress> absorptionProgress = new IdentityHashMap<>();
-    private final Set<Tower> completedTransferSources = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final EndAbsorptionState absorption = new EndAbsorptionState();
+    private final EndBalanceProvider balance;
     private boolean waveActive;
-    private double permanentHealthBonus;
-    private double permanentDamageBonus;
-    private double roundHealthContribution;
-    private double roundDamageContribution;
     private double roundHealthBonus;
     private double roundDamageBonus;
     private double syncedPermanentHealthBonus;
@@ -68,7 +62,19 @@ public final class EndTower extends EntityBackedTower {
     private int transferHealingTicks;
 
     public EndTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
+        this(type, ownerPlayer, teamId, laneId, position, EndBalanceProvider.RUNTIME);
+    }
+
+    EndTower(
+            TowerType type,
+            UUID ownerPlayer,
+            TeamId teamId,
+            int laneId,
+            GridPosition position,
+            EndBalanceProvider balance
+    ) {
         super(type, ownerPlayer, teamId, laneId, position);
+        this.balance = Objects.requireNonNull(balance, "balance");
         initializeState();
     }
 
@@ -80,7 +86,28 @@ public final class EndTower extends EntityBackedTower {
             GridPosition originalPosition,
             GridPosition currentPosition
     ) {
+        this(
+                type,
+                ownerPlayer,
+                teamId,
+                laneId,
+                originalPosition,
+                currentPosition,
+                EndBalanceProvider.RUNTIME
+        );
+    }
+
+    EndTower(
+            TowerType type,
+            UUID ownerPlayer,
+            TeamId teamId,
+            int laneId,
+            GridPosition originalPosition,
+            GridPosition currentPosition,
+            EndBalanceProvider balance
+    ) {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
+        this.balance = Objects.requireNonNull(balance, "balance");
         initializeState();
     }
 
@@ -111,7 +138,6 @@ public final class EndTower extends EntityBackedTower {
         if (rollbackIncompleteTransfers()) {
             refreshAbsorbedStats(lane);
         }
-        completedTransferSources.clear();
         if (isEgg()) {
             switchToPhantom(lane);
         } else if (lane != null) {
@@ -135,8 +161,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     void resetRoundTransferBonuses(PlayerLane lane) {
-        roundHealthContribution = 0.0;
-        roundDamageContribution = 0.0;
+        absorption.resetRoundContributions();
         roundCompletedTransferCount = 0;
         refreshAbsorbedStats(lane);
     }
@@ -157,20 +182,28 @@ public final class EndTower extends EntityBackedTower {
 
     @Override
     public void refreshType(TowerType type, PlayerLane lane) {
-        super.refreshType(type, lane);
-        if (!isHatched()) {
+        if (type == null || !type().id().equals(type.id())) {
             return;
         }
-        if (refreshAbsorbedStats(lane)) {
+        if (isCoreTower() && rollbackIncompleteTransfers()) {
+            refreshAbsorbedStats(lane);
+        }
+        super.refreshType(type, lane);
+        reconcileEvolutionState(lane);
+    }
+
+    @Override
+    protected void refreshMaxHealthAfterTypeChange(PlayerLane lane) {
+        if (!isHatched()) {
+            super.refreshMaxHealthAfterTypeChange(lane);
             return;
         }
         Optional<SemionTowerEntity> entity = towerEntity(lane);
         if (entity.isPresent()) {
-            entity.get().refreshMaxHealthEffects();
+            entity.get().refreshMaxHealthEffects(false);
         } else {
             syncMaxHealth(effectBaseMaxHealth(), false);
         }
-        onStateChanged(lane);
     }
 
     @Override
@@ -180,7 +213,7 @@ public final class EndTower extends EntityBackedTower {
         }
         if (waveActive && isHatched()) {
             int transferringTowerCount = absorbAlliedEndTowers(lane);
-            evolveToDragonIfReady(lane);
+            reconcileEvolutionState(lane);
             tickTransferHealing(lane, transferringTowerCount);
             tickRegeneration(lane);
         }
@@ -193,17 +226,16 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedMaxHealth() {
-        return type().maxHealth() + permanentHealthBonus + roundHealthBonus;
+        return type().maxHealth() + absorption.permanentHealthBonus() + roundHealthBonus;
     }
 
     public double previewHatchedAttackDamage() {
-        return type().damage() + permanentDamageBonus + roundDamageBonus;
+        return type().damage() + absorption.permanentDamageBonus() + roundDamageBonus;
     }
 
     public int previewHatchedAttackIntervalTicks() {
         int minimumInterval = Math.max(1, globalInt("minimumAttackIntervalTicks"));
-        int totalReduction = attackIntervalReduction() + roundAttackIntervalReduction();
-        return Math.max(minimumInterval, type().attackIntervalTicks() - totalReduction);
+        return reducedAttackInterval(type().attackIntervalTicks(), minimumInterval);
     }
 
     public double previewHatchedAttackRange() {
@@ -224,8 +256,7 @@ public final class EndTower extends EntityBackedTower {
             return baseIntervalTicks;
         }
         int minimumInterval = Math.max(1, globalInt("minimumAttackIntervalTicks"));
-        int totalReduction = attackIntervalReduction() + roundAttackIntervalReduction();
-        return Math.max(minimumInterval, baseIntervalTicks - totalReduction);
+        return reducedAttackInterval(baseIntervalTicks, minimumInterval);
     }
 
     @Override
@@ -233,7 +264,9 @@ public final class EndTower extends EntityBackedTower {
         if (!isHatched() || type().damage() <= 0.0) {
             return damageAmount;
         }
-        double absorbedDamage = damageAmount * (1.0 + (permanentDamageBonus + roundDamageBonus) / type().damage());
+        double absorbedDamage = damageAmount * (
+                1.0 + (absorption.permanentDamageBonus() + roundDamageBonus) / type().damage()
+        );
         return isDragon() ? absorbedDamage * (1.0 + Math.max(0.0, global("dragonDamageBonus"))) : absorbedDamage;
     }
 
@@ -270,12 +303,19 @@ public final class EndTower extends EntityBackedTower {
     }
 
     @Override
-    public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
+    public void onAttackResolved(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage,
+            double dealtDamage,
+            boolean killedTarget
+    ) {
         if (!isHatched() || towerEntity == null || target == null) {
             return;
         }
-        applySplashDamage(towerEntity, target, damageAmount);
-        heal(towerEntity, damageAmount * lifeStealRatio());
+        applySplashDamage(towerEntity, target, resolvedOutgoingDamage);
+        heal(towerEntity, dealtDamage * lifeStealRatio());
     }
 
     @Override
@@ -344,13 +384,18 @@ public final class EndTower extends EntityBackedTower {
 
     @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
-        if (!(previousTower instanceof EndTower endTower) || !isCoreTower()) {
+        if (!(previousTower instanceof EndTower endTower)) {
             return;
         }
-        permanentHealthBonus = endTower.permanentHealthBonus;
-        permanentDamageBonus = endTower.permanentDamageBonus;
-        roundHealthContribution = endTower.roundHealthContribution;
-        roundDamageContribution = endTower.roundDamageContribution;
+        waveActive = endTower.waveActive;
+        if (!isCoreTower()) {
+            removeData(TRANSFER_PROGRESS);
+            return;
+        }
+        if (endTower.rollbackIncompleteTransfers()) {
+            endTower.refreshAbsorbedStats(null);
+        }
+        absorption.copyBonusesFrom(endTower.absorption);
         roundHealthBonus = endTower.roundHealthBonus;
         roundDamageBonus = endTower.roundDamageBonus;
         syncedPermanentHealthBonus = endTower.syncedPermanentHealthBonus;
@@ -360,8 +405,6 @@ public final class EndTower extends EntityBackedTower {
         roundCompletedTransferCount = endTower.roundCompletedTransferCount;
         regenerationTicks = endTower.regenerationTicks;
         transferHealingTicks = endTower.transferHealingTicks;
-        completedTransferSources.addAll(endTower.completedTransferSources);
-        waveActive = endTower.waveActive;
     }
 
     public int absorbedEndCrystalCount() {
@@ -377,19 +420,19 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double absorbedHealthBonus() {
-        return permanentHealthBonus + roundHealthBonus;
+        return absorption.permanentHealthBonus() + roundHealthBonus;
     }
 
     public double absorbedDamageBonus() {
-        return permanentDamageBonus + roundDamageBonus;
+        return absorption.permanentDamageBonus() + roundDamageBonus;
     }
 
     public double permanentHealthBonus() {
-        return permanentHealthBonus;
+        return absorption.permanentHealthBonus();
     }
 
     public double permanentDamageBonus() {
-        return permanentDamageBonus;
+        return absorption.permanentDamageBonus();
     }
 
     public double roundHealthBonus() {
@@ -404,114 +447,117 @@ public final class EndTower extends EntityBackedTower {
         if (lane == null) {
             return 0;
         }
+        absorption.beginSnapshot();
         for (Tower tower : lane.towers()) {
+            absorption.markPresent(tower);
             if (isEligibleAbsorptionTarget(tower)) {
-                absorptionProgress.computeIfAbsent(tower, this::newAbsorptionProgress);
+                absorption.progressFor(tower, this::newAbsorptionProgress);
             }
         }
 
         double absorptionHealing = 0.0;
         int transferringTowerCount = 0;
         boolean countsChanged = false;
-        var progressIterator = absorptionProgress.entrySet().iterator();
+        var progressIterator = absorption.progressEntries().iterator();
         while (progressIterator.hasNext()) {
-            Map.Entry<Tower, AbsorptionProgress> entry = progressIterator.next();
+            Map.Entry<Tower, EndAbsorptionState.Progress> entry = progressIterator.next();
             Tower source = entry.getKey();
-            AbsorptionProgress progress = entry.getValue();
-            if (!lane.towers().contains(source) || source.health() <= 0.0) {
+            EndAbsorptionState.Progress progress = entry.getValue();
+            if (!absorption.isPresent(source) || source.health() <= 0.0) {
                 progressIterator.remove();
                 source.removeData(TRANSFER_PROGRESS);
                 rollbackTransferProgress(progress);
                 continue;
             }
-            transferringTowerCount++;
             progress.elapsedTicks++;
-            applyTransferProgress(progress);
+            absorption.apply(progress);
             source.setData(TRANSFER_PROGRESS, progress.appliedRatio);
             if (progress.elapsedTicks < progress.durationTicks) {
-                showTransferParticles(lane, source);
+                transferringTowerCount++;
+                if (shouldShowTransferParticles(source, progress.elapsedTicks)) {
+                    showTransferParticles(lane, source);
+                }
                 continue;
             }
 
             progressIterator.remove();
             source.removeData(TRANSFER_PROGRESS);
-            if (!lane.towers().contains(source)
+            if (!absorption.isPresent(source)
                     || source.health() <= 0.0
                     || !lane.killTower(source)) {
                 rollbackTransferProgress(progress);
                 continue;
             }
-            completedTransferSources.add(source);
             absorptionHealing += Math.max(0.0, global("absorptionHealAmount"));
             int tier = EndTowers.absorptionTier(source.type());
-            roundCompletedTransferCount++;
+            roundCompletedTransferCount = saturatedAdd(roundCompletedTransferCount, 1);
             if (EndTowers.isEndCrystalLine(source.type())) {
-                absorbedEndCrystalCount += tier;
+                absorbedEndCrystalCount = saturatedAdd(absorbedEndCrystalCount, tier);
             } else {
-                absorbedShulkerCount += tier;
+                absorbedShulkerCount = saturatedAdd(absorbedShulkerCount, tier);
             }
             countsChanged = true;
         }
-        boolean statsChanged = refreshAbsorbedStats(lane);
+        refreshAbsorbedStats(lane);
         healTransferredHealth(lane, absorptionHealing);
-        if (countsChanged && !statsChanged) {
-            onStateChanged(lane);
+        if (countsChanged) {
+            towerEntity(lane).ifPresent(SemionTowerEntity::refreshCombatStats);
         }
         return transferringTowerCount;
     }
 
     private boolean refreshAbsorbedStats(PlayerLane lane) {
-        double nextRoundHealthBonus = Math.max(0.0, roundHealthContribution);
-        double nextRoundDamageBonus = Math.max(0.0, roundDamageContribution);
+        double nextRoundHealthBonus = Math.max(0.0, absorption.roundHealthContribution());
+        double nextRoundDamageBonus = Math.max(0.0, absorption.roundDamageContribution());
         if (Math.abs(nextRoundHealthBonus - roundHealthBonus) < 1.0E-9
                 && Math.abs(nextRoundDamageBonus - roundDamageBonus) < 1.0E-9
-                && Math.abs(permanentHealthBonus - syncedPermanentHealthBonus) < 1.0E-9
-                && Math.abs(permanentDamageBonus - syncedPermanentDamageBonus) < 1.0E-9) {
+                && Math.abs(absorption.permanentHealthBonus() - syncedPermanentHealthBonus) < 1.0E-9
+                && Math.abs(absorption.permanentDamageBonus() - syncedPermanentDamageBonus) < 1.0E-9) {
             return false;
         }
         roundHealthBonus = nextRoundHealthBonus;
         roundDamageBonus = nextRoundDamageBonus;
-        syncedPermanentHealthBonus = permanentHealthBonus;
-        syncedPermanentDamageBonus = permanentDamageBonus;
+        syncedPermanentHealthBonus = absorption.permanentHealthBonus();
+        syncedPermanentDamageBonus = absorption.permanentDamageBonus();
         Optional<SemionTowerEntity> entity = towerEntity(lane);
         if (entity.isPresent()) {
-            entity.get().refreshMaxHealthEffects();
+            entity.get().refreshMaxHealthEffects(false);
         } else {
-            syncMaxHealth(effectBaseMaxHealth(), true);
+            syncMaxHealth(effectBaseMaxHealth(), false);
         }
-        onStateChanged(lane);
         return true;
     }
 
     private boolean isEligibleAbsorptionTarget(Tower tower) {
         return tower != null
                 && tower != this
-                && !completedTransferSources.contains(tower)
-                && tower.ownerPlayer().equals(ownerPlayer())
+                && Objects.equals(tower.ownerPlayer(), ownerPlayer())
                 && tower.health() > 0.0
                 && EndTowers.isAbsorbableTower(tower.type());
     }
 
-    private AbsorptionProgress newAbsorptionProgress(Tower tower) {
+    private EndAbsorptionState.Progress newAbsorptionProgress(Tower tower) {
         int durationTicks = Math.max(1, globalTicks("absorptionDurationTicks"));
         boolean endCrystalLine = EndTowers.isEndCrystalLine(tower.type());
         boolean shulkerLine = EndTowers.isShulkerLine(tower.type());
-        double sourceMaxHealth = tower.type().maxHealth();
-        double sourceAttackDamage = tower.type().damage();
+        // Transfer configured base stats, not temporary effects, to prevent
+        // recursive buff multiplication and make the snapshot deterministic.
+        double sourceConfiguredMaxHealth = tower.type().maxHealth();
+        double sourceConfiguredAttackDamage = tower.type().damage();
         tower.setData(TRANSFER_PROGRESS, 0.0);
-        return new AbsorptionProgress(
+        return new EndAbsorptionState.Progress(
                 durationTicks,
                 shulkerLine
-                        ? sourceMaxHealth * Math.max(0.0, global("roundHealthRatio"))
+                        ? sourceConfiguredMaxHealth * Math.max(0.0, global("roundHealthRatio"))
                         : 0.0,
                 endCrystalLine
-                        ? sourceAttackDamage * Math.max(0.0, global("roundDamageRatio"))
+                        ? sourceConfiguredAttackDamage * Math.max(0.0, global("roundDamageRatio"))
                         : 0.0,
                 shulkerLine
-                        ? sourceMaxHealth * Math.max(0.0, global("permanentHealthRatio"))
+                        ? sourceConfiguredMaxHealth * Math.max(0.0, global("permanentHealthRatio"))
                         : 0.0,
                 endCrystalLine
-                        ? sourceAttackDamage * Math.max(0.0, global("permanentDamageRatio"))
+                        ? sourceConfiguredAttackDamage * Math.max(0.0, global("permanentDamageRatio"))
                         : 0.0
         );
     }
@@ -522,41 +568,17 @@ public final class EndTower extends EntityBackedTower {
 
     private boolean rollbackIncompleteTransfers() {
         boolean changed = false;
-        for (Map.Entry<Tower, AbsorptionProgress> entry : absorptionProgress.entrySet()) {
+        for (Map.Entry<Tower, EndAbsorptionState.Progress> entry : absorption.progressEntries()) {
             Tower source = entry.getKey();
             source.removeData(TRANSFER_PROGRESS);
             changed |= rollbackTransferProgress(entry.getValue());
         }
-        absorptionProgress.clear();
+        absorption.clearProgress();
         return changed;
     }
 
-    private boolean rollbackTransferProgress(AbsorptionProgress progress) {
-        if (progress == null || progress.appliedRatio <= 0.0) {
-            return false;
-        }
-        roundHealthContribution = Math.max(0.0,
-                roundHealthContribution - progress.roundHealthBonus * progress.appliedRatio);
-        roundDamageContribution = Math.max(0.0,
-                roundDamageContribution - progress.roundDamageBonus * progress.appliedRatio);
-        permanentHealthBonus = Math.max(0.0,
-                permanentHealthBonus - progress.permanentHealthBonus * progress.appliedRatio);
-        permanentDamageBonus = Math.max(0.0,
-                permanentDamageBonus - progress.permanentDamageBonus * progress.appliedRatio);
-        return true;
-    }
-
-    private void applyTransferProgress(AbsorptionProgress progress) {
-        double ratio = Math.min(1.0, progress.elapsedTicks / (double) progress.durationTicks);
-        double delta = Math.max(0.0, ratio - progress.appliedRatio);
-        if (delta <= 0.0) {
-            return;
-        }
-        progress.appliedRatio = ratio;
-        roundHealthContribution += progress.roundHealthBonus * delta;
-        roundDamageContribution += progress.roundDamageBonus * delta;
-        permanentHealthBonus += progress.permanentHealthBonus * delta;
-        permanentDamageBonus += progress.permanentDamageBonus * delta;
+    private boolean rollbackTransferProgress(EndAbsorptionState.Progress progress) {
+        return absorption.rollback(progress);
     }
 
     private void healTransferredHealth(PlayerLane lane, double amount) {
@@ -602,14 +624,25 @@ public final class EndTower extends EntityBackedTower {
         }
     }
 
-    private void evolveToDragonIfReady(PlayerLane lane) {
-        if (!isPhantom() || currentMaxHealth() < dragonEvolutionMaxHealth()) {
+    private void reconcileEvolutionState(PlayerLane lane) {
+        if (!isHatched()) {
             return;
         }
-        setData(STATE, EndTowerState.DRAGON);
+        EndTowerState nextState = EndTowerState.evolvedState(
+                currentMaxHealth(),
+                dragonEvolutionMaxHealth()
+        );
+        if (state() == nextState) {
+            return;
+        }
+        setData(STATE, nextState);
         if (lane != null) {
             onStateChanged(lane);
         }
+    }
+
+    private static boolean shouldShowTransferParticles(Tower source, int elapsedTicks) {
+        return Math.floorMod(elapsedTicks + System.identityHashCode(source), TRANSFER_PARTICLE_INTERVAL_TICKS) == 0;
     }
 
     private void showTransferParticles(PlayerLane lane, Tower source) {
@@ -654,20 +687,37 @@ public final class EndTower extends EntityBackedTower {
 
     private void applySplashDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         double radius = splashRadius();
-        double damageRatio = Math.max(0.0, global("splashDamageRatio"));
-        if (radius <= 0.0 || damageAmount <= 0.0 || damageRatio <= 0.0) {
+        double splashDamageAmount = resolvedSplashDamage(damageAmount);
+        if (radius <= 0.0 || splashDamageAmount <= 0.0) {
             return;
         }
         ResourceLocation vfxStyle = isDragon() ? AreaVfxStyles.DRAGON_BREATH : AreaVfxStyles.SPLASH;
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTarget(AreaEffectIds.tower(this, "splash"), towerEntity, target, radius, AreaVfxSpec.onTrigger(vfxStyle));
-        TowerAreaDamage.apply(this, towerEntity, request, ignored -> damageAmount * damageRatio, true, (ignored, splashDamage, killed) -> heal(towerEntity, splashDamage * lifeStealRatio()));
+        TowerAreaDamage.applyResolved(
+                this,
+                towerEntity,
+                request,
+                ignored -> splashDamageAmount,
+                true,
+                (ignored, dealtSplashDamage, killed) -> heal(
+                        towerEntity,
+                        dealtSplashDamage * lifeStealRatio()
+                )
+        );
+    }
+
+    double resolvedSplashDamage(double resolvedOutgoingDamage) {
+        if (!Double.isFinite(resolvedOutgoingDamage) || resolvedOutgoingDamage <= 0.0) {
+            return 0.0;
+        }
+        return resolvedOutgoingDamage * Math.max(0.0, global("splashDamageRatio"));
     }
 
     private int attackIntervalReduction() {
         int every = Math.max(1, globalInt("endCrystalAttackIntervalEvery"));
-        int permanentReduction = absorbedEndCrystalCount / every
+        long permanentReduction = (absorbedEndCrystalCount / (long) every)
                 * Math.max(0, globalInt("attackIntervalReductionPerStep"));
-        return Math.min(
+        return (int) Math.min(
                 Math.max(0, globalInt("maxAttackIntervalReductionTicks")),
                 permanentReduction
         );
@@ -698,7 +748,14 @@ public final class EndTower extends EntityBackedTower {
     private int roundAttackIntervalReduction() {
         int every = Math.max(1, globalInt("roundAbsorptionAttackIntervalEvery"));
         int reductionPerStep = Math.max(0, globalInt("roundAbsorptionAttackIntervalReductionTicks"));
-        return roundCompletedTransferCount / every * reductionPerStep;
+        long reduction = (roundCompletedTransferCount / (long) every) * reductionPerStep;
+        return (int) Math.min(Integer.MAX_VALUE, reduction);
+    }
+
+    private int reducedAttackInterval(int baseIntervalTicks, int minimumInterval) {
+        long totalReduction = (long) attackIntervalReduction() + roundAttackIntervalReduction();
+        long reduced = (long) baseIntervalTicks - totalReduction;
+        return (int) Math.max(minimumInterval, reduced);
     }
 
     private double lifeStealRatio() {
@@ -750,7 +807,10 @@ public final class EndTower extends EntityBackedTower {
     }
 
     private double shulkerDamageReduction() {
-        return Math.max(0.0, Math.min(1.0, TowerBalanceRuntime.ability(type().id(), "damageReduction")));
+        return Math.max(
+                0.0,
+                Math.min(1.0, balance.ability(type().id(), "damageReduction"))
+        );
     }
 
     private double attackDamageCap() {
@@ -764,7 +824,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     private Optional<SemionTowerEntity> towerEntity(PlayerLane lane) {
-        if (lane == null || entityId().isEmpty()) {
+        if (lane == null || lane.arenaWorld() == null || entityId().isEmpty()) {
             return Optional.empty();
         }
         return Optional.ofNullable(lane.arenaWorld().getEntity(entityId().getAsInt()))
@@ -776,16 +836,11 @@ public final class EndTower extends EntityBackedTower {
         return isCoreTower() && state() == EndTowerState.DRAGON;
     }
 
-    private boolean isPhantom() {
-        return isCoreTower() && state() == EndTowerState.PHANTOM;
-    }
-
     private boolean isHatched() {
         if (!isCoreTower()) {
             return false;
         }
-        EndTowerState currentState = state();
-        return currentState == EndTowerState.PHANTOM || currentState == EndTowerState.DRAGON;
+        return state().hatched();
     }
 
     private boolean isEgg() {
@@ -808,42 +863,42 @@ public final class EndTower extends EntityBackedTower {
     }
 
     private double global(String key) {
-        return TowerBalanceRuntime.ability(CONFIG_ID, key);
+        return balance.ability(key);
+    }
+
+    public double phantomScaleForMaxHealth(double maxHealth) {
+        double baseScale = Math.max(0.0, global("phantomBaseScale"));
+        double healthInterval = global("phantomScaleHealthInterval");
+        double scalePerInterval = Math.max(0.0, global("phantomScalePerInterval"));
+        double scaleCap = Math.max(0.0, global("phantomScaleCap"));
+        double resolvedMaxHealth = Double.isFinite(maxHealth)
+                ? Math.max(0.0, maxHealth)
+                : 0.0;
+        double growth = healthInterval > 0.0
+                ? resolvedMaxHealth / healthInterval * scalePerInterval
+                : 0.0;
+        return Math.min(scaleCap, baseScale + growth);
     }
 
     private int globalInt(String key) {
-        return TowerBalanceRuntime.abilityInt(CONFIG_ID, key);
+        return balance.abilityInt(key);
     }
 
     private int globalTicks(String key) {
-        return TowerBalanceRuntime.abilityTicks(CONFIG_ID, key);
+        return balance.abilityTicks(key);
     }
 
     private double dragonEvolutionMaxHealth() {
         return Math.max(0.0, global("dragonEvolutionMaxHealth"));
     }
 
-    private static final class AbsorptionProgress {
-        private final int durationTicks;
-        private final double roundHealthBonus;
-        private final double roundDamageBonus;
-        private final double permanentHealthBonus;
-        private final double permanentDamageBonus;
-        private int elapsedTicks;
-        private double appliedRatio;
-
-        private AbsorptionProgress(
-                int durationTicks,
-                double roundHealthBonus,
-                double roundDamageBonus,
-                double permanentHealthBonus,
-                double permanentDamageBonus
-        ) {
-            this.durationTicks = durationTicks;
-            this.roundHealthBonus = roundHealthBonus;
-            this.roundDamageBonus = roundDamageBonus;
-            this.permanentHealthBonus = permanentHealthBonus;
-            this.permanentDamageBonus = permanentDamageBonus;
+    private static int saturatedAdd(int value, int increment) {
+        if (increment <= 0 || value >= Integer.MAX_VALUE) {
+            return value;
         }
+        return value > Integer.MAX_VALUE - increment
+                ? Integer.MAX_VALUE
+                : value + increment;
     }
+
 }

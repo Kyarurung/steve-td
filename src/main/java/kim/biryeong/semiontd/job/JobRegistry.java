@@ -18,11 +18,11 @@ public final class JobRegistry {
     private JobRegistry() {
     }
 
-    public static SemionJob defaultJob() {
+    public static synchronized SemionJob defaultJob() {
         return DEFAULT_JOB;
     }
 
-    public static SemionJob register(SemionJob job) {
+    public static synchronized SemionJob register(SemionJob job) {
         Objects.requireNonNull(job, "job");
         SemionJob previous = JOBS.putIfAbsent(job.id(), job);
         if (previous != null) {
@@ -31,13 +31,13 @@ public final class JobRegistry {
         return job;
     }
 
-    public static SemionJob registerIfAbsent(SemionJob job) {
+    public static synchronized SemionJob registerIfAbsent(SemionJob job) {
         Objects.requireNonNull(job, "job");
         SemionJob existing = JOBS.putIfAbsent(job.id(), job);
         return existing == null ? job : existing;
     }
 
-    public static void registerBuiltIns() {
+    public static synchronized void registerBuiltIns() {
         registerIfAbsent(new VillagerTowerJob());
         registerIfAbsent(new VillagerAdvTowerJob());
         registerIfAbsent(new UndeadTowerJob());
@@ -51,11 +51,11 @@ public final class JobRegistry {
         registerIfAbsent(new OceanTowerJob());
     }
 
-    public static Optional<SemionJob> find(ResourceLocation id) {
+    public static synchronized Optional<SemionJob> find(ResourceLocation id) {
         return Optional.ofNullable(JOBS.get(id));
     }
 
-    public static Collection<SemionJob> all() {
+    public static synchronized Collection<SemionJob> all() {
         return java.util.List.copyOf(JOBS.values());
     }
 }

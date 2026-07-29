@@ -9,12 +9,13 @@ import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import kim.biryeong.semiontd.persistence.SemionPersistenceConfig;
 import kim.biryeong.semiontd.rating.RatingConfig;
-import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import org.slf4j.Logger;
@@ -26,6 +27,18 @@ public final class SemionConfigLoader {
     }
 
     public static LoadedConfigs load(Path configDir, Logger logger) {
+        return load(configDir, logger, TowerBalanceConfig.defaultConfig());
+    }
+
+    public static LoadedConfigs load(
+            Path configDir,
+            Logger logger,
+            TowerBalanceConfig lastKnownGoodTowerBalance
+    ) {
+        TowerBalanceConfig towerBalanceFallback = lastKnownGoodTowerBalance == null
+                ? TowerBalanceConfig.defaultConfig()
+                : lastKnownGoodTowerBalance;
+        towerBalanceFallback.validateForRuntime();
         try {
             Files.createDirectories(configDir);
         } catch (IOException exception) {
@@ -37,7 +50,7 @@ public final class SemionConfigLoader {
                     ProgressionConfig.defaultConfig(),
                     RatingConfig.defaultConfig(),
                     SemionPersistenceConfig.defaultConfig(),
-                    TowerBalanceConfig.defaultConfig(),
+                    towerBalanceFallback,
                     SummonConfig.defaultConfig(),
                     LeaderTargetingConfig.defaultConfig(),
                     IncomeLaneRoutingConfig.defaultConfig(),
@@ -87,6 +100,7 @@ public final class SemionConfigLoader {
         TowerBalanceConfig towerBalance = loadOrCreateTowerBalance(
                 configDir.resolve("tower_balance.json"),
                 TowerBalanceConfig.defaultConfig(),
+                towerBalanceFallback,
                 logger
         );
         SummonConfig summons = loadOrCreateSummons(
@@ -373,6 +387,7 @@ public final class SemionConfigLoader {
     private static TowerBalanceConfig loadOrCreateTowerBalance(
             Path path,
             TowerBalanceConfig defaults,
+            TowerBalanceConfig lastKnownGood,
             Logger logger
     ) {
         if (Files.notExists(path)) {
@@ -382,24 +397,49 @@ public final class SemionConfigLoader {
 
         try {
             String json = Files.readString(path);
+            int sourceSchemaVersion = towerBalanceSchemaVersion(json);
+            boolean legacyEndConfig = sourceSchemaVersion < TowerBalanceConfig.CURRENT_SCHEMA_VERSION;
             String migratedJson = migrateLegacyVillagerAdvBuffs(json, defaults);
-            migratedJson = migrateLegacyEndUpgradeCosts(migratedJson, defaults);
-            migratedJson = migrateLegacyEndBalanceDefaults(migratedJson, defaults);
-            migratedJson = migrateLegacyEndDragonDamage(migratedJson, defaults);
-            migratedJson = migrateLegacyEndDragonAttackInterval(migratedJson, defaults);
-            migratedJson = migrateLegacyEndShulkerDamageReduction(migratedJson, defaults);
+            if (legacyEndConfig) {
+                migratedJson = migrateLegacyEndUpgradeCosts(migratedJson, defaults);
+                migratedJson = migrateLegacyEndBalanceDefaults(migratedJson, defaults);
+                migratedJson = migrateLegacyEndDragonDamage(migratedJson, defaults);
+                migratedJson = migrateLegacyEndDragonAttackInterval(migratedJson, defaults);
+                migratedJson = migrateLegacyEndShulkerDamageReduction(migratedJson, defaults);
+            }
             TowerBalanceConfig value = GSON.fromJson(migratedJson, TowerBalanceConfig.class);
             TowerBalanceConfig loaded = value == null ? defaults : value;
             TowerBalanceConfig merged = loaded.withMissingDefaults(defaults);
+            if (merged.schemaVersion() > TowerBalanceConfig.CURRENT_SCHEMA_VERSION) {
+                throw new IllegalArgumentException(
+                        "Unsupported tower balance schema version: " + merged.schemaVersion()
+                );
+            }
+            try {
+                merged.validateForRuntime();
+            } catch (IllegalArgumentException invalidBalance) {
+                logger.error(
+                        "Invalid tower balance in {}; attempting End-section recovery.",
+                        path,
+                        invalidBalance
+                );
+                merged = merged.withEndBalanceFrom(lastKnownGood);
+                merged.validateForRuntime();
+            }
+            boolean schemaVersionMissing = !hasObjectProperty(json, "schemaVersion");
             boolean illusionCloneQueueMissing = !hasObjectProperty(migratedJson, "illusionCloneQueue");
             boolean villagerAdvMissing = !hasObjectProperty(migratedJson, "villagerAdv");
-            if (!migratedJson.equals(json) || illusionCloneQueueMissing || villagerAdvMissing || !merged.equals(loaded)) {
+            if (!migratedJson.equals(json)
+                    || schemaVersionMissing
+                    || illusionCloneQueueMissing
+                    || villagerAdvMissing
+                    || !merged.equals(loaded)) {
                 write(path, merged, logger);
             }
             return merged;
         } catch (IOException | JsonParseException | IllegalArgumentException exception) {
-            logger.warn("Failed to load config {}; using defaults.", path, exception);
-            return defaults;
+            logger.error("Failed to load config {}; retaining last-known-good tower balance.", path, exception);
+            return lastKnownGood;
         }
     }
 
@@ -413,18 +453,19 @@ public final class SemionConfigLoader {
             return defaults;
         }
 
+        TraitBalanceConfig loaded;
         try (Reader reader = Files.newBufferedReader(path)) {
             TraitBalanceConfig value = GSON.fromJson(reader, TraitBalanceConfig.class);
-            TraitBalanceConfig loaded = value == null ? defaults : value;
-            TraitBalanceConfig merged = loaded.withMissingDefaults(defaults);
-            if (!merged.equals(loaded)) {
-                write(path, merged, logger);
-            }
-            return merged;
+            loaded = value == null ? defaults : value;
         } catch (IOException | JsonParseException | IllegalArgumentException exception) {
             logger.warn("Failed to load config {}; using defaults.", path, exception);
             return defaults;
         }
+        TraitBalanceConfig merged = loaded.withMissingDefaults(defaults);
+        if (!merged.equals(loaded)) {
+            write(path, merged, logger);
+        }
+        return merged;
     }
 
     private static String migrateLegacyVillagerAdvBuffs(String json, TowerBalanceConfig defaults) {
@@ -493,8 +534,8 @@ public final class SemionConfigLoader {
         );
         if (object.has("abilities") && object.get("abilities").isJsonObject()) {
             JsonObject abilities = object.getAsJsonObject("abilities");
-            if (abilities.has(EndTower.CONFIG_ID) && abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
-                JsonObject endAbilities = abilities.getAsJsonObject(EndTower.CONFIG_ID);
+            if (abilities.has(EndTowers.CONFIG_ID) && abilities.get(EndTowers.CONFIG_ID).isJsonObject()) {
+                JsonObject endAbilities = abilities.getAsJsonObject(EndTowers.CONFIG_ID);
                 changed |= migrateLegacyAbilityKey(
                         endAbilities,
                         "shulkerSplashEvery",
@@ -591,10 +632,10 @@ public final class SemionConfigLoader {
             return json;
         }
         JsonObject abilities = object.getAsJsonObject("abilities");
-        if (!abilities.has(EndTower.CONFIG_ID) || !abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
+        if (!abilities.has(EndTowers.CONFIG_ID) || !abilities.get(EndTowers.CONFIG_ID).isJsonObject()) {
             return json;
         }
-        JsonObject endAbilities = abilities.getAsJsonObject(EndTower.CONFIG_ID);
+        JsonObject endAbilities = abilities.getAsJsonObject(EndTowers.CONFIG_ID);
         boolean changed = migrateLegacyAbilityDefault(endAbilities, defaults, "absorptionDurationTicks", 400.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "roundAbsorptionAttackIntervalEvery", 2.0);
         changed |= migrateLegacyAbilityDefault(endAbilities, defaults, "endCrystalAttackIntervalEvery", 20.0);
@@ -648,6 +689,51 @@ public final class SemionConfigLoader {
         return changed ? GSON.toJson(object) : json;
     }
 
+    private static boolean hasLegacyEndAbilityMarkers(JsonObject endAbilities) {
+        return endAbilities.has("hatchDelayTicks")
+                || endAbilities.has("endCrystalSplashEvery")
+                || endAbilities.has("splashRadiusPerStep")
+                || endAbilities.has("roundStatBonusCapRatio")
+                || endAbilities.has("shulkerSplashEvery")
+                || endAbilities.has("shulkerAttackRangeEvery")
+                || endAbilities.has("endermanAttackIntervalEvery")
+                || endAbilities.has("endermanLifeStealEvery");
+    }
+
+    private static boolean hasLegacyEndConfigMarkers(String json) {
+        JsonElement root = JsonParser.parseString(json);
+        if (!root.isJsonObject()) {
+            return false;
+        }
+        JsonObject object = root.getAsJsonObject();
+        if (!object.has("abilities") || !object.get("abilities").isJsonObject()) {
+            return false;
+        }
+        JsonObject abilities = object.getAsJsonObject("abilities");
+        return abilities.has(EndTowers.CONFIG_ID)
+                && abilities.get(EndTowers.CONFIG_ID).isJsonObject()
+                && hasLegacyEndAbilityMarkers(abilities.getAsJsonObject(EndTowers.CONFIG_ID));
+    }
+
+    private static int towerBalanceSchemaVersion(String json) {
+        JsonElement root = JsonParser.parseString(json);
+        if (!root.isJsonObject()) {
+            throw new JsonParseException("Tower balance root must be a JSON object.");
+        }
+        JsonObject object = root.getAsJsonObject();
+        JsonElement version = object.get("schemaVersion");
+        if (version != null && version.isJsonPrimitive() && version.getAsJsonPrimitive().isNumber()) {
+            try {
+                return version.getAsBigDecimal().intValueExact();
+            } catch (ArithmeticException exception) {
+                throw new JsonParseException("Tower balance schemaVersion must be an integer.", exception);
+            }
+        }
+        return hasLegacyEndConfigMarkers(json)
+                ? 1
+                : TowerBalanceConfig.CURRENT_SCHEMA_VERSION;
+    }
+
     private static boolean migrateLegacyAbilityDefault(
             JsonObject abilities,
             TowerBalanceConfig defaults,
@@ -661,7 +747,7 @@ public final class SemionConfigLoader {
                 || Double.compare(configured.getAsDouble(), legacyValue) != 0) {
             return false;
         }
-        double defaultValue = defaults.ability(EndTower.CONFIG_ID, key, legacyValue);
+        double defaultValue = defaults.ability(EndTowers.CONFIG_ID, key, legacyValue);
         if (Double.compare(defaultValue, legacyValue) == 0) {
             return false;
         }
@@ -680,8 +766,8 @@ public final class SemionConfigLoader {
         }
         JsonObject abilities = object.getAsJsonObject("abilities");
         boolean changed = false;
-        if (abilities.has(EndTower.CONFIG_ID) && abilities.get(EndTower.CONFIG_ID).isJsonObject()) {
-            JsonObject endAbilities = abilities.getAsJsonObject(EndTower.CONFIG_ID);
+        if (abilities.has(EndTowers.CONFIG_ID) && abilities.get(EndTowers.CONFIG_ID).isJsonObject()) {
+            JsonObject endAbilities = abilities.getAsJsonObject(EndTowers.CONFIG_ID);
             if (endAbilities.remove("hatchDelayTicks") != null) {
                 changed = true;
             }
@@ -781,18 +867,19 @@ public final class SemionConfigLoader {
             return defaults;
         }
 
+        SummonConfig loaded;
         try (Reader reader = Files.newBufferedReader(path)) {
             SummonConfig value = GSON.fromJson(reader, SummonConfig.class);
-            SummonConfig loaded = value == null ? defaults : value;
-            SummonConfig merged = loaded.withMissingDefaults(defaults);
-            if (!merged.equals(loaded)) {
-                write(path, merged, logger);
-            }
-            return merged;
+            loaded = value == null ? defaults : value;
         } catch (IOException | JsonParseException | IllegalArgumentException exception) {
             logger.warn("Failed to load config {}; using defaults.", path, exception);
             return defaults;
         }
+        SummonConfig merged = loaded.withMissingDefaults(defaults);
+        if (!merged.equals(loaded)) {
+            write(path, merged, logger);
+        }
+        return merged;
     }
 
     private static VfxConfig loadOrCreateVfx(Path path, VfxConfig defaults, Logger logger) {
@@ -801,19 +888,20 @@ public final class SemionConfigLoader {
             return defaults;
         }
 
+        VfxConfig loaded;
         try (Reader reader = Files.newBufferedReader(path)) {
-            VfxConfig loaded = GSON.fromJson(reader, VfxConfig.class);
-            VfxConfig value = (loaded == null ? defaults : loaded).normalized();
-            if (loaded == null || !value.equals(loaded)) {
-                logger.warn("Normalized invalid or missing VFX config values in {}.", path);
-                write(path, value, logger);
-            }
-            return value;
+            loaded = GSON.fromJson(reader, VfxConfig.class);
         } catch (IOException | JsonParseException | IllegalArgumentException exception) {
             logger.warn("Failed to load config {}; using defaults.", path, exception);
             write(path, defaults, logger);
             return defaults;
         }
+        VfxConfig value = (loaded == null ? defaults : loaded).normalized();
+        if (loaded == null || !value.equals(loaded)) {
+            logger.warn("Normalized invalid or missing VFX config values in {}.", path);
+            write(path, value, logger);
+        }
+        return value;
     }
 
     private static TipConfig loadOrCreateTips(Path path, TipConfig defaults, Logger logger) {
@@ -851,10 +939,45 @@ public final class SemionConfigLoader {
     }
 
     private static void write(Path path, Object value, Logger logger) {
-        try (Writer writer = Files.newBufferedWriter(path)) {
-            GSON.toJson(value, writer);
+        Path temporary = null;
+        try {
+            Path absolute = path.toAbsolutePath();
+            Path parent = absolute.getParent();
+            if (parent == null) {
+                throw new IOException("Config path has no parent directory: " + path);
+            }
+            temporary = Files.createTempFile(
+                    parent,
+                    absolute.getFileName().toString(),
+                    ".tmp"
+            );
+            try (Writer writer = Files.newBufferedWriter(temporary)) {
+                GSON.toJson(value, writer);
+            }
+            try {
+                Files.move(
+                        temporary,
+                        absolute,
+                        StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(
+                        temporary,
+                        absolute,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            }
         } catch (IOException exception) {
             logger.warn("Failed to write default config {}.", path, exception);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException exception) {
+                    logger.warn("Failed to remove temporary config file {}.", temporary, exception);
+                }
+            }
         }
     }
 

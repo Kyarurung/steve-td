@@ -31,6 +31,7 @@ import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.config.SummonConfig;
 import kim.biryeong.semiontd.config.TipConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.config.TraitBalanceRuntime;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
@@ -517,7 +518,11 @@ public final class SemionGameManager {
             return new ReloadConfigResult(false, false, null);
         }
 
-        LoadedConfigs configs = SemionConfigLoader.load(configDir, SemionTd.LOGGER);
+        LoadedConfigs configs = SemionConfigLoader.load(
+                configDir,
+                SemionTd.LOGGER,
+                TowerBalanceRuntime.current()
+        );
         TraitBalanceRuntime.apply(configs.traitBalance());
         TowerVfxService.configure(configs.vfx());
         configureTips(configs.tips());

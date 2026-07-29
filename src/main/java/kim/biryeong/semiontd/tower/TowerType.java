@@ -18,6 +18,10 @@ public record TowerType(
         EntityVisual visual,
         List<TowerUpgradeOption> upgradeOptions
 ) {
+    public static Builder builder(String id, String displayName) {
+        return new Builder(id, displayName);
+    }
+
     public TowerType(
             String id,
             String displayName,
@@ -245,12 +249,19 @@ public record TowerType(
         if (category == null) {
             category = TowerCategory.DIRECT;
         }
-        if (mineralCost < 0 || maxHealth <= 0 || range < 0 || damage < 0 || attackIntervalTicks < 1) {
+        if (mineralCost < 0
+                || !Double.isFinite(maxHealth)
+                || maxHealth <= 0
+                || !Double.isFinite(range)
+                || range < 0
+                || !Double.isFinite(damage)
+                || damage < 0
+                || attackIntervalTicks < 1) {
             throw new IllegalArgumentException("Tower numeric values are invalid.");
         }
         visual = visual == null ? EntityVisual.vanilla(EntityVisual.DEFAULT_TOWER_ENTITY_TYPE) : visual;
         description = description == null ? List.of() : List.copyOf(description);
-        upgradeOptions = List.copyOf(upgradeOptions);
+        upgradeOptions = upgradeOptions == null ? List.of() : List.copyOf(upgradeOptions);
     }
 
     public Optional<String> blockbenchModel() {
@@ -263,5 +274,92 @@ public record TowerType(
 
     public String blockbenchModelId() {
         return visual.blockbenchModelId();
+    }
+
+    public static final class Builder {
+        private final String id;
+        private final String displayName;
+        private TowerCategory category = TowerCategory.DIRECT;
+        private long mineralCost;
+        private double maxHealth = 1.0;
+        private double range;
+        private double damage;
+        private int attackIntervalTicks = 20;
+        private int aggroPriority;
+        private List<String> description = List.of();
+        private EntityVisual visual;
+        private List<TowerUpgradeOption> upgradeOptions = List.of();
+
+        private Builder(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+
+        public Builder category(TowerCategory category) {
+            this.category = category;
+            return this;
+        }
+
+        public Builder mineralCost(long mineralCost) {
+            this.mineralCost = mineralCost;
+            return this;
+        }
+
+        public Builder maxHealth(double maxHealth) {
+            this.maxHealth = maxHealth;
+            return this;
+        }
+
+        public Builder range(double range) {
+            this.range = range;
+            return this;
+        }
+
+        public Builder damage(double damage) {
+            this.damage = damage;
+            return this;
+        }
+
+        public Builder attackIntervalTicks(int attackIntervalTicks) {
+            this.attackIntervalTicks = attackIntervalTicks;
+            return this;
+        }
+
+        public Builder aggroPriority(int aggroPriority) {
+            this.aggroPriority = aggroPriority;
+            return this;
+        }
+
+        public Builder description(List<String> description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder visual(EntityVisual visual) {
+            this.visual = visual;
+            return this;
+        }
+
+        public Builder upgradeOptions(List<TowerUpgradeOption> upgradeOptions) {
+            this.upgradeOptions = upgradeOptions;
+            return this;
+        }
+
+        public TowerType build() {
+            return new TowerType(
+                    id,
+                    displayName,
+                    category,
+                    mineralCost,
+                    maxHealth,
+                    range,
+                    damage,
+                    attackIntervalTicks,
+                    aggroPriority,
+                    description,
+                    visual,
+                    upgradeOptions
+            );
+        }
     }
 }
