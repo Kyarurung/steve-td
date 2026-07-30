@@ -65,7 +65,7 @@ class EndTowerCatalogTest {
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "attackIntervalReductionPerStep", -1.0), 0.0001);
         assertEquals(10.0, config.ability(EndTower.CONFIG_ID, "maxAttackIntervalReductionTicks", -1.0), 0.0001);
         assertEquals(5.0, config.ability(EndTower.CONFIG_ID, "minimumAttackIntervalTicks", -1.0), 0.0001);
-        assertEquals(60.0, config.ability(EndTower.CONFIG_ID, "endCrystalAttackRangeEvery", -1.0), 0.0001);
+        assertEquals(50.0, config.ability(EndTower.CONFIG_ID, "endCrystalAttackRangeEvery", -1.0), 0.0001);
         assertEquals(0.5, config.ability(EndTower.CONFIG_ID, "attackRangePerStep", -1.0), 0.0001);
         assertEquals(3.0, config.ability(EndTower.CONFIG_ID, "attackRangeCap", -1.0), 0.0001);
         assertEquals(15.0, config.ability(EndTower.CONFIG_ID, "endCrystalSplashThreshold1", -1.0), 0.0001);
@@ -177,7 +177,7 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("타워 공격력의 60%를 임시 획득"));
         assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1블록"));
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
-        assertTrue(plainDescription.contains("사거리: 엔드 수정 60스택마다 +0.5블록"));
+        assertTrue(plainDescription.contains("사거리: 엔드 수정 50스택마다 +0.5블록"));
         assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득"));
         assertTrue(plainDescription.contains("셜커 20스택마다 +1%"));
         assertTrue(plainDescription.contains("피해 감소: 셜커 15스택마다 +1%"));

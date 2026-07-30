@@ -785,7 +785,7 @@ class EndTowerAbsorptionTest {
         assertEquals(299, dragon.absorbedShulkerCount());
         assertEquals(6, dragon.adjustAttackInterval(15));
         assertEquals(3.0, dragon.splashRadius(), 0.0001);
-        assertEquals(7.0, dragon.adjustAttackRange(5.0), 0.0001);
+        assertEquals(7.5, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(81.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(9.0, dragon.regenerationPerSecond(), 0.0001);
         assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 14.0%"));
@@ -799,7 +799,7 @@ class EndTowerAbsorptionTest {
         assertEquals(300, dragon.absorbedShulkerCount());
         assertEquals(5, dragon.adjustAttackInterval(15));
         assertEquals(4.0, dragon.splashRadius(), 0.0001);
-        assertEquals(7.5, dragon.adjustAttackRange(5.0), 0.0001);
+        assertEquals(8.0, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(80.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(10.0, dragon.regenerationPerSecond(), 0.0001);
         assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: 15.0%"));

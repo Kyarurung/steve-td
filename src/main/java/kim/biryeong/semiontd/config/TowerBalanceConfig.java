@@ -1462,7 +1462,7 @@ public record TowerBalanceConfig(
                 Map.entry("attackIntervalReductionPerStep", 1.0),
                 Map.entry("maxAttackIntervalReductionTicks", 10.0),
                 Map.entry("minimumAttackIntervalTicks", 5.0),
-                Map.entry("endCrystalAttackRangeEvery", 60.0),
+                Map.entry("endCrystalAttackRangeEvery", 50.0),
                 Map.entry("attackRangePerStep", 0.5),
                 Map.entry("attackRangeCap", 3.0),
                 Map.entry("endCrystalSplashThreshold1", 15.0),

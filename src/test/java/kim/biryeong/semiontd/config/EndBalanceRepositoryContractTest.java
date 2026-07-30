@@ -48,6 +48,7 @@ class EndBalanceRepositoryContractTest {
         assertEquals(30.0, end.get("absorptionHealAmount").getAsDouble(), 0.0001);
         assertEquals(0.05, end.get("shulkerTransferHealingMaxHealthRatio").getAsDouble(), 0.0001);
         assertEquals(0.15, end.get("dragonFinalDamageBonus").getAsDouble(), 0.0001);
+        assertEquals(50.0, end.get("endCrystalAttackRangeEvery").getAsDouble(), 0.0001);
         assertEquals(20.0, end.get("shulkerLifeStealEvery").getAsDouble(), 0.0001);
         assertEquals(0.01, end.get("lifeStealPerStep").getAsDouble(), 0.0001);
         assertEquals(0.15, end.get("lifeStealCap").getAsDouble(), 0.0001);
