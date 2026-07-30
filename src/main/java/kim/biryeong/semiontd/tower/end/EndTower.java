@@ -58,8 +58,7 @@ public final class EndTower extends EntityBackedTower {
     private int absorbedEndCrystalCount;
     private int absorbedShulkerCount;
     private int roundCompletedTransferCount;
-    private int regenerationTicks;
-    private int transferHealingTicks;
+    private int periodicHealingTicks;
 
     public EndTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         this(type, ownerPlayer, teamId, laneId, position, EndBalanceProvider.RUNTIME);
@@ -133,8 +132,7 @@ public final class EndTower extends EntityBackedTower {
         if (!isCoreTower()) {
             return;
         }
-        regenerationTicks = 0;
-        transferHealingTicks = 0;
+        periodicHealingTicks = 0;
         if (rollbackIncompleteTransfers()) {
             refreshAbsorbedStats(lane);
         }
@@ -148,8 +146,7 @@ public final class EndTower extends EntityBackedTower {
     @Override
     public void resetForRound(PlayerLane lane) {
         waveActive = false;
-        regenerationTicks = 0;
-        transferHealingTicks = 0;
+        periodicHealingTicks = 0;
         rollbackIncompleteTransfers();
         removeData(TRANSFER_PROGRESS);
         resetRoundTransferBonuses(lane);
@@ -212,10 +209,9 @@ public final class EndTower extends EntityBackedTower {
             return;
         }
         if (waveActive && isHatched()) {
-            int transferringTowerCount = absorbAlliedEndTowers(lane);
+            double transferHealingPerSecond = absorbAlliedEndTowers(lane);
             reconcileEvolutionState(lane);
-            tickTransferHealing(lane, transferringTowerCount);
-            tickRegeneration(lane);
+            tickPeriodicHealing(lane, transferHealingPerSecond);
         }
         super.tick(lane);
     }
@@ -403,8 +399,7 @@ public final class EndTower extends EntityBackedTower {
         absorbedEndCrystalCount = endTower.absorbedEndCrystalCount;
         absorbedShulkerCount = endTower.absorbedShulkerCount;
         roundCompletedTransferCount = endTower.roundCompletedTransferCount;
-        regenerationTicks = endTower.regenerationTicks;
-        transferHealingTicks = endTower.transferHealingTicks;
+        periodicHealingTicks = endTower.periodicHealingTicks;
     }
 
     public int absorbedEndCrystalCount() {
@@ -443,9 +438,9 @@ public final class EndTower extends EntityBackedTower {
         return roundDamageBonus;
     }
 
-    private int absorbAlliedEndTowers(PlayerLane lane) {
+    private double absorbAlliedEndTowers(PlayerLane lane) {
         if (lane == null) {
-            return 0;
+            return 0.0;
         }
         absorption.beginSnapshot();
         for (Tower tower : lane.towers()) {
@@ -456,7 +451,7 @@ public final class EndTower extends EntityBackedTower {
         }
 
         double absorptionHealing = 0.0;
-        int transferringTowerCount = 0;
+        double transferHealingPerSecond = 0.0;
         boolean countsChanged = false;
         var progressIterator = absorption.progressEntries().iterator();
         while (progressIterator.hasNext()) {
@@ -473,7 +468,7 @@ public final class EndTower extends EntityBackedTower {
             absorption.apply(progress);
             source.setData(TRANSFER_PROGRESS, progress.appliedRatio);
             if (progress.elapsedTicks < progress.durationTicks) {
-                transferringTowerCount++;
+                transferHealingPerSecond += transferHealingPerSecond(source.type());
                 if (shouldShowTransferParticles(source, progress.elapsedTicks)) {
                     showTransferParticles(lane, source);
                 }
@@ -503,7 +498,7 @@ public final class EndTower extends EntityBackedTower {
         if (countsChanged) {
             towerEntity(lane).ifPresent(SemionTowerEntity::refreshCombatStats);
         }
-        return transferringTowerCount;
+        return transferHealingPerSecond;
     }
 
     private boolean refreshAbsorbedStats(PlayerLane lane) {
@@ -591,21 +586,6 @@ public final class EndTower extends EntityBackedTower {
         } else {
             syncHealth(health() + amount);
         }
-    }
-
-    private void tickTransferHealing(PlayerLane lane, int transferringTowerCount) {
-        if (transferringTowerCount <= 0) {
-            transferHealingTicks = 0;
-            return;
-        }
-        int intervalTicks = Math.max(1, globalTicks("transferHealingIntervalTicks"));
-        transferHealingTicks++;
-        if (transferHealingTicks < intervalTicks) {
-            return;
-        }
-        transferHealingTicks %= intervalTicks;
-        double healingPerTower = Math.max(0.0, global("transferHealingPerTower"));
-        healTransferredHealth(lane, transferringTowerCount * healingPerTower);
     }
 
     private void switchToPhantom(PlayerLane lane) {
@@ -776,19 +756,27 @@ public final class EndTower extends EntityBackedTower {
         );
     }
 
-    private void tickRegeneration(PlayerLane lane) {
-        double regeneration = regenerationPerSecond();
-        if (regeneration <= 0.0) {
-            regenerationTicks = 0;
+    private double transferHealingPerSecond(TowerType sourceType) {
+        if (!EndTowers.isShulkerLine(sourceType)) {
+            return 0.0;
+        }
+        return Math.max(0.0, sourceType.maxHealth())
+                * Math.max(0.0, global("shulkerTransferHealingMaxHealthRatio"));
+    }
+
+    private void tickPeriodicHealing(PlayerLane lane, double transferHealingPerSecond) {
+        double totalHealing = regenerationPerSecond() + Math.max(0.0, transferHealingPerSecond);
+        if (totalHealing <= 0.0) {
+            periodicHealingTicks = 0;
             return;
         }
         int intervalTicks = Math.max(1, globalTicks("regenerationIntervalTicks"));
-        regenerationTicks++;
-        if (regenerationTicks < intervalTicks) {
+        periodicHealingTicks++;
+        if (periodicHealingTicks < intervalTicks) {
             return;
         }
-        regenerationTicks %= intervalTicks;
-        healTransferredHealth(lane, regeneration);
+        periodicHealingTicks %= intervalTicks;
+        healTransferredHealth(lane, totalHealing);
     }
 
     private double damageReduction() {

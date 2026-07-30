@@ -7,12 +7,6 @@ import java.util.Set;
 import java.util.function.Function;
 import kim.biryeong.semiontd.tower.Tower;
 
-/**
- * Owns the mutable bookkeeping for End core transfers.
- *
- * <p>The gameplay orchestrator remains in {@link EndTower}; contribution deltas
- * and rollback invariants are kept here so they cannot drift apart.</p>
- */
 final class EndAbsorptionState {
     private final Map<Tower, Progress> progressByTower = new IdentityHashMap<>();
     private final Set<Tower> presentTowerSnapshot =

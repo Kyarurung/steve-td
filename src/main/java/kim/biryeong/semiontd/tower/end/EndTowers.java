@@ -160,7 +160,7 @@ public final class EndTowers {
                 "<gray><#E66F6F>최대 체력 {ability.end_global.dragonEvolutionMaxHealth:integer}</#E66F6F> 이상이면 <#B77DE8>엔더 드래곤</#B77DE8>으로 진화합니다.</gray>",
                 "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 {ability.end_global.phantomScaleHealthInterval:integer}</#E66F6F>당 {ability.end_global.phantomScalePerInterval:number}씩 증가합니다.</gray>",
                 "<gray>힘 전달 {ability.end_global.absorptionDurationTicks:seconds} 후 타워 <#D94343>사망</#D94343>, <#E66F6F>체력 {ability.end_global.absorptionHealAmount:integer}</#E66F6F> 회복합니다.</gray>",
-                "<gray>전달 중 타워 당 <#E66F6F>체력</#E66F6F>을 초당 <#79C97B>+{ability.end_global.transferHealingPerTower:integer} 재생</#79C97B>합니다.</gray>",
+                "<gray>전달 중인 셜커 타워의 <#E66F6F>최대 체력 {ability.end_global.shulkerTransferHealingMaxHealthRatio:percent_integer}</#E66F6F>만큼 매초 회복합니다.</gray>",
                 "<gray><#D94343>피해량 상한(최종 피해 제외)</#D94343>: <#D94343>{ability.end_global.attackDamageCap:integer}</#D94343></gray>",
                 "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>{ability.end_global.roundDamageRatio:percent_integer}</#D94343>를 임시 획득, <#D94343>{ability.end_global.permanentDamageRatio:percent_integer}</#D94343> 영구 누적</gray>",
                 "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>{ability.end_global.roundHealthRatio:percent_integer}</#E66F6F>를 임시 획득, <#E66F6F>{ability.end_global.permanentHealthRatio:percent_integer}</#E66F6F> 영구 누적</gray>",
