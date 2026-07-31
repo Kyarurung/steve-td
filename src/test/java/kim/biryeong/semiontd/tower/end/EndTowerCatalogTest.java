@@ -49,9 +49,8 @@ class EndTowerCatalogTest {
         assertEquals(2000.0, config.ability(EndTower.CONFIG_ID, "dragonEvolutionMaxHealth", -1.0), 0.0001);
         assertEquals(250.0, config.ability(EndTower.CONFIG_ID, "attackDamageCap", -1.0), 0.0001);
         assertEquals(200.0, config.ability(EndTower.CONFIG_ID, "absorptionDurationTicks", -1.0), 0.0001);
-        assertEquals(25.0, config.ability(EndTower.CONFIG_ID, "absorptionHealAmount", -1.0), 0.0001);
-        assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "transferHealingPerTower", -1.0), 0.0001);
-        assertEquals(20.0, config.ability(EndTower.CONFIG_ID, "transferHealingIntervalTicks", -1.0), 0.0001);
+        assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "absorptionHealAmount", -1.0), 0.0001);
+        assertEquals(0.05, config.ability(EndTower.CONFIG_ID, "shulkerTransferHealingMaxHealthRatio", -1.0), 0.0001);
         assertEquals(0.50, config.ability(EndTower.CONFIG_ID, "roundHealthRatio", -1.0), 0.0001);
         assertEquals(0.60, config.ability(EndTower.CONFIG_ID, "roundDamageRatio", -1.0), 0.0001);
         assertEquals(0.04, config.ability(EndTower.CONFIG_ID, "permanentHealthRatio", -1.0), 0.0001);
@@ -60,13 +59,13 @@ class EndTowerCatalogTest {
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "roundAbsorptionAttackIntervalReductionTicks", -1.0), 0.0001);
         assertEquals(2.0, config.ability(EndTower.CONFIG_ID, "dragonAttackRangeBonus", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonDamageBonus", -1.0), 0.0001);
-        assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonFinalDamageBonus", -1.0), 0.0001);
+        assertEquals(0.15, config.ability(EndTower.CONFIG_ID, "dragonFinalDamageBonus", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonIncomeDebuffResistance", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "endCrystalAttackIntervalEvery", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "attackIntervalReductionPerStep", -1.0), 0.0001);
         assertEquals(10.0, config.ability(EndTower.CONFIG_ID, "maxAttackIntervalReductionTicks", -1.0), 0.0001);
         assertEquals(5.0, config.ability(EndTower.CONFIG_ID, "minimumAttackIntervalTicks", -1.0), 0.0001);
-        assertEquals(60.0, config.ability(EndTower.CONFIG_ID, "endCrystalAttackRangeEvery", -1.0), 0.0001);
+        assertEquals(50.0, config.ability(EndTower.CONFIG_ID, "endCrystalAttackRangeEvery", -1.0), 0.0001);
         assertEquals(0.5, config.ability(EndTower.CONFIG_ID, "attackRangePerStep", -1.0), 0.0001);
         assertEquals(3.0, config.ability(EndTower.CONFIG_ID, "attackRangeCap", -1.0), 0.0001);
         assertEquals(15.0, config.ability(EndTower.CONFIG_ID, "endCrystalSplashThreshold1", -1.0), 0.0001);
@@ -76,9 +75,19 @@ class EndTowerCatalogTest {
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "splashRadiusPerThreshold", -1.0), 0.0001);
         assertEquals(4.0, config.ability(EndTower.CONFIG_ID, "splashRadiusCap", -1.0), 0.0001);
         assertEquals(0.60, config.ability(EndTower.CONFIG_ID, "splashDamageRatio", -1.0), 0.0001);
-        assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "shulkerLifeStealEvery", -1.0), 0.0001);
+        assertEquals(20.0, config.ability(EndTower.CONFIG_ID, "shulkerLifeStealEvery", -1.0), 0.0001);
         assertEquals(0.01, config.ability(EndTower.CONFIG_ID, "lifeStealPerStep", -1.0), 0.0001);
-        assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0), 0.0001);
+        assertEquals(0.15, config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0), 0.0001);
+        assertEquals(
+                300.0,
+                config.ability(EndTower.CONFIG_ID, "shulkerLifeStealEvery", -1.0) * 15.0,
+                0.0001
+        );
+        assertEquals(
+                config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0),
+                config.ability(EndTower.CONFIG_ID, "lifeStealPerStep", -1.0) * 15.0,
+                0.0001
+        );
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "shulkerRegenerationEvery", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "regenerationPerStep", -1.0), 0.0001);
         assertEquals(10.0, config.ability(EndTower.CONFIG_ID, "regenerationCap", -1.0), 0.0001);
@@ -162,19 +171,19 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("이상이면"));
         assertTrue(plainDescription.contains("아기 드래곤 크기는 최대 체력 100당 0.2씩 증가합니다."));
         assertTrue(plainDescription.contains("10초"));
-        assertTrue(plainDescription.contains("전달 중 타워 당 체력을 초당 +1 재생합니다."));
-        assertTrue(description.contains("<#E66F6F>체력</#E66F6F>을 초당 <#79C97B>+1 재생</#79C97B>"));
-        assertTrue(plainDescription.contains("피해량 상한: 250"));
+        assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 매초 회복합니다."));
+        assertTrue(description.contains("<#E66F6F>최대 체력 5%</#E66F6F>"));
+        assertTrue(plainDescription.contains("피해량 상한(최종 피해 제외): 250"));
         assertTrue(plainDescription.contains("타워 공격력의 60%를 임시 획득"));
         assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1블록"));
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
-        assertTrue(plainDescription.contains("사거리: 엔드 수정 60스택마다 +0.5블록"));
+        assertTrue(plainDescription.contains("사거리: 엔드 수정 50스택마다 +0.5블록"));
         assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득"));
-        assertTrue(plainDescription.contains("셜커 30스택마다 +1%"));
+        assertTrue(plainDescription.contains("셜커 20스택마다 +1%"));
         assertTrue(plainDescription.contains("피해 감소: 셜커 15스택마다 +1%"));
         assertTrue(plainDescription.contains("셜커 30스택마다 초당 +1"));
         assertFalse(plainDescription.contains("(최대"));
-        assertTrue(plainDescription.contains("엔더 드래곤 진화 시 최종 피해: +10% / 저항: +10%"));
+        assertTrue(plainDescription.contains("엔더 드래곤 진화 시 최종 피해: +15% / 저항: +10%"));
         assertTrue(plainDescription.contains("추가 사거리:"));
         assertTrue(plainDescription.contains("공격력 증가율: +10%"));
         assertFalse(description.contains("{ability."));

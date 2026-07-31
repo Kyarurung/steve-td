@@ -1,6 +1,8 @@
 package kim.biryeong.semiontd.map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -43,5 +45,25 @@ class LaneRegionLayoutTest {
         assertEquals(spawnArea.min(), layout.spawnArea().min());
         assertEquals(spawnArea.max(), layout.spawnArea().max());
         assertEquals(spawn, layout.spawn());
+    }
+
+    @Test
+    void finalDefenseTowerAreaUsesHorizontalBoundsAndPreservesHeightWhenClamped() {
+        LaneRegionLayout layout = new LaneRegionLayout(
+                1,
+                new Vec3(10.5, 64.0, 20.5),
+                List.of(new Vec3(10.5, 64.0, 22.5)),
+                new Vec3(10.5, 64.0, 30.5),
+                BlockBounds.of(new BlockPos(8, 63, 18), new BlockPos(12, 66, 32)),
+                List.of(new GridPosition(10, 63, 30))
+        );
+
+        assertTrue(layout.isInsideFinalDefenseTowerArea(new Vec3(10.5, 62.75, 30.5)));
+        assertTrue(layout.isInsideFinalDefenseTowerArea(new Vec3(10.5, 65.0, 30.5)));
+        assertFalse(layout.isInsideFinalDefenseTowerArea(new Vec3(11.0, 64.0, 30.5)));
+
+        Vec3 clamped = layout.clampToFinalDefenseTowerArea(new Vec3(20.0, 65.0, 40.0));
+        assertEquals(65.0, clamped.y);
+        assertTrue(layout.isInsideFinalDefenseTowerArea(clamped));
     }
 }

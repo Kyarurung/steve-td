@@ -89,14 +89,18 @@ public record LaneRegionLayout(
     }
 
     public boolean isInsideFinalDefenseTowerArea(Vec3 position) {
-        return finalDefenseTowerAreaBox().contains(position);
+        AABB area = finalDefenseTowerAreaBox();
+        return position.x >= area.minX
+                && position.x < area.maxX
+                && position.z >= area.minZ
+                && position.z < area.maxZ;
     }
 
     public Vec3 clampToFinalDefenseTowerArea(Vec3 position) {
         AABB area = finalDefenseTowerAreaBox();
         return new Vec3(
                 Math.max(area.minX, Math.min(area.maxX - AREA_BOUNDARY_EPSILON, position.x)),
-                Math.max(area.minY, Math.min(area.maxY - AREA_BOUNDARY_EPSILON, position.y)),
+                position.y,
                 Math.max(area.minZ, Math.min(area.maxZ - AREA_BOUNDARY_EPSILON, position.z))
         );
     }

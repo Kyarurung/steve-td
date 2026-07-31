@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.DoubleUnaryOperator;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.phys.Vec3;
 
@@ -338,9 +339,34 @@ public abstract class Tower {
         if (towerEntity == null || target == null || !Double.isFinite(baseDamage)) {
             return DamageResult.NONE;
         }
-        double traitDamage = towerEntity.applyTraitOutgoingDamageAgainst(target, baseDamage);
-        double outgoingDamage = modifyOutgoingDamage(towerEntity, target, traitDamage);
+        double outgoingDamage = resolveOutgoingDamage(towerEntity, target, baseDamage);
         return damageResolvedTargetResult(towerEntity, target, outgoingDamage);
+    }
+
+    public double resolveOutgoingDamage(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage
+    ) {
+        if (towerEntity == null || !Double.isFinite(baseDamage)) {
+            return 0.0;
+        }
+        double damageWithTraits =
+                towerEntity.applyTraitOutgoingDamageBeforeTowerFinalAgainst(target, baseDamage);
+        return applyOutgoingDamageStages(
+                damageWithTraits,
+                damage -> modifyOutgoingDamage(towerEntity, target, damage),
+                towerEntity::applyTowerFinalDamageBonus
+        );
+    }
+
+    static double applyOutgoingDamageStages(
+            double damageWithTraits,
+            DoubleUnaryOperator outgoingModifier,
+            DoubleUnaryOperator finalDamageModifier
+    ) {
+        double modifiedDamage = outgoingModifier.applyAsDouble(damageWithTraits);
+        return finalDamageModifier.applyAsDouble(modifiedDamage);
     }
 
     /**
