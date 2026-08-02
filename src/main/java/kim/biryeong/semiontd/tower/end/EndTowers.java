@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.tower.end;
 
+import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
 import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
 
 import java.util.List;
@@ -17,12 +18,9 @@ import net.minecraft.world.level.block.Blocks;
 public final class EndTowers {
     public static final String CONFIG_ID = "end_global";
 
-    public static final EntityVisual DRAGON_EGG_VISUAL = BlockDisplayVisual.builder(Blocks.DRAGON_EGG.defaultBlockState())
-            .build();
-    public static final EntityVisual PHANTOM_VISUAL = EntityVisual.builder(byId(EntityType.PHANTOM))
-            .build();
-    public static final EntityVisual DRAGON_VISUAL = EntityVisual.builder(byId(EntityType.ENDER_DRAGON))
-            .build();
+    public static final EntityVisual DRAGON_EGG_VISUAL = BlockDisplayVisual.builder(Blocks.DRAGON_EGG.defaultBlockState()).build();
+    public static final EntityVisual PHANTOM_VISUAL = EntityVisual.builder(byId(EntityType.PHANTOM)).build();
+    public static final EntityVisual DRAGON_VISUAL = EntityVisual.builder(byId(EntityType.ENDER_DRAGON)).build();
 
     public static final TowerType BASE_END_TOWER = TowerType.builder("base_ender_dragon", "엔더 드래곤")
             .mineralCost(0)
@@ -157,22 +155,25 @@ public final class EndTowers {
     private static List<String> dragonDescription() {
         return List.of(
                 "<gray>알로 소환되며, 라운드 시작 시 <#B77DE8>아기 드래곤</#B77DE8>으로 변합니다.</gray>",
-                "<gray><#E66F6F>최대 체력 {ability.end_global.dragonEvolutionMaxHealth:integer}</#E66F6F> 이상이면 <#B77DE8>엔더 드래곤</#B77DE8>으로 진화합니다.</gray>",
-                "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 {ability.end_global.phantomScaleHealthInterval:integer}</#E66F6F>당 {ability.end_global.phantomScalePerInterval:number}씩 증가합니다.</gray>",
-                "<gray>힘 전달 {ability.end_global.absorptionDurationTicks:seconds} 후 타워 <#D94343>사망</#D94343>, <#E66F6F>체력 {ability.end_global.absorptionHealAmount:integer}</#E66F6F> 회복합니다.</gray>",
-                "<gray>전달 중인 셜커 타워의 <#E66F6F>최대 체력 {ability.end_global.shulkerTransferHealingMaxHealthRatio:percent_integer}</#E66F6F>만큼 매초 회복합니다.</gray>",
-                "<gray><#D94343>피해량 상한(최종 피해 제외)</#D94343>: <#D94343>{ability.end_global.attackDamageCap:integer}</#D94343></gray>",
-                "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>{ability.end_global.roundDamageRatio:percent_integer}</#D94343>를 임시 획득, <#D94343>{ability.end_global.permanentDamageRatio:percent_integer}</#D94343> 영구 누적</gray>",
-                "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>{ability.end_global.roundHealthRatio:percent_integer}</#E66F6F>를 임시 획득, <#E66F6F>{ability.end_global.permanentHealthRatio:percent_integer}</#E66F6F> 영구 누적</gray>",
-                "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>{ability.end_global.endCrystalSplashThreshold1:integer}, {ability.end_global.endCrystalSplashThreshold2:integer}, {ability.end_global.endCrystalSplashThreshold3:integer}, {ability.end_global.endCrystalSplashThreshold4:integer}</#D9B94F>스택마다 <#D9B94F>+{ability.end_global.splashRadiusPerThreshold:blocks}</#D9B94F></gray>",
-                "<gray><#D9B94F>공격 속도</#D9B94F>: 엔드 수정 <#D9B94F>{ability.end_global.endCrystalAttackIntervalEvery:integer}</#D9B94F>스택마다 <#D9B94F>-{ability.end_global.attackIntervalReductionPerStep:integer}틱</#D9B94F></gray>",
-                "<gray><#D9B94F>사거리</#D9B94F>: 엔드 수정 <#D9B94F>{ability.end_global.endCrystalAttackRangeEvery:integer}</#D9B94F>스택마다 <#D9B94F>+{ability.end_global.attackRangePerStep:blocks}</#D9B94F></gray>",
-                "<gray><#D94343>생명력 흡수</#D94343>: 셜커 <#D94343>{ability.end_global.shulkerLifeStealEvery:integer}</#D94343>스택마다 <#D94343>+{ability.end_global.lifeStealPerStep:percent}</#D94343></gray>",
-                "<gray><#72A9E6>피해 감소</#72A9E6>: 셜커 <#72A9E6>{ability.end_global.shulkerReductionEvery:integer}</#72A9E6>스택마다 <#72A9E6>+{ability.end_global.damageReductionPerStep:percent_integer}</#72A9E6></gray>",
-                "<gray><#79C97B>재생</#79C97B>: 셜커 <#79C97B>{ability.end_global.shulkerRegenerationEvery:integer}</#79C97B>스택마다 초당 <#79C97B>+{ability.end_global.regenerationPerStep:integer}</#79C97B></gray>",
-                "<gray><#B77DE8>엔더 드래곤</#B77DE8> 진화 시 <#D94343>최종 피해</#D94343>: <#D94343>+{ability.end_global.dragonFinalDamageBonus:percent_integer}</#D94343> / <#C892E3>저항</#C892E3>: <#C892E3>+{ability.end_global.dragonIncomeDebuffResistance:percent_integer}</#C892E3></gray>",
-                "<gray><#D9B94F>추가 사거리</#D9B94F>: <#D9B94F>+{ability.end_global.dragonAttackRangeBonus:blocks}</#D9B94F> / <#D94343>공격력 증가율</#D94343>: <#D94343>+{ability.end_global.dragonDamageBonus:percent_integer}</#D94343></gray>"
+                "<gray><#E66F6F>최대 체력 " + ability(DRAGON_EVOLUTION, "integer") + "</#E66F6F> 이상이면 <#B77DE8>엔더 드래곤</#B77DE8>으로 진화합니다.</gray>",
+                "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 " + ability(PHANTOM_SCALE_HEALTH, "integer") + "</#E66F6F>당 " + ability(PHANTOM_SCALE_STEP, "number") + "씩 증가합니다.</gray>",
+                "<gray>힘 전달 " + ability(TRANSFER_TICKS, "seconds") + " 후 타워 <#D94343>사망</#D94343>, <#E66F6F>체력 " + ability(TRANSFER_HEAL, "integer") + "</#E66F6F> 회복합니다.</gray>",
+                "<gray>전달 중인 셜커 타워의 <#E66F6F>최대 체력 " + ability(TRANSFER_HEAL_RATIO, "percent_integer") + "</#E66F6F>만큼 매초 회복합니다.</gray>",
+                "<gray><#D94343>피해량 상한(최종 피해 제외)</#D94343>: <#D94343>" + ability(DAMAGE_CAP, "integer") + "</#D94343></gray>",
+                "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>" + ability(ROUND_DAMAGE_RATIO, "percent_integer") + "</#D94343>를 임시 획득, <#D94343>" + ability(PERMANENT_DAMAGE_RATIO, "percent_integer") + "</#D94343> 영구 누적</gray>",
+                "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>" + ability(ROUND_HEALTH_RATIO, "percent_integer") + "</#E66F6F>를 임시 획득, <#E66F6F>" + ability(PERMANENT_HEALTH_RATIO, "percent_integer") + "</#E66F6F> 영구 누적</gray>",
+                "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(SPLASH_1, "integer") + ", " + ability(SPLASH_2, "integer") + ", " + ability(SPLASH_3, "integer") + ", " + ability(SPLASH_4, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(SPLASH_STEP, "blocks") + "</#D9B94F></gray>",
+                "<gray><#D9B94F>공격 속도</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_SPEED_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>-" + ability(ATTACK_SPEED_STEP, "integer") + "틱</#D9B94F></gray>",
+                "<gray><#D9B94F>사거리</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_RANGE_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(ATTACK_RANGE_STEP, "blocks") + "</#D9B94F></gray>",
+                "<gray><#D94343>생명력 흡수</#D94343>: 셜커 <#D94343>" + ability(LIFE_STEAL_STACKS, "integer") + "</#D94343>스택마다 <#D94343>+" + ability(LIFE_STEAL_STEP, "percent") + "</#D94343></gray>",
+                "<gray><#72A9E6>피해 감소</#72A9E6>: 셜커 <#72A9E6>" + ability(DAMAGE_REDUCTION_STACKS, "integer") + "</#72A9E6>스택마다 <#72A9E6>+" + ability(DAMAGE_REDUCTION_STEP, "percent_integer") + "</#72A9E6></gray>",
+                "<gray><#79C97B>재생</#79C97B>: 셜커 <#79C97B>" + ability(REGENERATION_STACKS, "integer") + "</#79C97B>스택마다 초당 <#79C97B>+" + ability(REGENERATION_STEP, "integer") + "</#79C97B></gray>",
+                "<gray><#B77DE8>엔더 드래곤</#B77DE8>: <#D94343>최종 피해 +" + ability(DRAGON_FINAL_DAMAGE, "percent_integer") + "</#D94343> / <#D9B94F>추가 사거리 +" + ability(DRAGON_RANGE_BONUS, "blocks") + "</#D9B94F></gray>"
         );
+    }
+
+    private static String ability(EndConfig.Ability ability, String format) {
+        return "{ability." + CONFIG_ID + "." + ability.key() + ":" + format + "}";
     }
 
     public static boolean isEndTower(TowerType type) {
@@ -191,11 +192,11 @@ public final class EndTowers {
         return type != null && SHULKER_LINE_IDS.contains(type.id());
     }
 
-    public static boolean isAbsorbableTower(TowerType type) {
+    public static boolean isTransferableTower(TowerType type) {
         return isEndCrystalLine(type) || isShulkerLine(type);
     }
 
-    public static int absorptionTier(TowerType type) {
+    public static int transferTier(TowerType type) {
         return ProductionTowerCatalog.entry(type)
                 .map(ProductionTowerCatalog.CatalogEntry::tier)
                 .orElse(0);

@@ -1412,13 +1412,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             tower.markWaveStarted(1);
             tower.recordDamageDealt(dealt[index]);
             tower.recordDamageTaken(taken[index]);
-            lane.towers().add(tower);
+            lane.addTower(tower);
             if (index == 0) {
                 ProductionTower sameType = new ProductionTower(type, playerId, TeamId.RED, 1, new GridPosition(10, 0, 0));
                 sameType.markWaveStarted(1);
                 sameType.recordDamageDealt(50.0);
                 sameType.recordDamageTaken(5.0);
-                lane.towers().add(sameType);
+                lane.addTower(sameType);
             }
         }
 
@@ -4787,42 +4787,42 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         farProgressTarget.runtimeMonster().syncLaneProgress(0.95);
         farProgressTarget.setNoAi(true);
 
-        context.runAfterDelay(5, () -> {
-            if (!assertTrue(
-                    context,
-                    towerEntity.currentAttackTarget() == farProgressTarget,
-                    "Tower should initially advance toward the only available monster."
-            )) {
-                return;
-            }
+        towerEntity.setNoAi(true);
+        TowerAttackMonsterGoal targetingGoal = new TowerAttackMonsterGoal(towerEntity);
+        targetingGoal.tick();
+        if (!assertTrue(
+                context,
+                towerEntity.currentAttackTarget() == farProgressTarget,
+                "Tower should initially advance toward the only available monster."
+        )) {
+            return;
+        }
 
-            SemionMonsterEntity nearTarget = spawnRoleMonsterEntity(
-                    context,
-                    "near-range-target",
-                    Optional.empty(),
-                    TeamId.RED,
-                    1,
-                    towerEntity.position().add(2.0, 0.0, 0.0),
-                    40.0,
-                    List.of(SummonRole.RUSH)
-            );
-            nearTarget.runtimeMonster().syncLaneProgress(0.1);
-            nearTarget.setNoAi(true);
+        SemionMonsterEntity nearTarget = spawnRoleMonsterEntity(
+                context,
+                "near-range-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                towerEntity.position().add(2.0, 0.0, 0.0),
+                40.0,
+                List.of(SummonRole.RUSH)
+        );
+        nearTarget.runtimeMonster().syncLaneProgress(0.1);
+        nearTarget.setNoAi(true);
 
-            context.runAfterDelay(10, () -> {
-                if (!assertTrue(
-                        context,
-                        towerEntity.currentAttackTarget() == nearTarget,
-                        "Tower should leave a farther high-priority target for a monster inside encounter range."
-                )) {
-                    return;
-                }
-                if (!assertTrue(context, nearTarget.getHealth() < 40.0F, "Tower should attack the nearby monster after retargeting.")) {
-                    return;
-                }
-                context.succeed();
-            });
-        });
+        for (int tick = 0; tick <= 5; tick++) {targetingGoal.tick();}
+        if (!assertTrue(
+                context,
+                towerEntity.currentAttackTarget() == nearTarget,
+                "Tower should leave a farther high-priority target for a monster inside encounter range."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, nearTarget.getHealth() < 40.0F, "Tower should attack the nearby monster after retargeting.")) {
+            return;
+        }
+        context.succeed();
     }
 
     @GameTest(maxTicks = 80)
@@ -11514,10 +11514,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 1.0, entity.getScale(), "Max-health-proportional scale must stop after evolving into the Ender Dragon.")) {
             return;
         }
-        if (!assertClose(context, 11.5, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant the configured 15% final damage.")) {
-            return;
-        }
-        if (!assertClose(context, 0.10, tower.incomeDebuffResistance(), "DRAGON state should reduce income-monster debuff magnitudes by 10%.")) {
+        if (!assertClose(context, 12.0, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant the configured 20% final damage.")) {
             return;
         }
         SemionMonsterEntity facingTarget = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());

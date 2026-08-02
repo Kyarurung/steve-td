@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.function.Function;
 import kim.biryeong.semiontd.tower.Tower;
 
-final class EndAbsorptionState {
+final class EndTransferState {
     private final Map<Tower, Progress> progressByTower = new IdentityHashMap<>();
     private final Set<Tower> presentTowerSnapshot =
             Collections.newSetFromMap(new IdentityHashMap<>());
@@ -28,8 +28,8 @@ final class EndAbsorptionState {
         return presentTowerSnapshot.contains(tower);
     }
 
-    Progress progressFor(Tower tower, Function<Tower, Progress> factory) {
-        return progressByTower.computeIfAbsent(tower, factory);
+    void ensureProgress(Tower tower, Function<Tower, Progress> factory) {
+        progressByTower.computeIfAbsent(tower, factory);
     }
 
     Set<Map.Entry<Tower, Progress>> progressEntries() {
@@ -45,17 +45,18 @@ final class EndAbsorptionState {
         roundDamageContribution = 0.0;
     }
 
-    void apply(Progress progress) {
+    boolean apply(Progress progress) {
         double ratio = Math.min(1.0, progress.elapsedTicks / (double) progress.durationTicks);
         double delta = Math.max(0.0, ratio - progress.appliedRatio);
         if (delta <= 0.0) {
-            return;
+            return false;
         }
         progress.appliedRatio = ratio;
         roundHealthContribution += progress.roundHealthBonus * delta;
         roundDamageContribution += progress.roundDamageBonus * delta;
         permanentHealthBonus += progress.permanentHealthBonus * delta;
         permanentDamageBonus += progress.permanentDamageBonus * delta;
+        return true;
     }
 
     boolean rollback(Progress progress) {
@@ -82,7 +83,7 @@ final class EndAbsorptionState {
         return true;
     }
 
-    void copyBonusesFrom(EndAbsorptionState source) {
+    void copyBonusesFrom(EndTransferState source) {
         permanentHealthBonus = source.permanentHealthBonus;
         permanentDamageBonus = source.permanentDamageBonus;
         roundHealthContribution = source.roundHealthContribution;
@@ -115,6 +116,8 @@ final class EndAbsorptionState {
         final double roundDamageBonus;
         final double permanentHealthBonus;
         final double permanentDamageBonus;
+        final double completionHealing;
+        final double periodicHealingPerSecond;
         int elapsedTicks;
         double appliedRatio;
 
@@ -123,13 +126,17 @@ final class EndAbsorptionState {
                 double roundHealthBonus,
                 double roundDamageBonus,
                 double permanentHealthBonus,
-                double permanentDamageBonus
+                double permanentDamageBonus,
+                double completionHealing,
+                double periodicHealingPerSecond
         ) {
             this.durationTicks = durationTicks;
             this.roundHealthBonus = roundHealthBonus;
             this.roundDamageBonus = roundDamageBonus;
             this.permanentHealthBonus = permanentHealthBonus;
             this.permanentDamageBonus = permanentDamageBonus;
+            this.completionHealing = completionHealing;
+            this.periodicHealingPerSecond = periodicHealingPerSecond;
         }
     }
 }

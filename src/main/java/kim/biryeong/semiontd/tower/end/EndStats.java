@@ -1,0 +1,49 @@
+package kim.biryeong.semiontd.tower.end;
+
+import java.util.List;
+
+final class EndStats {
+    private final EndCombat combat;
+
+    EndStats(EndCombat combat) {
+        this.combat = combat;
+    }
+
+    List<String> create(EndTower tower, boolean waveActive) {
+        if (!tower.isCoreTower()) {
+            double reduction = EndTowers.isShulkerLine(tower.type()) ? combat.shulkerDamageReduction(tower.type()) : 0.0;
+            return EndStatsView.feeder(waveActive, tower.transferProgress(), reduction);
+        }
+        double maxHealth = tower.isEgg() ? tower.previewHatchedMaxHealth() : tower.currentMaxHealth();
+        int intervalReduction = Math.max(0, tower.type().attackIntervalTicks() - tower.previewHatchedAttackIntervalTicks());
+        return EndStatsView.core(new EndStatsView.CoreStats(
+                tower.state(),
+                tower.endCrystalCount(),
+                tower.shulkerCount(),
+                new EndStatsView.CombatStats(
+                        combat.damageCap(),
+                        tower.permanentDamageBonus(),
+                        tower.previewHatchedAttackRange(),
+                        combat.maximumAttackRange(tower.type(), tower.isDragon()),
+                        intervalReduction,
+                        combat.maximumAttackIntervalReduction(tower.type()),
+                        combat.splashRadius(true),
+                        combat.maximumSplashRadius()
+                ),
+                new EndStatsView.DefenseStats(
+                        tower.permanentHealthBonus(),
+                        combat.regenerationPerSecond(),
+                        combat.maximumRegeneration(),
+                        combat.lifeStealRatio(),
+                        combat.maximumLifeSteal(),
+                        combat.damageReduction(),
+                        combat.maximumDamageReduction()
+                ),
+                new EndStatsView.EvolutionStats(
+                        (tower.isEgg() || tower.isDragon()) && maxHealth >= combat.dragonEvolutionHealth(),
+                        combat.finalDamageBonus(true),
+                        combat.dragonRangeBonus(true)
+                )
+        ));
+    }
+}
