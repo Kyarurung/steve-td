@@ -435,7 +435,7 @@ class EndTowerTransferTest {
         dragon.tick(lane);
 
         assertEquals(13.0, dragon.health(), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("재생: 3 / 3/초"));
+        assertTrue(plainRuntimeDetails(dragon).contains("재생: 3 / 3 HP/s"));
     }
 
     @Test
@@ -587,20 +587,20 @@ class EndTowerTransferTest {
         assertTrue(eggDetails.contains("엔더 드래곤 능력치"));
         assertTrue(eggDetails.contains("엔드 수정, 셜커 스택: 0 / 1"));
         assertTrue(eggDetails.contains("추가 공격력: 0.0"));
-        assertTrue(eggDetails.contains("사거리: 5.0블록 / 8.0블록"));
+        assertTrue(eggDetails.contains("사거리: 5.0 블록 / 8.0 블록"));
         assertTrue(eggDetails.contains("공격 속도: -0틱 / -10틱"));
-        assertTrue(eggDetails.contains("공격 범위: 1블록 / 5블록"));
+        assertTrue(eggDetails.contains("공격 범위: 1 블록 / 5 블록"));
         assertTrue(eggDetails.contains("추가 체력: 4.0"));
-        assertTrue(eggDetails.contains("재생: 0 / 30/초"));
+        assertTrue(eggDetails.contains("재생: 0 / 30 HP/s"));
         assertTrue(eggDetails.contains("생명력 흡수: 0.0% / 10.0%"));
         assertTrue(eggDetails.contains("피해 감소: 0% / 20%"));
         assertFalse(eggDetails.contains("최종 피해: +"));
         String styledEggDetails = String.join("\n", core.runtimeDetailLines());
         assertTrue(styledEggDetails.contains("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>"));
-        assertTrue(styledEggDetails.contains("<#D9B94F>공격 범위: 1블록 / 5블록</#D9B94F>"));
+        assertTrue(styledEggDetails.contains("<#D9B94F>공격 범위: 1 블록 / 5 블록</#D9B94F>"));
         assertTrue(styledEggDetails.contains("<#E66F6F>추가 체력: 4.0</#E66F6F>"));
         assertTrue(styledEggDetails.contains("<#72A9E6>피해 감소: 0% / 20%</#72A9E6>"));
-        assertTrue(styledEggDetails.contains("<#79C97B>재생: 0 / 30/초</#79C97B>"));
+        assertTrue(styledEggDetails.contains("<#79C97B>재생: 0 / 30 HP/s</#79C97B>"));
 
         core.onWaveStarted(null, 2);
         core.tick(null);
@@ -897,7 +897,7 @@ class EndTowerTransferTest {
         assertFalse(tower.stopsBeforeFriendlyTowers());
         assertEquals(2.0, tower.entityAnchorYOffset(), 0.0001);
         assertEquals(0.20, tower.finalDamageBonus(), 0.0001);
-        assertTrue(plainRuntimeDetails(tower).contains("최종 피해: +20% / 추가 사거리: +2.0블록"));
+        assertTrue(plainRuntimeDetails(tower).contains("최종 피해: +20% / 추가 사거리: +2.0 블록"));
 
         tower.resetForRound(null);
 
@@ -917,7 +917,7 @@ class EndTowerTransferTest {
         EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
         dragon.onWaveStarted(null, 1);
 
-        assertTrue(plainRuntimeDetails(dragon).contains("공격 범위: 1블록 / 5블록"));
+        assertTrue(plainRuntimeDetails(dragon).contains("공격 범위: 1 블록 / 5 블록"));
     }
 
     @Test

@@ -162,13 +162,13 @@ public final class EndTowers {
                 "<gray><#D94343>피해량 상한(최종 피해 제외)</#D94343>: <#D94343>" + ability(DAMAGE_CAP, "integer") + "</#D94343></gray>",
                 "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>" + ability(ROUND_DAMAGE_RATIO, "percent_integer") + "</#D94343>를 임시 획득, <#D94343>" + ability(PERMANENT_DAMAGE_RATIO, "percent_integer") + "</#D94343> 영구 누적</gray>",
                 "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>" + ability(ROUND_HEALTH_RATIO, "percent_integer") + "</#E66F6F>를 임시 획득, <#E66F6F>" + ability(PERMANENT_HEALTH_RATIO, "percent_integer") + "</#E66F6F> 영구 누적</gray>",
-                "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(SPLASH_1, "integer") + ", " + ability(SPLASH_2, "integer") + ", " + ability(SPLASH_3, "integer") + ", " + ability(SPLASH_4, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(SPLASH_STEP, "blocks") + "</#D9B94F></gray>",
+                "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(SPLASH_1, "integer") + ", " + ability(SPLASH_2, "integer") + ", " + ability(SPLASH_3, "integer") + ", " + ability(SPLASH_4, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(SPLASH_STEP, "number") + " 블록</#D9B94F></gray>",
                 "<gray><#D9B94F>공격 속도</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_SPEED_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>-" + ability(ATTACK_SPEED_STEP, "integer") + "틱</#D9B94F></gray>",
-                "<gray><#D9B94F>사거리</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_RANGE_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(ATTACK_RANGE_STEP, "blocks") + "</#D9B94F></gray>",
+                "<gray><#D9B94F>사거리</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_RANGE_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(ATTACK_RANGE_STEP, "number") + " 블록</#D9B94F></gray>",
                 "<gray><#D94343>생명력 흡수</#D94343>: 셜커 <#D94343>" + ability(LIFE_STEAL_STACKS, "integer") + "</#D94343>스택마다 <#D94343>+" + ability(LIFE_STEAL_STEP, "percent") + "</#D94343></gray>",
                 "<gray><#72A9E6>피해 감소</#72A9E6>: 셜커 <#72A9E6>" + ability(DAMAGE_REDUCTION_STACKS, "integer") + "</#72A9E6>스택마다 <#72A9E6>+" + ability(DAMAGE_REDUCTION_STEP, "percent_integer") + "</#72A9E6></gray>",
-                "<gray><#79C97B>재생</#79C97B>: 셜커 <#79C97B>" + ability(REGENERATION_STACKS, "integer") + "</#79C97B>스택마다 초당 <#79C97B>+" + ability(REGENERATION_STEP, "integer") + "</#79C97B></gray>",
-                "<gray><#B77DE8>엔더 드래곤</#B77DE8>: <#D94343>최종 피해 +" + ability(DRAGON_FINAL_DAMAGE, "percent_integer") + "</#D94343> / <#D9B94F>추가 사거리 +" + ability(DRAGON_RANGE_BONUS, "blocks") + "</#D9B94F></gray>"
+                "<gray><#79C97B>재생</#79C97B>: 셜커 <#79C97B>" + ability(REGENERATION_STACKS, "integer") + "</#79C97B>스택마다 <#79C97B>+" + ability(REGENERATION_STEP, "integer") + " HP/s</#79C97B></gray>",
+                "<gray><#B77DE8>엔더 드래곤</#B77DE8>: <#D94343>최종 피해 +" + ability(DRAGON_FINAL_DAMAGE, "percent_integer") + "</#D94343> / <#D9B94F>추가 사거리 +" + ability(DRAGON_RANGE_BONUS, "number") + " 블록</#D9B94F></gray>"
         );
     }
 
