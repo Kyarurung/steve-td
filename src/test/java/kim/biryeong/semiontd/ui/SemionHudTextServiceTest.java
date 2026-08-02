@@ -1,5 +1,7 @@
 package kim.biryeong.semiontd.ui;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -30,5 +32,25 @@ final class SemionHudTextServiceTest {
         assertTrue(actionbar.contains("+ 수입 67"));
         assertTrue(actionbar.contains("에메랄드/s 8"));
         assertTrue(actionbar.contains("▣ 타워"));
+    }
+
+    @Test
+    void damageNumbersUseCompactSidebarUnits() {
+        assertEquals("0", SemionHudTextService.formatDamage(0.0));
+        assertEquals("999", SemionHudTextService.formatDamage(999.4));
+        assertEquals("1.0K", SemionHudTextService.formatDamage(1_000.0));
+        assertEquals("12.3M", SemionHudTextService.formatDamage(12_345_678.0));
+        assertEquals("1.2B", SemionHudTextService.formatDamage(1_234_567_890.0));
+    }
+
+    @Test
+    void damageSidebarViewTogglesInMemory() {
+        UUID playerId = UUID.fromString("00000000-0000-0000-0000-000000000102");
+        SemionSidebarHudService service = new SemionSidebarHudService();
+
+        assertTrue(service.toggleDamageView(playerId));
+        assertTrue(service.damageViewEnabled(playerId));
+        assertFalse(service.toggleDamageView(playerId));
+        assertFalse(service.damageViewEnabled(playerId));
     }
 }

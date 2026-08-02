@@ -5,7 +5,10 @@ import eu.pb4.placeholders.api.PlaceholderResult;
 import eu.pb4.placeholders.api.Placeholders;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.game.MatchMode;
@@ -20,6 +23,8 @@ import kim.biryeong.semiontd.game.StartCandidate;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
+import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -36,13 +41,57 @@ public final class SemionHudTextService {
     }
 
     public static List<Component> sidebarLinesFor(ServerPlayer viewer, SemionGame game, MatchMode matchMode, MinecraftServer server) {
+        return sidebarLinesFor(viewer, game, matchMode, server, false);
+    }
+
+    public static List<Component> sidebarLinesFor(
+            ServerPlayer viewer,
+            SemionGame game,
+            MatchMode matchMode,
+            MinecraftServer server,
+            boolean damageView
+    ) {
         if (game.canConfigureRoster()) {
             return components(lobbyMarkupFor(viewer, game, matchMode, server));
+        }
+        if (damageView && game.playerLane(viewer.getUUID()).isPresent()) {
+            return components(damageSidebarMarkupFor(viewer.getUUID(), game));
         }
         if (game.isActiveParticipant(viewer.getUUID()) || game.isMatchSpectator(viewer.getUUID())) {
             return components(matchSidebarMarkupFor(viewer, game, matchMode));
         }
         return List.of();
+    }
+
+    public static String damageSidebarMarkupFor(UUID viewerId, SemionGame game) {
+        var lane = game.playerLane(viewerId).orElse(null);
+        if (lane == null) {
+            return "";
+        }
+
+        Map<String, TowerDamageSummary> byType = new HashMap<>();
+        for (Tower tower : lane.towers()) {
+            TowerType type = tower.roundCombatType();
+            if (type == null) {
+                continue;
+            }
+            byType.merge(
+                    type.id(),
+                    new TowerDamageSummary(type.id(), type.displayName(), tower.roundDamageDealt(), tower.roundDamageTaken()),
+                    TowerDamageSummary::merge
+            );
+        }
+
+        List<TowerDamageSummary> summaries = List.copyOf(byType.values());
+        double totalDealt = summaries.stream().mapToDouble(TowerDamageSummary::dealt).sum();
+        double totalTaken = summaries.stream().mapToDouble(TowerDamageSummary::taken).sum();
+        StringBuilder text = new StringBuilder();
+        text.append("<gold>").append(damageRoundLabel(game)).append("</gold>")
+                .append(" <dark_gray>|</dark_gray> <red>⚔ ").append(formatDamage(totalDealt)).append("</red>")
+                .append(" <dark_gray>|</dark_gray> <aqua>🛡 ").append(formatDamage(totalTaken)).append("</aqua>\n");
+        appendDamageTop(text, summaries, true);
+        appendDamageTop(text, summaries, false);
+        return text.toString();
     }
 
     public static String matchSidebarMarkupFor(ServerPlayer viewer, SemionGame game, MatchMode matchMode) {
@@ -123,6 +172,71 @@ public final class SemionHudTextService {
 
     private static Component miniMessage(String text) {
         return SemionText.mini(text);
+    }
+
+    static String formatDamage(double value) {
+        if (!Double.isFinite(value) || value <= 0.0) {
+            return "0";
+        }
+        if (value < 1_000.0) {
+            return Long.toString(Math.round(value));
+        }
+        if (value < 1_000_000.0) {
+            return compactDamage(value / 1_000.0, "K");
+        }
+        if (value < 1_000_000_000.0) {
+            return compactDamage(value / 1_000_000.0, "M");
+        }
+        return compactDamage(value / 1_000_000_000.0, "B");
+    }
+
+    private static String compactDamage(double value, String suffix) {
+        return String.format(Locale.ROOT, "%.1f%s", value, suffix);
+    }
+
+    private static void appendDamageTop(StringBuilder text, List<TowerDamageSummary> summaries, boolean dealt) {
+        text.append(dealt ? "<red><bold>⚔ 가한 피해 TOP 5</bold></red>\n"
+                : "<aqua><bold>🛡 받은 피해 TOP 5</bold></aqua>\n");
+        Comparator<TowerDamageSummary> comparator = Comparator
+                .comparingDouble((TowerDamageSummary summary) -> dealt ? summary.dealt() : summary.taken())
+                .reversed()
+                .thenComparing(TowerDamageSummary::displayName)
+                .thenComparing(TowerDamageSummary::id);
+        List<TowerDamageSummary> top = summaries.stream()
+                .filter(summary -> (dealt ? summary.dealt() : summary.taken()) > 0.0)
+                .sorted(comparator)
+                .limit(5)
+                .toList();
+        if (top.isEmpty()) {
+            text.append("<gray>기록 없음</gray>\n");
+            return;
+        }
+        for (int index = 0; index < top.size(); index++) {
+            TowerDamageSummary summary = top.get(index);
+            double value = dealt ? summary.dealt() : summary.taken();
+            text.append("<gray>").append(index + 1).append(".</gray> <white>")
+                    .append(summary.displayName()).append("</white> ")
+                    .append(dealt ? "<red>" : "<aqua>")
+                    .append(formatDamage(value))
+                    .append(dealt ? "</red>\n" : "</aqua>\n");
+        }
+    }
+
+    private static String damageRoundLabel(SemionGame game) {
+        return switch (game.phase()) {
+            case LANE_WAVE -> "R" + game.currentRound() + " 실시간";
+            case ROUND_PAYOUT, ENDED -> "R" + game.currentRound() + " 최종";
+            case PREPARE_AND_SUMMON -> game.currentRound() <= 1
+                    ? "R1 시작 전"
+                    : "R" + (game.currentRound() - 1) + " 최종";
+            case WAITING -> "R1 시작 전";
+        };
+    }
+
+    private record TowerDamageSummary(String id, String displayName, double dealt, double taken) {
+        private TowerDamageSummary merge(TowerDamageSummary other) {
+            return new TowerDamageSummary(id, displayName, dealt + other.dealt, taken + other.taken);
+        }
     }
 
     private static void appendMatchHeader(StringBuilder text, SemionGame game, MatchMode matchMode) {

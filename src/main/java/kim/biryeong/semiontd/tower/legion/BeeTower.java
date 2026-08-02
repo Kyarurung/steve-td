@@ -162,7 +162,9 @@ public class BeeTower extends EntityBackedTower {
                 damageAmount,
                 DamageType.MAGIC
         );
-        if (runtimeMonster != null && runtimeMonster.health() < previousHealth) {
+        double dealtDamage = runtimeMonster == null ? 0.0 : Math.max(0.0, previousHealth - runtimeMonster.health());
+        recordDamageDealt(dealtDamage);
+        if (dealtDamage > 0.0) {
             runtimeMonster.recordLastHit(ownerPlayer(), KillSourceKind.TOWER);
         }
     }

@@ -34,6 +34,9 @@ public abstract class Tower {
     private long paidMineralCost;
     private int placedRound;
     private int currentRound = 1;
+    private TowerType roundCombatType;
+    private double roundDamageDealt;
+    private double roundDamageTaken;
     private boolean waveStartedAfterPlacement;
     private int cooldownTicks;
     private int level = 1;
@@ -64,6 +67,7 @@ public abstract class Tower {
         this.maxHealth = type.maxHealth();
         this.health = type.maxHealth();
         this.paidMineralCost = type.mineralCost();
+        this.roundCombatType = type;
     }
 
     public TowerType type() {
@@ -202,6 +206,9 @@ public abstract class Tower {
         this.paidMineralCost = Math.max(0, previousTower.paidMineralCost() + Math.max(0, extraPaidMineralCost));
         this.placedRound = previousTower.placedRound();
         this.currentRound = previousTower.currentRound();
+        this.roundCombatType = previousTower.roundCombatType();
+        this.roundDamageDealt = previousTower.roundDamageDealt();
+        this.roundDamageTaken = previousTower.roundDamageTaken();
         this.waveStartedAfterPlacement = previousTower.waveStartedAfterPlacement();
     }
 
@@ -251,6 +258,9 @@ public abstract class Tower {
 
     public void markWaveStarted(int currentRound) {
         this.currentRound = Math.max(1, currentRound);
+        this.roundCombatType = type;
+        this.roundDamageDealt = 0.0;
+        this.roundDamageTaken = 0.0;
         if (placedRound > 0 && currentRound >= placedRound) {
             waveStartedAfterPlacement = true;
         }
@@ -258,6 +268,30 @@ public abstract class Tower {
 
     public int currentRound() {
         return currentRound;
+    }
+
+    public TowerType roundCombatType() {
+        return roundCombatType;
+    }
+
+    public double roundDamageDealt() {
+        return roundDamageDealt;
+    }
+
+    public double roundDamageTaken() {
+        return roundDamageTaken;
+    }
+
+    public void recordDamageDealt(double amount) {
+        if (Double.isFinite(amount) && amount > 0.0) {
+            roundDamageDealt += amount;
+        }
+    }
+
+    public void recordDamageTaken(double amount) {
+        if (Double.isFinite(amount) && amount > 0.0) {
+            roundDamageTaken += amount;
+        }
     }
 
     public void onWaveStarted(PlayerLane lane, int currentRound) {
@@ -401,6 +435,7 @@ public abstract class Tower {
         );
         double currentHealth = runtimeMonster == null ? target.getHealth() : runtimeMonster.health();
         double dealtDamage = Math.max(0.0, previousHealth - currentHealth);
+        recordDamageDealt(dealtDamage);
         if (runtimeMonster != null && dealtDamage > 0.0) {
             runtimeMonster.recordLastHit(ownerPlayer, KillSourceKind.TOWER);
         }

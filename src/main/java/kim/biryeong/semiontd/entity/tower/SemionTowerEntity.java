@@ -528,6 +528,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             if (igniteDamage > 0.0) {
                 target.applyIgnite(
                         ownerPlayer,
+                        runtimeTower,
                         runtimeTower.traitLoadout(),
                         igniteDamage,
                         traitAdditiveDamageBonus(target.runtimeMonster()),
@@ -948,6 +949,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         double currentHealth = getHealth();
         if (runtimeTower != null) {
             runtimeTower.syncHealth(currentHealth);
+            runtimeTower.recordDamageTaken(Math.max(0.0, previousHealth - currentHealth));
             runtimeTower.onDamaged(this, damageSource, damageAmount, previousHealth, currentHealth);
         }
     }

@@ -18,6 +18,7 @@ public final class SemionSidebarHudService {
     private static final int UPDATE_INTERVAL_TICKS = 10;
 
     private final Map<UUID, Sidebar> sidebars = new HashMap<>();
+    private final Set<UUID> damageViewers = new HashSet<>();
     private int updateTicker;
 
     public void tick(MinecraftServer server, SemionGame game, MatchMode matchMode) {
@@ -44,7 +45,7 @@ public final class SemionSidebarHudService {
             if (protectedPlayerIds.contains(player.getUUID())) {
                 continue;
             }
-            List<Component> lines = SemionHudTextService.sidebarLinesFor(player, game, matchMode, server);
+            List<Component> lines = sidebarLinesFor(player, game, matchMode, server);
             if (lines.isEmpty()) {
                 remove(player);
             } else {
@@ -53,6 +54,7 @@ public final class SemionSidebarHudService {
             }
         }
         sidebars.keySet().removeIf(playerId -> !onlinePlayerIds.contains(playerId));
+        damageViewers.removeIf(playerId -> !onlinePlayerIds.contains(playerId));
     }
 
     public void refreshPlayersNow(MinecraftServer server, SemionGame game, MatchMode matchMode, Set<UUID> playerIds) {
@@ -64,7 +66,7 @@ public final class SemionSidebarHudService {
             if (player == null) {
                 continue;
             }
-            List<Component> lines = SemionHudTextService.sidebarLinesFor(player, game, matchMode, server);
+            List<Component> lines = sidebarLinesFor(player, game, matchMode, server);
             if (lines.isEmpty()) {
                 remove(player);
             } else {
@@ -80,9 +82,11 @@ public final class SemionSidebarHudService {
             remove(player);
         }
         sidebars.clear();
+        damageViewers.clear();
     }
 
     public void remove(ServerPlayer player) {
+        damageViewers.remove(player.getUUID());
         Sidebar sidebar = sidebars.remove(player.getUUID());
         if (sidebar != null) {
             sidebar.removePlayer(player);
@@ -91,6 +95,18 @@ public final class SemionSidebarHudService {
     }
 
     public static void refreshPlayerHud(ServerPlayer player) {
+    }
+
+    public boolean toggleDamageView(UUID playerId) {
+        if (damageViewers.remove(playerId)) {
+            return false;
+        }
+        damageViewers.add(playerId);
+        return true;
+    }
+
+    public boolean damageViewEnabled(UUID playerId) {
+        return damageViewers.contains(playerId);
     }
 
     private void update(ServerPlayer player, List<Component> lines) {
@@ -104,6 +120,21 @@ public final class SemionSidebarHudService {
     private void updateActionbar(ServerPlayer player, SemionGame game) {
         SemionHudTextService.actionbarTextFor(player.getUUID(), game)
                 .ifPresent(component -> player.displayClientMessage(component, true));
+    }
+
+    private List<Component> sidebarLinesFor(
+            ServerPlayer player,
+            SemionGame game,
+            MatchMode matchMode,
+            MinecraftServer server
+    ) {
+        return SemionHudTextService.sidebarLinesFor(
+                player,
+                game,
+                matchMode,
+                server,
+                damageViewEnabled(player.getUUID())
+        );
     }
 
     private Sidebar sidebar(ServerPlayer player) {

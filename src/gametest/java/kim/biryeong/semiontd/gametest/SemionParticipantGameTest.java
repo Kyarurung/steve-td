@@ -212,6 +212,7 @@ import kim.biryeong.semiontd.trait.TraitSelectionSnapshot;
 import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHudTextService;
+import kim.biryeong.semiontd.ui.SemionSidebarHudService;
 import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -1383,6 +1384,81 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, !eliminatedText.contains("다이아"), "Eliminated HUD should omit active economy lines.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void damageSidebarAggregatesTowerTypesAndKeepsSeparateTopFiveLists(GameTestHelper context) {
+        UUID playerId = stableUuid("damage-sidebar-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        double[] dealt = {600.0, 500.0, 400.0, 300.0, 200.0, 100.0};
+        double[] taken = {10.0, 20.0, 30.0, 40.0, 50.0, 60.0};
+        for (int index = 0; index < dealt.length; index++) {
+            TowerType type = new TowerType(
+                    "damage_sidebar_" + (index + 1),
+                    "Damage Type " + (index + 1),
+                    TowerCategory.DIRECT,
+                    0,
+                    100.0,
+                    5.0,
+                    0.0,
+                    20,
+                    0
+            );
+            ProductionTower tower = new ProductionTower(type, playerId, TeamId.RED, 1, new GridPosition(index, 0, 0));
+            tower.markWaveStarted(1);
+            tower.recordDamageDealt(dealt[index]);
+            tower.recordDamageTaken(taken[index]);
+            lane.towers().add(tower);
+            if (index == 0) {
+                ProductionTower sameType = new ProductionTower(type, playerId, TeamId.RED, 1, new GridPosition(10, 0, 0));
+                sameType.markWaveStarted(1);
+                sameType.recordDamageDealt(50.0);
+                sameType.recordDamageTaken(5.0);
+                lane.towers().add(sameType);
+            }
+        }
+
+        String markup = SemionHudTextService.damageSidebarMarkupFor(playerId, game);
+        if (!assertTrue(context, markup.contains("R1 시작 전"), "First preparation should show the pre-wave label.")) {
+            return;
+        }
+        if (!assertTrue(context, markup.contains("Damage Type 1</white> <red>650"), "Same tower types should aggregate their dealt damage.")) {
+            return;
+        }
+        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <red>"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
+            return;
+        }
+        int takenHeader = markup.indexOf("받은 피해 TOP 5");
+        if (!assertTrue(
+                context,
+                takenHeader >= 0 && markup.indexOf("Damage Type 6", takenHeader) < markup.indexOf("Damage Type 5", takenHeader),
+                "Taken damage should use its own descending top-five order."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, markup.split("\\R").length <= 13, "Damage sidebar should stay within thirteen content lines.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void damageSidebarCommandParsesAndDisconnectClearsToggle(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        var parsed = dispatcher.parse("피해량보기", context.getLevel().getServer().createCommandSourceStack());
+        if (!assertTrue(context, !parsed.getContext().getNodes().isEmpty() && !parsed.getReader().canRead(), "/피해량보기 should parse completely.")) {
+            return;
+        }
+
+        var player = context.makeMockServerPlayerInLevel();
+        SemionSidebarHudService service = new SemionSidebarHudService();
+        service.toggleDamageView(player.getUUID());
+        service.remove(player);
+        if (!assertTrue(context, !service.damageViewEnabled(player.getUUID()), "Disconnect cleanup should remove the damage sidebar toggle.")) {
             return;
         }
         context.succeed();
@@ -5089,6 +5165,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, tower.damageTarget(towerEntity, target, 40.0), "Second hit should kill the target.")) {
             return;
         }
+        if (!assertClose(context, 100.0, tower.roundDamageDealt(), "Tower damage stats should count actual health removed and exclude overkill.")) {
+            return;
+        }
         SemionPlayer player = new SemionPlayer(
                 playerId,
                 "runtime-damage-owner",
@@ -5173,6 +5252,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, target.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Bee poison should preserve tower kill attribution.")) {
+            return;
+        }
+        if (!assertClose(context, 100.0 - target.runtimeMonster().health(), beeTower.roundDamageDealt(), "Bee poison should count toward its source tower damage.")) {
             return;
         }
         context.succeed();
@@ -5264,6 +5346,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, killTarget.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Ignite kills should keep tower kill attribution.")) {
+            return;
+        }
+        if (!assertClose(context, 84.5, sourceTower.roundDamageDealt(), "Ignite ticks should count toward the tower that applied the retained ignite.")) {
             return;
         }
         context.succeed();
@@ -6530,6 +6615,54 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, runtimeBossHealth, runtimeBoss.health(), "Player boss hits should not affect runtime boss health.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void towerDamageTakenStatsUseMitigatedHealthLossAndExcludeOverkill(GameTestHelper context) {
+        UUID playerId = stableUuid("tower-damage-taken-owner");
+        Vec3 origin = context.absolutePos(BlockPos.ZERO).getCenter();
+        TowerType type = new TowerType(
+                "tower-damage-taken",
+                "Tower Damage Taken",
+                TowerCategory.DIRECT,
+                0,
+                100.0,
+                5.0,
+                0.0,
+                20,
+                0
+        );
+        TestTower runtimeTower = new TestTower(type, playerId, TeamId.RED, 1, GridPosition.from(BlockPos.containing(origin)));
+        runtimeTower.markWaveStarted(1);
+        SemionTowerEntity towerEntity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+        towerEntity.configure(runtimeTower, null);
+        towerEntity.setPos(origin);
+        towerEntity.applyTimedEffect(TimedEffectType.TOWER_DAMAGE_REDUCTION, 0.25, 40);
+        context.getLevel().addFreshEntity(towerEntity);
+        SemionMonsterEntity source = spawnSummonEntity(
+                context,
+                "tower-damage-source",
+                TeamId.BLUE,
+                TeamId.RED,
+                1,
+                origin.add(2.0, 0.0, 0.0),
+                100.0,
+                80.0
+        );
+
+        context.hurt(towerEntity, source.damageSources().mobAttack(source), 80.0F);
+        if (!assertClose(context, 40.0, runtimeTower.health(), "Damage reduction should leave the tower at 40 health.")) {
+            return;
+        }
+        if (!assertClose(context, 60.0, runtimeTower.roundDamageTaken(), "Taken stats should record mitigated health loss.")) {
+            return;
+        }
+
+        context.hurt(towerEntity, source.damageSources().mobAttack(source), 1_000.0F);
+        if (!assertClose(context, 100.0, runtimeTower.roundDamageTaken(), "Lethal overkill should only count the tower's remaining health.")) {
             return;
         }
         context.succeed();

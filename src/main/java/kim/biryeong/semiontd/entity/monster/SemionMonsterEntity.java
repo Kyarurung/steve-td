@@ -20,6 +20,7 @@ import kim.biryeong.semiontd.entity.visual.SemionAnimationState;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.summon.SummonRegistry;
+import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitVfx;
@@ -375,6 +376,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
 
     public void applyIgnite(
             UUID sourcePlayer,
+            Tower sourceTower,
             TraitLoadout sourceLoadout,
             double damagePerTick,
             double additiveTraitBonus,
@@ -391,6 +393,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         if (ignite == null || damagePerTick > ignite.damagePerTick()) {
             ignite = new IgniteState(
                     sourcePlayer,
+                    sourceTower,
                     sourceLoadout == null ? TraitLoadout.none() : sourceLoadout,
                     damagePerTick,
                     additiveTraitBonus,
@@ -401,6 +404,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         } else {
             ignite = new IgniteState(
                     ignite.sourcePlayer(),
+                    ignite.sourceTower(),
                     ignite.sourceLoadout(),
                     ignite.damagePerTick(),
                     ignite.additiveTraitBonus(),
@@ -454,6 +458,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         }
         ignite = new IgniteState(
                 ignite.sourcePlayer(),
+                ignite.sourceTower(),
                 ignite.sourceLoadout(),
                 ignite.damagePerTick(),
                 ignite.additiveTraitBonus(),
@@ -479,7 +484,11 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         }
         double previousHealth = runtimeMonster.health();
         applyRuntimeDamage(damageSources().onFire(), damageAmount, DamageType.MAGIC);
-        if (runtimeMonster.health() < previousHealth) {
+        double dealtDamage = Math.max(0.0, previousHealth - runtimeMonster.health());
+        if (dealtDamage > 0.0) {
+            if (state.sourceTower() != null) {
+                state.sourceTower().recordDamageDealt(dealtDamage);
+            }
             runtimeMonster.recordLastHit(state.sourcePlayer(), KillSourceKind.TOWER);
         }
     }
@@ -490,6 +499,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
 
     private record IgniteState(
             UUID sourcePlayer,
+            Tower sourceTower,
             TraitLoadout sourceLoadout,
             double damagePerTick,
             double additiveTraitBonus,

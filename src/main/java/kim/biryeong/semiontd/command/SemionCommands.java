@@ -348,6 +348,8 @@ public final class SemionCommands {
                 .executes(context -> ratingTop(context.getSource(), gameManager)));
         dispatcher.register(literal("준비")
                 .executes(context -> ready(context.getSource(), gameManager)));
+        dispatcher.register(literal("피해량보기")
+                .executes(context -> toggleDamageView(context.getSource(), gameManager)));
         dispatcher.register(literal("요청")
                 .then(argument("amount", IntegerArgumentType.integer(1))
                         .executes(context -> requestTeamMoney(
@@ -1186,6 +1188,18 @@ public final class SemionCommands {
         }
 
         success(source, "준비 완료했습니다. 준비 인원=" + game.readyPlayerCount());
+        return 1;
+    }
+
+    private static int toggleDamageView(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        if (game == null || game.playerLane(player.getUUID()).isEmpty()) {
+            failure(source, "진행 중인 자신의 라운드에서만 피해량을 볼 수 있습니다.");
+            return 0;
+        }
+        boolean enabled = gameManager.sidebarHudService().toggleDamageView(player.getUUID());
+        success(source, enabled ? "피해량 사이드바를 켰습니다." : "기본 사이드바로 돌아갑니다.");
         return 1;
     }
 
