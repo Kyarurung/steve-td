@@ -303,6 +303,10 @@ public abstract class Tower {
     public void onStateChanged(PlayerLane lane) {
     }
 
+    public boolean meetsUpgradeRequirements(PlayerLane lane, TowerUpgradeOption option) {
+        return true;
+    }
+
     public Optional<SemionMonsterEntity> selectAttackTarget(SemionTowerEntity towerEntity, List<SemionMonsterEntity> candidates) {
         return Optional.empty();
     }

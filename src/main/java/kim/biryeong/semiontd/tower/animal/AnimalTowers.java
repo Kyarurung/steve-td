@@ -68,7 +68,25 @@ public class AnimalTowers {
                     "<green> 자신의 다른 돼지 타워 당 체력을 90, 공격력을 15 얻습니다. </green>",
                     "<green> 최대 중첩 : 2스택",
                     "<green> 최대 중첩에 도달할 경우, 받는 피해를 30% 경감합니다. </green>",
-                    "<green> 최대 중첩에 도달할 경우, 공격 시 대상 주위 1블록 적에게 50% 스플래시 피해를 줍니다.</green>"
+                    "<green> 최대 중첩에 도달할 경우, 공격 시 대상 주위 1블록 적에게 50% 스플래시 피해를 줍니다.</green>",
+                    "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 돼지 우두머리로 승급할 수 있습니다.</gold>"
+            )
+    );
+
+    public static final TowerType T4_PIG_LEADER_TOWER = tower(
+            "t4_pig_leader_tower",
+            "돼지 우두머리 타워",
+            350,
+            400,
+            2,
+            18,
+            20,
+            -20,
+            PigVisual.builder().variant(PigVariants.WARM).build(),
+            List.of(
+                    "<gray>최대 무리에서만 오라를 유지하는 돼지 계열 우두머리입니다.</gray>",
+                    "<green>기존 돼지 T3의 무리 효과와 스플래시를 유지합니다.</green>",
+                    "<gold>반경 4블록 내 다른 돼지의 최대 체력을 15% 늘리고 받는 피해를 5%p 줄입니다.</gold>"
             )
     );
 
@@ -122,7 +140,25 @@ public class AnimalTowers {
                     "<green> 자신의 다른 늑구 타워 당 공격력을 10, 공격 주기가 1.25 감소합니다.",
                     "<green> 최대 중첩 : 4회 </green>",
                     "<green> 최대 중첩 시 타워의 공격 주기가 추가로 5 감소합니다. </green>",
-                    "<green> 최대 중첩 시 공격력이 추가로 5 증가합니다."
+                    "<green> 최대 중첩 시 공격력이 추가로 5 증가합니다.",
+                    "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 늑구 우두머리로 승급할 수 있습니다.</gold>"
+            )
+    );
+
+    public static final TowerType T4_WOLF_LEADER_TOWER = tower(
+            "t4_wolf_leader_tower",
+            "늑구 우두머리 타워",
+            400,
+            105,
+            6.5,
+            24,
+            18,
+            -20,
+            WolfVisual.builder().variant(WolfVariants.ASHEN).tame(true).build(),
+            List.of(
+                    "<gray>최대 무리에서만 오라를 유지하는 늑구 계열 우두머리입니다.</gray>",
+                    "<green>기존 늑구 T3의 무리 효과와 스플래시를 유지합니다.</green>",
+                    "<gold>반경 6블록 내 다른 늑구의 공격 주기를 1틱 줄이고 기존 스플래시 피해 비율을 10%p 늘립니다.</gold>"
             )
     );
     // 토끼 타워
@@ -175,7 +211,25 @@ public class AnimalTowers {
                     "<green> 자신이 가진 토끼 타워당 공격력이 12.5 증가합니다. </green>",
                     "<green> 최대 중첩 : 4회 </green>",
                     "<green> 최대 중첩 시 공격 주기가 5틱 감소합니다. </green>",
-                    "<green> 최대 중첩 시 사거리 내 대상에게 추가 피해 +200%를 줍니다. </green>"
+                    "<green> 최대 중첩 시 사거리 내 대상에게 추가 피해 +200%를 줍니다. </green>",
+                    "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 토끼 우두머리로 승급할 수 있습니다.</gold>"
+            )
+    );
+
+    public static final TowerType T4_RABBIT_LEADER_TOWER = tower(
+            "t4_rabbit_leader_tower",
+            "토끼 우두머리 타워",
+            450,
+            85,
+            8,
+            12,
+            12,
+            -20,
+            RabbitVisual.builder().variant(Rabbit.Variant.GOLD).build(),
+            List.of(
+                    "<gray>최대 무리에서만 오라를 유지하는 토끼 계열 우두머리입니다.</gray>",
+                    "<green>기존 토끼 T3의 무리 효과와 추가 공격을 유지합니다.</green>",
+                    "<gold>반경 7블록 내 다른 토끼의 공격 피해를 8% 늘리고 사거리를 1블록 늘립니다.</gold>"
             )
     );
 
@@ -229,7 +283,25 @@ public class AnimalTowers {
                     "<gray> 후반 누수를 정리하는 설원의 사냥꾼입니다. </gray>",
                     "<green> 체력이 낮은 사거리 내 몬스터를 우선 공격하고 큰 추가 피해를 줍니다. </green>",
                     "<green> 사거리 내 몬스터 사망 시 공격력이 증가합니다. </green>",
-                    "<green> 같은 여우 타워가 많을수록 더 높은 체력의 적도 처형 대상으로 봅니다. </green>"
+                    "<green> 같은 여우 타워가 많을수록 더 높은 체력의 적도 처형 대상으로 봅니다. </green>",
+                    "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 여우 우두머리로 승급할 수 있습니다.</gold>"
+            )
+    );
+
+    public static final TowerType T4_FOX_LEADER_TOWER = tower(
+            "t4_fox_leader_tower",
+            "여우 우두머리 타워",
+            500,
+            95,
+            8.5,
+            35,
+            10,
+            -20,
+            FoxVisual.builder().variant(Fox.Variant.SNOW).build(),
+            List.of(
+                    "<gray>최대 무리에서만 오라를 유지하는 여우 계열 우두머리입니다.</gray>",
+                    "<green>기존 여우 T3의 처형과 사망 보너스를 유지합니다.</green>",
+                    "<gold>반경 8블록 내 다른 여우의 처형 기준을 5%p, 처형 추가 피해를 25%p 늘립니다.</gold>"
             )
     );
 
@@ -252,7 +324,15 @@ public class AnimalTowers {
                 "<green> 자신의 다른 돼지 타워 당 체력을 {ability.healthPerStack:number}, 공격력을 {ability.damagePerStack:number} 얻습니다. </green>",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}스택",
                 "<green> 최대 중첩에 도달할 경우, 받는 피해를 {ability.damageReduction:percent} 경감합니다. </green>",
-                "<green> 최대 중첩에 도달할 경우, 공격 시 대상 주위 {ability.splashRadius:blocks} 적에게 {ability.splashDamageRatio:percent} 스플래시 피해를 줍니다.</green>"
+                "<green> 최대 중첩에 도달할 경우, 공격 시 대상 주위 {ability.splashRadius:blocks} 적에게 {ability.splashDamageRatio:percent} 스플래시 피해를 줍니다.</green>",
+                "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 돼지 우두머리로 승급할 수 있습니다.</gold>"
+        ));
+        TowerDescriptionRegistry.registerTemplate(T4_PIG_LEADER_TOWER, List.of(
+                "<gray> 최대 무리에서만 오라를 유지하는 돼지 계열 우두머리입니다. </gray>",
+                "<green> 자신의 다른 돼지 타워 당 체력을 {ability.healthPerStack:number}, 공격력을 {ability.damagePerStack:number} 얻습니다. </green>",
+                "<green> 최대 중첩 : {ability.maxStacks:integer}스택, 받는 피해 {ability.damageReduction:percent} 경감 </green>",
+                "<green> 공격 시 대상 주위 {ability.splashRadius:blocks} 적에게 {ability.splashDamageRatio:percent} 스플래시 피해를 줍니다.</green>",
+                "<gold> 최대 중첩 시 반경 {ability.leaderAuraRadius:blocks} 내 다른 돼지의 최대 체력 +{ability.leaderMaxHealthBonus:percent}, 받는 피해 -{ability.leaderDamageReductionBonus:percent}p</gold>"
         ));
         TowerDescriptionRegistry.registerTemplate(T1_WOLF_TOWER, List.of(
                 "<gray> 대전에서 탈출한 늑구가 여기로 왔네요. </gray>",
@@ -272,7 +352,15 @@ public class AnimalTowers {
                 "<green> 자신의 다른 늑구 타워 당 공격력을 {ability.damagePerStack:number}, 공격 주기가 {ability.intervalReductionPerStack:number} 감소합니다.",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}회 </green>",
                 "<green> 최대 중첩 시 타워의 공격 주기가 추가로 {ability.maxStackExtraIntervalReduction:integer} 감소합니다. </green>",
-                "<green> 최대 중첩 시 공격력이 추가로 {ability.maxStackDamageBonus:number} 증가합니다."
+                "<green> 최대 중첩 시 공격력이 추가로 {ability.maxStackDamageBonus:number} 증가합니다.",
+                "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 늑구 우두머리로 승급할 수 있습니다.</gold>"
+        ));
+        TowerDescriptionRegistry.registerTemplate(T4_WOLF_LEADER_TOWER, List.of(
+                "<gray> 최대 무리에서만 오라를 유지하는 늑구 계열 우두머리입니다. </gray>",
+                "<green> 공격 시 {ability.splashRadius:blocks} 범위 내 적에게 {ability.splashDamageRatio:percent} 스플래시 피해를 입힙니다. </green>",
+                "<green> 다른 늑구마다 공격력 +{ability.damagePerStack:number}, 공격 주기 -{ability.intervalReductionPerStack:number}, 최대 중첩 {ability.maxStacks:integer}회 </green>",
+                "<green> 최대 중첩 시 공격 주기 추가 -{ability.maxStackExtraIntervalReduction:integer}틱, 공격력 +{ability.maxStackDamageBonus:number} </green>",
+                "<gold> 최대 중첩 시 반경 {ability.leaderAuraRadius:blocks} 내 다른 늑구의 공격 주기 -{ability.leaderAttackIntervalReductionTicks:integer}틱, 기존 스플래시 +{ability.leaderSplashDamageRatioBonus:percent}p</gold>"
         ));
         TowerDescriptionRegistry.registerTemplate(T1_RABBIT_TOWER, List.of(
                 "<gray> 깡총~ 토끼가 풀을 뜯으러 왔지!</gray>",
@@ -288,7 +376,14 @@ public class AnimalTowers {
                 "<green> 자신이 가진 토끼 타워당 공격력이 {ability.damagePerStack:number} 증가합니다. </green>",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}회 </green>",
                 "<green> 최대 중첩 시 공격 주기가 {ability.maxStackExtraIntervalReduction:integer}틱 감소합니다. </green>",
-                "<green> 최대 중첩 시 사거리 내 대상에게 추가 피해 +{ability.extraAttackDamageRatio:percent}를 줍니다. </green>"
+                "<green> 최대 중첩 시 사거리 내 대상에게 추가 피해 +{ability.extraAttackDamageRatio:percent}를 줍니다. </green>",
+                "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 토끼 우두머리로 승급할 수 있습니다.</gold>"
+        ));
+        TowerDescriptionRegistry.registerTemplate(T4_RABBIT_LEADER_TOWER, List.of(
+                "<gray> 최대 무리에서만 오라를 유지하는 토끼 계열 우두머리입니다. </gray>",
+                "<green> 다른 토끼마다 공격력 +{ability.damagePerStack:number}, 최대 중첩 {ability.maxStacks:integer}회 </green>",
+                "<green> 최대 중첩 시 공격 주기 -{ability.maxStackExtraIntervalReduction:integer}틱, 추가 피해 +{ability.extraAttackDamageRatio:percent} </green>",
+                "<gold> 최대 중첩 시 반경 {ability.leaderAuraRadius:blocks} 내 다른 토끼의 공격 피해 +{ability.leaderDamageBonus:percent}, 사거리 +{ability.leaderRangeBonus:blocks}</gold>"
         ));
         TowerDescriptionRegistry.registerTemplate(T1_FOX_TOWER, List.of(
                 "<gray> 낮은 체력의 적을 노리는 동물 빌더의 마무리 타워입니다. </gray>",
@@ -297,6 +392,13 @@ public class AnimalTowers {
                 "<green> 사거리 내 몬스터 사망 시 공격력이 {ability.killBonusDamage:number} 증가합니다. 최대 {ability.killBonusDamageCap:number}까지 증가합니다. </green>",
                 "<green> 같은 여우 타워마다 처형 기준이 {ability.executeThresholdPerStack:percent}, 추가 피해가 {ability.executeDamageBonusPerStack:percent} 증가합니다. </green>",
                 "<green> 최대 중첩 : {ability.maxStacks:integer}회, 처형 기준 최대 : {ability.maxExecuteHealthThreshold:percent} </green>"
+        ));
+        TowerDescriptionRegistry.registerTemplate(T4_FOX_LEADER_TOWER, List.of(
+                "<gray> 최대 무리에서만 오라를 유지하는 여우 계열 우두머리입니다. </gray>",
+                "<green> 처형 대상에게 {ability.executeDamageBonusRatio:percent} 추가 피해를 줍니다. </green>",
+                "<green> 사거리 내 몬스터 사망 시 공격력 +{ability.killBonusDamage:number}, 최대 +{ability.killBonusDamageCap:number} </green>",
+                "<green> 같은 여우마다 처형 기준 +{ability.executeThresholdPerStack:percent}, 추가 피해 +{ability.executeDamageBonusPerStack:percent}, 최대 중첩 {ability.maxStacks:integer}회 </green>",
+                "<gold> 최대 중첩 시 반경 {ability.leaderAuraRadius:blocks} 내 다른 여우의 처형 기준 +{ability.leaderExecuteThresholdBonus:percent}p(최대 {ability.leaderExecuteThresholdCap:percent}), 추가 피해 +{ability.leaderExecuteDamageBonus:percent}p</gold>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_FOX_TOWER, List.of(
                 "<gray> 더 이른 체력 구간부터 적을 마무리하는 여우 타워입니다. </gray>",
@@ -312,7 +414,8 @@ public class AnimalTowers {
                 "<green> 처형 대상에게 {ability.executeDamageBonusRatio:percent} 추가 피해를 줍니다. </green>",
                 "<green> 사거리 내 몬스터 사망 시 공격력이 {ability.killBonusDamage:number} 증가합니다. 최대 {ability.killBonusDamageCap:number}까지 증가합니다. </green>",
                 "<green> 같은 여우 타워마다 처형 기준이 {ability.executeThresholdPerStack:percent}, 추가 피해가 {ability.executeDamageBonusPerStack:percent} 증가합니다. </green>",
-                "<green> 최대 중첩 : {ability.maxStacks:integer}회, 처형 기준 최대 : {ability.maxExecuteHealthThreshold:percent} </green>"
+                "<green> 최대 중첩 : {ability.maxStacks:integer}회, 처형 기준 최대 : {ability.maxExecuteHealthThreshold:percent} </green>",
+                "<gold> 최대 중첩이고 같은 계열 우두머리가 없을 때 여우 우두머리로 승급할 수 있습니다.</gold>"
         ));
     }
 }

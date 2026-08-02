@@ -8575,6 +8575,249 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void animalLeaderUpgradeRequiresMaxStacksAndOneLeaderPerFamily(GameTestHelper context) {
+        UUID playerId = stableUuid("animal-leader-upgrade-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AnimalTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+        game.players().get(playerId).economy().addMineral(3_000);
+
+        GridPosition pigPosition = new GridPosition(base.getX(), base.getY(), base.getZ());
+        PigTower pig = new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1, pigPosition);
+        lane.addTower(pig);
+        long beforeRejectedUpgrade = game.players().get(playerId).economy().mineral();
+        if (!assertTrue(context, ProductionTowerService.availableUpgrades(game, playerId, pigPosition).isEmpty(), "Leader upgrade should stay hidden below max stacks.")) {
+            return;
+        }
+        if (!assertEquals(context, TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
+                ProductionTowerService.upgradeTower(game, playerId, pigPosition, AnimalTowers.T4_PIG_LEADER_TOWER.id()),
+                "Pig leader upgrade should reject below-max stacks.")) {
+            return;
+        }
+        if (!assertEquals(context, beforeRejectedUpgrade, game.players().get(playerId).economy().mineral(), "Rejected leader upgrade should not spend mineral.")) {
+            return;
+        }
+
+        lane.addTower(new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), base.getZ())));
+        lane.addTower(new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 2, base.getY(), base.getZ())));
+        if (!assertEquals(context, Set.of(AnimalTowers.T4_PIG_LEADER_TOWER.id()),
+                ProductionTowerService.availableUpgrades(game, playerId, pigPosition).stream()
+                        .map(option -> option.targetType().id()).collect(Collectors.toSet()),
+                "Pig leader upgrade should appear at max stacks.")) {
+            return;
+        }
+        if (!assertEquals(context, TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(game, playerId, pigPosition, AnimalTowers.T4_PIG_LEADER_TOWER.id()),
+                "Max-stack pig should upgrade into its leader.")) {
+            return;
+        }
+
+        GridPosition secondPigPosition = new GridPosition(base.getX() + 3, base.getY(), base.getZ());
+        lane.addTower(new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1, secondPigPosition));
+        long beforeDuplicateLeader = game.players().get(playerId).economy().mineral();
+        if (!assertEquals(context, TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
+                ProductionTowerService.upgradeTower(game, playerId, secondPigPosition, AnimalTowers.T4_PIG_LEADER_TOWER.id()),
+                "A second living pig leader should be rejected.")) {
+            return;
+        }
+        if (!assertEquals(context, beforeDuplicateLeader, game.players().get(playerId).economy().mineral(), "Duplicate leader rejection should not spend mineral.")) {
+            return;
+        }
+
+        GridPosition wolfPosition = new GridPosition(base.getX(), base.getY(), base.getZ() + 4);
+        lane.addTower(new WolfTower(AnimalTowers.T3_WOLF_DPS_TOWER, playerId, TeamId.RED, 1, wolfPosition));
+        for (int index = 0; index < 4; index++) {
+            lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1,
+                    new GridPosition(base.getX() + index + 1, base.getY(), base.getZ() + 4)));
+        }
+        if (!assertEquals(context, TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(game, playerId, wolfPosition, AnimalTowers.T4_WOLF_LEADER_TOWER.id()),
+                "A wolf leader should coexist with a pig leader.")) {
+            return;
+        }
+
+        GridPosition foxPosition = new GridPosition(base.getX(), base.getY(), base.getZ() + 8);
+        FoxTower fox = new FoxTower(AnimalTowers.T3_FOX_TOWER, playerId, TeamId.RED, 1, foxPosition);
+        lane.addTower(fox);
+        for (int index = 0; index < 4; index++) {
+            lane.addTower(new FoxTower(AnimalTowers.T1_FOX_TOWER, playerId, TeamId.RED, 1,
+                    new GridPosition(base.getX() + index + 1, base.getY(), base.getZ() + 8)));
+        }
+        fox.onNearbyMonsterDeath(lane, deathStackTestMonster("leader-fox-kill", Optional.empty(), TeamId.RED, 1),
+                new Vec3(foxPosition.x() + 0.5, foxPosition.y() + 1.0, foxPosition.z() + 0.5));
+        if (!assertEquals(context, TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(game, playerId, foxPosition, AnimalTowers.T4_FOX_LEADER_TOWER.id()),
+                "Max-stack fox should upgrade into its leader.")) {
+            return;
+        }
+        Tower upgradedFox = lane.towerAt(foxPosition);
+        if (!assertTrue(context, upgradedFox instanceof FoxTower
+                        && upgradedFox.runtimeDetailLines().stream().anyMatch(line -> line.contains("사망 보너스 1/100")),
+                "Fox kill bonus should survive the T3-to-leader upgrade.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void pigLeaderAuraTracksRangeOwnerStacksDeathAndSale(GameTestHelper context) {
+        UUID playerId = stableUuid("pig-leader-aura-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+
+        PigTower leader = new PigTower(AnimalTowers.T4_PIG_LEADER_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX(), base.getY(), base.getZ()));
+        PigTower recipient = new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), base.getZ()));
+        PigTower support = new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 2, base.getY(), base.getZ()));
+        lane.addTower(leader);
+        lane.addTower(recipient);
+        lane.addTower(support);
+
+        if (!assertClose(context, 609.5, recipient.currentMaxHealth(), "Pig leader should multiply the T3 max-stack health from 530 to 609.5.")) {
+            return;
+        }
+        if (!assertClose(context, 609.5, recipient.health(), "Pig leader activation should heal by the gained max-health amount.")) {
+            return;
+        }
+        if (!assertClose(context, 65.0, recipient.modifyIncomingDamage(null, null, 100.0), "Pig leader should raise max-stack damage reduction from 30% to 35%.")) {
+            return;
+        }
+        if (!assertTrue(context, recipient.runtimeDetailLines().stream().anyMatch(line -> line.contains("우두머리 오라 적용 중")), "Pig recipient should expose its active leader aura.")) {
+            return;
+        }
+
+        lane.removeTower(support);
+        if (!assertClose(context, 440.0, recipient.currentMaxHealth(), "Leader aura should deactivate when the leader loses max stacks.")) {
+            return;
+        }
+        if (!assertClose(context, 100.0, recipient.modifyIncomingDamage(null, null, 100.0), "Max-stack and leader reductions should both deactivate after stack loss.")) {
+            return;
+        }
+        PigTower restoredSupport = new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 2, base.getY(), base.getZ()));
+        lane.addTower(restoredSupport);
+        if (!assertClose(context, 609.5, recipient.currentMaxHealth(), "Leader aura should reactivate when max stacks return.")) {
+            return;
+        }
+
+        PigTower otherOwner = new PigTower(AnimalTowers.T3_PIG_TOWER, stableUuid("other-pig-owner"), TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), base.getZ() + 1));
+        RabbitTower otherFamily = new RabbitTower(AnimalTowers.T3_RABBIT_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), base.getZ() + 2));
+        PigTower outOfRange = new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 20, base.getY(), base.getZ()));
+        lane.addTower(otherOwner);
+        lane.addTower(otherFamily);
+        lane.addTower(outOfRange);
+        if (!assertTrue(context, otherOwner.runtimeDetailLines().stream().noneMatch(line -> line.contains("오라 적용 중")), "Leader aura should exclude other owners.")) {
+            return;
+        }
+        if (!assertTrue(context, otherFamily.runtimeDetailLines().stream().noneMatch(line -> line.contains("오라 적용 중")), "Leader aura should exclude other animal families.")) {
+            return;
+        }
+        if (!assertTrue(context, outOfRange.runtimeDetailLines().stream().noneMatch(line -> line.contains("오라 적용 중")), "Leader aura should exclude towers outside its radius.")) {
+            return;
+        }
+
+        lane.killTower(leader);
+        recipient.tick(lane);
+        if (!assertTrue(context, recipient.runtimeDetailLines().stream().noneMatch(line -> line.contains("오라 적용 중")), "A dead leader should stop its aura on the next state refresh.")) {
+            return;
+        }
+        PigTower replacementLeader = new PigTower(AnimalTowers.T4_PIG_LEADER_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX(), base.getY(), base.getZ() + 1));
+        lane.addTower(replacementLeader);
+        if (!assertTrue(context, recipient.runtimeDetailLines().stream().anyMatch(line -> line.contains("우두머리 오라 적용 중")), "A new living max-stack leader should reactivate the aura.")) {
+            return;
+        }
+        lane.removeTower(replacementLeader);
+        if (!assertTrue(context, recipient.runtimeDetailLines().stream().noneMatch(line -> line.contains("오라 적용 중")), "Selling the leader should remove its aura immediately.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void animalLeaderAurasApplyExactWolfRabbitAndFoxBonuses(GameTestHelper context) {
+        UUID playerId = stableUuid("animal-leader-aura-values-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+
+        WolfTower wolfLeader = new WolfTower(AnimalTowers.T4_WOLF_LEADER_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX(), base.getY(), base.getZ()));
+        WolfTower wolf = new WolfTower(AnimalTowers.T3_WOLF_DPS_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), base.getZ()));
+        lane.addTower(wolfLeader);
+        lane.addTower(wolf);
+        for (int index = 0; index < 3; index++) {
+            lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1,
+                    new GridPosition(base.getX() + index + 2, base.getY(), base.getZ())));
+        }
+        if (!assertEquals(context, 9, wolf.adjustAttackInterval(wolf.type().attackIntervalTicks()), "Wolf leader should reduce the T3 max-stack interval from 10 to 9 ticks.")) {
+            return;
+        }
+        SemionTowerEntity wolfEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(wolf.entityId().orElseThrow());
+        Vec3 wolfTargetPosition = wolfEntity.position().add(1.0, 0.0, 0.0);
+        SemionMonsterEntity wolfPrimary = spawnRoleMonsterEntity(context, "leader-wolf-primary", Optional.empty(), TeamId.RED, 1, wolfTargetPosition, 100.0, List.of(SummonRole.RUSH));
+        SemionMonsterEntity wolfNearby = spawnRoleMonsterEntity(context, "leader-wolf-nearby", Optional.empty(), TeamId.RED, 1, wolfTargetPosition.add(1.0, 0.0, 0.0), 100.0, List.of(SummonRole.RUSH));
+        wolf.onAttack(wolfEntity, wolfPrimary, 20.0, false);
+        if (!assertClose(context, 83.0, wolfNearby.runtimeMonster().health(), "Wolf leader should raise existing T3 splash from 75% to 85%.")) {
+            return;
+        }
+
+        int rabbitZ = base.getZ() + 10;
+        RabbitTower rabbitLeader = new RabbitTower(AnimalTowers.T4_RABBIT_LEADER_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX(), base.getY(), rabbitZ));
+        RabbitTower rabbit = new RabbitTower(AnimalTowers.T3_RABBIT_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), rabbitZ));
+        lane.addTower(rabbitLeader);
+        lane.addTower(rabbit);
+        for (int index = 0; index < 3; index++) {
+            lane.addTower(new RabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1,
+                    new GridPosition(base.getX() + index + 2, base.getY(), rabbitZ)));
+        }
+        if (!assertClose(context, 64.8, rabbit.modifyAttackDamage(null, null, rabbit.type().damage()), "Rabbit leader should multiply max-stack T3 damage by 8%.")) {
+            return;
+        }
+        if (!assertClose(context, 8.0, rabbit.adjustAttackRange(rabbit.type().range()), "Rabbit leader should raise T3 range from 7 to 8.")) {
+            return;
+        }
+
+        int foxZ = base.getZ() + 20;
+        FoxTower foxLeader = new FoxTower(AnimalTowers.T4_FOX_LEADER_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX(), base.getY(), foxZ));
+        FoxTower fox = new FoxTower(AnimalTowers.T3_FOX_TOWER, playerId, TeamId.RED, 1,
+                new GridPosition(base.getX() + 1, base.getY(), foxZ));
+        lane.addTower(foxLeader);
+        lane.addTower(fox);
+        for (int index = 0; index < 3; index++) {
+            lane.addTower(new FoxTower(AnimalTowers.T1_FOX_TOWER, playerId, TeamId.RED, 1,
+                    new GridPosition(base.getX() + index + 2, base.getY(), foxZ)));
+        }
+        SemionMonsterEntity belowAuraThreshold = spawnSummonEntity(
+                context, "leader-fox-60-percent", TeamId.BLUE, TeamId.RED, 1,
+                new Vec3(base.getX() + 2.0, base.getY() + 1.0, foxZ + 1.0), 100.0, 40.0
+        );
+        SemionMonsterEntity aboveAuraThreshold = spawnSummonEntity(
+                context, "leader-fox-62-percent", TeamId.BLUE, TeamId.RED, 1,
+                new Vec3(base.getX() + 3.0, base.getY() + 1.0, foxZ + 1.0), 100.0, 38.0
+        );
+        if (!assertClose(context, 320.0, fox.modifyAttackDamage(null, belowAuraThreshold, 100.0), "Fox leader should raise the max-stack execute threshold from 56% to 61% and multiplier from 2.95 to 3.20.")) {
+            return;
+        }
+        if (!assertClose(context, 100.0, fox.modifyAttackDamage(null, aboveAuraThreshold, 100.0), "Fox leader execute threshold should stop above 61%.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void undeadAnimalTowerDebuffsMonsterAttackAndTowerDamageTaken(GameTestHelper context) {
         UUID playerId = stableUuid("undead-animal-debuff-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
@@ -9012,6 +9255,30 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, 1, ProductionTowerCatalog.upgrades(AnimalTowers.T2_RABBIT_TOWER).size(), "T2 rabbit should link to T3 rabbit tower.")) {
+            return;
+        }
+        if (!assertEquals(context, AnimalTowers.T4_PIG_LEADER_TOWER.id(), ProductionTowerCatalog.upgrade(AnimalTowers.T3_PIG_TOWER, AnimalTowers.T4_PIG_LEADER_TOWER.id()).orElseThrow().targetType().id(), "T3 pig should link only to its leader.")) {
+            return;
+        }
+        if (!assertEquals(context, AnimalTowers.T4_WOLF_LEADER_TOWER.id(), ProductionTowerCatalog.upgrade(AnimalTowers.T3_WOLF_DPS_TOWER, AnimalTowers.T4_WOLF_LEADER_TOWER.id()).orElseThrow().targetType().id(), "T3 wolf should link only to its leader.")) {
+            return;
+        }
+        if (!assertEquals(context, AnimalTowers.T4_RABBIT_LEADER_TOWER.id(), ProductionTowerCatalog.upgrade(AnimalTowers.T3_RABBIT_TOWER, AnimalTowers.T4_RABBIT_LEADER_TOWER.id()).orElseThrow().targetType().id(), "T3 rabbit should link only to its leader.")) {
+            return;
+        }
+        if (!assertEquals(context, AnimalTowers.T4_FOX_LEADER_TOWER.id(), ProductionTowerCatalog.upgrade(AnimalTowers.T3_FOX_TOWER, AnimalTowers.T4_FOX_LEADER_TOWER.id()).orElseThrow().targetType().id(), "T3 fox should link only to its leader.")) {
+            return;
+        }
+        if (!assertEquals(context, 4, ProductionTowerCatalog.entry(AnimalTowers.T4_PIG_LEADER_TOWER).orElseThrow().tier(), "Pig leader should be registered as tier 4.")) {
+            return;
+        }
+        if (!assertEquals(context, 4, ProductionTowerCatalog.entry(AnimalTowers.T4_WOLF_LEADER_TOWER).orElseThrow().tier(), "Wolf leader should be registered as tier 4.")) {
+            return;
+        }
+        if (!assertEquals(context, 4, ProductionTowerCatalog.entry(AnimalTowers.T4_RABBIT_LEADER_TOWER).orElseThrow().tier(), "Rabbit leader should be registered as tier 4.")) {
+            return;
+        }
+        if (!assertEquals(context, 4, ProductionTowerCatalog.entry(AnimalTowers.T4_FOX_LEADER_TOWER).orElseThrow().tier(), "Fox leader should be registered as tier 4.")) {
             return;
         }
         if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_PIG_TOWER).orElseThrow().create(stableUuid("pig-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof PigTower, "Pig catalog entry should create PigTower.")) {

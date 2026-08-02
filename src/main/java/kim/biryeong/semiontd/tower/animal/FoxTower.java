@@ -58,6 +58,9 @@ public class FoxTower extends AnimalStackTower {
             return adjustedDamage;
         }
         double bonusRatio = value("executeDamageBonusRatio") + currentStacks() * value("executeDamageBonusPerStack");
+        if (hasLeaderAura()) {
+            bonusRatio += leaderValue("leaderExecuteDamageBonus");
+        }
         return adjustedDamage * (1.0 + Math.max(0.0, bonusRatio));
     }
 
@@ -76,6 +79,10 @@ public class FoxTower extends AnimalStackTower {
         int stacks = step <= 0.0 ? 0 : (int) Math.round(killBonusDamage / step);
         int maxStacks = step <= 0.0 ? 0 : (int) Math.round(killBonusDamageCap() / step);
         lines.add("사망 보너스 " + stacks + "/" + maxStacks + " (공격력 +" + oneDecimal(killBonusDamage) + ")");
+        if (hasLeaderAura()) {
+            lines.add("우두머리 효과 처형 기준 +" + percent(leaderValue("leaderExecuteThresholdBonus"))
+                    + "p, 처형 추가 피해 +" + percent(leaderValue("leaderExecuteDamageBonus")) + "p");
+        }
         return lines;
     }
 
@@ -92,6 +99,7 @@ public class FoxTower extends AnimalStackTower {
                 tower.type().id().equals(AnimalTowers.T1_FOX_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T2_FOX_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T3_FOX_TOWER.id())
+                        || tower.type().id().equals(AnimalTowers.T4_FOX_LEADER_TOWER.id())
         );
     }
 
@@ -100,13 +108,28 @@ public class FoxTower extends AnimalStackTower {
         return TowerBalanceRuntime.abilityInt(type().id(), "maxStacks");
     }
 
+    @Override
+    protected TowerType leaderBaseType() {
+        return AnimalTowers.T3_FOX_TOWER;
+    }
+
+    @Override
+    protected TowerType leaderType() {
+        return AnimalTowers.T4_FOX_LEADER_TOWER;
+    }
+
     private double effectiveExecuteThreshold() {
-        return FoxTargetingPolicy.effectiveThreshold(
+        double threshold = FoxTargetingPolicy.effectiveThreshold(
                 value("executeHealthThreshold"),
                 currentStacks(),
                 value("executeThresholdPerStack"),
                 value("maxExecuteHealthThreshold")
         );
+        if (!hasLeaderAura()) {
+            return threshold;
+        }
+        return Math.min(leaderValue("leaderExecuteThresholdCap"),
+                threshold + leaderValue("leaderExecuteThresholdBonus"));
     }
 
     private double value(String key) {

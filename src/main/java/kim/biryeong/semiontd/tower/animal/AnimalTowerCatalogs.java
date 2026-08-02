@@ -14,28 +14,36 @@ public final class AnimalTowerCatalogs {
         registerTower(AnimalTowers.T1_PIG_TOWER, PigTower::new, 1);
         registerTower(AnimalTowers.T2_PIG_TOWER, PigTower::new, 2);
         registerTower(AnimalTowers.T3_PIG_TOWER, PigTower::new, 3);
+        registerTower(AnimalTowers.T4_PIG_LEADER_TOWER, PigTower::new, 4);
 
         registerTower(AnimalTowers.T1_WOLF_TOWER, WolfTower::new, 1);
         registerTower(AnimalTowers.T2_WOLF_DPS_TOWER, WolfTower::new, 2);
         registerTower(AnimalTowers.T3_WOLF_DPS_TOWER, WolfTower::new, 3);
+        registerTower(AnimalTowers.T4_WOLF_LEADER_TOWER, WolfTower::new, 4);
 
         registerTower(AnimalTowers.T1_RABBIT_TOWER, RabbitTower::new, 1);
         registerTower(AnimalTowers.T2_RABBIT_TOWER, RabbitTower::new, 2);
         registerTower(AnimalTowers.T3_RABBIT_TOWER, RabbitTower::new, 3);
+        registerTower(AnimalTowers.T4_RABBIT_LEADER_TOWER, RabbitTower::new, 4);
 
         registerTower(AnimalTowers.T1_FOX_TOWER, FoxTower::new, 1);
         registerTower(AnimalTowers.T2_FOX_TOWER, FoxTower::new, 2);
         registerTower(AnimalTowers.T3_FOX_TOWER, FoxTower::new, 3);
+        registerTower(AnimalTowers.T4_FOX_LEADER_TOWER, FoxTower::new, 4);
 
 
         link(AnimalTowers.T1_PIG_TOWER, "t2_pig_tower", "돼지 타워", AnimalTowers.T2_PIG_TOWER);
         link(AnimalTowers.T2_PIG_TOWER, "t3_pig_tower", "돼지 타워", AnimalTowers.T3_PIG_TOWER);
+        link(AnimalTowers.T3_PIG_TOWER, "t4_pig_leader_tower", "돼지 우두머리 타워", AnimalTowers.T4_PIG_LEADER_TOWER);
         link(AnimalTowers.T1_WOLF_TOWER, "t2_wolf_dps_tower", "재빠른 늑구 타워", AnimalTowers.T2_WOLF_DPS_TOWER);
         link(AnimalTowers.T2_WOLF_DPS_TOWER, "t3_wolf_dps_tower", "개빠른 늑구 타워", AnimalTowers.T3_WOLF_DPS_TOWER);
+        link(AnimalTowers.T3_WOLF_DPS_TOWER, "t4_wolf_leader_tower", "늑구 우두머리 타워", AnimalTowers.T4_WOLF_LEADER_TOWER);
         link(AnimalTowers.T1_RABBIT_TOWER, "t2_rabbit_tower", "토끼 타워", AnimalTowers.T2_RABBIT_TOWER);
         link(AnimalTowers.T2_RABBIT_TOWER, "t3_rabbit_tower", "토끼 타워", AnimalTowers.T3_RABBIT_TOWER);
+        link(AnimalTowers.T3_RABBIT_TOWER, "t4_rabbit_leader_tower", "토끼 우두머리 타워", AnimalTowers.T4_RABBIT_LEADER_TOWER);
         link(AnimalTowers.T1_FOX_TOWER, "t2_fox_tower", "붉은 여우 타워", AnimalTowers.T2_FOX_TOWER);
         link(AnimalTowers.T2_FOX_TOWER, "t3_fox_tower", "설원 여우 타워", AnimalTowers.T3_FOX_TOWER);
+        link(AnimalTowers.T3_FOX_TOWER, "t4_fox_leader_tower", "여우 우두머리 타워", AnimalTowers.T4_FOX_LEADER_TOWER);
 
 
         JobRegistry.registerIfAbsent(new AnimalTowerJob());

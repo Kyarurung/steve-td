@@ -144,6 +144,7 @@ public final class ProductionTowerService {
         }
         return ProductionTowerCatalog.upgrades(tower.type()).stream()
                 .filter(option -> canUseTower(game, laneContext.player, option.targetType()))
+                .filter(option -> tower.meetsUpgradeRequirements(laneContext.lane, option))
                 .toList();
     }
 
@@ -189,6 +190,9 @@ public final class ProductionTowerService {
         }
         if (!canUseTower(game, laneContext.player, targetType)) {
             return TowerUpgradeResult.TOWER_NOT_ALLOWED;
+        }
+        if (!tower.meetsUpgradeRequirements(laneContext.lane, upgrade)) {
+            return TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET;
         }
         if (!VillagerAdvStates.canUpgrade(laneContext.player, tower, upgrade)) {
             return TowerUpgradeResult.NOT_ENOUGH_ADV_EXPERIENCE;

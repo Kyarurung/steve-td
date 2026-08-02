@@ -33,7 +33,7 @@ public class WolfTower extends AnimalStackTower {
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         double amount = damageAmount + currentStacks() * value("damagePerStack");
-        if (is(AnimalTowers.T3_WOLF_DPS_TOWER) && atMaxStacks()) {
+        if (isT3OrLeader() && atMaxStacks()) {
             amount += value("maxStackDamageBonus");
         }
         return amount;
@@ -44,6 +44,9 @@ public class WolfTower extends AnimalStackTower {
         int interval = baseIntervalTicks - (int) Math.round(currentStacks() * value("intervalReductionPerStack"));
         if (!is(AnimalTowers.T1_WOLF_TOWER) && atMaxStacks()) {
             interval -= ticks("maxStackExtraIntervalReduction");
+        }
+        if (hasLeaderAura()) {
+            interval -= (int) Math.round(leaderValue("leaderAttackIntervalReductionTicks"));
         }
         return Math.max(1, interval);
     }
@@ -56,15 +59,19 @@ public class WolfTower extends AnimalStackTower {
         if (!is(AnimalTowers.T1_WOLF_TOWER) && atMaxStacks()) {
             lines.add("최대 무리 효과 공격 간격 추가 -" + ticks("maxStackExtraIntervalReduction") + "틱");
         }
-        if (is(AnimalTowers.T3_WOLF_DPS_TOWER) && atMaxStacks()) {
+        if (isT3OrLeader() && atMaxStacks()) {
             lines.add("최대 무리 효과 공격력 추가 +" + oneDecimal(value("maxStackDamageBonus")));
+        }
+        if (hasLeaderAura()) {
+            lines.add("우두머리 효과 공격 간격 -" + Math.round(leaderValue("leaderAttackIntervalReductionTicks"))
+                    + "틱, 기존 스플래시 +" + percent(leaderValue("leaderSplashDamageRatioBonus")) + "p");
         }
         return lines;
     }
 
     @Override
     public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
-        if (is(AnimalTowers.T2_WOLF_DPS_TOWER) || is(AnimalTowers.T3_WOLF_DPS_TOWER)) {
+        if (is(AnimalTowers.T2_WOLF_DPS_TOWER) || isT3OrLeader()) {
             splash(towerEntity, target, damageAmount);
         }
     }
@@ -75,12 +82,23 @@ public class WolfTower extends AnimalStackTower {
                 tower.type().id().equals(AnimalTowers.T1_WOLF_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T2_WOLF_DPS_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T3_WOLF_DPS_TOWER.id())
+                        || tower.type().id().equals(AnimalTowers.T4_WOLF_LEADER_TOWER.id())
         );
     }
 
     @Override
     protected int maxStacks() {
         return TowerBalanceRuntime.abilityInt(type().id(), "maxStacks");
+    }
+
+    @Override
+    protected TowerType leaderBaseType() {
+        return AnimalTowers.T3_WOLF_DPS_TOWER;
+    }
+
+    @Override
+    protected TowerType leaderType() {
+        return AnimalTowers.T4_WOLF_LEADER_TOWER;
     }
 
     private void splash(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
@@ -93,11 +111,16 @@ public class WolfTower extends AnimalStackTower {
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
         TowerAreaDamage.apply(this, towerEntity, request,
-                monster -> damageAmount * value("splashDamageRatio"), true);
+                monster -> damageAmount * (value("splashDamageRatio")
+                        + (hasLeaderAura() ? leaderValue("leaderSplashDamageRatioBonus") : 0.0)), true);
     }
 
     private boolean is(TowerType towerType) {
         return type().id().equals(towerType.id());
+    }
+
+    private boolean isT3OrLeader() {
+        return is(AnimalTowers.T3_WOLF_DPS_TOWER) || isLeader();
     }
 
     private double value(String key) {

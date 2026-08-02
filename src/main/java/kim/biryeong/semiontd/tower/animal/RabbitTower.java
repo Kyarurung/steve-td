@@ -28,33 +28,43 @@ public class RabbitTower extends AnimalStackTower {
 
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        return damageAmount + currentStacks() * value("damagePerStack");
+        double amount = damageAmount + currentStacks() * value("damagePerStack");
+        return hasLeaderAura() ? amount * (1.0 + leaderValue("leaderDamageBonus")) : amount;
     }
 
     @Override
     public int adjustAttackInterval(int baseIntervalTicks) {
-        if ((is(AnimalTowers.T2_RABBIT_TOWER) || is(AnimalTowers.T3_RABBIT_TOWER)) && atMaxStacks()) {
+        if ((is(AnimalTowers.T2_RABBIT_TOWER) || isT3OrLeader()) && atMaxStacks()) {
             return Math.max(1, baseIntervalTicks - ticks("maxStackExtraIntervalReduction"));
         }
         return baseIntervalTicks;
     }
 
     @Override
+    public double adjustAttackRange(double baseRange) {
+        return baseRange + (hasLeaderAura() ? leaderValue("leaderRangeBonus") : 0.0);
+    }
+
+    @Override
     public java.util.List<String> runtimeDetailLines() {
         java.util.ArrayList<String> lines = new java.util.ArrayList<>(super.runtimeDetailLines());
         lines.add("무리 효과 공격력 +" + oneDecimal(currentStacks() * value("damagePerStack")));
-        if ((is(AnimalTowers.T2_RABBIT_TOWER) || is(AnimalTowers.T3_RABBIT_TOWER)) && atMaxStacks()) {
+        if ((is(AnimalTowers.T2_RABBIT_TOWER) || isT3OrLeader()) && atMaxStacks()) {
             lines.add("최대 무리 효과 공격 간격 -" + ticks("maxStackExtraIntervalReduction") + "틱");
         }
-        if (is(AnimalTowers.T3_RABBIT_TOWER) && atMaxStacks()) {
+        if (isT3OrLeader() && atMaxStacks()) {
             lines.add("최대 무리 효과 추가 공격 피해 " + percent(value("extraAttackDamageRatio")));
+        }
+        if (hasLeaderAura()) {
+            lines.add("우두머리 효과 공격 피해 +" + percent(leaderValue("leaderDamageBonus"))
+                    + ", 사거리 +" + oneDecimal(leaderValue("leaderRangeBonus")));
         }
         return lines;
     }
 
     @Override
     public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
-        if (!is(AnimalTowers.T3_RABBIT_TOWER) || !atMaxStacks() || killedTarget || towerEntity == null || target == null || !target.isAlive()) {
+        if (!isT3OrLeader() || !atMaxStacks() || killedTarget || towerEntity == null || target == null || !target.isAlive()) {
             return;
         }
         boolean killed = damageTarget(towerEntity, target, damageAmount * value("extraAttackDamageRatio"));
@@ -70,6 +80,7 @@ public class RabbitTower extends AnimalStackTower {
                 tower.type().id().equals(AnimalTowers.T1_RABBIT_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T2_RABBIT_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T3_RABBIT_TOWER.id())
+                        || tower.type().id().equals(AnimalTowers.T4_RABBIT_LEADER_TOWER.id())
         );
     }
 
@@ -78,8 +89,22 @@ public class RabbitTower extends AnimalStackTower {
         return TowerBalanceRuntime.abilityInt(type().id(), "maxStacks");
     }
 
+    @Override
+    protected TowerType leaderBaseType() {
+        return AnimalTowers.T3_RABBIT_TOWER;
+    }
+
+    @Override
+    protected TowerType leaderType() {
+        return AnimalTowers.T4_RABBIT_LEADER_TOWER;
+    }
+
     private boolean is(TowerType towerType) {
         return type().id().equals(towerType.id());
+    }
+
+    private boolean isT3OrLeader() {
+        return is(AnimalTowers.T3_RABBIT_TOWER) || isLeader();
     }
 
     private double value(String key) {

@@ -34,7 +34,8 @@ public class PigTower extends AnimalStackTower {
 
     @Override
     public double currentMaxHealth() {
-        return applyTraitMaxHealth(maxHealth() + currentStacks() * value("healthPerStack"));
+        double value = applyTraitMaxHealth(maxHealth() + currentStacks() * value("healthPerStack"));
+        return hasLeaderAura() ? value * (1.0 + leaderValue("leaderMaxHealthBonus")) : value;
     }
 
     @Override
@@ -44,10 +45,11 @@ public class PigTower extends AnimalStackTower {
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
+        double reduction = hasLeaderAura() ? leaderValue("leaderDamageReductionBonus") : 0.0;
         if (!is(AnimalTowers.T1_PIG_TOWER) && atMaxStacks()) {
-            return damageAmount * (1.0 - value("damageReduction"));
+            reduction += value("damageReduction");
         }
-        return damageAmount;
+        return damageAmount * (1.0 - Math.min(0.95, Math.max(0.0, reduction)));
     }
 
     @Override
@@ -58,15 +60,19 @@ public class PigTower extends AnimalStackTower {
         if (!is(AnimalTowers.T1_PIG_TOWER) && atMaxStacks()) {
             lines.add("최대 무리 효과 받는 피해 -" + percent(value("damageReduction")));
         }
-        if (is(AnimalTowers.T3_PIG_TOWER) && atMaxStacks()) {
+        if (isT3OrLeader() && atMaxStacks()) {
             lines.add("최대 무리 효과 스플래시 활성");
+        }
+        if (hasLeaderAura()) {
+            lines.add("우두머리 효과 최대 체력 +" + percent(leaderValue("leaderMaxHealthBonus"))
+                    + ", 받는 피해 -" + percent(leaderValue("leaderDamageReductionBonus")) + "p");
         }
         return lines;
     }
 
     @Override
     public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
-        if (is(AnimalTowers.T3_PIG_TOWER) && atMaxStacks()) {
+        if (isT3OrLeader() && atMaxStacks()) {
             splash(towerEntity, target, damageAmount);
         }
     }
@@ -85,17 +91,40 @@ public class PigTower extends AnimalStackTower {
     }
 
     @Override
+    protected void onLeaderAuraChanged(PlayerLane lane, boolean previousActive, boolean currentActive) {
+        double baseMaxHealth = applyTraitMaxHealth(maxHealth() + currentStacks() * value("healthPerStack"));
+        double previousMaxHealth = baseMaxHealth * (previousActive ? 1.0 + leaderValue("leaderMaxHealthBonus") : 1.0);
+        double currentMaxHealth = baseMaxHealth * (currentActive ? 1.0 + leaderValue("leaderMaxHealthBonus") : 1.0);
+        if (currentMaxHealth > previousMaxHealth) {
+            syncHealth(health() + currentMaxHealth - previousMaxHealth);
+        } else {
+            syncHealth(health());
+        }
+    }
+
+    @Override
     protected boolean isStackFamily(Tower tower) {
         return tower != null && (
                 tower.type().id().equals(AnimalTowers.T1_PIG_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T2_PIG_TOWER.id())
                         || tower.type().id().equals(AnimalTowers.T3_PIG_TOWER.id())
+                        || tower.type().id().equals(AnimalTowers.T4_PIG_LEADER_TOWER.id())
         );
     }
 
     @Override
     protected int maxStacks() {
         return TowerBalanceRuntime.abilityInt(type().id(), "maxStacks");
+    }
+
+    @Override
+    protected TowerType leaderBaseType() {
+        return AnimalTowers.T3_PIG_TOWER;
+    }
+
+    @Override
+    protected TowerType leaderType() {
+        return AnimalTowers.T4_PIG_LEADER_TOWER;
     }
 
     private void splash(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
@@ -113,6 +142,10 @@ public class PigTower extends AnimalStackTower {
 
     private boolean is(TowerType towerType) {
         return type().id().equals(towerType.id());
+    }
+
+    private boolean isT3OrLeader() {
+        return is(AnimalTowers.T3_PIG_TOWER) || isLeader();
     }
 
     private double value(String key) {

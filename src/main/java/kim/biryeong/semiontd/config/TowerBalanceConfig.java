@@ -107,15 +107,19 @@ public record TowerBalanceConfig(
         addTower(towers, AnimalTowers.T1_PIG_TOWER);
         addTower(towers, AnimalTowers.T2_PIG_TOWER);
         addTower(towers, AnimalTowers.T3_PIG_TOWER);
+        addTower(towers, AnimalTowers.T4_PIG_LEADER_TOWER);
         addTower(towers, AnimalTowers.T1_WOLF_TOWER);
         addTower(towers, AnimalTowers.T2_WOLF_DPS_TOWER);
         addTower(towers, AnimalTowers.T3_WOLF_DPS_TOWER);
+        addTower(towers, AnimalTowers.T4_WOLF_LEADER_TOWER);
         addTower(towers, AnimalTowers.T1_RABBIT_TOWER);
         addTower(towers, AnimalTowers.T2_RABBIT_TOWER);
         addTower(towers, AnimalTowers.T3_RABBIT_TOWER);
+        addTower(towers, AnimalTowers.T4_RABBIT_LEADER_TOWER);
         addTower(towers, AnimalTowers.T1_FOX_TOWER);
         addTower(towers, AnimalTowers.T2_FOX_TOWER);
         addTower(towers, AnimalTowers.T3_FOX_TOWER);
+        addTower(towers, AnimalTowers.T4_FOX_LEADER_TOWER);
         addTower(towers, LegionTowers.T1_BEE_TOWER);
         addTower(towers, LegionTowers.T2_BEE_TOWER);
         addTower(towers, LegionTowers.T3_BEE_TOWER);
@@ -193,12 +197,16 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, UndeadTowers.T1_UNDEAD_ANIMAL_TOWER, "t2_undead_animal_tower", 300);
         putUpgrade(upgradeCosts, AnimalTowers.T1_PIG_TOWER, "t2_pig_tower", 95);
         putUpgrade(upgradeCosts, AnimalTowers.T2_PIG_TOWER, "t3_pig_tower", 150);
+        putUpgrade(upgradeCosts, AnimalTowers.T3_PIG_TOWER, "t4_pig_leader_tower", 350);
         putUpgrade(upgradeCosts, AnimalTowers.T1_WOLF_TOWER, "t2_wolf_dps_tower", 90);
         putUpgrade(upgradeCosts, AnimalTowers.T2_WOLF_DPS_TOWER, "t3_wolf_dps_tower", 180);
+        putUpgrade(upgradeCosts, AnimalTowers.T3_WOLF_DPS_TOWER, "t4_wolf_leader_tower", 400);
         putUpgrade(upgradeCosts, AnimalTowers.T1_RABBIT_TOWER, "t2_rabbit_tower", 100);
         putUpgrade(upgradeCosts, AnimalTowers.T2_RABBIT_TOWER, "t3_rabbit_tower", 200);
+        putUpgrade(upgradeCosts, AnimalTowers.T3_RABBIT_TOWER, "t4_rabbit_leader_tower", 450);
         putUpgrade(upgradeCosts, AnimalTowers.T1_FOX_TOWER, "t2_fox_tower", 150);
         putUpgrade(upgradeCosts, AnimalTowers.T2_FOX_TOWER, "t3_fox_tower", 225);
+        putUpgrade(upgradeCosts, AnimalTowers.T3_FOX_TOWER, "t4_fox_leader_tower", 500);
         putUpgrade(upgradeCosts, LegionTowers.T1_BEE_TOWER, "t2_bee_tower", 160);
         putUpgrade(upgradeCosts, LegionTowers.T2_BEE_TOWER, "t3_bee_tower", 310);
         putUpgrade(upgradeCosts, WarlockTowers.BASE_WARLOCK_TOWER, "ranged_warlock_tower", 0);
@@ -497,6 +505,17 @@ public record TowerBalanceConfig(
                 "splashRadius", 1.0,
                 "splashDamageRatio", 0.50
         ));
+        putAbilities(abilities, AnimalTowers.T4_PIG_LEADER_TOWER.id(), Map.of(
+                "maxStacks", 2.0,
+                "healthPerStack", 90.0,
+                "damagePerStack", 15.0,
+                "damageReduction", 0.30,
+                "splashRadius", 1.0,
+                "splashDamageRatio", 0.50,
+                "leaderAuraRadius", 4.0,
+                "leaderMaxHealthBonus", 0.15,
+                "leaderDamageReductionBonus", 0.05
+        ));
         putAbilities(abilities, AnimalTowers.T1_WOLF_TOWER.id(), Map.of(
                 "maxStacks", 4.0,
                 "damagePerStack", 2.0,
@@ -519,6 +538,18 @@ public record TowerBalanceConfig(
                 "maxStackExtraIntervalReduction", 5.0,
                 "maxStackDamageBonus", 5.0
         ));
+        putAbilities(abilities, AnimalTowers.T4_WOLF_LEADER_TOWER.id(), Map.ofEntries(
+                Map.entry("maxStacks", 4.0),
+                Map.entry("damagePerStack", 10.0),
+                Map.entry("intervalReductionPerStack", 1.25),
+                Map.entry("splashRadius", 2.0),
+                Map.entry("splashDamageRatio", 0.75),
+                Map.entry("maxStackExtraIntervalReduction", 5.0),
+                Map.entry("maxStackDamageBonus", 5.0),
+                Map.entry("leaderAuraRadius", 6.0),
+                Map.entry("leaderAttackIntervalReductionTicks", 1.0),
+                Map.entry("leaderSplashDamageRatioBonus", 0.10)
+        ));
         putAbilities(abilities, AnimalTowers.T1_RABBIT_TOWER.id(), Map.of(
                 "maxStacks", 4.0,
                 "damagePerStack", 2.5
@@ -533,6 +564,15 @@ public record TowerBalanceConfig(
                 "damagePerStack", 12.5,
                 "maxStackExtraIntervalReduction", 5.0,
                 "extraAttackDamageRatio", 2.0
+        ));
+        putAbilities(abilities, AnimalTowers.T4_RABBIT_LEADER_TOWER.id(), Map.of(
+                "maxStacks", 4.0,
+                "damagePerStack", 12.5,
+                "maxStackExtraIntervalReduction", 5.0,
+                "extraAttackDamageRatio", 2.0,
+                "leaderAuraRadius", 7.0,
+                "leaderDamageBonus", 0.08,
+                "leaderRangeBonus", 1.0
         ));
         putAbilities(abilities, AnimalTowers.T1_FOX_TOWER.id(), Map.of(
                 "maxStacks", 4.0,
@@ -563,6 +603,20 @@ public record TowerBalanceConfig(
                 "executeDamageBonusPerStack", 0.30,
                 "killBonusDamage", 0.4,
                 "killBonusDamageCap", 40.0
+        ));
+        putAbilities(abilities, AnimalTowers.T4_FOX_LEADER_TOWER.id(), Map.ofEntries(
+                Map.entry("maxStacks", 4.0),
+                Map.entry("executeHealthThreshold", 0.40),
+                Map.entry("executeThresholdPerStack", 0.04),
+                Map.entry("maxExecuteHealthThreshold", 0.60),
+                Map.entry("executeDamageBonusRatio", 0.75),
+                Map.entry("executeDamageBonusPerStack", 0.30),
+                Map.entry("killBonusDamage", 0.4),
+                Map.entry("killBonusDamageCap", 40.0),
+                Map.entry("leaderAuraRadius", 8.0),
+                Map.entry("leaderExecuteThresholdBonus", 0.05),
+                Map.entry("leaderExecuteThresholdCap", 0.65),
+                Map.entry("leaderExecuteDamageBonus", 0.25)
         ));
         putAbilities(abilities, LegionTowers.T1_BEE_TOWER.id(), Map.of(
                 "maxSwarmStacks", 4.0,
