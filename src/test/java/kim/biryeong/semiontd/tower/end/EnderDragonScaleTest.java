@@ -93,7 +93,7 @@ class EnderDragonScaleTest {
         assertEquals(1.0, tower.visual().scale(), 0.0001);
         assertEquals(7.0, tower.adjustAttackRange(5.0), 0.0001);
         assertEquals(11.0, tower.modifyAttackDamage(null, null, 10.0), 0.0001);
-        assertEquals(0.10, tower.finalDamageBonus(), 0.0001);
+        assertEquals(0.15, tower.finalDamageBonus(), 0.0001);
     }
 
     @Test
