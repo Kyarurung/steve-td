@@ -87,7 +87,7 @@ final class WarlockCombat {
         if (isRanged(type)) {
             int every = config.integer(RANGED_LIFE_EVERY);
             if (every > 0) {
-                ratio = (Math.max(0, sacrificeCount) / every) * config.value(RANGED_LIFE_STEP);
+                ratio = ((double) Math.max(0, sacrificeCount) / every) * config.value(RANGED_LIFE_STEP);
             }
         } else if (isMelee(type)) {
             ratio = Math.max(0, sacrificeCount) * config.value(MELEE_LIFE_STEP);
@@ -174,7 +174,7 @@ final class WarlockCombat {
         if (every <= 0) {
             return 0.0;
         }
-        return (Math.max(0, count) / every) * Math.max(0.0, step);
+        return ((double) Math.max(0, count) / every) * Math.max(0.0, step);
     }
 
     void resolveAttack(

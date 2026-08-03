@@ -322,13 +322,6 @@ public class WarlockTower extends EntityBackedTower {
         onStateChanged(lane);
     }
 
-    double meleeRoundDamageBonus() {
-        if (!is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            return 0;
-        }
-        return combat.meleeRoundDamageBonus(this);
-    }
-
     double maximumDamageReduction() {
         return sacrifices.maximumDamageReduction(this);
     }

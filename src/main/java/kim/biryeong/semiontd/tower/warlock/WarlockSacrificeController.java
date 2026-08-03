@@ -89,7 +89,7 @@ final class WarlockSacrificeController {
             }
             return Math.min(
                     Math.max(0.0, config.value(MELEE_DEFENSE_CAP)),
-                    (state.totalSacrificeCount() / every) * Math.max(0.0, config.value(MELEE_DEFENSE_STEP))
+                    ((double) state.totalSacrificeCount() / every) * Math.max(0.0, config.value(MELEE_DEFENSE_STEP))
             );
         }
         return 0.0;

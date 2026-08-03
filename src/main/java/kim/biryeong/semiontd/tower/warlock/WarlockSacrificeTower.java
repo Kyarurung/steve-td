@@ -8,7 +8,6 @@ import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.effect.TimedEffectType;
-import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -61,7 +60,7 @@ public class WarlockSacrificeTower extends EntityBackedTower {
             return;
         }
         double radius = value("deathEffectRadius");
-        int durationTicks = ticks("deathEffectDurationTicks");
+        int durationTicks = ticks();
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "death_debuff"),
                 towerEntity,
@@ -88,7 +87,7 @@ public class WarlockSacrificeTower extends EntityBackedTower {
         return TowerBalanceRuntime.ability(type().id(), key);
     }
 
-    private int ticks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
+    private int ticks() {
+        return TowerBalanceRuntime.abilityTicks(type().id(), "deathEffectDurationTicks");
     }
 }
