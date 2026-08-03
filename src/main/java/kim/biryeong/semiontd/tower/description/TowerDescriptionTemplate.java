@@ -16,6 +16,10 @@ public final class TowerDescriptionTemplate {
             "0.##",
             DecimalFormatSymbols.getInstance(Locale.ROOT)
     );
+    private static final DecimalFormat PRECISE_NUMBER_FORMAT = new DecimalFormat(
+            "0.###",
+            DecimalFormatSymbols.getInstance(Locale.ROOT)
+    );
 
     private TowerDescriptionTemplate() {
     }
@@ -135,6 +139,7 @@ public final class TowerDescriptionTemplate {
             case "percent_integer" -> Math.round(value * 100.0) + "%";
             case "seconds", "second" -> formatNumber(value / 20.0) + "초";
             case "blocks", "block" -> formatNumber(value) + "블록";
+            case "precise_blocks", "precise_block" -> formatPreciseNumber(value) + "블록";
             case "number", "" -> formatNumber(value);
             default -> throw new IllegalArgumentException("Unknown tower description format: " + format);
         };
@@ -143,6 +148,12 @@ public final class TowerDescriptionTemplate {
     private static String formatNumber(double value) {
         synchronized (NUMBER_FORMAT) {
             return NUMBER_FORMAT.format(value);
+        }
+    }
+
+    private static String formatPreciseNumber(double value) {
+        synchronized (PRECISE_NUMBER_FORMAT) {
+            return PRECISE_NUMBER_FORMAT.format(value);
         }
     }
 }

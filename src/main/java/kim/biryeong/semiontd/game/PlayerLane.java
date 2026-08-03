@@ -205,6 +205,9 @@ public final class PlayerLane {
         for (Tower tower : towers) {
             tower.resetForRound(this);
         }
+        for (Tower tower : towers) {
+            tower.finishRoundReset(this);
+        }
         moveNextRoundSummonsToCurrentRound();
     }
 

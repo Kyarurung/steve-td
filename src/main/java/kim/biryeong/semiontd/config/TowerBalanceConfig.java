@@ -214,10 +214,10 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, LegionTowers.T2_BEE_TOWER, "t3_bee_tower", 310);
         putUpgrade(upgradeCosts, WarlockTowers.BASE_WARLOCK_TOWER, "ranged_warlock_tower", 0);
         putUpgrade(upgradeCosts, WarlockTowers.BASE_WARLOCK_TOWER, "melee_warlock_tower", 0);
-        putUpgrade(upgradeCosts, WarlockTowers.T1_SLAVE, "t2_slave", 130);
-        putUpgrade(upgradeCosts, WarlockTowers.T2_SLAVE, "t3_slave", 280);
-        putUpgrade(upgradeCosts, WarlockTowers.T1_RANGED_SLAVE, "t2_ranged_slave", 100);
-        putUpgrade(upgradeCosts, WarlockTowers.T2_RANGED_SLAVE, "t3_ranged_slave", 240);
+        putUpgrade(upgradeCosts, WarlockTowers.T1_SLAVE, "t2_slave", 70);
+        putUpgrade(upgradeCosts, WarlockTowers.T2_SLAVE, "t3_slave", 150);
+        putUpgrade(upgradeCosts, WarlockTowers.T1_RANGED_SLAVE, "t2_ranged_slave", 80);
+        putUpgrade(upgradeCosts, WarlockTowers.T2_RANGED_SLAVE, "t3_ranged_slave", 160);
         putUpgrade(upgradeCosts, LegionTowers.T1_CHICKEN, LegionTowers.T2_CHICKEN_TOWER.id(), 100);
         putUpgrade(upgradeCosts, LegionTowers.T1_CHICKEN, LegionTowers.T2_DPS_CHICKEN_TOWER.id(), 100);
         putUpgrade(upgradeCosts, LegionTowers.T1_SLIME_TOWER, LegionTowers.T2_SLIME_TOWER.id(), 85);
@@ -648,68 +648,77 @@ public record TowerBalanceConfig(
                 "poisonDurationTicks", 140.0,
                 "poisonTickIntervalTicks", 20.0
         ));
-        putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("baseSacrificeRadius", 6.0),
-                Map.entry("baseFatalHealRatio", 0.35),
-                Map.entry("basePermanentHealthRatio", 0.025),
-                Map.entry("basePermanentDamageRatio", 0.05),
-                Map.entry("sacrificeHealRatio", 0.0)
+        putAbilities(abilities, WarlockTowers.CONFIG_ID, Map.ofEntries(
+                Map.entry("damageCap", 350.0),
+                Map.entry("sacrificeRadius", 25.0),
+                Map.entry("minInterval", 5.0),
+                Map.entry("speedCap", 15.0)
+        ));
+        putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), Map.of(
+                "fatalHeal", 0.35,
+                "sacrificeRadius", 6.0,
+                "permanentHealth", 0.025,
+                "permanentDamage", 0.05
         ));
         putAbilities(abilities, WarlockTowers.RANGED_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("lowHealthSacrificeThreshold", 0.30),
-                Map.entry("sacrificeRadius", 0.0),
-                Map.entry("roundStatRatio", 0.40),
-                Map.entry("roundIntervalReductionCap", 15.0),
-                Map.entry("permanentHealthRatio", 0.025),
-                Map.entry("permanentDamageRatio", 0.05),
-                Map.entry("lifeStealEvery", 5.0),
-                Map.entry("lifeStealPerStep", 0.005),
-                Map.entry("lifeStealCap", 0.30),
-                Map.entry("splashEvery", 10.0),
-                Map.entry("splashRadiusPerStep", 0.5),
-                Map.entry("splashDamageRatio", 0.75),
-                Map.entry("roundAbsorbDefenseThreshold", 5.0),
-                Map.entry("roundDamageReduction", 0.10),
-                Map.entry("healthBonusPerStack", 0.05),
-                Map.entry("maxHealthBonus", 0.25),
-                Map.entry("damageBonusPerStack", 0.15),
-                Map.entry("maxDamageBonus", 0.75)
+                Map.entry("threshold", 0.30),
+                Map.entry("roundStat", 0.40),
+                Map.entry("permanentHealth", 0.025),
+                Map.entry("permanentDamage", 0.05),
+                Map.entry("lifeEvery", 5.0),
+                Map.entry("lifeStep", 0.005),
+                Map.entry("lifeCap", 0.12),
+                Map.entry("regenEvery", 4.0),
+                Map.entry("regenStep", 10.0),
+                Map.entry("regenTicks", 20.0),
+                Map.entry("splashStep", 0.1),
+                Map.entry("splashCap", 8.0),
+                Map.entry("splashDamage", 0.50),
+                Map.entry("defenseThreshold", 3.0),
+                Map.entry("defense", 0.10),
+                Map.entry("petHealth", 0.05),
+                Map.entry("petHealthCap", 0.25),
+                Map.entry("petDamage", 0.15),
+                Map.entry("petDamageCap", 0.75)
         ));
         putAbilities(abilities, WarlockTowers.MELEE_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("lowHealthSacrificeThreshold", 0.30),
-                Map.entry("sacrificeRadius", 0.0),
-                Map.entry("roundStatRatio", 0.60),
-                Map.entry("roundSplashRadiusPerSacrifice", 0.25),
-                Map.entry("splashDamageRatio", 0.75),
-                Map.entry("permanentHealthRatio", 0.05),
-                Map.entry("permanentDamageRatio", 0.025),
-                Map.entry("damageReductionEvery", 5.0),
-                Map.entry("damageReductionPerStep", 0.025),
-                Map.entry("damageReductionCap", 0.25),
-                Map.entry("lifeStealPerSacrifice", 0.01),
-                Map.entry("lifeStealCap", 0.30),
-                Map.entry("healthBonusPerStack", 0.15),
-                Map.entry("maxHealthBonus", 0.75),
-                Map.entry("damageBonusPerStack", 0.05),
-                Map.entry("maxDamageBonus", 0.25)
+                Map.entry("threshold", 0.30),
+                Map.entry("roundStat", 0.60),
+                Map.entry("permanentHealth", 0.05),
+                Map.entry("permanentDamage", 0.025),
+                Map.entry("lifeStep", 0.01),
+                Map.entry("lifeCap", 0.20),
+                Map.entry("speedStep", 1.0),
+                Map.entry("damageEvery", 4.0),
+                Map.entry("damageStep", 15.0),
+                Map.entry("splashStep", 0.25),
+                Map.entry("splashCap", 2.0),
+                Map.entry("splashDamage", 0.75),
+                Map.entry("defenseEvery", 5.0),
+                Map.entry("defenseStep", 0.025),
+                Map.entry("defenseCap", 0.25),
+                Map.entry("petHealth", 0.15),
+                Map.entry("petHealthCap", 0.75),
+                Map.entry("petDamage", 0.05),
+                Map.entry("petDamageCap", 0.25)
         ));
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
-                "deathEffectRadius", 5.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "towerDamageTakenBonus", 0.05
         ));
         putAbilities(abilities, WarlockTowers.T3_SLAVE.id(), Map.of(
-                "deathEffectRadius", 5.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "towerDamageTakenBonus", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T2_RANGED_SLAVE.id(), Map.of(
-                "deathEffectRadius", 10.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "attackSpeedReduction", 0.05
         ));
         putAbilities(abilities, WarlockTowers.T3_RANGED_SLAVE.id(), Map.of(
-                "deathEffectRadius", 10.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "attackSpeedReduction", 0.10
         ));
