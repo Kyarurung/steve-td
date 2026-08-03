@@ -181,6 +181,7 @@ final class WarlockCombat {
             WarlockTower tower,
             SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
+            double attemptedDamage,
             double resolvedOutgoingDamage,
             double dealtDamage
     ) {
@@ -188,7 +189,14 @@ final class WarlockCombat {
             return;
         }
         double lifeSteal = lifeStealRatio(tower);
-        applySplash(tower, towerEntity, target, resolvedOutgoingDamage, lifeSteal);
+        applySplash(
+                tower,
+                towerEntity,
+                target,
+                attemptedDamage,
+                resolvedOutgoingDamage,
+                lifeSteal
+        );
         tower.heal(towerEntity, Math.max(0.0, dealtDamage) * lifeSteal);
     }
 
@@ -206,11 +214,13 @@ final class WarlockCombat {
             WarlockTower tower,
             SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
+            double attemptedDamage,
             double resolvedOutgoingDamage,
             double lifeSteal
     ) {
         double radius = tower.splashRadius();
         double splashDamage = resolvedSplashDamage(tower.type(), resolvedOutgoingDamage);
+        double igniteAttackDamage = resolvedSplashDamage(tower.type(), attemptedDamage);
         if (radius <= 0.0 || splashDamage <= 0.0) {
             return;
         }
@@ -224,8 +234,14 @@ final class WarlockCombat {
                 request,
                 ignored -> splashDamage,
                 true,
-                (ignored, dealtSplashDamage, killed) ->
-                        tower.heal(towerEntity, dealtSplashDamage * lifeSteal)
+                (splashTarget, dealtSplashDamage, killed) -> {
+                    tower.heal(towerEntity, dealtSplashDamage * lifeSteal);
+                    towerEntity.applyIgniteFromBasicAttack(
+                            splashTarget,
+                            igniteAttackDamage,
+                            killed
+                    );
+                }
         );
     }
 

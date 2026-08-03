@@ -586,10 +586,7 @@ public abstract class Tower {
         deathNotifiedThisRound = false;
         onStateChanged(lane);
     }
-
-    /**
-     * Runs after every tower in the lane has completed its primary round reset.
-     */
+    
     public void finishRoundReset(PlayerLane lane) {
     }
 

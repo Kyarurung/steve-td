@@ -521,28 +521,42 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                 dealtDamage,
                 killedTarget
         );
-        if (!killedTarget && target != null && target.isAlive() && !target.isRemoved()) {
-            double igniteDamage = TraitEffects.igniteDamagePerTick(
-                    runtimeTower.traitLoadout(),
-                    attemptedDamage,
-                    runtimeTower.currentRound()
-            );
-            if (igniteDamage > 0.0) {
-                target.applyIgnite(
-                        ownerPlayer,
-                        runtimeTower,
-                        runtimeTower.traitLoadout(),
-                        igniteDamage,
-                        traitAdditiveDamageBonus(target.runtimeMonster()),
-                        combinedFinalDamageMultiplier(),
-                        TraitEffects.igniteDurationTicks(),
-                        TraitEffects.igniteTickIntervalTicks()
-                );
-            }
-        }
+        applyIgniteFromBasicAttack(target, attemptedDamage, killedTarget);
         if (killedTarget) {
             runtimeTower.onKill(this, target, attemptedDamage);
         }
+    }
+
+    public void applyIgniteFromBasicAttack(
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            boolean killedTarget
+    ) {
+        if (runtimeTower == null
+                || killedTarget
+                || target == null
+                || !target.isAlive()
+                || target.isRemoved()) {
+            return;
+        }
+        double igniteDamage = TraitEffects.igniteDamagePerTick(
+                runtimeTower.traitLoadout(),
+                attemptedDamage,
+                runtimeTower.currentRound()
+        );
+        if (igniteDamage <= 0.0) {
+            return;
+        }
+        target.applyIgnite(
+                ownerPlayer,
+                runtimeTower,
+                runtimeTower.traitLoadout(),
+                igniteDamage,
+                traitAdditiveDamageBonus(target.runtimeMonster()),
+                combinedFinalDamageMultiplier(),
+                TraitEffects.igniteDurationTicks(),
+                TraitEffects.igniteTickIntervalTicks()
+        );
     }
 
     public void applyTimedEffect(TimedEffectType type, double magnitude, int durationTicks) {

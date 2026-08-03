@@ -239,7 +239,14 @@ public final class EndTower extends EntityBackedTower {
         if (!isHatched() || towerEntity == null || target == null) {
             return;
         }
-        combat.resolveAttack(this, towerEntity, target, resolvedOutgoingDamage, dealtDamage);
+        combat.resolveAttack(
+                this,
+                towerEntity,
+                target,
+                attemptedDamage,
+                resolvedOutgoingDamage,
+                dealtDamage
+        );
     }
 
     @Override

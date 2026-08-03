@@ -156,7 +156,14 @@ public class WarlockTower extends EntityBackedTower {
             double dealtDamage,
             boolean killedTarget
     ) {
-        combat.resolveAttack(this, towerEntity, target, resolvedOutgoingDamage, dealtDamage);
+        combat.resolveAttack(
+                this,
+                towerEntity,
+                target,
+                attemptedDamage,
+                resolvedOutgoingDamage,
+                dealtDamage
+        );
     }
 
     @Override

@@ -62,8 +62,15 @@ final class EndCombat {
         return resolvedOutgoingDamage * Math.max(0.0, config.value(SPLASH_DAMAGE_RATIO));
     }
 
-    void resolveAttack(EndTower tower, SemionTowerEntity towerEntity, SemionMonsterEntity target, double outgoingDamage, double dealtDamage) {
-        applySplashDamage(tower, towerEntity, target, outgoingDamage);
+    void resolveAttack(
+            EndTower tower,
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage,
+            double dealtDamage
+    ) {
+        applySplashDamage(tower, towerEntity, target, attemptedDamage, resolvedOutgoingDamage);
         heal(towerEntity, dealtDamage * lifeStealRatio());
     }
 
@@ -129,12 +136,33 @@ final class EndCombat {
         return Math.min(Math.max(0.0, config.value(SPLASH_CAP)), unlockedSteps * Math.max(0.0, config.value(SPLASH_STEP)));
     }
 
-    private void applySplashDamage(EndTower tower, SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    private void applySplashDamage(
+            EndTower tower,
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage
+    ) {
         double radius = splashRadius(tower.isHatched());
-        double splashDamage = resolvedSplashDamage(damageAmount);
+        double splashDamage = resolvedSplashDamage(resolvedOutgoingDamage);
+        double igniteAttackDamage = resolvedSplashDamage(attemptedDamage);
         if (radius <= 0.0 || splashDamage <= 0.0) {return;}
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTarget(AreaEffectIds.tower(tower, "splash"), towerEntity, target, radius, EndVfx.attack(tower.isDragon()));
-        TowerAreaDamage.applyResolved(tower, towerEntity, request, ignored -> splashDamage, true, (ignored, dealtSplashDamage, killed) -> heal(towerEntity, dealtSplashDamage * lifeStealRatio()));
+        TowerAreaDamage.applyResolved(
+                tower,
+                towerEntity,
+                request,
+                ignored -> splashDamage,
+                true,
+                (splashTarget, dealtSplashDamage, killed) -> {
+                    heal(towerEntity, dealtSplashDamage * lifeStealRatio());
+                    towerEntity.applyIgniteFromBasicAttack(
+                            splashTarget,
+                            igniteAttackDamage,
+                            killed
+                    );
+                }
+        );
     }
 
     private static void heal(SemionTowerEntity towerEntity, double amount) {
