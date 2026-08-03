@@ -36,6 +36,7 @@ public abstract class Tower {
     private int currentRound = 1;
     private TowerType roundCombatType;
     private double roundDamageDealt;
+    private double roundIgniteDamageDealt;
     private double roundDamageTaken;
     private boolean waveStartedAfterPlacement;
     private int cooldownTicks;
@@ -208,6 +209,7 @@ public abstract class Tower {
         this.currentRound = previousTower.currentRound();
         this.roundCombatType = previousTower.roundCombatType();
         this.roundDamageDealt = previousTower.roundDamageDealt();
+        this.roundIgniteDamageDealt = previousTower.roundIgniteDamageDealt();
         this.roundDamageTaken = previousTower.roundDamageTaken();
         this.waveStartedAfterPlacement = previousTower.waveStartedAfterPlacement();
     }
@@ -260,6 +262,7 @@ public abstract class Tower {
         this.currentRound = Math.max(1, currentRound);
         this.roundCombatType = type;
         this.roundDamageDealt = 0.0;
+        this.roundIgniteDamageDealt = 0.0;
         this.roundDamageTaken = 0.0;
         if (placedRound > 0 && currentRound >= placedRound) {
             waveStartedAfterPlacement = true;
@@ -278,6 +281,8 @@ public abstract class Tower {
         return roundDamageDealt;
     }
 
+    public double roundIgniteDamageDealt() {return roundIgniteDamageDealt;}
+
     public double roundDamageTaken() {
         return roundDamageTaken;
     }
@@ -285,6 +290,12 @@ public abstract class Tower {
     public void recordDamageDealt(double amount) {
         if (Double.isFinite(amount) && amount > 0.0) {
             roundDamageDealt += amount;
+        }
+    }
+
+    public void recordIgniteDamageDealt(double amount) {
+        if (Double.isFinite(amount) && amount > 0.0) {
+            roundIgniteDamageDealt += amount;
         }
     }
 

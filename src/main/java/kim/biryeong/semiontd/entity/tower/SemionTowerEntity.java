@@ -478,15 +478,17 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         moveToward(moveTarget, speedModifier);
     }
 
-    public boolean damageTarget(SemionMonsterEntity target, double baseDamage) {
-        return damageTargetResult(target, baseDamage).killed();
-    }
+    public boolean damageTarget(SemionMonsterEntity target, double baseDamage) {return damageTargetResult(target, baseDamage).killed();}
 
     public Tower.DamageResult damageTargetResult(SemionMonsterEntity target, double baseDamage) {
-        if (runtimeTower == null || target == null) {
-            return Tower.DamageResult.NONE;
-        }
+        if (runtimeTower == null || target == null) {return Tower.DamageResult.NONE;}
         return runtimeTower.damageTargetResult(this, target, baseDamage);
+    }
+
+    public Tower.DamageResult damageBasicAttackSecondaryTargetResult(SemionMonsterEntity target, double baseDamage) {
+        Tower.DamageResult result = damageTargetResult(target, baseDamage);
+        applyIgniteFromBasicAttack(target, baseDamage, result.killed());
+        return result;
     }
 
     public void recordAttack(SemionMonsterEntity target, double damageAmount, boolean killedTarget) {

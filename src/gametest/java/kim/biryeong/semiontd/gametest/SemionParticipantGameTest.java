@@ -5350,7 +5350,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, killTarget.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Ignite kills should keep tower kill attribution.")) {
             return;
         }
-        if (!assertClose(context, 84.5, sourceTower.roundDamageDealt(), "Ignite ticks should count toward the tower that applied the retained ignite.")) {
+        if (!assertClose(context, 84.5, sourceTower.roundIgniteDamageDealt(), "Ignite ticks should count separately for the tower that applied the retained ignite.")) {
             return;
         }
         context.succeed();
