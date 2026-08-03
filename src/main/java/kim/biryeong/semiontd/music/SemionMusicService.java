@@ -33,7 +33,7 @@ public final class SemionMusicService {
     private final Map<UUID, PlayerMusicState> playerStates = new HashMap<>();
     private final List<ScheduleSegment> schedule = new ArrayList<>();
     private final Set<Integer> playedTrackIndices = new HashSet<>();
-    private long musicTick;
+    private double musicTick;
     private boolean active;
 
     public SemionMusicService(SemionMusicLibrary library) {
@@ -95,7 +95,7 @@ public final class SemionMusicService {
             schedule.clear();
         }
 
-        long currentTick = musicTick;
+        long currentTick = (long) musicTick;
         for (UUID playerId : targetPlayers) {
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
             if (player != null) {
@@ -103,7 +103,13 @@ public final class SemionMusicService {
             }
         }
         stopPlayersOutsideTargets(server, targetPlayers);
-        musicTick++;
+        musicTick += musicTicksPerServerTick(server.tickRateManager().tickrate());
+    }
+
+    static double musicTicksPerServerTick(float serverTickRate) {
+        return Float.isFinite(serverTickRate) && serverTickRate > 0.0F
+                ? 20.0 / serverTickRate
+                : 1.0;
     }
 
     public void handlePlayerJoin(ServerPlayer player) {

@@ -74,6 +74,10 @@ public abstract class SemionJob {
         return false;
     }
 
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return canUseTower(null, towerType);
+    }
+
     public long modifySummonGasCost(JobContext context, SummonMonsterType summonType, long baseCost) {
         return baseCost;
     }

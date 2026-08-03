@@ -287,6 +287,10 @@ public abstract class Tower {
         return roundDamageTaken;
     }
 
+    public double roundIgniteDamageDealt() {
+        return roundIgniteDamageDealt;
+    }
+
     public void recordDamageDealt(double amount) {
         if (Double.isFinite(amount) && amount > 0.0) {
             roundDamageDealt += amount;

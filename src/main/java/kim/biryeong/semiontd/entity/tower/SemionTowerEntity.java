@@ -529,21 +529,13 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         }
     }
 
-    public void applyIgniteFromBasicAttack(
-            SemionMonsterEntity target,
-            double attemptedDamage,
-            boolean killedTarget
-    ) {
-        if (runtimeTower == null
-                || killedTarget
-                || target == null
-                || !target.isAlive()
-                || target.isRemoved()) {
+    public void applyIgniteFromBasicAttack(SemionMonsterEntity target, double attackDamage, boolean killedTarget) {
+        if (runtimeTower == null || killedTarget || target == null || !target.isAlive() || target.isRemoved()) {
             return;
         }
         double igniteDamage = TraitEffects.igniteDamagePerTick(
                 runtimeTower.traitLoadout(),
-                attemptedDamage,
+                attackDamage,
                 runtimeTower.currentRound()
         );
         if (igniteDamage <= 0.0) {

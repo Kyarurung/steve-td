@@ -79,7 +79,7 @@ public final class ProductionTowerService {
             return SaleResult.failure(mapSellFailure(laneContext.failureResult));
         }
         return TowerPlacementPositions.resolveGrid(laneContext.lane, blockPos)
-                .map(position -> sellTower(laneContext, playerId, position))
+                .map(position -> sellTower(game, laneContext, playerId, position))
                 .orElseGet(() -> SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION));
     }
 
@@ -88,10 +88,10 @@ public final class ProductionTowerService {
         if (laneContext.failureResult != null) {
             return SaleResult.failure(mapSellFailure(laneContext.failureResult));
         }
-        return sellTower(laneContext, playerId, position);
+        return sellTower(game, laneContext, playerId, position);
     }
 
-    private static SaleResult sellTower(LaneContext laneContext, UUID playerId, GridPosition position) {
+    private static SaleResult sellTower(SemionGame game, LaneContext laneContext, UUID playerId, GridPosition position) {
         Tower tower = laneContext.lane.towerAt(position);
         if (tower == null) {
             return SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION);
@@ -105,6 +105,7 @@ public final class ProductionTowerService {
             return SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION);
         }
         laneContext.player.economy().addMineral(refund);
+        game.recordTowerSale(playerId, tower.type().id(), position, refund);
         return SaleResult.success(refund);
     }
 

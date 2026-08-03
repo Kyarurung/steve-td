@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.buildguide.BuildGuide;
 import kim.biryeong.semiontd.buildguide.BuildGuideService;
+import kim.biryeong.semiontd.config.CombatSpeedConfig;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.IncomeLaneRoutingConfig;
 import kim.biryeong.semiontd.config.LeaderTargetingConfig;
@@ -34,6 +35,7 @@ import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.config.TraitBalanceRuntime;
 import kim.biryeong.semiontd.config.WaveConfig;
+import kim.biryeong.semiontd.config.WebIntegrationConfig;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.map.ArenaLoadException;
 import kim.biryeong.semiontd.map.GameArena;
@@ -88,6 +90,7 @@ import kim.biryeong.semiontd.ui.SemionRatingTitleService;
 import kim.biryeong.semiontd.ui.SemionSidebarHudService;
 import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.util.Scheduler;
+import kim.biryeong.semiontd.web.WebCatalogExporter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -104,6 +107,8 @@ public final class SemionGameManager {
     public static final int MATCH_RESULT_DELAY_TICKS = 5 * 20;
     public static final int MATCH_RESULT_DIALOG_AFTER_LOBBY_DELAY_TICKS = 2 * 20;
     static final int RATING_RETRY_DELAY_TICKS = 20;
+    private static final float NORMAL_TICK_RATE = 20.0F;
+    private static final int COMBAT_SPEED_WARMUP_TICKS = 40;
     private static final DateTimeFormatter RATING_BACKUP_TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS").withZone(ZoneOffset.UTC);
 
@@ -120,6 +125,8 @@ public final class SemionGameManager {
     private MonsterScalingConfig monsterScalingConfig = MonsterScalingConfig.defaultConfig();
     private TipConfig tipConfig = TipConfig.defaultConfig();
     private TraitSelectionConfig traitSelectionConfig = TraitSelectionConfig.defaultConfig();
+    private WebIntegrationConfig webIntegrationConfig = WebIntegrationConfig.defaultConfig();
+    private CombatSpeedConfig combatSpeedConfig = CombatSpeedConfig.defaultConfig();
     private Path configDir;
     private Path progressionStorePath;
     private ProgressionService progressionService = new ProgressionService(progressionConfig, null);
@@ -154,6 +161,10 @@ public final class SemionGameManager {
     private int nextStartCountdownAnnouncementSecond;
     private boolean startupLobbyLoadPending;
     private int startupLobbyLoadDelayTicks;
+    private RoundPhase previousCombatSpeedPhase = RoundPhase.WAITING;
+    private boolean combatSpeedOverloaded;
+    private boolean managesTickRate;
+    private int acceleratedTicks;
 
     public enum StartCountdownResult {
         SCHEDULED,
@@ -180,6 +191,18 @@ public final class SemionGameManager {
     }
 
     public record RatingSoftResetResult(Path backupPath) {
+    }
+
+    public void configureWebIntegration(WebIntegrationConfig webIntegrationConfig) {
+        this.webIntegrationConfig = webIntegrationConfig == null
+                ? WebIntegrationConfig.defaultConfig()
+                : webIntegrationConfig;
+    }
+
+    public void configureCombatSpeed(CombatSpeedConfig combatSpeedConfig) {
+        this.combatSpeedConfig = combatSpeedConfig == null
+                ? CombatSpeedConfig.defaultConfig()
+                : combatSpeedConfig;
     }
 
     public void configure(
@@ -365,6 +388,16 @@ public final class SemionGameManager {
         this.buildGuideService.configure(this.configDir == null ? null : this.configDir.resolve("build_guides.json"));
         ProductionTowerCatalogs.reloadBuiltIns(this.towerBalanceConfig);
         IncomeSummons.reloadBuiltIns(this.summonConfig);
+        if (webIntegrationConfig.enabled()) {
+            try {
+                WebCatalogExporter.export(this.configDir);
+            } catch (IOException | RuntimeException exception) {
+                WebCatalogExporter.clearCurrentVersion();
+                SemionTd.LOGGER.warn("Failed to export the Semion TD web catalog.", exception);
+            }
+        } else {
+            WebCatalogExporter.clearCurrentVersion();
+        }
     }
 
     private static Path resolveSqlitePath(Path configDir, SemionPersistenceConfig persistenceConfig) {
@@ -527,6 +560,8 @@ public final class SemionGameManager {
         TowerVfxService.configure(configs.vfx());
         configureTips(configs.tips());
         configureTraits(configs.traits());
+        configureWebIntegration(configs.webIntegration());
+        configureCombatSpeed(configs.combatSpeed());
         configure(
                 configs.economy(),
                 configs.waves(),
@@ -1309,6 +1344,7 @@ public final class SemionGameManager {
     }
 
     public void tick(MinecraftServer server) {
+        tickCombatSpeed(server);
         IllusionCloneSpawnQueue.tick();
         musicService.tick(server, activeGame, sandboxGames.values());
         tickPendingRatingRetry(server);
@@ -1436,6 +1472,74 @@ public final class SemionGameManager {
         }
         startupLobbyLoadPending = false;
         startupLobbyLoadDelayTicks = 0;
+    }
+
+    public void restoreCombatTickRate(MinecraftServer server) {
+        if (managesTickRate && server != null) {
+            server.tickRateManager().setTickRate(NORMAL_TICK_RATE);
+        }
+        managesTickRate = false;
+    }
+
+    private void tickCombatSpeed(MinecraftServer server) {
+        RoundPhase phase = activeGame == null ? RoundPhase.WAITING : activeGame.phase();
+        if (phase != previousCombatSpeedPhase) {
+            if (phase == RoundPhase.LANE_WAVE) {
+                combatSpeedOverloaded = false;
+                acceleratedTicks = 0;
+            }
+            previousCombatSpeedPhase = phase;
+        }
+
+        if (!combatSpeedConfig.enabled()) {
+            restoreCombatTickRate(server);
+            return;
+        }
+
+        managesTickRate = true;
+        float targetTickRate = combatTickRateTarget(
+                combatSpeedConfig,
+                phase,
+                !sandboxGames.isEmpty(),
+                combatSpeedOverloaded
+        );
+        if (Math.abs(server.tickRateManager().tickrate() - targetTickRate) > 0.01F) {
+            server.tickRateManager().setTickRate(targetTickRate);
+        }
+        if (targetTickRate <= NORMAL_TICK_RATE) {
+            acceleratedTicks = 0;
+            return;
+        }
+
+        acceleratedTicks++;
+        double averageTickTimeMillis = server.getAverageTickTimeNanos() / 1_000_000.0;
+        if (acceleratedTicks < COMBAT_SPEED_WARMUP_TICKS
+                || averageTickTimeMillis <= combatSpeedConfig.maxAverageTickTimeMillis()) {
+            return;
+        }
+
+        combatSpeedOverloaded = true;
+        server.tickRateManager().setTickRate(NORMAL_TICK_RATE);
+        SemionTd.LOGGER.warn(
+                "Combat tick rate restored to 20 TPS: average tick time {} ms exceeded {} ms.",
+                String.format("%.2f", averageTickTimeMillis),
+                combatSpeedConfig.maxAverageTickTimeMillis()
+        );
+        server.getPlayerList().broadcastSystemMessage(
+                SemionText.prefixedPlain("서버 성능 보호를 위해 이번 웨이브의 전투 배속을 해제했습니다."),
+                false
+        );
+    }
+
+    static float combatTickRateTarget(
+            CombatSpeedConfig config,
+            RoundPhase phase,
+            boolean sandboxActive,
+            boolean overloaded
+    ) {
+        return config.enabled() && phase == RoundPhase.LANE_WAVE && !sandboxActive && !overloaded
+                ? config.combatTickRate()
+                : NORMAL_TICK_RATE;
     }
 
     private void sendPlayerToLobby(MinecraftServer server, ServerPlayer player) throws ArenaLoadException {

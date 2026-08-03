@@ -23,7 +23,7 @@ public final class ResonanceTowers {
             moobloom("dandelion"),
             List.of(
                     "<gray>단일 타겟 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -39,7 +39,7 @@ public final class ResonanceTowers {
             moobloom("sunflower"),
             List.of(
                     "<gray>단일 타겟 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -55,7 +55,7 @@ public final class ResonanceTowers {
             moobloom("orange_tulip"),
             List.of(
                     "<gray>단일 타겟 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -71,7 +71,7 @@ public final class ResonanceTowers {
             moobloom("cornflower"),
             List.of(
                     "<gray>업그레이드 시 범위 공격을 하는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -87,7 +87,7 @@ public final class ResonanceTowers {
             moobloom("blue_orchid"),
             List.of(
                     "<gray>업그레이드 시 범위 공격을 하는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -103,7 +103,7 @@ public final class ResonanceTowers {
             moobloom("azure_bluet"),
             List.of(
                     "<gray>업그레이드 시 범위 공격을 하는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -119,7 +119,7 @@ public final class ResonanceTowers {
             moobloom("lily_of_the_valley"),
             List.of(
                     "<gray>적의 이동속도와 공격속도를 낮추는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -135,7 +135,7 @@ public final class ResonanceTowers {
             moobloom("white_tulip"),
             List.of(
                     "<gray>적의 이동속도와 공격속도를 낮추고, 주위 무블룸이 둔화 대상을 더 세게 치게 합니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -151,7 +151,7 @@ public final class ResonanceTowers {
             moobloom("oxeye_daisy"),
             List.of(
                     "<gray>광역 제어와 둔화 대상 피해 오라를 맡는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -159,7 +159,7 @@ public final class ResonanceTowers {
             "t1_resonance_amplify_moobloom",
             "알리움 무블룸",
             45,
-            100,
+            120,
             5,
             8,
             15,
@@ -167,7 +167,7 @@ public final class ResonanceTowers {
             moobloom("allium"),
             List.of(
                     "<gray>업그레이드 시 매우 단단해지며 아군에게 저항 효과를 주는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -175,7 +175,7 @@ public final class ResonanceTowers {
             "t2_resonance_amplify_moobloom",
             "라일락 무블룸",
             200,
-            200,
+            260,
             5.5,
             11,
             12,
@@ -183,7 +183,7 @@ public final class ResonanceTowers {
             moobloom("lilac"),
             List.of(
                     "<gray>업그레이드 시 매우 단단해지며 아군에게 저항 효과를 주는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -191,7 +191,7 @@ public final class ResonanceTowers {
             "t3_resonance_amplify_moobloom",
             "작약 무블룸",
             350,
-            450,
+            550,
             6,
             20,
             10,
@@ -199,7 +199,7 @@ public final class ResonanceTowers {
             moobloom("peony"),
             List.of(
                     "<gray>업그레이드 시 매우 단단해지며 아군에게 저항 효과를 주는 무블룸입니다.</gray>",
-                    "<green>다른 무블룸 종류를 옆에 설치하면 추가 효과를 받아요.</green>"
+                    "<green>다른 무블룸을 옆에 설치하면 추가 효과를 받아요.</green>"
             )
     );
 
@@ -248,7 +248,7 @@ public final class ResonanceTowers {
     private static void registerDescription(TowerType type) {
         java.util.ArrayList<String> template = new java.util.ArrayList<>(type.description());
         template.add(LINK_DESCRIPTION);
-        template.add("<green>자신을 제외하고 종류가 다른 주변 무블룸 {ability.level1RequiredLinks:integer}/{ability.level2RequiredLinks:integer}/{ability.level3RequiredLinks:integer}기와 연결되면 공명 1/2/3단계 효과를 얻습니다.</green>");
+        template.add("<green>자신을 제외한 주변 무블룸 {ability.level1RequiredLinks:integer}/{ability.level2RequiredLinks:integer}/{ability.level3RequiredLinks:integer}기와 연결되면 공명 1/2/3단계 효과를 얻습니다. 같은 종류와 티어도 각각 1링크로 계산합니다.</green>");
         template.add("<green>현재 해금: 공명 {ability.maxResonanceLevel:integer}단계 까지 활성화 가능합니다.</green>");
         switch (aspectOf(type)) {
             case FOCUS -> addFocusDescription(template);

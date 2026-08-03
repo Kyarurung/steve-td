@@ -176,7 +176,7 @@ public class IllagerTower extends EntityBackedTower {
                 AreaEffectIds.tower(this, "splash"), towerEntity, target, splashRadius,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(this, towerEntity, request, entity -> damageAmount * finalSplashRatio, true);
+        TowerAreaDamage.applyBasicAttackSplash(this, towerEntity, request, entity -> damageAmount * finalSplashRatio, true);
     }
 
     protected double ability(String key) {

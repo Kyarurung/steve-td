@@ -10,6 +10,12 @@ import org.junit.jupiter.api.Test;
 
 class SemionMusicServiceTest {
     @Test
+    void musicClockCompensatesForServerTickRate() {
+        assertEquals(1.0, SemionMusicService.musicTicksPerServerTick(20.0F));
+        assertEquals(0.5, SemionMusicService.musicTicksPerServerTick(40.0F));
+    }
+
+    @Test
     void playsEveryTrackBeforeRepeatingPlaylistSongs() {
         SemionMusicTrack first = track("first", 40L);
         SemionMusicTrack second = track("second", 60L);

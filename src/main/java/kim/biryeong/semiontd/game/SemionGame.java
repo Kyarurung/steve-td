@@ -48,6 +48,7 @@ import kim.biryeong.semiontd.ui.SemionLaneIndicatorService;
 import kim.biryeong.semiontd.ui.SemionSidebarHudService;
 import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.ui.SemionTitleService;
+import kim.biryeong.semiontd.web.WebCatalogExporter;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -101,6 +102,7 @@ public final class SemionGame {
     private int phaseTicks;
     private boolean finalDefenseForcedThisRound;
     private boolean emeraldIncomeBoostAnnounced;
+    private String catalogVersion;
 
     public SemionGame(EconomyConfig economyConfig, WaveConfig waveConfig, GameArena arena) {
         this(economyConfig, waveConfig, arena, null);
@@ -603,7 +605,8 @@ public final class SemionGame {
                         recordedRounds(attemptedRoundsByPlayer, player.uuid()),
                         recordedRounds(clearedRoundsByPlayer, player.uuid()),
                         player.traitLoadoutSnapshot(),
-                        finalTowerComposition(player)
+                        finalTowerComposition(player),
+                        buildGuideService == null ? List.of() : buildGuideService.recordedActions(player.uuid())
                 ))
                 .toList();
         return Optional.of(new MatchResult(
@@ -615,7 +618,8 @@ public final class SemionGame {
                 winningTeams,
                 teamResults(winningTeams),
                 currentRound,
-                matchMode
+                matchMode,
+                catalogVersion
         ));
     }
 
@@ -663,6 +667,7 @@ public final class SemionGame {
         placeSpectators(server, plan.spectatorIds());
         matchMode = plan.mode();
         matchId = MatchId.newId();
+        catalogVersion = WebCatalogExporter.currentVersion().orElse(null);
         startedAtEpochMillis = System.currentTimeMillis();
         endedAtEpochMillis = 0L;
         emeraldIncomeBoostAnnounced = false;
@@ -845,6 +850,12 @@ public final class SemionGame {
     public void recordTowerUpgrade(UUID playerId, String upgradeId, GridPosition position, long cost) {
         if (buildGuideService != null) {
             buildGuideService.recordTowerUpgrade(this, playerId, upgradeId, position, cost);
+        }
+    }
+
+    public void recordTowerSale(UUID playerId, String towerId, GridPosition position, long refund) {
+        if (buildGuideService != null) {
+            buildGuideService.recordTowerSale(this, playerId, towerId, position, refund);
         }
     }
 

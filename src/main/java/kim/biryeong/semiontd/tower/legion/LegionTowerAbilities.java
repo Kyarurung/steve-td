@@ -26,7 +26,7 @@ final class LegionTowerAbilities {
                 AreaEffectIds.tower(tower, "splash"), towerEntity, target, radius,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(tower, towerEntity, request, monster -> damageAmount * ratio, true);
+        TowerAreaDamage.applyBasicAttackSplash(tower, towerEntity, request, monster -> damageAmount * ratio, true);
     }
 
     private static double ability(Tower tower, String key) {

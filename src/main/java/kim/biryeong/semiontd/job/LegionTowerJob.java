@@ -37,4 +37,9 @@ public final class LegionTowerJob extends SemionJob {
                         .noneMatch(type -> type.id().equals(LegionTowers.ILLUSION_TOWER.id())))
                 .orElse(true);
     }
+
+    @Override
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return LegionTowers.isLegionTower(towerType);
+    }
 }

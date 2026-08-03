@@ -28,6 +28,7 @@ class TowerDamagePipelineTest {
         tierOne.syncHealth(80.0);
         assertEquals(0.0, tierOne.roundDamageTaken(), 0.0001);
         tierOne.recordDamageDealt(125.5);
+        tierOne.recordIgniteDamageDealt(12.5);
         tierOne.recordDamageTaken(40.25);
         tierOne.recordDamageDealt(Double.NaN);
         tierOne.recordDamageTaken(-5.0);
@@ -36,12 +37,14 @@ class TowerDamagePipelineTest {
         tierTwo.copyFrom(tierOne, 50);
 
         assertEquals(125.5, tierTwo.roundDamageDealt(), 0.0001);
+        assertEquals(12.5, tierTwo.roundIgniteDamageDealt(), 0.0001);
         assertEquals(40.25, tierTwo.roundDamageTaken(), 0.0001);
         assertSame(tierOneType, tierTwo.roundCombatType());
 
         tierTwo.markWaveStarted(4);
 
         assertEquals(0.0, tierTwo.roundDamageDealt(), 0.0001);
+        assertEquals(0.0, tierTwo.roundIgniteDamageDealt(), 0.0001);
         assertEquals(0.0, tierTwo.roundDamageTaken(), 0.0001);
         assertSame(tierTwoType, tierTwo.roundCombatType());
     }

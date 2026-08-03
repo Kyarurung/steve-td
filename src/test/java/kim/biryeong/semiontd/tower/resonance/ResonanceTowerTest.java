@@ -65,7 +65,7 @@ class ResonanceTowerTest {
     }
 
     @Test
-    void duplicateSpeciesDifferentOwnerAndOutOfRangeTowersDoNotAddLinks() {
+    void everyNearbyTowerCountsWhileDifferentOwnerAndOutOfRangeTowersDoNot() {
         ResonanceTower focus = tower(ResonanceTowers.FOCUS_CRYSTAL, new GridPosition(0, 0, 0));
         ResonanceTower sameSpecies = tower(ResonanceTowers.FOCUS_CRYSTAL, new GridPosition(1, 0, 0));
         ResonanceTower wave = tower(ResonanceTowers.WAVE_CRYSTAL, new GridPosition(-1, 0, 0));
@@ -83,7 +83,7 @@ class ResonanceTowerTest {
         ResonanceService.refresh(List.of(focus, sameSpecies, wave, duplicateWave, otherOwner, outOfRange));
 
         assertEquals(1, focus.resonanceLevel());
-        assertEquals(1, focus.resonanceLinks());
+        assertEquals(3, focus.resonanceLinks());
     }
 
     @Test
@@ -151,7 +151,7 @@ class ResonanceTowerTest {
         towers.add(recipient);
         ResonanceService.refresh(towers);
 
-        assertEquals(0.35, recipient.auraAttackSpeedBonus(), 0.0001);
+        assertEquals(0.50, recipient.auraAttackSpeedBonus(), 0.0001);
 
         ResonanceService.refresh(List.of(recipient));
 
@@ -167,7 +167,7 @@ class ResonanceTowerTest {
         ResonanceService.refresh(towers);
 
         assertEquals(3, frost.resonanceLevel());
-        assertEquals(1.00, recipient.auraDamageVsSlowedBonus(), 0.0001);
+        assertEquals(1.50, recipient.auraDamageVsSlowedBonus(), 0.0001);
         assertEquals(0.0, frost.auraDamageVsSlowedBonus(), 0.0001);
 
         ResonanceService.refresh(List.of(recipient));

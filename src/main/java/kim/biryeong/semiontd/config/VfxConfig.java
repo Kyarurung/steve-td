@@ -55,6 +55,25 @@ public final class VfxConfig {
         );
     }
 
+    public VfxConfig scaledForTickRate(float tickRate) {
+        if (!Float.isFinite(tickRate) || tickRate <= 20.0F) {
+            return this;
+        }
+        float scale = 20.0F / tickRate;
+        return new VfxConfig(
+                enabled(),
+                areaDamageEnabled(),
+                asyncPlanning(),
+                maxSampledHitRays(),
+                new VanillaConfig(
+                        Math.max(1, Math.round(vanilla().refillPointsPerTick() * scale)),
+                        vanilla().burstCapacityPoints(),
+                        Math.max(1, Math.round(vanilla().maxPacketsPerTickPerRecipient() * scale))
+                ),
+                new GcbConfig(Math.max(1, Math.round(gcb().maxShapeInstructionsPerTick() * scale)))
+        );
+    }
+
     public boolean enabled() {
         return enabled == null ? true : enabled;
     }

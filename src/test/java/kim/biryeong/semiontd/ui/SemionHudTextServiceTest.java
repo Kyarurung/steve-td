@@ -53,4 +53,10 @@ final class SemionHudTextServiceTest {
         assertFalse(service.toggleDamageView(playerId));
         assertFalse(service.damageViewEnabled(playerId));
     }
+
+    @Test
+    void sidebarKeepsItsRealTimeRefreshRateDuringCombatSpeedup() {
+        assertEquals(10, SemionSidebarHudService.updateIntervalTicks(20.0F));
+        assertEquals(20, SemionSidebarHudService.updateIntervalTicks(40.0F));
+    }
 }
