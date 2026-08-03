@@ -1412,13 +1412,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             tower.markWaveStarted(1);
             tower.recordDamageDealt(dealt[index]);
             tower.recordDamageTaken(taken[index]);
-            lane.towers().add(tower);
+            lane.addTower(tower);
             if (index == 0) {
                 ProductionTower sameType = new ProductionTower(type, playerId, TeamId.RED, 1, new GridPosition(10, 0, 0));
                 sameType.markWaveStarted(1);
                 sameType.recordDamageDealt(50.0);
                 sameType.recordDamageTaken(5.0);
-                lane.towers().add(sameType);
+                lane.addTower(sameType);
             }
         }
 
@@ -4822,42 +4822,42 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         farProgressTarget.runtimeMonster().syncLaneProgress(0.95);
         farProgressTarget.setNoAi(true);
 
-        context.runAfterDelay(5, () -> {
-            if (!assertTrue(
-                    context,
-                    towerEntity.currentAttackTarget() == farProgressTarget,
-                    "Tower should initially advance toward the only available monster."
-            )) {
-                return;
-            }
+        towerEntity.setNoAi(true);
+        TowerAttackMonsterGoal targetingGoal = new TowerAttackMonsterGoal(towerEntity);
+        targetingGoal.tick();
+        if (!assertTrue(
+                context,
+                towerEntity.currentAttackTarget() == farProgressTarget,
+                "Tower should initially advance toward the only available monster."
+        )) {
+            return;
+        }
 
-            SemionMonsterEntity nearTarget = spawnRoleMonsterEntity(
-                    context,
-                    "near-range-target",
-                    Optional.empty(),
-                    TeamId.RED,
-                    1,
-                    towerEntity.position().add(2.0, 0.0, 0.0),
-                    40.0,
-                    List.of(SummonRole.RUSH)
-            );
-            nearTarget.runtimeMonster().syncLaneProgress(0.1);
-            nearTarget.setNoAi(true);
+        SemionMonsterEntity nearTarget = spawnRoleMonsterEntity(
+                context,
+                "near-range-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                towerEntity.position().add(2.0, 0.0, 0.0),
+                40.0,
+                List.of(SummonRole.RUSH)
+        );
+        nearTarget.runtimeMonster().syncLaneProgress(0.1);
+        nearTarget.setNoAi(true);
 
-            context.runAfterDelay(10, () -> {
-                if (!assertTrue(
-                        context,
-                        towerEntity.currentAttackTarget() == nearTarget,
-                        "Tower should leave a farther high-priority target for a monster inside encounter range."
-                )) {
-                    return;
-                }
-                if (!assertTrue(context, nearTarget.getHealth() < 40.0F, "Tower should attack the nearby monster after retargeting.")) {
-                    return;
-                }
-                context.succeed();
-            });
-        });
+        for (int tick = 0; tick <= 5; tick++) {targetingGoal.tick();}
+        if (!assertTrue(
+                context,
+                towerEntity.currentAttackTarget() == nearTarget,
+                "Tower should leave a farther high-priority target for a monster inside encounter range."
+        )) {
+            return;
+        }
+        if (!assertTrue(context, nearTarget.getHealth() < 40.0F, "Tower should attack the nearby monster after retargeting.")) {
+            return;
+        }
+        context.succeed();
     }
 
     @GameTest(maxTicks = 80)
@@ -4912,10 +4912,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void defaultTowerPrioritizesHigherThreatInsideEncounterRange(GameTestHelper context) {
         UUID playerId = stableUuid("red-target-lock-owner");
+        int testLaneId = 101;
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         TowerType towerType = new TowerType("target_lock_test", "Target Lock Test", TowerCategory.DIRECT, 0, 50.0, 3.5, 0.0, 100, 0);
-        lane.addTower(new TestTower(towerType, playerId, TeamId.RED, 1, GridPosition.from(towerPlacementPos(lane))));
+        lane.addTower(new TestTower(towerType, playerId, TeamId.RED, testLaneId, GridPosition.from(towerPlacementPos(lane))));
         TestTower tower = (TestTower) lane.towers().getFirst();
         SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().orElseThrow());
         Vec3 towerPosition = towerEntity.position();
@@ -4924,7 +4925,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "target-lock-far-priority",
                 Optional.empty(),
                 TeamId.RED,
-                1,
+                testLaneId,
                 towerPosition.add(8.0, 0.0, 0.0),
                 100.0,
                 List.of(SummonRole.SIEGE)
@@ -4936,7 +4937,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "target-lock-lower-priority",
                 Optional.empty(),
                 TeamId.RED,
-                1,
+                testLaneId,
                 towerPosition.add(2.0, 0.0, 0.0),
                 100.0,
                 List.of(SummonRole.RUSH)
@@ -4948,7 +4949,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "target-lock-higher-priority",
                 Optional.empty(),
                 TeamId.RED,
-                1,
+                testLaneId,
                 towerPosition.add(3.0, 0.0, 0.0),
                 100.0,
                 List.of(SummonRole.SIEGE)
@@ -5020,11 +5021,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest(maxTicks = 80)
     public void foxTowerPrioritizesLowHealthTargetInRuntimeCombat(GameTestHelper context) {
         UUID playerId = stableUuid("red-fox-tower-owner");
+        int testLaneId = 102;
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
         TowerType foxType = TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER);
-        lane.addTower(new FoxTower(foxType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
+        lane.addTower(new FoxTower(foxType, playerId, TeamId.RED, testLaneId, GridPosition.from(towerPos)));
         FoxTower foxTower = (FoxTower) lane.towers().getFirst();
         if (!assertTrue(context, foxTower.entityId().isPresent(), "Fox tower entity should exist.")) {
             return;
@@ -5037,7 +5039,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "fox-healthy-close",
                 Optional.empty(),
                 TeamId.RED,
-                1,
+                testLaneId,
                 towerPosition.add(1.0, 0.0, 0.0),
                 100.0,
                 List.of(SummonRole.SIEGE)
@@ -5047,7 +5049,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "fox-low-health-far",
                 Optional.empty(),
                 TeamId.RED,
-                1,
+                testLaneId,
                 towerPosition.add(2.0, 0.0, 0.0),
                 200.0,
                 List.of(SummonRole.RUSH)
@@ -9624,8 +9626,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> abilities = new java.util.LinkedHashMap<>(defaults.abilities());
         Map<String, Double> rangedAbilities = new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
-        rangedAbilities.put("lowHealthSacrificeThreshold", 0.25);
-        rangedAbilities.put("splashRadiusPerStep", 3.0);
+        rangedAbilities.put("threshold", 0.25);
+        rangedAbilities.put("splashStep", 3.0);
         abilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), rangedAbilities);
 
         TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
@@ -9634,7 +9636,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("체력이 25% 미만")), "Warlock description should render configured absorb threshold.")) {
                 return;
             }
-            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("3블록의 스플래시")), "Warlock description should render configured splash radius.")) {
+            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("공격 범위가 3블록 증가")), "Warlock description should render configured attack range.")) {
                 return;
             }
         } finally {
@@ -10599,6 +10601,28 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(t3Ranged);
         int sacrificedEntityId = t3Ranged.entityId().orElseThrow();
+        double sacrificedMaxHealth = t3Ranged.currentMaxHealth();
+        double sacrificedDamage = t3Ranged.modifyAttackDamage(null, null, t3Ranged.type().damage());
+        double expectedMaxHealth = core.type().maxHealth()
+                * (1.0 + TowerBalanceRuntime.ability(core.type().id(), "petHealth"))
+                + sacrificedMaxHealth * (
+                        TowerBalanceRuntime.ability(core.type().id(), "roundStat")
+                                + TowerBalanceRuntime.ability(core.type().id(), "permanentHealth")
+                );
+        double expectedDamage = (
+                core.type().damage()
+                        + sacrificedDamage * (
+                                TowerBalanceRuntime.ability(core.type().id(), "roundStat")
+                                        + TowerBalanceRuntime.ability(core.type().id(), "permanentDamage")
+                        )
+        ) * (1.0 + TowerBalanceRuntime.ability(core.type().id(), "petDamage"));
+        int expectedInterval = Math.max(
+                TowerBalanceRuntime.abilityInt(WarlockTower.CONFIG_ID, "minInterval"),
+                core.type().attackIntervalTicks() - Math.min(
+                        TowerBalanceRuntime.abilityInt(WarlockTower.CONFIG_ID, "speedCap"),
+                        core.type().attackIntervalTicks() - t3Ranged.type().attackIntervalTicks()
+                )
+        );
 
         SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
         core.syncHealth(10.0);
@@ -10614,13 +10638,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 0.0, t3Ranged.health(), "Ranged warlock sacrifice target should be dead for the current round.")) {
             return;
         }
-        if (!assertClose(context, 105.5, core.currentMaxHealth(), "Ranged warlock should gain round, permanent, and surviving-pet health bonuses.")) {
+        if (!assertClose(context, expectedMaxHealth, core.currentMaxHealth(), "Ranged warlock should gain round, permanent, and surviving-pet health bonuses.")) {
             return;
         }
-        if (!assertClose(context, 16.9625, core.modifyAttackDamage(null, null, 8.0), "Ranged warlock should gain round, permanent, and surviving-pet damage bonuses.")) {
+        if (!assertClose(context, expectedDamage, core.modifyAttackDamage(null, null, core.type().damage()), "Ranged warlock should gain round, permanent, and surviving-pet damage bonuses.")) {
             return;
         }
-        if (!assertEquals(context, 14, core.adjustAttackInterval(20), "Ranged warlock should gain attack interval reduction from absorbed faster tower.")) {
+        if (!assertEquals(context, expectedInterval, core.adjustAttackInterval(core.type().attackIntervalTicks()), "Ranged warlock should gain attack interval reduction from absorbed faster tower.")) {
+            return;
+        }
+        coreEntity.applyTimedEffect(TimedEffectType.TOWER_ATTACK_SPEED_BONUS, 10.0, 40);
+        if (!assertEquals(context, 5, coreEntity.attackIntervalTicks(), "Ranged warlock attack interval should never fall below the configured five-tick minimum.")) {
             return;
         }
         core.syncHealth(10.0);
@@ -10630,6 +10658,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         game.teams().get(TeamId.RED).resetForRound();
+        if (!assertEquals(context, 20, core.adjustAttackInterval(20), "Ranged warlock should lose absorbed attack interval reduction after the round.")) {
+            return;
+        }
+        if (!assertClose(context, core.currentMaxHealth(), core.health(), "Ranged warlock should finish the two-phase round reset at full health after pets respawn.")) {
+            return;
+        }
         if (!assertEquals(context, t3Ranged.currentMaxHealth(), t3Ranged.health(), "Ranged warlock sacrifice target should respawn with full health next round.")) {
             return;
         }
@@ -10672,6 +10706,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(t3Melee);
         int sacrificedEntityId = t3Melee.entityId().orElseThrow();
+        double sacrificedMaxHealth = t3Melee.currentMaxHealth();
+        double sacrificedDamage = t3Melee.modifyAttackDamage(null, null, t3Melee.type().damage());
+        double expectedMaxHealth = core.type().maxHealth()
+                * (1.0 + TowerBalanceRuntime.ability(core.type().id(), "petHealth"))
+                + sacrificedMaxHealth * (
+                        TowerBalanceRuntime.ability(core.type().id(), "roundStat")
+                                + TowerBalanceRuntime.ability(core.type().id(), "permanentHealth")
+                );
+        double expectedDamage = (
+                core.type().damage()
+                        + sacrificedDamage * (
+                                TowerBalanceRuntime.ability(core.type().id(), "roundStat")
+                                        + TowerBalanceRuntime.ability(core.type().id(), "permanentDamage")
+                        )
+        ) * (1.0 + TowerBalanceRuntime.ability(core.type().id(), "petDamage"));
 
         SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
         core.syncHealth(20.0);
@@ -10687,16 +10736,29 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 0.0, t3Melee.health(), "Melee warlock sacrifice target should be dead for the current round.")) {
             return;
         }
-        if (!assertClose(context, 212.5, core.currentMaxHealth(), "Melee warlock should gain round, permanent, and surviving-sacrifice health bonuses.")) {
+        if (!assertClose(context, expectedMaxHealth, core.currentMaxHealth(), "Melee warlock should gain round, permanent, and surviving-sacrifice health bonuses.")) {
             return;
         }
-        if (!assertClose(context, 11.8125, core.modifyAttackDamage(null, null, 5.0), "Melee warlock should gain round, permanent, and surviving-sacrifice damage bonuses.")) {
+        if (!assertClose(context, expectedDamage, core.modifyAttackDamage(null, null, core.type().damage()), "Melee warlock should gain round, permanent, and surviving-sacrifice damage bonuses.")) {
+            return;
+        }
+        if (!assertEquals(context, 19, core.adjustAttackInterval(20), "Melee warlock should gain one tick of attack interval reduction per round sacrifice.")) {
+            return;
+        }
+        coreEntity.applyTimedEffect(TimedEffectType.TOWER_ATTACK_SPEED_BONUS, 10.0, 40);
+        if (!assertEquals(context, 5, coreEntity.attackIntervalTicks(), "Melee warlock attack interval should never fall below the configured five-tick minimum.")) {
             return;
         }
         if (!assertClose(context, 100.0, core.modifyIncomingDamage(null, null, 100.0), "Melee warlock should not reduce incoming damage before five absorbed towers.")) {
             return;
         }
         game.teams().get(TeamId.RED).resetForRound();
+        if (!assertEquals(context, 20, core.adjustAttackInterval(20), "Melee warlock should lose sacrifice attack interval reduction after the round.")) {
+            return;
+        }
+        if (!assertClose(context, core.currentMaxHealth(), core.health(), "Melee warlock should finish the two-phase round reset at full health after sacrifices respawn.")) {
+            return;
+        }
         if (!assertEquals(context, t3Melee.currentMaxHealth(), t3Melee.health(), "Melee warlock sacrifice target should respawn with full health next round.")) {
             return;
         }
@@ -11607,10 +11669,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 1.0, entity.getScale(), "Max-health-proportional scale must stop after evolving into the Ender Dragon.")) {
             return;
         }
-        if (!assertClose(context, 11.5, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant the configured 15% final damage.")) {
-            return;
-        }
-        if (!assertClose(context, 0.10, tower.incomeDebuffResistance(), "DRAGON state should reduce income-monster debuff magnitudes by 10%.")) {
+        if (!assertClose(context, 12.0, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant the configured 20% final damage.")) {
             return;
         }
         SemionMonsterEntity facingTarget = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());

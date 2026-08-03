@@ -59,9 +59,9 @@ class EnderDragonScaleTest {
     @Test
     void phantomScaleFormulaComesFromEndGlobalConfig() {
         applyEndAbilities(Map.of(
-                "phantomBaseScale", 0.5,
-                "phantomScaleHealthInterval", 50.0,
-                "phantomScalePerInterval", 0.25,
+                "phantomScaleBase", 0.5,
+                "phantomScaleHealth", 50.0,
+                "phantomScaleStep", 0.25,
                 "phantomScaleCap", 1.25
         ));
 
@@ -92,8 +92,8 @@ class EnderDragonScaleTest {
         assertTrue(tower.visual().blockbenchModel().isEmpty());
         assertEquals(1.0, tower.visual().scale(), 0.0001);
         assertEquals(7.0, tower.adjustAttackRange(5.0), 0.0001);
-        assertEquals(11.0, tower.modifyAttackDamage(null, null, 10.0), 0.0001);
-        assertEquals(0.15, tower.finalDamageBonus(), 0.0001);
+        assertEquals(10.0, tower.modifyAttackDamage(null, null, 10.0), 0.0001);
+        assertEquals(0.20, tower.finalDamageBonus(), 0.0001);
     }
 
     @Test
@@ -113,7 +113,7 @@ class EnderDragonScaleTest {
     }
 
     private static void applyStateConfig(double evolutionMaxHealth) {
-        applyEndAbilities(Map.of("dragonEvolutionMaxHealth", evolutionMaxHealth));
+        applyEndAbilities(Map.of("dragonEvolution", evolutionMaxHealth));
     }
 
     private static void applyEndAbilities(Map<String, Double> overrides) {

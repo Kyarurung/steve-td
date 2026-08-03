@@ -1,11 +1,15 @@
 package kim.biryeong.semiontd.game;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 import kim.biryeong.semiontd.config.AttackKind;
@@ -53,6 +57,8 @@ public final class PlayerLane {
     private final List<Monster> summonedMonsterSpawnQueue = new ArrayList<>();
     private final List<Monster> nextRoundSummonedMonsterSpawnQueue = new ArrayList<>();
     private final List<Tower> towers = new ArrayList<>();
+    private final List<Tower> towerView = Collections.unmodifiableList(towers);
+    private final Set<Tower> towerMembership = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<DefenderEntity> defenderEntities = new ArrayList<>();
     private boolean clearedThisRound;
     private boolean leakedThisRound;
@@ -125,7 +131,7 @@ public final class PlayerLane {
     }
 
     public List<Tower> towers() {
-        return towers;
+        return towerView;
     }
 
     public TraitLoadout traitLoadout() {
@@ -199,6 +205,9 @@ public final class PlayerLane {
         for (Tower tower : towers) {
             tower.resetForRound(this);
         }
+        for (Tower tower : towers) {
+            tower.finishRoundReset(this);
+        }
         moveNextRoundSummonsToCurrentRound();
     }
 
@@ -250,8 +259,11 @@ public final class PlayerLane {
     }
 
     public void addTower(Tower tower) {
+        Objects.requireNonNull(tower, "tower");
+        if (towerMembership.contains(tower)) {return;}
         tower.attachToLane(this, traitLoadout);
         towers.add(tower);
+        towerMembership.add(tower);
         tower.onPlaced(this);
         syncStaticTraitEffects(tower);
     }
@@ -272,15 +284,20 @@ public final class PlayerLane {
     }
 
     public boolean replaceTower(Tower existing, Tower replacement) {
+        Objects.requireNonNull(replacement, "replacement");
         int index = towers.indexOf(existing);
         if (index < 0) {
             return false;
         }
+        if (existing == replacement) {return true;}
+        if (towerMembership.contains(replacement)) {return false;}
 
         existing.onRemoved(this);
         existing.detachFromLane(this);
         replacement.attachToLane(this, traitLoadout);
         towers.set(index, replacement);
+        towerMembership.remove(existing);
+        towerMembership.add(replacement);
         replacement.onPlaced(this);
         syncStaticTraitEffects(replacement);
         return true;
@@ -290,21 +307,35 @@ public final class PlayerLane {
         if (!towers.remove(tower)) {
             return false;
         }
+        towerMembership.remove(tower);
         tower.onRemoved(this);
         tower.detachFromLane(this);
         return true;
     }
 
     public boolean killTower(Tower tower) {
-        if (!towers.contains(tower)) {
-            return false;
+        return tower != null && !killTowers(List.of(tower)).isEmpty();
+    }
+
+    public List<Tower> killTowers(List<? extends Tower> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
         }
-        tower.syncHealth(0.0);
-        if (tower.notifyDeath(this)) {
-            notifyNearbyTowerDeath(tower);
+        List<Tower> notificationTargets = List.copyOf(towers);
+        Set<Tower> processed = Collections.newSetFromMap(new IdentityHashMap<>());
+        ArrayList<Tower> killed = new ArrayList<>();
+        for (Tower tower : candidates) {
+            if (tower == null || !towerMembership.contains(tower) || !processed.add(tower)) {
+                continue;
+            }
+            tower.syncHealth(0.0);
+            if (tower.notifyDeath(this)) {
+                notifyNearbyTowerDeath(tower, notificationTargets);
+            }
+            tower.onRemoved(this);
+            killed.add(tower);
         }
-        tower.onRemoved(this);
-        return true;
+        return List.copyOf(killed);
     }
 
     public void markWaveStarted(int currentRound) {
@@ -387,6 +418,7 @@ public final class PlayerLane {
             tower.detachFromLane(this);
         }
         towers.clear();
+        towerMembership.clear();
     }
 
     private void applyOpeningAttackSpeed() {
@@ -531,7 +563,7 @@ public final class PlayerLane {
     }
 
     private SemionTowerEntity towerEntity(Tower tower) {
-        if (!(tower instanceof EntityBackedTower entityBackedTower)) {
+        if (arenaWorld == null || !(tower instanceof EntityBackedTower entityBackedTower)) {
             return null;
         }
         return entityBackedTower.entityId()
@@ -694,9 +726,13 @@ public final class PlayerLane {
     }
 
     private void notifyNearbyTowerDeath(Tower destroyedTower) {
+        notifyNearbyTowerDeath(destroyedTower, List.copyOf(towers));
+    }
+
+    private void notifyNearbyTowerDeath(Tower destroyedTower, List<Tower> notificationTargets) {
         IllagerRaidStates.onTowerDeath(this, destroyedTower);
-        for (Tower tower : List.copyOf(towers)) {
-            if (tower != destroyedTower && towers.contains(tower)) {
+        for (Tower tower : notificationTargets) {
+            if (tower != destroyedTower && towerMembership.contains(tower)) {
                 tower.onNearbyTowerDeath(this, destroyedTower);
             }
         }

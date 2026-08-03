@@ -8,8 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.List;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -39,20 +38,25 @@ class EndBalanceRepositoryContractTest {
         assertNotNull(abilities, "tower_balance.json must contain an abilities object.");
         JsonObject end = abilities.getAsJsonObject(EndTower.CONFIG_ID);
         assertNotNull(end, "tower_balance.json must contain abilities." + EndTower.CONFIG_ID + ".");
-        Set<String> externalKeys = end.keySet();
-        Set<String> codeKeys = TowerBalanceConfig.defaultConfig().abilities().get(EndTower.CONFIG_ID).keySet().stream().collect(Collectors.toUnmodifiableSet());
+        List<String> externalKeys = List.copyOf(end.keySet());
+        List<String> codeKeys = List.copyOf(
+                TowerBalanceConfig.defaultConfig().abilities().get(EndTower.CONFIG_ID).keySet()
+        );
 
         assertNotNull(root.get("schemaVersion"), "tower_balance.json must contain schemaVersion.");
         assertEquals(TowerBalanceConfig.CURRENT_SCHEMA_VERSION, root.get("schemaVersion").getAsInt());
-        assertEquals(codeKeys, externalKeys);
-        assertEquals(30.0, end.get("absorptionHealAmount").getAsDouble(), 0.0001);
-        assertEquals(0.05, end.get("shulkerTransferHealingMaxHealthRatio").getAsDouble(), 0.0001);
-        assertEquals(0.15, end.get("dragonFinalDamageBonus").getAsDouble(), 0.0001);
-        assertEquals(50.0, end.get("endCrystalAttackRangeEvery").getAsDouble(), 0.0001);
-        assertEquals(20.0, end.get("shulkerLifeStealEvery").getAsDouble(), 0.0001);
-        assertEquals(0.01, end.get("lifeStealPerStep").getAsDouble(), 0.0001);
-        assertEquals(0.15, end.get("lifeStealCap").getAsDouble(), 0.0001);
-        assertEquals(15.0, end.get("shulkerReductionEvery").getAsDouble(), 0.0001);
-        assertEquals(0.01, end.get("damageReductionPerStep").getAsDouble(), 0.0001);
+        assertEquals(codeKeys, externalKeys, "End ability keys and their display order must match.");
+        assertEquals(30.0, end.get("transferHeal").getAsDouble(), 0.0001);
+        assertEquals(0.05, end.get("transferHealRatio").getAsDouble(), 0.0001);
+        assertEquals(0.75, end.get("roundDamageRatio").getAsDouble(), 0.0001);
+        assertEquals(0.20, end.get("dragonFinalDamage").getAsDouble(), 0.0001);
+        assertEquals(50.0, end.get("attackRangeStacks").getAsDouble(), 0.0001);
+        assertEquals(30.0, end.get("lifeStealStacks").getAsDouble(), 0.0001);
+        assertEquals(0.01, end.get("lifeStealStep").getAsDouble(), 0.0001);
+        assertEquals(0.10, end.get("lifeStealCap").getAsDouble(), 0.0001);
+        assertEquals(10.0, end.get("regenerationStacks").getAsDouble(), 0.0001);
+        assertEquals(30.0, end.get("regenerationCap").getAsDouble(), 0.0001);
+        assertEquals(15.0, end.get("damageReductionStacks").getAsDouble(), 0.0001);
+        assertEquals(0.01, end.get("damageReductionStep").getAsDouble(), 0.0001);
     }
 }

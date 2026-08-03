@@ -435,7 +435,9 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         double attackSpeedMultiplier = 1.0
                 + timedEffects.magnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS)
                 - timedEffects.magnitude(TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION);
-        return Math.max(1, (int) Math.ceil(adjustedInterval / Math.max(0.01, attackSpeedMultiplier)));
+        int minimumInterval = runtimeTower == null ? 1 : Math.max(1, runtimeTower.minimumAttackIntervalTicks());
+        int resolvedInterval = (int) Math.ceil(adjustedInterval / Math.max(0.01, attackSpeedMultiplier));
+        return Math.max(minimumInterval, resolvedInterval);
     }
 
     public boolean playsRangedAttackSound() {
@@ -476,14 +478,10 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         moveToward(moveTarget, speedModifier);
     }
 
-    public boolean damageTarget(SemionMonsterEntity target, double baseDamage) {
-        return damageTargetResult(target, baseDamage).killed();
-    }
+    public boolean damageTarget(SemionMonsterEntity target, double baseDamage) {return damageTargetResult(target, baseDamage).killed();}
 
     public Tower.DamageResult damageTargetResult(SemionMonsterEntity target, double baseDamage) {
-        if (runtimeTower == null || target == null) {
-            return Tower.DamageResult.NONE;
-        }
+        if (runtimeTower == null || target == null) {return Tower.DamageResult.NONE;}
         return runtimeTower.damageTargetResult(this, target, baseDamage);
     }
 

@@ -1,11 +1,14 @@
 package kim.biryeong.semiontd.config;
 
+import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
+import kim.biryeong.semiontd.tower.end.EndConfig.Ability;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -211,10 +214,10 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, LegionTowers.T2_BEE_TOWER, "t3_bee_tower", 310);
         putUpgrade(upgradeCosts, WarlockTowers.BASE_WARLOCK_TOWER, "ranged_warlock_tower", 0);
         putUpgrade(upgradeCosts, WarlockTowers.BASE_WARLOCK_TOWER, "melee_warlock_tower", 0);
-        putUpgrade(upgradeCosts, WarlockTowers.T1_SLAVE, "t2_slave", 130);
-        putUpgrade(upgradeCosts, WarlockTowers.T2_SLAVE, "t3_slave", 280);
-        putUpgrade(upgradeCosts, WarlockTowers.T1_RANGED_SLAVE, "t2_ranged_slave", 100);
-        putUpgrade(upgradeCosts, WarlockTowers.T2_RANGED_SLAVE, "t3_ranged_slave", 240);
+        putUpgrade(upgradeCosts, WarlockTowers.T1_SLAVE, "t2_slave", 70);
+        putUpgrade(upgradeCosts, WarlockTowers.T2_SLAVE, "t3_slave", 150);
+        putUpgrade(upgradeCosts, WarlockTowers.T1_RANGED_SLAVE, "t2_ranged_slave", 80);
+        putUpgrade(upgradeCosts, WarlockTowers.T2_RANGED_SLAVE, "t3_ranged_slave", 160);
         putUpgrade(upgradeCosts, LegionTowers.T1_CHICKEN, LegionTowers.T2_CHICKEN_TOWER.id(), 100);
         putUpgrade(upgradeCosts, LegionTowers.T1_CHICKEN, LegionTowers.T2_DPS_CHICKEN_TOWER.id(), 100);
         putUpgrade(upgradeCosts, LegionTowers.T1_SLIME_TOWER, LegionTowers.T2_SLIME_TOWER.id(), 85);
@@ -645,68 +648,77 @@ public record TowerBalanceConfig(
                 "poisonDurationTicks", 140.0,
                 "poisonTickIntervalTicks", 20.0
         ));
-        putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("baseSacrificeRadius", 6.0),
-                Map.entry("baseFatalHealRatio", 0.35),
-                Map.entry("basePermanentHealthRatio", 0.025),
-                Map.entry("basePermanentDamageRatio", 0.05),
-                Map.entry("sacrificeHealRatio", 0.0)
+        putAbilities(abilities, WarlockTowers.CONFIG_ID, Map.ofEntries(
+                Map.entry("damageCap", 350.0),
+                Map.entry("sacrificeRadius", 25.0),
+                Map.entry("minInterval", 5.0),
+                Map.entry("speedCap", 15.0)
+        ));
+        putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), Map.of(
+                "fatalHeal", 0.35,
+                "sacrificeRadius", 6.0,
+                "permanentHealth", 0.025,
+                "permanentDamage", 0.05
         ));
         putAbilities(abilities, WarlockTowers.RANGED_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("lowHealthSacrificeThreshold", 0.30),
-                Map.entry("sacrificeRadius", 0.0),
-                Map.entry("roundStatRatio", 0.40),
-                Map.entry("roundIntervalReductionCap", 15.0),
-                Map.entry("permanentHealthRatio", 0.025),
-                Map.entry("permanentDamageRatio", 0.05),
-                Map.entry("lifeStealEvery", 5.0),
-                Map.entry("lifeStealPerStep", 0.005),
-                Map.entry("lifeStealCap", 0.30),
-                Map.entry("splashEvery", 10.0),
-                Map.entry("splashRadiusPerStep", 0.5),
-                Map.entry("splashDamageRatio", 0.75),
-                Map.entry("roundAbsorbDefenseThreshold", 5.0),
-                Map.entry("roundDamageReduction", 0.10),
-                Map.entry("healthBonusPerStack", 0.05),
-                Map.entry("maxHealthBonus", 0.25),
-                Map.entry("damageBonusPerStack", 0.15),
-                Map.entry("maxDamageBonus", 0.75)
+                Map.entry("threshold", 0.30),
+                Map.entry("roundStat", 0.40),
+                Map.entry("permanentHealth", 0.025),
+                Map.entry("permanentDamage", 0.05),
+                Map.entry("lifeEvery", 5.0),
+                Map.entry("lifeStep", 0.005),
+                Map.entry("lifeCap", 0.12),
+                Map.entry("regenEvery", 4.0),
+                Map.entry("regenStep", 10.0),
+                Map.entry("regenTicks", 20.0),
+                Map.entry("splashStep", 0.1),
+                Map.entry("splashCap", 8.0),
+                Map.entry("splashDamage", 0.50),
+                Map.entry("defenseThreshold", 3.0),
+                Map.entry("defense", 0.10),
+                Map.entry("petHealth", 0.05),
+                Map.entry("petHealthCap", 0.25),
+                Map.entry("petDamage", 0.15),
+                Map.entry("petDamageCap", 0.75)
         ));
         putAbilities(abilities, WarlockTowers.MELEE_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("lowHealthSacrificeThreshold", 0.30),
-                Map.entry("sacrificeRadius", 0.0),
-                Map.entry("roundStatRatio", 0.60),
-                Map.entry("roundSplashRadiusPerSacrifice", 0.25),
-                Map.entry("splashDamageRatio", 0.75),
-                Map.entry("permanentHealthRatio", 0.05),
-                Map.entry("permanentDamageRatio", 0.025),
-                Map.entry("damageReductionEvery", 5.0),
-                Map.entry("damageReductionPerStep", 0.025),
-                Map.entry("damageReductionCap", 0.25),
-                Map.entry("lifeStealPerSacrifice", 0.01),
-                Map.entry("lifeStealCap", 0.30),
-                Map.entry("healthBonusPerStack", 0.15),
-                Map.entry("maxHealthBonus", 0.75),
-                Map.entry("damageBonusPerStack", 0.05),
-                Map.entry("maxDamageBonus", 0.25)
+                Map.entry("threshold", 0.30),
+                Map.entry("roundStat", 0.60),
+                Map.entry("permanentHealth", 0.05),
+                Map.entry("permanentDamage", 0.025),
+                Map.entry("lifeStep", 0.01),
+                Map.entry("lifeCap", 0.20),
+                Map.entry("speedStep", 1.0),
+                Map.entry("damageEvery", 4.0),
+                Map.entry("damageStep", 15.0),
+                Map.entry("splashStep", 0.25),
+                Map.entry("splashCap", 2.0),
+                Map.entry("splashDamage", 0.75),
+                Map.entry("defenseEvery", 5.0),
+                Map.entry("defenseStep", 0.025),
+                Map.entry("defenseCap", 0.25),
+                Map.entry("petHealth", 0.15),
+                Map.entry("petHealthCap", 0.75),
+                Map.entry("petDamage", 0.05),
+                Map.entry("petDamageCap", 0.25)
         ));
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
-                "deathEffectRadius", 5.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "towerDamageTakenBonus", 0.05
         ));
         putAbilities(abilities, WarlockTowers.T3_SLAVE.id(), Map.of(
-                "deathEffectRadius", 5.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "towerDamageTakenBonus", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T2_RANGED_SLAVE.id(), Map.of(
-                "deathEffectRadius", 10.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "attackSpeedReduction", 0.05
         ));
         putAbilities(abilities, WarlockTowers.T3_RANGED_SLAVE.id(), Map.of(
-                "deathEffectRadius", 10.0,
+                "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
                 "attackSpeedReduction", 0.10
         ));
@@ -908,61 +920,60 @@ public record TowerBalanceConfig(
         });
 
         requirePositive(end,
-                "dragonEvolutionMaxHealth",
-                "attackDamageCap",
-                "absorptionDurationTicks",
-                "roundAbsorptionAttackIntervalEvery",
-                "endCrystalAttackIntervalEvery",
-                "minimumAttackIntervalTicks",
-                "endCrystalAttackRangeEvery",
-                "endCrystalSplashThreshold1",
-                "endCrystalSplashThreshold2",
-                "endCrystalSplashThreshold3",
-                "endCrystalSplashThreshold4",
-                "shulkerLifeStealEvery",
-                "shulkerRegenerationEvery",
-                "regenerationIntervalTicks",
-                "shulkerReductionEvery",
-                "phantomScaleHealthInterval"
+                DRAGON_EVOLUTION,
+                DAMAGE_CAP,
+                TRANSFER_TICKS,
+                TRANSFER_ATTACK_SPEED_STACKS,
+                ATTACK_SPEED_STACKS,
+                ATTACK_SPEED_MINIMUM_TICKS,
+                ATTACK_RANGE_STACKS,
+                SPLASH_1,
+                SPLASH_2,
+                SPLASH_3,
+                SPLASH_4,
+                LIFE_STEAL_STACKS,
+                REGENERATION_STACKS,
+                REGENERATION_TICKS,
+                DAMAGE_REDUCTION_STACKS,
+                PHANTOM_SCALE_HEALTH
         );
         requireRatio(end,
-                "roundHealthRatio",
-                "roundDamageRatio",
-                "permanentHealthRatio",
-                "permanentDamageRatio",
-                "shulkerTransferHealingMaxHealthRatio",
-                "dragonIncomeDebuffResistance",
-                "splashDamageRatio",
-                "lifeStealPerStep",
-                "lifeStealCap",
-                "damageReductionPerStep",
-                "damageReductionCap"
+                ROUND_HEALTH_RATIO,
+                ROUND_DAMAGE_RATIO,
+                PERMANENT_HEALTH_RATIO,
+                PERMANENT_DAMAGE_RATIO,
+                TRANSFER_HEAL_RATIO,
+                SPLASH_DAMAGE_RATIO,
+                LIFE_STEAL_STEP,
+                LIFE_STEAL_CAP,
+                DAMAGE_REDUCTION_STEP,
+                DAMAGE_REDUCTION_CAP
         );
-        requirePositive(end, "phantomBaseScale", "phantomScaleCap");
-        validateAtLeast(end, "phantomScaleCap", "phantomBaseScale");
+        requirePositive(end, PHANTOM_SCALE_BASE, PHANTOM_SCALE_CAP);
+        validateAtLeast(end, PHANTOM_SCALE_CAP, PHANTOM_SCALE_BASE);
         validateStrictlyIncreasing(end,
-                "endCrystalSplashThreshold1",
-                "endCrystalSplashThreshold2",
-                "endCrystalSplashThreshold3",
-                "endCrystalSplashThreshold4"
+                SPLASH_1,
+                SPLASH_2,
+                SPLASH_3,
+                SPLASH_4
         );
         requireIntegralIntRange(end,
-                "absorptionDurationTicks",
-                "roundAbsorptionAttackIntervalEvery",
-                "roundAbsorptionAttackIntervalReductionTicks",
-                "endCrystalAttackIntervalEvery",
-                "attackIntervalReductionPerStep",
-                "maxAttackIntervalReductionTicks",
-                "minimumAttackIntervalTicks",
-                "endCrystalAttackRangeEvery",
-                "endCrystalSplashThreshold1",
-                "endCrystalSplashThreshold2",
-                "endCrystalSplashThreshold3",
-                "endCrystalSplashThreshold4",
-                "shulkerLifeStealEvery",
-                "shulkerRegenerationEvery",
-                "regenerationIntervalTicks",
-                "shulkerReductionEvery"
+                TRANSFER_TICKS,
+                TRANSFER_ATTACK_SPEED_STACKS,
+                TRANSFER_ATTACK_SPEED_STEP,
+                ATTACK_SPEED_STACKS,
+                ATTACK_SPEED_STEP,
+                ATTACK_SPEED_CAP,
+                ATTACK_SPEED_MINIMUM_TICKS,
+                ATTACK_RANGE_STACKS,
+                SPLASH_1,
+                SPLASH_2,
+                SPLASH_3,
+                SPLASH_4,
+                LIFE_STEAL_STACKS,
+                REGENERATION_STACKS,
+                REGENERATION_TICKS,
+                DAMAGE_REDUCTION_STACKS
         );
         validateMinimumAttackInterval(end);
         validateTowerRatio(EndTowers.T1_SHULKER_TOWER.id(), "damageReduction");
@@ -979,6 +990,10 @@ public record TowerBalanceConfig(
         }
     }
 
+    private static void requirePositive(Map<String, Double> values, Ability... abilities) {
+        requirePositive(values, abilityKeys(abilities));
+    }
+
     private static void requireRatio(Map<String, Double> values, String... keys) {
         for (String key : keys) {
             Double value = values.get(key);
@@ -986,6 +1001,10 @@ public record TowerBalanceConfig(
                 throw new IllegalArgumentException("End balance ratio must be between 0 and 1: " + key);
             }
         }
+    }
+
+    private static void requireRatio(Map<String, Double> values, Ability... abilities) {
+        requireRatio(values, abilityKeys(abilities));
     }
 
     private static void validateStrictlyIncreasing(Map<String, Double> values, String... keys) {
@@ -1002,6 +1021,10 @@ public record TowerBalanceConfig(
         }
     }
 
+    private static void validateStrictlyIncreasing(Map<String, Double> values, Ability... abilities) {
+        validateStrictlyIncreasing(values, abilityKeys(abilities));
+    }
+
     private static void validateAtLeast(
             Map<String, Double> values,
             String valueKey,
@@ -1014,6 +1037,10 @@ public record TowerBalanceConfig(
                     "End balance " + valueKey + " must be at least " + minimumKey
             );
         }
+    }
+
+    private static void validateAtLeast(Map<String, Double> values, Ability value, Ability minimum) {
+        validateAtLeast(values, value.key(), minimum.key());
     }
 
     private static void requireIntegralIntRange(Map<String, Double> values, String... keys) {
@@ -1031,15 +1058,25 @@ public record TowerBalanceConfig(
         }
     }
 
+    private static void requireIntegralIntRange(Map<String, Double> values, Ability... abilities) {
+        requireIntegralIntRange(values, abilityKeys(abilities));
+    }
+
+    private static String[] abilityKeys(Ability[] abilities) {
+        String[] keys = new String[abilities.length];
+        for (int index = 0; index < abilities.length; index++) {keys[index] = abilities[index].key();}
+        return keys;
+    }
+
     private void validateMinimumAttackInterval(Map<String, Double> end) {
-        Double minimum = end.get("minimumAttackIntervalTicks");
+        Double minimum = end.get(ATTACK_SPEED_MINIMUM_TICKS.key());
         TowerStats base = towers.get(EndTowers.BASE_END_TOWER.id());
         if (minimum != null
                 && base != null
                 && base.attackIntervalTicks() != null
                 && minimum > base.attackIntervalTicks()) {
             throw new IllegalArgumentException(
-                    "End minimumAttackIntervalTicks cannot exceed the base End tower attack interval"
+                    "End attackSpeedMinimumTicks cannot exceed the base End tower attack interval"
             );
         }
     }
@@ -1131,86 +1168,6 @@ public record TowerBalanceConfig(
                 mergedVillagerAdv,
                 schemaVersion
         );
-    }
-
-    public TowerBalanceConfig withEndBalanceFrom(TowerBalanceConfig fallback) {
-        TowerBalanceConfig source = fallback == null ? defaultConfig() : fallback;
-        LinkedHashMap<String, TowerStats> repairedTowers = new LinkedHashMap<>(towers);
-        LinkedHashMap<String, Long> repairedUpgradeCosts =
-                new LinkedHashMap<>(upgradeCosts);
-        LinkedHashMap<String, Map<String, Double>> repairedAbilities =
-                new LinkedHashMap<>(abilities);
-
-        for (String towerId : endTowerIds()) {
-            replaceValue(repairedTowers, towerId, source.towers.get(towerId));
-            replaceValue(repairedAbilities, towerId, source.abilities.get(towerId));
-        }
-        replaceValue(
-                repairedAbilities,
-                EndTowers.CONFIG_ID,
-                source.abilities.get(EndTowers.CONFIG_ID)
-        );
-        for (String upgradeKey : endUpgradeKeys()) {
-            replaceValue(
-                    repairedUpgradeCosts,
-                    upgradeKey,
-                    source.upgradeCosts.get(upgradeKey)
-            );
-        }
-
-        return new TowerBalanceConfig(
-                repairedTowers,
-                repairedUpgradeCosts,
-                repairedAbilities,
-                illusionCloneQueue,
-                villagerAdv,
-                CURRENT_SCHEMA_VERSION
-        );
-    }
-
-    private static Iterable<String> endTowerIds() {
-        return java.util.List.of(
-                EndTowers.BASE_END_TOWER.id(),
-                EndTowers.T1_ENDERMITE_TOWER.id(),
-                EndTowers.T2_ENDERMAN_TOWER.id(),
-                EndTowers.T3_END_CRYSTAL_TOWER.id(),
-                EndTowers.T1_SHULKER_TOWER.id(),
-                EndTowers.T2_SHULKER_TOWER.id(),
-                EndTowers.T3_SHULKER_TOWER.id()
-        );
-    }
-
-    private static Iterable<String> endUpgradeKeys() {
-        return java.util.List.of(
-                upgradeKey(
-                        EndTowers.T1_ENDERMITE_TOWER.id(),
-                        EndTowers.T2_ENDERMAN_TOWER.id()
-                ),
-                upgradeKey(
-                        EndTowers.T2_ENDERMAN_TOWER.id(),
-                        EndTowers.T3_END_CRYSTAL_TOWER.id()
-                ),
-                upgradeKey(
-                        EndTowers.T1_SHULKER_TOWER.id(),
-                        EndTowers.T2_SHULKER_TOWER.id()
-                ),
-                upgradeKey(
-                        EndTowers.T2_SHULKER_TOWER.id(),
-                        EndTowers.T3_SHULKER_TOWER.id()
-                ),
-                EndTowers.T2_ENDERMAN_TOWER.id(),
-                EndTowers.T3_END_CRYSTAL_TOWER.id(),
-                EndTowers.T2_SHULKER_TOWER.id(),
-                EndTowers.T3_SHULKER_TOWER.id()
-        );
-    }
-
-    private static <T> void replaceValue(Map<String, T> values, String key, T replacement) {
-        if (replacement == null) {
-            values.remove(key);
-        } else {
-            values.put(key, replacement);
-        }
     }
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
@@ -1496,51 +1453,53 @@ public record TowerBalanceConfig(
         putAbilities(abilities, EndTowers.T3_SHULKER_TOWER.id(), Map.of(
                 "damageReduction", 0.50
         ));
-        putAbilities(abilities, EndTowers.CONFIG_ID, Map.ofEntries(
-                Map.entry("dragonEvolutionMaxHealth", 2000.0),
-                Map.entry("attackDamageCap", 250.0),
-                Map.entry("absorptionDurationTicks", 200.0),
-                Map.entry("absorptionHealAmount", 30.0),
-                Map.entry("shulkerTransferHealingMaxHealthRatio", 0.05),
-                Map.entry("roundHealthRatio", 0.50),
-                Map.entry("roundDamageRatio", 0.60),
-                Map.entry("permanentHealthRatio", 0.04),
-                Map.entry("permanentDamageRatio", 0.06),
-                Map.entry("roundAbsorptionAttackIntervalEvery", 1.0),
-                Map.entry("roundAbsorptionAttackIntervalReductionTicks", 1.0),
-                Map.entry("dragonAttackRangeBonus", 2.0),
-                Map.entry("dragonDamageBonus", 0.10),
-                Map.entry("dragonFinalDamageBonus", 0.15),
-                Map.entry("dragonIncomeDebuffResistance", 0.10),
-                Map.entry("endCrystalAttackIntervalEvery", 30.0),
-                Map.entry("attackIntervalReductionPerStep", 1.0),
-                Map.entry("maxAttackIntervalReductionTicks", 10.0),
-                Map.entry("minimumAttackIntervalTicks", 5.0),
-                Map.entry("endCrystalAttackRangeEvery", 50.0),
-                Map.entry("attackRangePerStep", 0.5),
-                Map.entry("attackRangeCap", 3.0),
-                Map.entry("endCrystalSplashThreshold1", 15.0),
-                Map.entry("endCrystalSplashThreshold2", 60.0),
-                Map.entry("endCrystalSplashThreshold3", 150.0),
-                Map.entry("endCrystalSplashThreshold4", 300.0),
-                Map.entry("splashRadiusPerThreshold", 1.0),
-                Map.entry("splashRadiusCap", 4.0),
-                Map.entry("splashDamageRatio", 0.60),
-                Map.entry("shulkerLifeStealEvery", 20.0),
-                Map.entry("lifeStealPerStep", 0.01),
-                Map.entry("lifeStealCap", 0.15),
-                Map.entry("shulkerRegenerationEvery", 30.0),
-                Map.entry("regenerationPerStep", 1.0),
-                Map.entry("regenerationCap", 10.0),
-                Map.entry("regenerationIntervalTicks", 20.0),
-                Map.entry("shulkerReductionEvery", 15.0),
-                Map.entry("damageReductionPerStep", 0.01),
-                Map.entry("damageReductionCap", 0.20),
-                Map.entry("phantomBaseScale", 1.0),
-                Map.entry("phantomScaleHealthInterval", 100.0),
-                Map.entry("phantomScalePerInterval", 0.2),
-                Map.entry("phantomScaleCap", 5.0)
-        ));
+        putAbilities(abilities, EndTowers.CONFIG_ID, endAbilities());
+    }
+
+    private static Map<String, Double> endAbilities() {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put(DRAGON_EVOLUTION.key(), 2000.0);
+        values.put(PHANTOM_SCALE_HEALTH.key(), 100.0);
+        values.put(PHANTOM_SCALE_STEP.key(), 0.2);
+        values.put(PHANTOM_SCALE_BASE.key(), 1.0);
+        values.put(PHANTOM_SCALE_CAP.key(), 5.0);
+        values.put(TRANSFER_TICKS.key(), 200.0);
+        values.put(TRANSFER_HEAL.key(), 30.0);
+        values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
+        values.put(DAMAGE_CAP.key(), 250.0);
+        values.put(ROUND_DAMAGE_RATIO.key(), 0.75);
+        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.06);
+        values.put(ROUND_HEALTH_RATIO.key(), 0.50);
+        values.put(PERMANENT_HEALTH_RATIO.key(), 0.04);
+        values.put(SPLASH_1.key(), 15.0);
+        values.put(SPLASH_2.key(), 60.0);
+        values.put(SPLASH_3.key(), 150.0);
+        values.put(SPLASH_4.key(), 300.0);
+        values.put(SPLASH_STEP.key(), 1.0);
+        values.put(SPLASH_CAP.key(), 5.0);
+        values.put(SPLASH_DAMAGE_RATIO.key(), 0.60);
+        values.put(ATTACK_SPEED_STACKS.key(), 30.0);
+        values.put(ATTACK_SPEED_STEP.key(), 1.0);
+        values.put(ATTACK_SPEED_CAP.key(), 10.0);
+        values.put(ATTACK_SPEED_MINIMUM_TICKS.key(), 5.0);
+        values.put(TRANSFER_ATTACK_SPEED_STACKS.key(), 1.0);
+        values.put(TRANSFER_ATTACK_SPEED_STEP.key(), 1.0);
+        values.put(ATTACK_RANGE_STACKS.key(), 50.0);
+        values.put(ATTACK_RANGE_STEP.key(), 0.5);
+        values.put(ATTACK_RANGE_CAP.key(), 3.0);
+        values.put(LIFE_STEAL_STACKS.key(), 30.0);
+        values.put(LIFE_STEAL_STEP.key(), 0.01);
+        values.put(LIFE_STEAL_CAP.key(), 0.10);
+        values.put(DAMAGE_REDUCTION_STACKS.key(), 15.0);
+        values.put(DAMAGE_REDUCTION_STEP.key(), 0.01);
+        values.put(DAMAGE_REDUCTION_CAP.key(), 0.20);
+        values.put(REGENERATION_STACKS.key(), 10.0);
+        values.put(REGENERATION_STEP.key(), 1.0);
+        values.put(REGENERATION_CAP.key(), 30.0);
+        values.put(REGENERATION_TICKS.key(), 20.0);
+        values.put(DRAGON_FINAL_DAMAGE.key(), 0.20);
+        values.put(DRAGON_RANGE_BONUS.key(), 2.0);
+        return Collections.unmodifiableMap(values);
     }
 
     private static void putOceanAbilities(Map<String, Map<String, Double>> abilities) {

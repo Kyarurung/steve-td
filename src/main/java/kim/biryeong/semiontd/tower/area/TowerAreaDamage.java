@@ -13,71 +13,27 @@ public final class TowerAreaDamage {
     private TowerAreaDamage() {
     }
 
-    public static AreaEffectResult<SemionMonsterEntity> apply(
-            Tower tower,
-            SemionTowerEntity source,
-            MonsterAreaEffectRequest request,
-            ToDoubleFunction<SemionMonsterEntity> damage,
-            boolean propagateKills
-    ) {
-        return apply(tower, source, request, damage, propagateKills, (target, amount, killed) -> {
-        });
+    public static AreaEffectResult<SemionMonsterEntity> apply(Tower tower, SemionTowerEntity source, MonsterAreaEffectRequest request, ToDoubleFunction<SemionMonsterEntity> damage, boolean propagateKills) {
+        return apply(tower, source, request, damage, propagateKills, (target, amount, killed) -> {});
     }
 
-    public static AreaEffectResult<SemionMonsterEntity> apply(
-            Tower tower,
-            SemionTowerEntity source,
-            MonsterAreaEffectRequest request,
-            ToDoubleFunction<SemionMonsterEntity> damage,
-            boolean propagateKills,
-            AfterDamage afterDamage
-    ) {
+    public static AreaEffectResult<SemionMonsterEntity> apply(Tower tower, SemionTowerEntity source, MonsterAreaEffectRequest request, ToDoubleFunction<SemionMonsterEntity> damage, boolean propagateKills, AfterDamage afterDamage) {
         return apply(tower, source, request, damage, propagateKills, afterDamage, false, false);
     }
 
-    public static AreaEffectResult<SemionMonsterEntity> applyBasicAttackSplash(
-            Tower tower,
-            SemionTowerEntity source,
-            MonsterAreaEffectRequest request,
-            ToDoubleFunction<SemionMonsterEntity> damage,
-            boolean propagateKills
-    ) {
-        return applyBasicAttackSplash(tower, source, request, damage, propagateKills, (target, amount, killed) -> {
-        });
+    public static AreaEffectResult<SemionMonsterEntity> applyBasicAttackSplash(Tower tower, SemionTowerEntity source, MonsterAreaEffectRequest request, ToDoubleFunction<SemionMonsterEntity> damage, boolean propagateKills) {
+        return applyBasicAttackSplash(tower, source, request, damage, propagateKills, (target, amount, killed) -> {});
     }
 
-    public static AreaEffectResult<SemionMonsterEntity> applyBasicAttackSplash(
-            Tower tower,
-            SemionTowerEntity source,
-            MonsterAreaEffectRequest request,
-            ToDoubleFunction<SemionMonsterEntity> damage,
-            boolean propagateKills,
-            AfterDamage afterDamage
-    ) {
+    public static AreaEffectResult<SemionMonsterEntity> applyBasicAttackSplash(Tower tower, SemionTowerEntity source, MonsterAreaEffectRequest request, ToDoubleFunction<SemionMonsterEntity> damage, boolean propagateKills, AfterDamage afterDamage) {
         return apply(tower, source, request, damage, propagateKills, afterDamage, false, true);
     }
 
-    public static AreaEffectResult<SemionMonsterEntity> applyResolved(
-            Tower tower,
-            SemionTowerEntity source,
-            MonsterAreaEffectRequest request,
-            ToDoubleFunction<SemionMonsterEntity> damage,
-            boolean propagateKills,
-            AfterDamage afterDamage
-    ) {
+    public static AreaEffectResult<SemionMonsterEntity> applyResolved(Tower tower, SemionTowerEntity source, MonsterAreaEffectRequest request, ToDoubleFunction<SemionMonsterEntity> damage, boolean propagateKills, AfterDamage afterDamage) {
         return apply(tower, source, request, damage, propagateKills, afterDamage, true, false);
     }
 
-    private static AreaEffectResult<SemionMonsterEntity> apply(
-            Tower tower,
-            SemionTowerEntity source,
-            MonsterAreaEffectRequest request,
-            ToDoubleFunction<SemionMonsterEntity> damage,
-            boolean propagateKills,
-            AfterDamage afterDamage,
-            boolean resolvedOutgoingDamage,
-            boolean igniteOnHit
-    ) {
+    private static AreaEffectResult<SemionMonsterEntity> apply(Tower tower, SemionTowerEntity source, MonsterAreaEffectRequest request, ToDoubleFunction<SemionMonsterEntity> damage, boolean propagateKills, AfterDamage afterDamage, boolean resolvedOutgoingDamage, boolean igniteOnHit) {
         return SemionTdApi.areaEffects().applyToMonsters(request, target -> {
             double amount = Math.max(0.0, damage.applyAsDouble(target));
             if (amount <= 0.0) {

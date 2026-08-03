@@ -287,7 +287,7 @@ final class SemionConfigLoaderTest {
     }
 
     @Test
-    void loadPreservesExplicitEndValuesWithoutLegacyDefaultMigration() throws Exception {
+    void loadPreservesExplicitEndValues() throws Exception {
         Files.createDirectories(tempDir);
         Files.writeString(tempDir.resolve("tower_balance.json"), """
         {
@@ -306,7 +306,7 @@ final class SemionConfigLoaderTest {
               "damageReduction": 0.15
             },
             "end_global": {
-              "damageReductionPerStep": 0.025,
+              "damageReductionStep": 0.025,
               "lifeStealCap": 0.20
             }
           }
@@ -324,12 +324,12 @@ final class SemionConfigLoaderTest {
                 -1
         ));
         assertEquals(0.15, balance.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
-        assertEquals(0.025, balance.ability("end_global", "damageReductionPerStep", -1.0), 0.0001);
+        assertEquals(0.025, balance.ability("end_global", "damageReductionStep", -1.0), 0.0001);
         assertEquals(0.20, balance.ability("end_global", "lifeStealCap", -1.0), 0.0001);
     }
 
     @Test
-    void loadRetainsLastKnownGoodTowerBalanceWhenEndBalanceIsInvalid() throws Exception {
+    void loadRetainsEntireLastKnownGoodTowerBalanceWhenBalanceIsInvalid() throws Exception {
         Files.createDirectories(tempDir);
         Files.writeString(tempDir.resolve("tower_balance.json"), """
             {
@@ -340,7 +340,7 @@ final class SemionConfigLoaderTest {
               },
               "abilities": {
                 "end_global": {
-                  "absorptionDurationTicks": 0.0
+                  "transferTicks": 0.0
                 }
               }
             }
@@ -376,16 +376,12 @@ final class SemionConfigLoaderTest {
                 lastKnownGood
         ).towerBalance();
 
-        assertEquals(
-                lastKnownGood.ability("end_global", "absorptionDurationTicks", -1.0),
-                balance.ability("end_global", "absorptionDurationTicks", -1.0),
-                0.0001
-        );
-        assertEquals(99L, balance.towers().get(LegionTowers.T1_GOAT_TOWER.id()).mineralCost());
+        assertEquals(lastKnownGood, balance);
+        assertTrue(Files.readString(tempDir.resolve("tower_balance.json")).contains("\"transferTicks\": 0.0"));
     }
 
     @Test
-    void loadRepairsNegativeEndUpgradeCostWithoutDiscardingUnrelatedChanges() throws Exception {
+    void loadDoesNotRewriteInvalidEndUpgradeCost() throws Exception {
         Files.createDirectories(tempDir);
         String endUpgradeKey = TowerBalanceConfig.upgradeKey(
                 EndTowers.T1_ENDERMITE_TOWER.id(),
@@ -411,23 +407,8 @@ final class SemionConfigLoaderTest {
                 LoggerFactory.getLogger("test")
         ).towerBalance();
 
-        assertEquals(
-                defaults.upgradeCost(
-                        EndTowers.T1_ENDERMITE_TOWER.id(),
-                        EndTowers.T2_ENDERMAN_TOWER.id(),
-                        -1
-                ),
-                balance.upgradeCost(
-                        EndTowers.T1_ENDERMITE_TOWER.id(),
-                        EndTowers.T2_ENDERMAN_TOWER.id(),
-                        -1
-                )
-        );
-        assertEquals(
-                99L,
-                balance.towers().get(LegionTowers.T1_GOAT_TOWER.id()).mineralCost()
-        );
-        assertFalse(Files.readString(tempDir.resolve("tower_balance.json")).contains("-50"));
+        assertEquals(defaults, balance);
+        assertTrue(Files.readString(tempDir.resolve("tower_balance.json")).contains("-50"));
     }
 
     @Test

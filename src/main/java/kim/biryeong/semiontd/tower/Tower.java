@@ -281,12 +281,10 @@ public abstract class Tower {
         return roundDamageDealt;
     }
 
+    public double roundIgniteDamageDealt() {return roundIgniteDamageDealt;}
+
     public double roundDamageTaken() {
         return roundDamageTaken;
-    }
-
-    public double roundIgniteDamageDealt() {
-        return roundIgniteDamageDealt;
     }
 
     public void recordDamageDealt(double amount) {
@@ -404,11 +402,12 @@ public abstract class Tower {
         }
         double damageWithTraits =
                 towerEntity.applyTraitOutgoingDamageBeforeTowerFinalAgainst(target, baseDamage);
-        return applyOutgoingDamageStages(
+        double resolvedOutgoingDamage = applyOutgoingDamageStages(
                 damageWithTraits,
                 damage -> modifyOutgoingDamage(towerEntity, target, damage),
                 towerEntity::applyTowerFinalDamageBonus
         );
+        return modifyResolvedOutgoingDamage(towerEntity, target, resolvedOutgoingDamage);
     }
 
     static double applyOutgoingDamageStages(
@@ -436,7 +435,11 @@ public abstract class Tower {
             return DamageResult.NONE;
         }
         Monster runtimeMonster = target.runtimeMonster();
-        double damageAmount = target.towerDamageTaken(outgoingDamage);
+        double damageAmount = modifyAppliedDamage(
+                towerEntity,
+                target,
+                target.towerDamageTaken(outgoingDamage)
+        );
         if (!Double.isFinite(damageAmount) || damageAmount <= 0.0) {
             return DamageResult.NONE;
         }
@@ -496,6 +499,22 @@ public abstract class Tower {
     }
 
     public double modifyOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {return damageAmount;}
+
+    public double modifyResolvedOutgoingDamage(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double damageAmount
+    ) {
+        return damageAmount;
+    }
+
+    public double modifyAppliedDamage(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double damageAmount
+    ) {
+        return damageAmount;
+    }
 
     protected boolean isWithinDeathStackRange(Vec3 deathPosition) {
         if (deathPosition == null) {
@@ -558,6 +577,10 @@ public abstract class Tower {
         return baseIntervalTicks;
     }
 
+    public int minimumAttackIntervalTicks() {
+        return 1;
+    }
+
     public double adjustAttackRange(double baseRange) {
         return baseRange;
     }
@@ -573,6 +596,9 @@ public abstract class Tower {
         deployedAtFinalDefense = false;
         deathNotifiedThisRound = false;
         onStateChanged(lane);
+    }
+    
+    public void finishRoundReset(PlayerLane lane) {
     }
 
     public void moveToFinalDefense(PlayerLane lane, GridPosition position) {

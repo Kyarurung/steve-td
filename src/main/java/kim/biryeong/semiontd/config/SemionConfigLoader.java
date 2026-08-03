@@ -418,17 +418,7 @@ public final class SemionConfigLoader {
                         "Unsupported tower balance schema version: " + merged.schemaVersion()
                 );
             }
-            try {
-                merged.validateForRuntime();
-            } catch (IllegalArgumentException invalidBalance) {
-                logger.error(
-                        "Invalid tower balance in {}; attempting End-section recovery.",
-                        path,
-                        invalidBalance
-                );
-                merged = merged.withEndBalanceFrom(lastKnownGood);
-                merged.validateForRuntime();
-            }
+            merged.validateForRuntime();
             boolean schemaVersionMissing = !hasObjectProperty(json, "schemaVersion");
             boolean illusionCloneQueueMissing = !hasObjectProperty(migratedJson, "illusionCloneQueue");
             boolean villagerAdvMissing = !hasObjectProperty(migratedJson, "villagerAdv");
