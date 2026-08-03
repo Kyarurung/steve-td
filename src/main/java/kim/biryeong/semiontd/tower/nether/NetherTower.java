@@ -417,7 +417,7 @@ public class NetherTower extends EntityBackedTower {
                 AreaEffectIds.tower(this, "splash"), towerEntity, target, radius,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(
+        TowerAreaDamage.applyBasicAttackSplash(
                 this,
                 towerEntity,
                 request,

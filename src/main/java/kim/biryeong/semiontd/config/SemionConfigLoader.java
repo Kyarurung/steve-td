@@ -56,7 +56,9 @@ public final class SemionConfigLoader {
                     VfxConfig.defaultConfig(),
                     TipConfig.defaultConfig(),
                     TraitSelectionConfig.defaultConfig(),
-                    TraitBalanceConfig.defaultConfig()
+                    TraitBalanceConfig.defaultConfig(),
+                    WebIntegrationConfig.defaultConfig(),
+                    CombatSpeedConfig.defaultConfig()
             );
         }
 
@@ -143,7 +145,19 @@ public final class SemionConfigLoader {
                 TraitBalanceConfig.defaultConfig(),
                 logger
         );
-        return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting, monsterScaling, vfx, tips, traits, traitBalance);
+        WebIntegrationConfig webIntegration = loadOrCreate(
+                configDir.resolve("web_integration.json"),
+                WebIntegrationConfig.defaultConfig(),
+                WebIntegrationConfig.class,
+                logger
+        );
+        CombatSpeedConfig combatSpeed = loadOrCreate(
+                configDir.resolve("combat_speed.json"),
+                CombatSpeedConfig.defaultConfig(),
+                CombatSpeedConfig.class,
+                logger
+        );
+        return new LoadedConfigs(economy, waves, map, progression, rating, persistence, towerBalance, summons, leaderTargeting, incomeLaneRouting, monsterScaling, vfx, tips, traits, traitBalance, webIntegration, combatSpeed);
     }
 
     private static <T> T loadOrCreate(Path path, T defaults, Class<T> type, Logger logger) {
@@ -660,7 +674,9 @@ public final class SemionConfigLoader {
             VfxConfig vfx,
             TipConfig tips,
             TraitSelectionConfig traits,
-            TraitBalanceConfig traitBalance
+            TraitBalanceConfig traitBalance,
+            WebIntegrationConfig webIntegration,
+            CombatSpeedConfig combatSpeed
     ) {
     }
 }

@@ -299,7 +299,7 @@ public final class OceanTower extends EntityBackedTower {
                 value("splashRadius"),
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(this, towerEntity, request, ignored -> damageAmount * value("splashDamageRatio"), true);
+        TowerAreaDamage.applyBasicAttackSplash(this, towerEntity, request, ignored -> damageAmount * value("splashDamageRatio"), true);
     }
 
     private boolean healNearbyTowers(PlayerLane lane) {

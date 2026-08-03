@@ -32,6 +32,56 @@ final class SemionConfigLoaderTest {
     }
 
     @Test
+    void webIntegrationIsDisabledByDefault() {
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(Files.exists(tempDir.resolve("web_integration.json")));
+        assertFalse(configs.webIntegration().enabled());
+    }
+
+    @Test
+    void webIntegrationCanBeEnabled() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("web_integration.json"), """
+                {
+                  "enabled": true
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(configs.webIntegration().enabled());
+    }
+
+    @Test
+    void combatSpeedIsDisabledByDefault() {
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(Files.exists(tempDir.resolve("combat_speed.json")));
+        assertFalse(configs.combatSpeed().enabled());
+        assertEquals(40.0F, configs.combatSpeed().combatTickRate());
+        assertEquals(25.0, configs.combatSpeed().maxAverageTickTimeMillis());
+    }
+
+    @Test
+    void combatSpeedCanBeConfiguredByAdministrator() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("combat_speed.json"), """
+                {
+                  "enabled": true,
+                  "combatTickRate": 60.0,
+                  "maxAverageTickTimeMillis": 20.0
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertTrue(configs.combatSpeed().enabled());
+        assertEquals(60.0F, configs.combatSpeed().combatTickRate());
+        assertEquals(20.0, configs.combatSpeed().maxAverageTickTimeMillis());
+    }
+
+    @Test
     void loadCreatesTraitConfigFileWithEnabledDefaults() {
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 

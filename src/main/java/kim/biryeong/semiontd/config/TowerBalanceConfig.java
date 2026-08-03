@@ -1703,8 +1703,8 @@ public record TowerBalanceConfig(
         values.put("level3RequiredLinks", 5.0);
         switch (aspect) {
             case FOCUS -> {
-                values.put("focusLevel1AttackSpeedBonus", tierValue(tier, 0.20, 0.30, 0.20));
-                values.put("focusLevel2AttackSpeedBonus", tierValue(tier, 0.40, 0.60, 0.40));
+                values.put("focusLevel1AttackSpeedBonus", tierValue(tier, 0.20, 0.30, 0.30));
+                values.put("focusLevel2AttackSpeedBonus", tierValue(tier, 0.40, 0.60, 0.60));
                 values.put("focusLevel2DamageBonus", 0.40);
                 values.put("focusLevel3AttackSpeedBonus", tierValue(tier, 0.60, 0.60, 0.80));
                 values.put("focusLevel3DamageBonus", 0.80);
@@ -1719,7 +1719,7 @@ public record TowerBalanceConfig(
                 values.put("waveLevel3SplashDamageRatio", tierValue(tier, 0.80, 0.80, 1.00));
                 values.put("wavePulseEveryAttacks", 2.0);
                 values.put("wavePulseRadius", tierValue(tier, 2.0, 1.5, 1.5));
-                values.put("wavePulseDamageRatio", tierValue(tier, 2.0, 2.0, 1.75));
+                values.put("wavePulseDamageRatio", tierValue(tier, 2.0, 2.0, 2.0));
             }
             case FROST -> {
                 values.put("frostLevel1SlowMagnitude", 0.15);
@@ -1736,19 +1736,19 @@ public record TowerBalanceConfig(
                 values.put("frostLevel1AttackSpeedReductionMagnitude", 0.15);
                 values.put("frostLevel2AttackSpeedReductionMagnitude", 0.30);
                 values.put("frostLevel3AttackSpeedReductionMagnitude", 0.40);
-                values.put("frostLevel2AuraDamageVsSlowedBonus", tierValue(tier, 0.50, 0.50, 0.35));
-                values.put("frostLevel3AuraDamageVsSlowedBonus", tierValue(tier, 1.50, 1.50, 1.00));
+                values.put("frostLevel2AuraDamageVsSlowedBonus", tierValue(tier, 0.50, 0.50, 0.50));
+                values.put("frostLevel3AuraDamageVsSlowedBonus", tierValue(tier, 1.50, 1.50, 1.50));
                 values.put("frostAuraRange", 1.0);
-                values.put("frostPulseAttackSpeedReductionMagnitude", tierValue(tier, 0.75, 0.75, 0.50));
+                values.put("frostPulseAttackSpeedReductionMagnitude", tierValue(tier, 0.75, 0.75, 0.75));
                 values.put("frostLevel2DamageVsSlowedBonus", 0.15);
                 values.put("frostLevel3DamageVsSlowedBonus", 0.30);
             }
             case AMPLIFY -> {
-                values.put("bloomLevel1DamageReduction", tierValue(tier, 0.15, 0.12, 0.12));
-                values.put("bloomLevel2DamageReduction", tierValue(tier, 0.30, 0.20, 0.20));
+                values.put("bloomLevel1DamageReduction", tierValue(tier, 0.15, 0.15, 0.15));
+                values.put("bloomLevel2DamageReduction", tierValue(tier, 0.30, 0.25, 0.25));
                 values.put("bloomLevel2AuraAttackSpeedBonus", tierValue(tier, 0.20, 0.20, 0.25));
                 values.put("bloomLevel3DamageReduction", tierValue(tier, 0.35, 0.35, 0.40));
-                values.put("bloomLevel3AuraAttackSpeedBonus", tierValue(tier, 0.50, 0.50, 0.35));
+                values.put("bloomLevel3AuraAttackSpeedBonus", tierValue(tier, 0.50, 0.50, 0.50));
                 values.put("bloomAuraRange", 1.0);
                 values.put("bloomProtectEveryAttacks", 3.0);
                 values.put("bloomProtectRadius", 2.0);

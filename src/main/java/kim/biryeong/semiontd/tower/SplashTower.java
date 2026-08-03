@@ -39,7 +39,7 @@ public abstract class SplashTower extends EntityBackedTower {
 
     protected boolean damage(SemionTowerEntity tower, SemionMonsterEntity monster, double damage) {
         double splashDamage = damage * getSplashRatio();
-        boolean killed = damageTarget(tower, monster, splashDamage);
+        boolean killed = tower.damageBasicAttackSecondaryTargetResult(monster, splashDamage).killed();
         if (killed) {
             onKill(tower, monster, splashDamage);
         }

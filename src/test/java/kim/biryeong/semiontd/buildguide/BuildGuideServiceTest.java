@@ -3,12 +3,14 @@ package kim.biryeong.semiontd.buildguide;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.game.PlayerEconomy;
+import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.game.TeamId;
@@ -18,6 +20,46 @@ import kim.biryeong.semiontd.trait.TraitLoadout;
 import org.junit.jupiter.api.Test;
 
 final class BuildGuideServiceTest {
+    @Test
+    void recordedActionsKeepInsertionOrderAndSaleRefund() {
+        BuildGuideService service = new BuildGuideService(null);
+        UUID playerId = UUID.fromString("00000000-0000-0000-0000-000000000202");
+        SemionGame game = gameWithPlayer(playerId, "player");
+        GridPosition position = new GridPosition(3, 64, 5);
+
+        service.startMatch(game);
+        service.recordTowerPlacement(game, playerId, "tower:t1", position, 25);
+        service.recordTowerUpgrade(game, playerId, "tower:upgrade", position, 60);
+        service.recordTowerSale(game, playerId, "tower:t2", position, 42);
+        service.recordSummon(game, playerId, "summon:zombie", 8, 2, TeamId.BLUE, 1, 2);
+        service.recordEmeraldProductionUpgrade(game, playerId, 1, 10, 1);
+
+        List<BuildAction> actions = service.recordedActions(playerId);
+        assertEquals(List.of(
+                BuildActionType.TOWER_PLACE,
+                BuildActionType.TOWER_UPGRADE,
+                BuildActionType.TOWER_SELL,
+                BuildActionType.SUMMON,
+                BuildActionType.EMERALD_PRODUCTION_UPGRADE
+        ), actions.stream().map(BuildAction::type).toList());
+        assertEquals(position, actions.get(2).position());
+        assertEquals(0L, actions.get(2).cost());
+        assertEquals(42L, actions.get(2).incomeGain());
+    }
+
+    @Test
+    void configReloadKeepsActiveMatchRecording() {
+        BuildGuideService service = new BuildGuideService(null);
+        UUID playerId = UUID.fromString("00000000-0000-0000-0000-000000000203");
+        SemionGame game = gameWithPlayer(playerId, "player");
+
+        service.startMatch(game);
+        service.recordTowerPlacement(game, playerId, "tower:t1", new GridPosition(3, 64, 5), 25);
+        service.configure(null);
+
+        assertEquals(1, service.recordedActions(playerId).size());
+    }
+
     @Test
     void lastRecordingSurvivesUntilNextMatchFinishes() {
         BuildGuideService service = new BuildGuideService(null);

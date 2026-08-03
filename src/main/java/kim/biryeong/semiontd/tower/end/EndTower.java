@@ -310,7 +310,7 @@ public final class EndTower extends EntityBackedTower {
         if (!isHatched() || towerEntity == null || target == null) {
             return;
         }
-        applySplashDamage(towerEntity, target, resolvedOutgoingDamage);
+        applySplashDamage(towerEntity, target, attemptedDamage, resolvedOutgoingDamage);
         heal(towerEntity, dealtDamage * lifeStealRatio());
     }
 
@@ -665,9 +665,15 @@ public final class EndTower extends EntityBackedTower {
         return Math.min(Math.max(0.0, global("splashRadiusCap")), unlockedSteps * radiusPerThreshold);
     }
 
-    private void applySplashDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    private void applySplashDamage(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage
+    ) {
         double radius = splashRadius();
-        double splashDamageAmount = resolvedSplashDamage(damageAmount);
+        double splashDamageAmount = resolvedSplashDamage(resolvedOutgoingDamage);
+        double igniteAttackDamage = resolvedSplashDamage(attemptedDamage);
         if (radius <= 0.0 || splashDamageAmount <= 0.0) {
             return;
         }
@@ -679,10 +685,10 @@ public final class EndTower extends EntityBackedTower {
                 request,
                 ignored -> splashDamageAmount,
                 true,
-                (ignored, dealtSplashDamage, killed) -> heal(
-                        towerEntity,
-                        dealtSplashDamage * lifeStealRatio()
-                )
+                (splashTarget, dealtSplashDamage, killed) -> {
+                    heal(towerEntity, dealtSplashDamage * lifeStealRatio());
+                    towerEntity.applyIgniteFromBasicAttack(splashTarget, igniteAttackDamage, killed);
+                }
         );
     }
 

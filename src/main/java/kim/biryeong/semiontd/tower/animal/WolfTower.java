@@ -110,7 +110,7 @@ public class WolfTower extends AnimalStackTower {
                 AreaEffectIds.tower(this, "splash"), towerEntity, target, radius,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(this, towerEntity, request,
+        TowerAreaDamage.applyBasicAttackSplash(this, towerEntity, request,
                 monster -> damageAmount * (value("splashDamageRatio")
                         + (hasLeaderAura() ? leaderValue("leaderSplashDamageRatioBonus") : 0.0)), true);
     }

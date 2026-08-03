@@ -40,6 +40,7 @@ public final class Events {
             gameManager.scheduleStartupLobbyLoad(server);
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            gameManager.restoreCombatTickRate(server);
             TowerVfxService.shutdown();
             skyboxService.shutdown();
             tipService.shutdown();

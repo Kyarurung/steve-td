@@ -47,6 +47,14 @@ public record BuildAction(
         return new BuildAction(round, BuildActionType.TOWER_UPGRADE, upgradeId, position, cost, 0L, 0, "", 0, POSITION_LANE_RELATIVE);
     }
 
+    public static BuildAction towerSellRelative(int round, String towerId, GridPosition position, long refund) {
+        return new BuildAction(round, BuildActionType.TOWER_SELL, towerId, position, 0L, refund, 0, "", 0, POSITION_LANE_RELATIVE);
+    }
+
+    public static BuildAction towerSell(int round, String towerId, GridPosition position, long refund) {
+        return new BuildAction(round, BuildActionType.TOWER_SELL, towerId, position, 0L, refund, 0, "", 0, POSITION_ABSOLUTE);
+    }
+
     public static BuildAction summon(int round, String summonId, long cost, long incomeGain, int scheduledRound, String targetTeam, int targetLaneId) {
         return new BuildAction(round, BuildActionType.SUMMON, summonId, null, cost, incomeGain, scheduledRound, targetTeam, targetLaneId, POSITION_ABSOLUTE);
     }

@@ -44,4 +44,9 @@ public final class WarlockTowerJob extends SemionJob {
                         .noneMatch(WarlockTowers::isWarlockCore))
                 .orElse(true);
     }
+
+    @Override
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return WarlockTowers.isWarlockTower(towerType);
+    }
 }

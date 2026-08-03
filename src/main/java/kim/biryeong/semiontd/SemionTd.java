@@ -78,6 +78,8 @@ public class SemionTd implements ModInitializer {
                 new BalancePatchNotifier(configDir.resolve("balance_notification_state.json"));
         SemionMusicResourcePack.register(musicService::library, LOGGER);
         SemionSkyboxResourcePack.register(skyboxService::library, LOGGER);
+        gameManager.configureWebIntegration(configs.webIntegration());
+        gameManager.configureCombatSpeed(configs.combatSpeed());
         gameManager.configure(
                 configs.economy(),
                 configs.waves(),

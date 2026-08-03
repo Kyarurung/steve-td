@@ -32,7 +32,29 @@ public final class TowerAreaDamage {
             boolean propagateKills,
             AfterDamage afterDamage
     ) {
-        return apply(tower, source, request, damage, propagateKills, afterDamage, false);
+        return apply(tower, source, request, damage, propagateKills, afterDamage, false, false);
+    }
+
+    public static AreaEffectResult<SemionMonsterEntity> applyBasicAttackSplash(
+            Tower tower,
+            SemionTowerEntity source,
+            MonsterAreaEffectRequest request,
+            ToDoubleFunction<SemionMonsterEntity> damage,
+            boolean propagateKills
+    ) {
+        return applyBasicAttackSplash(tower, source, request, damage, propagateKills, (target, amount, killed) -> {
+        });
+    }
+
+    public static AreaEffectResult<SemionMonsterEntity> applyBasicAttackSplash(
+            Tower tower,
+            SemionTowerEntity source,
+            MonsterAreaEffectRequest request,
+            ToDoubleFunction<SemionMonsterEntity> damage,
+            boolean propagateKills,
+            AfterDamage afterDamage
+    ) {
+        return apply(tower, source, request, damage, propagateKills, afterDamage, false, true);
     }
 
     public static AreaEffectResult<SemionMonsterEntity> applyResolved(
@@ -43,7 +65,7 @@ public final class TowerAreaDamage {
             boolean propagateKills,
             AfterDamage afterDamage
     ) {
-        return apply(tower, source, request, damage, propagateKills, afterDamage, true);
+        return apply(tower, source, request, damage, propagateKills, afterDamage, true, false);
     }
 
     private static AreaEffectResult<SemionMonsterEntity> apply(
@@ -53,16 +75,22 @@ public final class TowerAreaDamage {
             ToDoubleFunction<SemionMonsterEntity> damage,
             boolean propagateKills,
             AfterDamage afterDamage,
-            boolean resolvedOutgoingDamage
+            boolean resolvedOutgoingDamage,
+            boolean igniteOnHit
     ) {
         return SemionTdApi.areaEffects().applyToMonsters(request, target -> {
             double amount = Math.max(0.0, damage.applyAsDouble(target));
             if (amount <= 0.0) {
                 return AreaEffectOutcome.UNCHANGED;
             }
-            Tower.DamageResult damageResult = resolvedOutgoingDamage
-                    ? tower.damageResolvedTargetResult(source, target, amount)
-                    : tower.damageTargetResult(source, target, amount);
+            Tower.DamageResult damageResult;
+            if (resolvedOutgoingDamage) {
+                damageResult = tower.damageResolvedTargetResult(source, target, amount);
+            } else if (igniteOnHit) {
+                damageResult = source.damageBasicAttackSecondaryTargetResult(target, amount);
+            } else {
+                damageResult = tower.damageTargetResult(source, target, amount);
+            }
             boolean killed = damageResult.killed();
             afterDamage.accept(target, damageResult.dealtDamage(), killed);
             if (killed && propagateKills) {

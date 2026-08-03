@@ -48,8 +48,6 @@ public final class BuildGuideService {
     public void configure(Path storePath) {
         this.store = new BuildGuideStore(storePath);
         this.trackedCodes.clear();
-        this.activeRecordings.clear();
-        this.lastRecordings.clear();
     }
 
     public void startMatch(SemionGame game) {
@@ -275,6 +273,18 @@ public final class BuildGuideService {
         record(playerId, towerUpgradeAction(game, playerId, upgradeId, position, cost));
     }
 
+    public void recordTowerSale(SemionGame game, UUID playerId, String towerId, GridPosition position, long refund) {
+        record(playerId, towerSaleAction(game, playerId, towerId, position, refund));
+    }
+
+    public List<BuildAction> recordedActions(UUID playerId) {
+        Recording recording = activeRecordings.get(playerId);
+        if (recording == null) {
+            recording = lastRecordings.get(playerId);
+        }
+        return recording == null ? List.of() : List.copyOf(recording.actions());
+    }
+
     public void recordSummon(SemionGame game, UUID playerId, String summonId, long cost, long incomeGain, TeamId targetTeam, int targetLaneId, int scheduledRound) {
         record(playerId, BuildAction.summon(
                 game.currentRound(),
@@ -339,6 +349,9 @@ public final class BuildGuideService {
             case TOWER_UPGRADE -> ProductionTowerCatalog.findUpgrade(action.subjectId())
                     .map(TowerUpgradeOption::displayName)
                     .orElse(action.subjectId());
+            case TOWER_SELL -> ProductionTowerCatalog.find(action.subjectId())
+                    .map(entry -> entry.type().displayName())
+                    .orElse(action.subjectId());
             case SUMMON -> SummonRegistry.find(action.subjectId())
                     .map(SummonMonsterType::displayName)
                     .orElse(action.subjectId());
@@ -394,6 +407,8 @@ public final class BuildGuideService {
                     + positionLabel(resolvedPosition) + "</gray>";
             case TOWER_UPGRADE -> "<blue>타워 업그레이드</blue> <white>" + subjectDisplayName(action) + "</white> <gray>"
                     + positionLabel(resolvedPosition) + "</gray>";
+            case TOWER_SELL -> "<red>타워 판매</red> <white>" + subjectDisplayName(action) + "</white> <gray>"
+                    + positionLabel(resolvedPosition) + "</gray>";
             case SUMMON -> "<light_purple>견제 소환</light_purple> <white>" + subjectDisplayName(action) + "</white>"
                     + " <gray>예약 라운드 " + action.scheduledRound() + "</gray>";
             case EMERALD_PRODUCTION_UPGRADE -> "<green>에메랄드 생산 업그레이드</green> <gray>"
@@ -418,6 +433,12 @@ public final class BuildGuideService {
         return game.playerLane(playerId)
                 .map(lane -> BuildAction.towerUpgradeRelative(game.currentRound(), upgradeId, toLaneRelative(lane, position), cost))
                 .orElseGet(() -> BuildAction.towerUpgrade(game.currentRound(), upgradeId, position, cost));
+    }
+
+    private static BuildAction towerSaleAction(SemionGame game, UUID playerId, String towerId, GridPosition position, long refund) {
+        return game.playerLane(playerId)
+                .map(lane -> BuildAction.towerSellRelative(game.currentRound(), towerId, toLaneRelative(lane, position), refund))
+                .orElseGet(() -> BuildAction.towerSell(game.currentRound(), towerId, position, refund));
     }
 
     private static GridPosition toLaneRelative(PlayerLane lane, GridPosition position) {

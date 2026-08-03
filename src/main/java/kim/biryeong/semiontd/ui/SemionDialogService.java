@@ -1424,6 +1424,9 @@ public final class SemionDialogService {
             case TOWER_UPGRADE -> "<blue>타워 업그레이드</blue> <white>" + BuildGuideService.subjectDisplayName(action) + "</white>"
                     + " <gray>" + buildPositionLabel(action) + "</gray>"
                     + " <dark_gray>|</dark_gray> <aqua>💎 " + action.cost() + "</aqua>";
+            case TOWER_SELL -> "<red>타워 판매</red> <white>" + BuildGuideService.subjectDisplayName(action) + "</white>"
+                    + " <gray>" + buildPositionLabel(action) + "</gray>"
+                    + " <dark_gray>|</dark_gray> <aqua>💎 +" + action.incomeGain() + "</aqua>";
             case SUMMON -> "<light_purple>견제 소환</light_purple> <white>" + BuildGuideService.subjectDisplayName(action) + "</white>"
                     + " <dark_gray>|</dark_gray> <green>◆ " + action.cost() + "</green>"
                     + " <dark_gray>|</dark_gray> <yellow>인컴 +" + action.incomeGain() + "</yellow>"

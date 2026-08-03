@@ -27,11 +27,17 @@ public final class SemionSidebarHudService {
 
     public void tick(MinecraftServer server, SemionGame game, MatchMode matchMode, Set<UUID> protectedPlayerIds) {
         updateTicker++;
-        if (updateTicker % UPDATE_INTERVAL_TICKS != 0) {
+        if (updateTicker % updateIntervalTicks(server.tickRateManager().tickrate()) != 0) {
             return;
         }
 
         refreshNow(server, game, matchMode, protectedPlayerIds);
+    }
+
+    static int updateIntervalTicks(float tickRate) {
+        return !Float.isFinite(tickRate) || tickRate <= 20.0F
+                ? UPDATE_INTERVAL_TICKS
+                : Math.max(UPDATE_INTERVAL_TICKS, Math.round(UPDATE_INTERVAL_TICKS * tickRate / 20.0F));
     }
 
     public void refreshNow(MinecraftServer server, SemionGame game, MatchMode matchMode) {

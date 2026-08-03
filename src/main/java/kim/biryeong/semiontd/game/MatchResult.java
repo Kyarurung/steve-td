@@ -15,7 +15,8 @@ public record MatchResult(
         Set<TeamId> winningTeams,
         List<TeamMatchResult> teamResults,
         int finalRound,
-        MatchMode matchMode
+        MatchMode matchMode,
+        String catalogVersion
 ) {
     public MatchResult(
             List<MatchParticipantResult> participants,
@@ -32,7 +33,8 @@ public record MatchResult(
                 winningTeams,
                 fallbackTeamResults(participants, winningTeams),
                 finalRound,
-                MatchMode.NORMAL
+                MatchMode.NORMAL,
+                null
         );
     }
 
@@ -55,8 +57,24 @@ public record MatchResult(
                 winningTeams,
                 teamResults,
                 finalRound,
-                MatchMode.NORMAL
+                MatchMode.NORMAL,
+                null
         );
+    }
+
+    public MatchResult(
+            MatchId matchId,
+            long startedAtEpochMillis,
+            long endedAtEpochMillis,
+            List<MatchParticipantResult> participants,
+            Set<UUID> spectatorIds,
+            Set<TeamId> winningTeams,
+            List<TeamMatchResult> teamResults,
+            int finalRound,
+            MatchMode matchMode
+    ) {
+        this(matchId, startedAtEpochMillis, endedAtEpochMillis, participants, spectatorIds,
+                winningTeams, teamResults, finalRound, matchMode, null);
     }
 
     public MatchResult {
@@ -68,6 +86,7 @@ public record MatchResult(
         if (startedAtEpochMillis < 0 || endedAtEpochMillis < 0) {
             throw new IllegalArgumentException("match timestamps cannot be negative");
         }
+        catalogVersion = catalogVersion == null || catalogVersion.isBlank() ? null : catalogVersion;
     }
 
     public int participantCount() {

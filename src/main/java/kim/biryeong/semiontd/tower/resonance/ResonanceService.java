@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.resonance;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -47,13 +46,7 @@ public final class ResonanceService {
         int linkedTowers = (int) towers.stream()
                 .filter(candidate -> candidate != tower)
                 .filter(candidate -> sameOwnerLane(tower, candidate))
-                .filter(candidate -> !candidate.type().id().equals(tower.type().id()))
                 .filter(candidate -> distance(tower.position(), candidate.position()) <= ability(tower, "linkRange"))
-                .sorted(Comparator
-                        .comparingInt((ResonanceTower candidate) -> distance(tower.position(), candidate.position()))
-                        .thenComparing(candidate -> candidate.type().id()))
-                .map(candidate -> candidate.type().id())
-                .distinct()
                 .limit(maxLinks)
                 .count();
 

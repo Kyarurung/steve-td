@@ -25,6 +25,7 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import net.minecraft.resources.ResourceLocation;
 
 public class AllayTower extends SupportTower {
+    private static final int MINIMUM_REDUCED_INTERVAL_TICKS = 20;
     private static final ResourceLocation WEAPON_SMITH_SOURCE = supportId("weapon_smith");
     private static final ResourceLocation ARMORER_SOURCE = supportId("armorer");
     private static final TowerDataKey<Long> HEAL_BLOCKED_UNTIL = TowerDataKey.of(supportId("allay_heal_blocked_until"), Long.class);
@@ -192,7 +193,7 @@ public class AllayTower extends SupportTower {
 
     @Override
     protected int cooldownTicksAfterExecute(PlayerLane lane) {
-        return reducedTicks(super.cooldownTicksAfterExecute(lane), intervalReduction(lane));
+        return reducedTicks(super.cooldownTicksAfterExecute(lane), intervalReduction(lane), minimumReducedIntervalTicks());
     }
 
     private double healAmount(PlayerLane lane, double baseAmount) {
@@ -200,11 +201,20 @@ public class AllayTower extends SupportTower {
     }
 
     private int supportBlockTicks(PlayerLane lane) {
-        return reducedTicks(ticks("supportBlockTicks"), intervalReduction(lane));
+        return reducedTicks(ticks("supportBlockTicks"), intervalReduction(lane), minimumReducedIntervalTicks());
     }
 
-    private int reducedTicks(int baseTicks, double reduction) {
-        return Math.max(1, (int) Math.ceil(baseTicks * Math.max(0.01, 1.0 - reduction)));
+    static int reducedTicks(int baseTicks, double reduction, int minimumTicks) {
+        return Math.max(minimumTicks, (int) Math.ceil(baseTicks * Math.max(0.01, 1.0 - reduction)));
+    }
+
+    private int minimumReducedIntervalTicks() {
+        return VillagerTowers.isAdvVillagerTower(type())
+                && (is(VillagerTowers.T1_ALLAY_TOWER)
+                || is(VillagerTowers.T2_ALLAY_TOWER)
+                || is(VillagerTowers.T3_ARMORER_TOWER))
+                ? MINIMUM_REDUCED_INTERVAL_TICKS
+                : 1;
     }
 
     private double intervalReduction(PlayerLane lane) {

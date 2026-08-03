@@ -317,7 +317,7 @@ public final class TowerVfxService {
             pruneLaneState(gameTime);
             return;
         }
-        VfxConfig batchConfig = config;
+        VfxConfig batchConfig = config.scaledForTickRate(server.tickRateManager().tickrate());
         if (!batchConfig.enabled()) {
             batch.forEach(event -> stats(event.context().lane()).dropped.increment());
             return;

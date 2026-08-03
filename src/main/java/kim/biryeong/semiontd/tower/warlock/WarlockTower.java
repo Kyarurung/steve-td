@@ -325,7 +325,7 @@ public class WarlockTower extends EntityBackedTower {
                 AreaEffectIds.tower(this, "splash"), towerEntity, target, radius,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(this, towerEntity, request, monster -> damageAmount * ratio, true);
+        TowerAreaDamage.applyBasicAttackSplash(this, towerEntity, request, monster -> damageAmount * ratio, true);
     }
 
     private double splashRadius() {

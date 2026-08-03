@@ -58,9 +58,9 @@ class ResonanceTowerCatalogTest {
         assertEquals(new TowerStats(45L, 50.0, 7.0, 8.0, 20, 0), config.towers().get(ResonanceTowers.FROST_CRYSTAL.id()));
         assertEquals(new TowerStats(150L, 75.0, 8.0, 10.0, 16, 2), config.towers().get(ResonanceTowers.FROST_PRISM.id()));
         assertEquals(new TowerStats(280L, 105.0, 12.0, 16.0, 12, 5), config.towers().get(ResonanceTowers.FROST_CORE.id()));
-        assertEquals(new TowerStats(45L, 100.0, 5.0, 8.0, 15, 40), config.towers().get(ResonanceTowers.AMPLIFY_CRYSTAL.id()));
-        assertEquals(new TowerStats(200L, 200.0, 5.5, 11.0, 12, 45), config.towers().get(ResonanceTowers.AMPLIFY_PRISM.id()));
-        assertEquals(new TowerStats(350L, 450.0, 6.0, 20.0, 10, 50), config.towers().get(ResonanceTowers.AMPLIFY_CORE.id()));
+        assertEquals(new TowerStats(45L, 120.0, 5.0, 8.0, 15, 40), config.towers().get(ResonanceTowers.AMPLIFY_CRYSTAL.id()));
+        assertEquals(new TowerStats(200L, 260.0, 5.5, 11.0, 12, 45), config.towers().get(ResonanceTowers.AMPLIFY_PRISM.id()));
+        assertEquals(new TowerStats(350L, 550.0, 6.0, 20.0, 10, 50), config.towers().get(ResonanceTowers.AMPLIFY_CORE.id()));
         assertEquals(60, config.upgradeCost(ResonanceTowers.FOCUS_CRYSTAL.id(), ResonanceTowers.FOCUS_PRISM.id(), -1));
         assertEquals(180, config.upgradeCost(ResonanceTowers.FOCUS_PRISM.id(), ResonanceTowers.FOCUS_CORE.id(), -1));
         assertEquals(60, config.upgradeCost(ResonanceTowers.WAVE_CRYSTAL.id(), ResonanceTowers.WAVE_PRISM.id(), -1));
@@ -78,18 +78,22 @@ class ResonanceTowerCatalogTest {
         assertEquals(1.0, config.ability(ResonanceTowers.FOCUS_CRYSTAL.id(), "maxResonanceLevel", -1.0), 0.0001);
         assertEquals(2.0, config.ability(ResonanceTowers.FOCUS_PRISM.id(), "maxResonanceLevel", -1.0), 0.0001);
         assertEquals(3.0, config.ability(ResonanceTowers.FOCUS_CORE.id(), "maxResonanceLevel", -1.0), 0.0001);
-        assertEquals(0.20, config.ability(ResonanceTowers.FOCUS_CORE.id(), "focusLevel1AttackSpeedBonus", -1.0), 0.0001);
-        assertEquals(0.40, config.ability(ResonanceTowers.FOCUS_CORE.id(), "focusLevel2AttackSpeedBonus", -1.0), 0.0001);
+        assertEquals(0.30, config.ability(ResonanceTowers.FOCUS_CORE.id(), "focusLevel1AttackSpeedBonus", -1.0), 0.0001);
+        assertEquals(0.60, config.ability(ResonanceTowers.FOCUS_CORE.id(), "focusLevel2AttackSpeedBonus", -1.0), 0.0001);
         assertEquals(0.80, config.ability(ResonanceTowers.FOCUS_CORE.id(), "focusLevel3DamageBonus", -1.0), 0.0001);
         assertEquals(1.00, config.ability(ResonanceTowers.WAVE_CORE.id(), "waveLevel3SplashDamageRatio", -1.0), 0.0001);
-        assertEquals(1.75, config.ability(ResonanceTowers.WAVE_CORE.id(), "wavePulseDamageRatio", -1.0), 0.0001);
+        assertEquals(2.00, config.ability(ResonanceTowers.WAVE_CORE.id(), "wavePulseDamageRatio", -1.0), 0.0001);
         assertEquals(0.40, config.ability(ResonanceTowers.FROST_CORE.id(), "frostLevel3SlowMagnitude", -1.0), 0.0001);
         assertEquals(0.40, config.ability(ResonanceTowers.FROST_CORE.id(), "frostLevel3AttackSpeedReductionMagnitude", -1.0), 0.0001);
-        assertEquals(0.35, config.ability(ResonanceTowers.FROST_CORE.id(), "frostLevel2AuraDamageVsSlowedBonus", -1.0), 0.0001);
-        assertEquals(1.00, config.ability(ResonanceTowers.FROST_CORE.id(), "frostLevel3AuraDamageVsSlowedBonus", -1.0), 0.0001);
+        assertEquals(0.50, config.ability(ResonanceTowers.FROST_CORE.id(), "frostLevel2AuraDamageVsSlowedBonus", -1.0), 0.0001);
+        assertEquals(1.50, config.ability(ResonanceTowers.FROST_CORE.id(), "frostLevel3AuraDamageVsSlowedBonus", -1.0), 0.0001);
         assertEquals(1.0, config.ability(ResonanceTowers.FROST_CORE.id(), "frostAuraRange", -1.0), 0.0001);
-        assertEquals(0.50, config.ability(ResonanceTowers.FROST_CORE.id(), "frostPulseAttackSpeedReductionMagnitude", -1.0), 0.0001);
-        assertEquals(0.35, config.ability(ResonanceTowers.AMPLIFY_CORE.id(), "bloomLevel3AuraAttackSpeedBonus", -1.0), 0.0001);
+        assertEquals(0.75, config.ability(ResonanceTowers.FROST_CORE.id(), "frostPulseAttackSpeedReductionMagnitude", -1.0), 0.0001);
+        assertEquals(0.15, config.ability(ResonanceTowers.AMPLIFY_PRISM.id(), "bloomLevel1DamageReduction", -1.0), 0.0001);
+        assertEquals(0.25, config.ability(ResonanceTowers.AMPLIFY_PRISM.id(), "bloomLevel2DamageReduction", -1.0), 0.0001);
+        assertEquals(0.15, config.ability(ResonanceTowers.AMPLIFY_CORE.id(), "bloomLevel1DamageReduction", -1.0), 0.0001);
+        assertEquals(0.25, config.ability(ResonanceTowers.AMPLIFY_CORE.id(), "bloomLevel2DamageReduction", -1.0), 0.0001);
+        assertEquals(0.50, config.ability(ResonanceTowers.AMPLIFY_CORE.id(), "bloomLevel3AuraAttackSpeedBonus", -1.0), 0.0001);
     }
 
     @Test

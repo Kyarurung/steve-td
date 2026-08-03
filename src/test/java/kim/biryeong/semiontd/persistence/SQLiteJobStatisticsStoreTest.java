@@ -302,6 +302,8 @@ final class SQLiteJobStatisticsStoreTest {
         json.getAsJsonArray("participants").get(0).getAsJsonObject().remove("clearedRounds");
         json.getAsJsonArray("participants").get(0).getAsJsonObject().remove("traitLoadout");
         json.getAsJsonArray("participants").get(0).getAsJsonObject().remove("finalTowerComposition");
+        json.getAsJsonArray("participants").get(0).getAsJsonObject().remove("buildActions");
+        json.remove("catalogVersion");
 
         MatchResult legacy = gson.fromJson(json, MatchResult.class);
         assertNull(legacy.matchMode());
@@ -310,6 +312,8 @@ final class SQLiteJobStatisticsStoreTest {
         assertEquals(List.of(), legacy.participants().getFirst().clearedRounds());
         assertEquals(TraitLoadoutSnapshot.none(), legacy.participants().getFirst().traitLoadout());
         assertEquals(List.of(), legacy.participants().getFirst().finalTowerComposition());
+        assertEquals(List.of(), legacy.participants().getFirst().buildActions());
+        assertNull(legacy.catalogVersion());
 
         JobStatisticsSnapshot snapshot = new SQLiteJobStatisticsStore(tempDir.resolve("job-statistics.db"))
                 .ingest(legacy);

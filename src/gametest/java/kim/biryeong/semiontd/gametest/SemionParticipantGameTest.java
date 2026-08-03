@@ -1426,6 +1426,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, markup.contains("R1 시작 전"), "First preparation should show the pre-wave label.")) {
             return;
         }
+        if (!assertTrue(context, markup.contains("<gray>준비</gray> <green>25초</green>"), "Damage sidebar should show the remaining preparation time before the wave.")) {
+            return;
+        }
         if (!assertTrue(context, markup.contains("Damage Type 1</white> <red>650"), "Same tower types should aggregate their dealt damage.")) {
             return;
         }
@@ -3395,6 +3398,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
+        ProductionTowerService.SaleResult sale = ProductionTowerService.sellTower(game, redId, towerPos);
+        if (!assertEquals(context, TowerSellResult.SUCCESS, sale.result(), "Successful tower sale should be accepted for build recording.")) {
+            return;
+        }
         var summon = game.summonMonster(redId, "chicken");
         if (!assertEquals(
                 context,
@@ -3414,7 +3421,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         BuildGuide guide = published.get();
-        if (!assertEquals(context, 4, guide.actions().size(), "Only successful placement, upgrade, summon, and emerald upgrade actions should be recorded.")) {
+        if (!assertEquals(context, 5, guide.actions().size(), "Only successful placement, upgrade, sale, summon, and emerald upgrade actions should be recorded.")) {
             return;
         }
         if (!assertTrue(context, guide.isPrivate(), "Newly recorded build guides should be private by default.")) {
@@ -3542,6 +3549,34 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 reloadedGuide.get().traitLoadout(),
                 "Persisted build guide should keep the selected traits after reload."
         )) {
+            return;
+        }
+        if (!assertTrue(context, game.killBoss(TeamId.BLUE), "Build recording game should finish with a match result.")) {
+            return;
+        }
+        MatchParticipantResult participantResult = game.matchResult().orElseThrow().participants().stream()
+                .filter(participant -> participant.playerId().equals(redId))
+                .findFirst()
+                .orElseThrow();
+        if (!assertEquals(
+                context,
+                List.of(
+                        BuildActionType.TOWER_PLACE,
+                        BuildActionType.TOWER_UPGRADE,
+                        BuildActionType.TOWER_SELL,
+                        BuildActionType.SUMMON,
+                        BuildActionType.EMERALD_PRODUCTION_UPGRADE
+                ),
+                participantResult.buildActions().stream().map(BuildAction::type).toList(),
+                "Match result should preserve every successful build action in insertion order."
+        )) {
+            return;
+        }
+        BuildAction saleAction = participantResult.buildActions().get(2);
+        if (!assertEquals(context, sale.refundAmount(), saleAction.incomeGain(), "Match result sale action should preserve the actual refund.")) {
+            return;
+        }
+        if (!assertTrue(context, saleAction.hasLaneRelativePosition(), "Match result sale action should preserve lane-relative coordinates.")) {
             return;
         }
         context.succeed();
@@ -5348,7 +5383,64 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, killTarget.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Ignite kills should keep tower kill attribution.")) {
             return;
         }
-        if (!assertClose(context, 84.5, sourceTower.roundDamageDealt(), "Ignite ticks should count toward the tower that applied the retained ignite.")) {
+        if (!assertClose(context, 84.5, sourceTower.roundIgniteDamageDealt(), "Ignite ticks should count separately for the tower that applied the retained ignite.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest(maxTicks = 40)
+    public void igniteAppliesFromBasicAttackSplashAndAppearsInDamageSidebar(GameTestHelper context) {
+        UUID playerId = stableUuid("ignite-splash-sidebar-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
+        PlayerLane lane = redLane(game, 1);
+        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.IGNITE_ID, BuiltInTraits.NONE_ID));
+        TestTower sourceTower = new TestTower(
+                TestTowerTypes.TEST_DIRECT,
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(towerPlacementPos(lane))
+        );
+        lane.addTower(sourceTower);
+        sourceTower.markWaveStarted(10);
+        SemionTowerEntity sourceEntity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(sourceTower.entityId().orElseThrow());
+        SemionMonsterEntity splashTarget = spawnRoleMonsterEntity(
+                context,
+                "ignite-splash-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                sourceEntity.position().add(3.0, 0.0, 0.0),
+                1_000.0,
+                List.of(SummonRole.SIEGE)
+        );
+        splashTarget.setNoAi(true);
+
+        sourceEntity.damageBasicAttackSecondaryTargetResult(splashTarget, 50.0);
+        if (!assertTrue(context, splashTarget.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) > 0,
+                "Basic-attack splash damage should apply ignite to its secondary target.")) {
+            return;
+        }
+        for (int tick = 0; tick < 20; tick++) {
+            splashTarget.aiStep();
+        }
+        if (!assertClose(context, 50.0, sourceTower.roundDamageDealt(),
+                "Normal damage stats should exclude independently tracked ignite damage.")) {
+            return;
+        }
+        if (!assertClose(context, 5.75, sourceTower.roundIgniteDamageDealt(),
+                "Damage stats should retain a visible ignite subtotal.")) {
+            return;
+        }
+        String markup = SemionHudTextService.damageSidebarMarkupFor(playerId, game);
+        if (!assertTrue(context, markup.contains("<red>⚔ 50</red> <dark_gray>|</dark_gray> <gold>🔥 6</gold>"),
+                "Damage sidebar should show normal and ignite damage as independent totals.")) {
+            return;
+        }
+        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <red>50</red>"),
+                "Tower damage ranking should exclude independently tracked ignite damage.")) {
             return;
         }
         context.succeed();
@@ -9870,6 +9962,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         addResonanceTower(lane, playerId, ResonanceTowers.AMPLIFY_CRYSTAL, focusPos.offset(0, 0, 1));
         addResonanceTower(lane, playerId, ResonanceTowers.WAVE_PRISM, focusPos.offset(0, 0, -1));
         addResonanceTower(lane, playerId, ResonanceTowers.FROST_PRISM, focusPos.offset(1, 0, 1));
+        addResonanceTower(lane, playerId, ResonanceTowers.FOCUS_CRYSTAL, focusPos.offset(-1, 0, -1));
         lane.markWaveStarted(1);
         if (!assertTrue(context, lane.towers().get(0) instanceof ResonanceTower, "Placed focus crystal should use ResonanceTower runtime.")) {
             return;
@@ -9878,7 +9971,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 1, focus.resonanceLevel(), "T1 focus should cap at resonance level 1.")) {
             return;
         }
-        if (!assertEquals(context, 5, focus.resonanceLinks(), "Focus should count five nearby different species within one tile.")) {
+        if (!assertEquals(context, 6, focus.resonanceLinks(), "Focus should count every nearby tower, including the same type and tier.")) {
             return;
         }
         if (!assertEquals(context, TowerUpgradeResult.SUCCESS, ProductionTowerService.upgradeTower(game, playerId, focusPos, ResonanceTowers.FOCUS_PRISM.id()), "Focus crystal should upgrade into T2 focus prism.")) {
@@ -9900,7 +9993,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 lane.killTower(tower);
             }
         }
-        if (!assertEquals(context, 5, focus.resonanceLinks(), "Links captured at wave start should survive nearby tower deaths.")) {
+        if (!assertEquals(context, 6, focus.resonanceLinks(), "Links captured at wave start should survive nearby tower deaths.")) {
             return;
         }
         lane.markWaveStarted(2);
@@ -9947,7 +10040,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 3, frost.resonanceLevel(), "T3 frost should unlock level 3 with six nearby different mooblooms.")) {
             return;
         }
-        if (!assertClose(context, 1.0, focus.auraDamageVsSlowedBonus(), "Nearby mooblooms should receive frost's damage-vs-debuffed aura.")) {
+        if (!assertClose(context, 1.5, focus.auraDamageVsSlowedBonus(), "Nearby mooblooms should receive frost's damage-vs-debuffed aura.")) {
             return;
         }
         SemionTowerEntity frostEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(frost.entityId().orElseThrow());
@@ -9977,7 +10070,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 0.40, target.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_SPEED_REDUCTION), "T3 frost should reduce attack speed.")) {
             return;
         }
-        if (!assertClose(context, 200.0, focus.modifyAttackDamage(null, target, 100.0), "Frost aura should make nearby mooblooms deal bonus damage to debuffed targets.")) {
+        if (!assertClose(context, 250.0, focus.modifyAttackDamage(null, target, 100.0), "Frost aura should make nearby mooblooms deal bonus damage to debuffed targets.")) {
             return;
         }
         context.succeed();

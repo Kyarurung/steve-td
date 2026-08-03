@@ -77,17 +77,31 @@ public final class SemionHudTextService {
             }
             byType.merge(
                     type.id(),
-                    new TowerDamageSummary(type.id(), type.displayName(), tower.roundDamageDealt(), tower.roundDamageTaken()),
+                    new TowerDamageSummary(
+                            type.id(),
+                            type.displayName(),
+                            tower.roundDamageDealt(),
+                            tower.roundIgniteDamageDealt(),
+                            tower.roundDamageTaken()
+                    ),
                     TowerDamageSummary::merge
             );
         }
 
         List<TowerDamageSummary> summaries = List.copyOf(byType.values());
         double totalDealt = summaries.stream().mapToDouble(TowerDamageSummary::dealt).sum();
+        double totalIgniteDealt = summaries.stream().mapToDouble(TowerDamageSummary::igniteDealt).sum();
         double totalTaken = summaries.stream().mapToDouble(TowerDamageSummary::taken).sum();
         StringBuilder text = new StringBuilder();
-        text.append("<gold>").append(damageRoundLabel(game)).append("</gold>")
-                .append(" <dark_gray>|</dark_gray> <red>⚔ ").append(formatDamage(totalDealt)).append("</red>")
+        text.append("<gold>").append(damageRoundLabel(game)).append("</gold>");
+        int remainingPrepareSeconds = game.remainingPrepareSeconds();
+        if (remainingPrepareSeconds >= 0) {
+            text.append(" <dark_gray>|</dark_gray> <gray>준비</gray> <green>")
+                    .append(remainingPrepareSeconds)
+                    .append("초</green>");
+        }
+        text.append(" <dark_gray>|</dark_gray> <red>⚔ ").append(formatDamage(totalDealt)).append("</red>")
+                .append(" <dark_gray>|</dark_gray> <gold>🔥 ").append(formatDamage(totalIgniteDealt)).append("</gold>")
                 .append(" <dark_gray>|</dark_gray> <aqua>🛡 ").append(formatDamage(totalTaken)).append("</aqua>\n");
         appendDamageTop(text, summaries, true);
         appendDamageTop(text, summaries, false);
@@ -233,9 +247,15 @@ public final class SemionHudTextService {
         };
     }
 
-    private record TowerDamageSummary(String id, String displayName, double dealt, double taken) {
+    private record TowerDamageSummary(String id, String displayName, double dealt, double igniteDealt, double taken) {
         private TowerDamageSummary merge(TowerDamageSummary other) {
-            return new TowerDamageSummary(id, displayName, dealt + other.dealt, taken + other.taken);
+            return new TowerDamageSummary(
+                    id,
+                    displayName,
+                    dealt + other.dealt,
+                    igniteDealt + other.igniteDealt,
+                    taken + other.taken
+            );
         }
     }
 

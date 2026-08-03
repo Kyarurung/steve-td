@@ -41,4 +41,14 @@ class VfxConfigTest {
         assertEquals(8192, config.vanilla().maxPacketsPerTickPerRecipient());
         assertEquals(512, config.gcb().maxShapeInstructionsPerTick());
     }
+
+    @Test
+    void fortyTpsKeepsBurstButHalvesSustainedBudgets() {
+        VfxConfig config = VfxConfig.defaultConfig().scaledForTickRate(40.0F);
+
+        assertEquals(512, config.vanilla().refillPointsPerTick());
+        assertEquals(4096, config.vanilla().burstCapacityPoints());
+        assertEquals(1024, config.vanilla().maxPacketsPerTickPerRecipient());
+        assertEquals(64, config.gcb().maxShapeInstructionsPerTick());
+    }
 }
