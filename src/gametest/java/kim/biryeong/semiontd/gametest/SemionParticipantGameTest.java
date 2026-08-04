@@ -4376,44 +4376,32 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void sellingTowerAfterWaveStartsRefundsHalfCost(GameTestHelper context) {
-        UUID redId = stableUuid("red-tower-sell-half");
-        UUID blueId = stableUuid("blue-tower-sell-half");
+    public void sellingTowerAfterWaveStartsIsRejected(GameTestHelper context) {
+        UUID redId = stableUuid("red-tower-sell-rejected");
+        UUID blueId = stableUuid("blue-tower-sell-rejected");
         SemionGame game = startedTwoPlayerGame(context, redId, blueId);
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
         long towerCost = TestTowerTypes.TEST_DIRECT.mineralCost();
-
-        if (!assertEquals(
-                context,
-                TowerPlacementResult.SUCCESS,
-                TestTowerService.placeTestTower(game, redId, towerPos),
-                "Test tower placement should succeed before half refund sale."
-        )) {
+        if (!assertEquals(context, TowerPlacementResult.SUCCESS, TestTowerService.placeTestTower(game, redId, towerPos), "Test tower placement should succeed before rejected sale.")) {
             return;
         }
-
+        long mineralAfterPlacement = EconomyConfig.defaultConfig().startingMineral() - towerCost;
         tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS);
-        if (!assertEquals(context, RoundPhase.LANE_WAVE, game.phase(), "Game should be in wave phase before half refund sale.")) {
+        if (!assertEquals(context, RoundPhase.LANE_WAVE, game.phase(), "Game should be in wave phase before rejected sale.")) {
             return;
         }
-
         ProductionTowerService.SaleResult sale = ProductionTowerService.sellTower(game, redId, towerPos);
-        if (!assertEquals(context, TowerSellResult.SUCCESS, sale.result(), "Tower sale should succeed after wave starts.")) {
+        if (!assertEquals(context, TowerSellResult.INVALID_PHASE, sale.result(), "Tower sale should be rejected after wave starts.")) {
             return;
         }
-        if (!assertEquals(context, Math.round(towerCost * 0.5), sale.refundAmount(), "Tower sold after wave starts should refund half of its paid cost.")) {
+        if (!assertEquals(context, 0L, sale.refundAmount(), "Rejected tower sale should not refund minerals.")) {
             return;
         }
-        if (!assertEquals(
-                context,
-                EconomyConfig.defaultConfig().startingMineral() - towerCost + Math.round(towerCost * 0.5),
-                game.players().get(redId).economy().mineral(),
-                "Half refund should return exactly half the paid mineral cost."
-        )) {
+        if (!assertEquals(context, mineralAfterPlacement, game.players().get(redId).economy().mineral(), "Rejected tower sale should not change the player's minerals.")) {
             return;
         }
-        if (!assertTrue(context, lane.towers().isEmpty(), "Sold tower should be removed after wave-start sale.")) {
+        if (!assertEquals(context, 1, lane.towers().size(), "Rejected tower sale should leave the tower in the lane.")) {
             return;
         }
         context.succeed();

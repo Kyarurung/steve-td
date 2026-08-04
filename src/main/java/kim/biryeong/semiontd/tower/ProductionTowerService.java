@@ -74,7 +74,7 @@ public final class ProductionTowerService {
     }
 
     public static SaleResult sellTower(SemionGame game, UUID playerId, BlockPos blockPos) {
-        LaneContext laneContext = resolveActiveLaneContext(game, playerId);
+        LaneContext laneContext = resolveLaneContext(game, playerId);
         if (laneContext.failureResult != null) {
             return SaleResult.failure(mapSellFailure(laneContext.failureResult));
         }
@@ -84,7 +84,7 @@ public final class ProductionTowerService {
     }
 
     public static SaleResult sellTower(SemionGame game, UUID playerId, GridPosition position) {
-        LaneContext laneContext = resolveActiveLaneContext(game, playerId);
+        LaneContext laneContext = resolveLaneContext(game, playerId);
         if (laneContext.failureResult != null) {
             return SaleResult.failure(mapSellFailure(laneContext.failureResult));
         }
