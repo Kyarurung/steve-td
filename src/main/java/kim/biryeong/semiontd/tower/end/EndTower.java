@@ -203,8 +203,7 @@ public final class EndTower extends EntityBackedTower {
         return isHatched() ? combat.modifyAttackDamage(type(), damageBonus(), damageAmount) : damageAmount;
     }
 
-    @Override
-    public double modifyOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+    @Override public double modifyResolvedOutgoingDamage( SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount ) {
         if (!isCoreTower()) {
             return damageAmount;
         }

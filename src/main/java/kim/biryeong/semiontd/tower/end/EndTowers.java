@@ -48,7 +48,7 @@ public final class EndTowers {
             .build();
 
     public static final TowerType T2_ENDERMAN_TOWER = TowerType.builder("t2_enderman_tower", "엔더맨")
-            .mineralCost(80)
+            .mineralCost(100)
             .maxHealth(50)
             .range(0)
             .damage(15)
@@ -62,7 +62,7 @@ public final class EndTowers {
             .build();
 
     public static final TowerType T3_END_CRYSTAL_TOWER = TowerType.builder("t3_end_crystal_tower", "엔드 수정")
-            .mineralCost(130)
+            .mineralCost(150)
             .maxHealth(50)
             .range(0)
             .damage(20)
@@ -91,7 +91,7 @@ public final class EndTowers {
             .build();
 
     public static final TowerType T2_SHULKER_TOWER = TowerType.builder("t2_shulker_tower", "견고한 셜커")
-            .mineralCost(80)
+            .mineralCost(100)
             .maxHealth(150)
             .range(0)
             .damage(5)
@@ -106,7 +106,7 @@ public final class EndTowers {
             .build();
 
     public static final TowerType T3_SHULKER_TOWER = TowerType.builder("t3_shulker_tower", "완강한 셜커")
-            .mineralCost(130)
+            .mineralCost(150)
             .maxHealth(200)
             .range(0)
             .damage(5)
@@ -159,7 +159,7 @@ public final class EndTowers {
                 "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 " + ability(PHANTOM_SCALE_HEALTH, "integer") + "</#E66F6F>당 " + ability(PHANTOM_SCALE_STEP, "number") + "씩 증가합니다.</gray>",
                 "<gray>힘 전달 " + ability(TRANSFER_TICKS, "seconds") + " 후 타워 <#D94343>사망</#D94343>, <#E66F6F>체력 " + ability(TRANSFER_HEAL, "integer") + "</#E66F6F> 회복합니다.</gray>",
                 "<gray>전달 중인 셜커 타워의 <#E66F6F>최대 체력 " + ability(TRANSFER_HEAL_RATIO, "percent_integer") + "</#E66F6F>만큼 매초 회복합니다.</gray>",
-                "<gray><#D94343>피해량 상한(최종 피해 제외)</#D94343>: <#D94343>" + ability(DAMAGE_CAP, "integer") + "</#D94343></gray>",
+                "<gray><#D94343>피해량 상한</#D94343>: <#D94343>" + ability(DAMAGE_CAP, "integer") + "</#D94343></gray>",
                 "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>" + ability(ROUND_DAMAGE_RATIO, "percent_integer") + "</#D94343>를 임시 획득, <#D94343>" + ability(PERMANENT_DAMAGE_RATIO, "percent_integer") + "</#D94343> 영구 누적</gray>",
                 "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>" + ability(ROUND_HEALTH_RATIO, "percent_integer") + "</#E66F6F>를 임시 획득, <#E66F6F>" + ability(PERMANENT_HEALTH_RATIO, "percent_integer") + "</#E66F6F> 영구 누적</gray>",
                 "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(SPLASH_1, "integer") + ", " + ability(SPLASH_2, "integer") + ", " + ability(SPLASH_3, "integer") + ", " + ability(SPLASH_4, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(SPLASH_STEP, "number") + " 블록</#D9B94F></gray>",
