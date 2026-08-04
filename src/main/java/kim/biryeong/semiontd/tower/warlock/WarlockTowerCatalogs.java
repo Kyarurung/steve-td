@@ -23,7 +23,7 @@ public final class WarlockTowerCatalogs {
         registerTower(WarlockTowers.T3_RANGED_SLAVE, WarlockSacrificeTower::new, 3);
 
         link(WarlockTowers.BASE_WARLOCK_TOWER, "ranged_warlock_tower", "원거리 흑마법사 타워", WarlockTowers.RANGED_WARLOCK_TOWER);
-        link(WarlockTowers.BASE_WARLOCK_TOWER, "melee_warlock_tower", "근접 흑마법사 타워", WarlockTowers.MELEE_WARLOCK_TOWER);
+        link(WarlockTowers.BASE_WARLOCK_TOWER, "melee_warlock_tower", "근거리 흑마법사 타워", WarlockTowers.MELEE_WARLOCK_TOWER);
         link(WarlockTowers.T1_SLAVE, "t2_slave", "희생\"양\"", WarlockTowers.T2_SLAVE);
         link(WarlockTowers.T2_SLAVE, "t3_slave", "희생\"양\"", WarlockTowers.T3_SLAVE);
         link(WarlockTowers.T1_RANGED_SLAVE, "t2_ranged_slave", "애완 개구리", WarlockTowers.T2_RANGED_SLAVE);

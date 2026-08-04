@@ -40,7 +40,7 @@ public final class WarlockTowers {
 
     public static final TowerType RANGED_WARLOCK_TOWER = tower(
             "ranged_warlock_tower",
-            "흑마법사 타워",
+            "원거리 흑마법사 타워",
             0,
             100,
             7,
@@ -65,7 +65,7 @@ public final class WarlockTowers {
 
     public static final TowerType MELEE_WARLOCK_TOWER = tower(
             "melee_warlock_tower",
-            "흑마법사 타워",
+            "근거리 흑마법사 타워",
             0,
             120,
             3,
@@ -194,7 +194,7 @@ public final class WarlockTowers {
         TowerDescriptionRegistry.registerTemplate(RANGED_WARLOCK_TOWER, List.of(
                 "<gray>흑마법사 핵심 타워입니다.</gray>",
                 "<gray>체력이 {ability.threshold:percent} 미만일 때 주위 {ability.warlock_global.sacrificeRadius:blocks} 이내의 타워를 흡수합니다. 흡수된 타워의 체력과 공격력의 {ability.roundStat:percent}를 이번 라운드 동안 획득합니다.</gray>",
-                "<red> 흡수할 타워는 낮은 공격 우선순위를 가진 타워부터 흡수됩니다.</red>",
+                "<red> 흡수할 타워는 먼저 설치된 타워부터 흡수됩니다.</red>",
                 "<gray>또한 흡수한 대상의 공격속도가 이 타워의 기본 공격속도보다 빠를 경우 이번 라운드 동안 그 차이만큼 획득합니다. (최대 {ability.warlock_global.speedCap:integer} 감소, 최소 {ability.warlock_global.minInterval:integer}틱)</gray>",
                 "<green>이번 라운드에 흡수한 타워 {ability.regenEvery:integer}기마다 초당 재생이 {ability.regenStep:number} 증가합니다.</green>",
                 "<green>흡수한 타워마다 해당 타워의 체력 {ability.permanentHealth:percent}, 공격력의 {ability.permanentDamage:percent}를 영구적으로 얻습니다.</green>",
@@ -207,7 +207,7 @@ public final class WarlockTowers {
         TowerDescriptionRegistry.registerTemplate(MELEE_WARLOCK_TOWER, List.of(
                 "<gray>흑마법사 핵심 타워입니다.</gray>",
                 "<gray>피격 시 체력이 {ability.threshold:percent} 미만일 경우 주위 {ability.warlock_global.sacrificeRadius:blocks} 이내의 아군 하나를 희생합니다.</gray>",
-                "<green>희생되는 타워는 공격 우선순위가 높은 타워일수록 먼저 희생됩니다.</green>",
+                "<green>흡수할 타워는 먼저 설치된 타워부터 흡수됩니다.</green>",
                 "<gray>타워를 희생할 경우 이번 라운드 동안 해당 타워의 체력과 공격력의 {ability.roundStat:percent}를 얻습니다.</gray>",
                 "<green>이번 라운드에 타워를 흡수할 때마다 공격 주기가 {ability.speedStep:integer}틱 감소합니다. (최소 {ability.warlock_global.minInterval:integer}틱)</green>",
                 "<green>이번 라운드에 흡수한 타워 {ability.damageEvery:integer}기마다 공격력이 {ability.damageStep:number} 증가합니다.</green>",
