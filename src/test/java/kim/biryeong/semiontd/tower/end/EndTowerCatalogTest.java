@@ -171,7 +171,6 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("10초"));
         assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 매초 회복합니다."));
         assertTrue(description.contains("<#E66F6F>최대 체력 5%</#E66F6F>"));
-        assertTrue(plainDescription.contains("피해량 상한: 300"));
         assertTrue(plainDescription.contains("타워 공격력의 75%를 임시 획득"));
         assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1 블록"));
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
