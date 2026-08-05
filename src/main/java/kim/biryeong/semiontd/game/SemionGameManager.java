@@ -108,7 +108,9 @@ public final class SemionGameManager {
     public static final int MATCH_RESULT_DIALOG_AFTER_LOBBY_DELAY_TICKS = 2 * 20;
     static final int RATING_RETRY_DELAY_TICKS = 20;
     private static final float NORMAL_TICK_RATE = 20.0F;
-    private static final int COMBAT_SPEED_WARMUP_TICKS = 40;
+    static final int COMBAT_SPEED_ENTRY_DELAY_TICKS = 2 * 20;
+    private static final double COMBAT_SPEED_ENTRY_LOAD_RATIO = 0.8;
+    private static final int COMBAT_SPEED_COOLDOWN_WAVES = 1;
     private static final DateTimeFormatter RATING_BACKUP_TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS").withZone(ZoneOffset.UTC);
 
@@ -163,8 +165,10 @@ public final class SemionGameManager {
     private int startupLobbyLoadDelayTicks;
     private RoundPhase previousCombatSpeedPhase = RoundPhase.WAITING;
     private boolean combatSpeedOverloaded;
+    private boolean combatSpeedAccelerated;
     private boolean managesTickRate;
-    private int acceleratedTicks;
+    private int combatSpeedEntryDelayTicks;
+    private int combatSpeedCooldownWaves;
 
     public enum StartCountdownResult {
         SCHEDULED,
@@ -203,6 +207,7 @@ public final class SemionGameManager {
         this.combatSpeedConfig = combatSpeedConfig == null
                 ? CombatSpeedConfig.defaultConfig()
                 : combatSpeedConfig;
+        resetCombatSpeedState();
     }
 
     public void configure(
@@ -951,6 +956,7 @@ public final class SemionGameManager {
         clearPendingMatchResultDialog();
 
         GameArena arena = GameArenaLoader.load(server, mapConfig);
+        resetCombatSpeedState();
         activeGame = new SemionGame(economyConfig, waveConfig, leaderTargetingConfig, incomeLaneRoutingConfig, monsterScalingConfig, arena, buildGuideService);
         applyPersistedJobSelections(server, activeGame);
         lastMatchResult = null;
@@ -1485,8 +1491,7 @@ public final class SemionGameManager {
         RoundPhase phase = activeGame == null ? RoundPhase.WAITING : activeGame.phase();
         if (phase != previousCombatSpeedPhase) {
             if (phase == RoundPhase.LANE_WAVE) {
-                combatSpeedOverloaded = false;
-                acceleratedTicks = 0;
+                beginCombatSpeedWave();
             }
             previousCombatSpeedPhase = phase;
         }
@@ -1503,23 +1508,40 @@ public final class SemionGameManager {
                 !sandboxGames.isEmpty(),
                 combatSpeedOverloaded
         );
-        if (Math.abs(server.tickRateManager().tickrate() - targetTickRate) > 0.01F) {
-            server.tickRateManager().setTickRate(targetTickRate);
-        }
         if (targetTickRate <= NORMAL_TICK_RATE) {
-            acceleratedTicks = 0;
+            setCombatTickRate(server, NORMAL_TICK_RATE);
+            combatSpeedAccelerated = false;
+            combatSpeedEntryDelayTicks = 0;
             return;
         }
 
-        acceleratedTicks++;
         double averageTickTimeMillis = server.getAverageTickTimeNanos() / 1_000_000.0;
-        if (acceleratedTicks < COMBAT_SPEED_WARMUP_TICKS
-                || averageTickTimeMillis <= combatSpeedConfig.maxAverageTickTimeMillis()) {
+        if (!combatSpeedAccelerated) {
+            setCombatTickRate(server, NORMAL_TICK_RATE);
+            if (combatSpeedEntryDelayTicks++ < COMBAT_SPEED_ENTRY_DELAY_TICKS) {
+                return;
+            }
+            if (!isCombatSpeedEntrySafe(combatSpeedConfig, averageTickTimeMillis)) {
+                blockCombatSpeedForWave();
+                SemionTd.LOGGER.warn(
+                        "Combat tick rate remained at 20 TPS: average tick time {} ms exceeded the {} ms entry threshold.",
+                        String.format("%.2f", averageTickTimeMillis),
+                        String.format("%.2f", combatSpeedEntryThresholdMillis(combatSpeedConfig))
+                );
+                return;
+            }
+            combatSpeedAccelerated = true;
+            setCombatTickRate(server, targetTickRate);
             return;
         }
 
-        combatSpeedOverloaded = true;
-        server.tickRateManager().setTickRate(NORMAL_TICK_RATE);
+        setCombatTickRate(server, targetTickRate);
+        if (averageTickTimeMillis <= combatSpeedConfig.maxAverageTickTimeMillis()) {
+            return;
+        }
+
+        blockCombatSpeedForWave();
+        setCombatTickRate(server, NORMAL_TICK_RATE);
         SemionTd.LOGGER.warn(
                 "Combat tick rate restored to 20 TPS: average tick time {} ms exceeded {} ms.",
                 String.format("%.2f", averageTickTimeMillis),
@@ -1529,6 +1551,43 @@ public final class SemionGameManager {
                 SemionText.prefixedPlain("서버 성능 보호를 위해 이번 웨이브의 전투 배속을 해제했습니다."),
                 false
         );
+    }
+
+    private void setCombatTickRate(MinecraftServer server, float tickRate) {
+        if (Math.abs(server.tickRateManager().tickrate() - tickRate) > 0.01F) {
+            server.tickRateManager().setTickRate(tickRate);
+        }
+    }
+
+    void blockCombatSpeedForWave() {
+        combatSpeedOverloaded = true;
+        combatSpeedAccelerated = false;
+        combatSpeedEntryDelayTicks = 0;
+        combatSpeedCooldownWaves = COMBAT_SPEED_COOLDOWN_WAVES;
+    }
+
+    boolean beginCombatSpeedWave() {
+        combatSpeedOverloaded = combatSpeedCooldownWaves > 0;
+        combatSpeedCooldownWaves = Math.max(0, combatSpeedCooldownWaves - 1);
+        combatSpeedAccelerated = false;
+        combatSpeedEntryDelayTicks = 0;
+        return combatSpeedOverloaded;
+    }
+
+    private void resetCombatSpeedState() {
+        previousCombatSpeedPhase = RoundPhase.WAITING;
+        combatSpeedOverloaded = false;
+        combatSpeedAccelerated = false;
+        combatSpeedEntryDelayTicks = 0;
+        combatSpeedCooldownWaves = 0;
+    }
+
+    static double combatSpeedEntryThresholdMillis(CombatSpeedConfig config) {
+        return config.maxAverageTickTimeMillis() * COMBAT_SPEED_ENTRY_LOAD_RATIO;
+    }
+
+    static boolean isCombatSpeedEntrySafe(CombatSpeedConfig config, double averageTickTimeMillis) {
+        return averageTickTimeMillis <= combatSpeedEntryThresholdMillis(config);
     }
 
     static float combatTickRateTarget(
