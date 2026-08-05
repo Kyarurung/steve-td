@@ -719,27 +719,27 @@ class EndTowerTransferTest {
         assertEquals(20.0, dragon.roundDamageBonus(), 0.0001);
         assertEquals(30.0, dragon.previewHatchedAttackDamage(), 0.0001);
         assertEquals(30.0, dragon.modifyAttackDamage(null, null, 10.0), 0.0001);
-        assertEquals(25.0, dragon.modifyOutgoingDamage(null, null, 30.0), 0.0001);
-        assertEquals(20.0, dragon.modifyOutgoingDamage(null, null, 20.0), 0.0001);
-        assertEquals(0.0, dragon.modifyOutgoingDamage(null, null, -10.0), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("피해량 상한(최종 피해 제외): 25"));
+        assertEquals(25.0, dragon.modifyResolvedOutgoingDamage(null, null, 30.0), 0.0001);
+        assertEquals(20.0, dragon.modifyResolvedOutgoingDamage(null, null, 20.0), 0.0001);
+        assertEquals(0.0, dragon.modifyResolvedOutgoingDamage(null, null, -10.0), 0.0001);
+        assertTrue(plainRuntimeDetails(dragon).contains("피해량 상한: 25"));
     }
 
     @Test
     void splashRatioUsesDamageAfterThePrimaryAttackCap() {
         applyEndAbilities(Map.of(
                 "damageCap", 25.0,
-                "splashDamageRatio", 0.60
+                "splashDamageRatio", 0.66
         ));
         PlayerLane lane = lane();
         EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
         lane.addTower(dragon);
         dragon.onWaveStarted(lane, 1);
 
-        double resolvedPrimaryDamage = dragon.modifyOutgoingDamage(null, null, 1_000.0);
+        double resolvedPrimaryDamage = dragon.modifyResolvedOutgoingDamage(null, null, 1_000.0);
 
         assertEquals(25.0, resolvedPrimaryDamage, 0.0001);
-        assertEquals(15.0, dragon.resolvedSplashDamage(resolvedPrimaryDamage), 0.0001);
+        assertEquals(16.5, dragon.resolvedSplashDamage(resolvedPrimaryDamage), 0.0001);
         assertEquals(0.0, dragon.resolvedSplashDamage(Double.NaN), 0.0001);
     }
 

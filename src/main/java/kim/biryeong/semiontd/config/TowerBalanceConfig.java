@@ -1287,10 +1287,10 @@ public record TowerBalanceConfig(
     }
 
     private static void putEndUpgrades(Map<String, Long> upgrades) {
-        putUpgrade(upgrades, EndTowers.T1_ENDERMITE_TOWER, EndTowers.T2_ENDERMAN_TOWER.id(), 80);
-        putUpgrade(upgrades, EndTowers.T2_ENDERMAN_TOWER, EndTowers.T3_END_CRYSTAL_TOWER.id(), 130);
-        putUpgrade(upgrades, EndTowers.T1_SHULKER_TOWER, EndTowers.T2_SHULKER_TOWER.id(), 80);
-        putUpgrade(upgrades, EndTowers.T2_SHULKER_TOWER, EndTowers.T3_SHULKER_TOWER.id(), 130);
+        putUpgrade(upgrades, EndTowers.T1_ENDERMITE_TOWER, EndTowers.T2_ENDERMAN_TOWER.id(), 100);
+        putUpgrade(upgrades, EndTowers.T2_ENDERMAN_TOWER, EndTowers.T3_END_CRYSTAL_TOWER.id(), 150);
+        putUpgrade(upgrades, EndTowers.T1_SHULKER_TOWER, EndTowers.T2_SHULKER_TOWER.id(), 100);
+        putUpgrade(upgrades, EndTowers.T2_SHULKER_TOWER, EndTowers.T3_SHULKER_TOWER.id(), 150);
     }
 
     private static void putOceanUpgrades(Map<String, Long> upgrades) {
@@ -1466,7 +1466,7 @@ public record TowerBalanceConfig(
         values.put(TRANSFER_TICKS.key(), 200.0);
         values.put(TRANSFER_HEAL.key(), 30.0);
         values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
-        values.put(DAMAGE_CAP.key(), 250.0);
+        values.put(DAMAGE_CAP.key(), 300.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.75);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.06);
         values.put(ROUND_HEALTH_RATIO.key(), 0.50);
@@ -1477,7 +1477,7 @@ public record TowerBalanceConfig(
         values.put(SPLASH_4.key(), 300.0);
         values.put(SPLASH_STEP.key(), 1.0);
         values.put(SPLASH_CAP.key(), 5.0);
-        values.put(SPLASH_DAMAGE_RATIO.key(), 0.60);
+        values.put(SPLASH_DAMAGE_RATIO.key(), 0.66);
         values.put(ATTACK_SPEED_STACKS.key(), 30.0);
         values.put(ATTACK_SPEED_STEP.key(), 1.0);
         values.put(ATTACK_SPEED_CAP.key(), 10.0);

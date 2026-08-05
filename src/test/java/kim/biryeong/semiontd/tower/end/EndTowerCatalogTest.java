@@ -47,7 +47,7 @@ class EndTowerCatalogTest {
         assertTrue(config.towers().containsKey(EndTowers.T3_SHULKER_TOWER.id()));
         assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "hatchDelayTicks", -1.0), 0.0001);
         assertEquals(2000.0, config.ability(EndTower.CONFIG_ID, "dragonEvolution", -1.0), 0.0001);
-        assertEquals(250.0, config.ability(EndTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
+        assertEquals(300.0, config.ability(EndTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
         assertEquals(200.0, config.ability(EndTower.CONFIG_ID, "transferTicks", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "transferHeal", -1.0), 0.0001);
         assertEquals(0.05, config.ability(EndTower.CONFIG_ID, "transferHealRatio", -1.0), 0.0001);
@@ -72,7 +72,7 @@ class EndTowerCatalogTest {
         assertEquals(300.0, config.ability(EndTower.CONFIG_ID, "splash4", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "splashStep", -1.0), 0.0001);
         assertEquals(5.0, config.ability(EndTower.CONFIG_ID, "splashCap", -1.0), 0.0001);
-        assertEquals(0.60, config.ability(EndTower.CONFIG_ID, "splashDamageRatio", -1.0), 0.0001);
+        assertEquals(0.66, config.ability(EndTower.CONFIG_ID, "splashDamageRatio", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "lifeStealStacks", -1.0), 0.0001);
         assertEquals(0.01, config.ability(EndTower.CONFIG_ID, "lifeStealStep", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0), 0.0001);
@@ -119,19 +119,19 @@ class EndTowerCatalogTest {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
 
         assertEquals(50L, EndTowers.T1_ENDERMITE_TOWER.mineralCost());
-        assertEquals(80L, EndTowers.T2_ENDERMAN_TOWER.mineralCost());
-        assertEquals(130L, EndTowers.T3_END_CRYSTAL_TOWER.mineralCost());
+        assertEquals(100L, EndTowers.T2_ENDERMAN_TOWER.mineralCost());
+        assertEquals(150L, EndTowers.T3_END_CRYSTAL_TOWER.mineralCost());
         assertEquals(50L, EndTowers.T1_SHULKER_TOWER.mineralCost());
-        assertEquals(80L, EndTowers.T2_SHULKER_TOWER.mineralCost());
-        assertEquals(130L, EndTowers.T3_SHULKER_TOWER.mineralCost());
+        assertEquals(100L, EndTowers.T2_SHULKER_TOWER.mineralCost());
+        assertEquals(150L, EndTowers.T3_SHULKER_TOWER.mineralCost());
 
         assertStarter(EndTowers.BASE_END_TOWER.id(), "엔더 드래곤");
         assertStarter(EndTowers.T1_ENDERMITE_TOWER.id(), "엔더 마이트");
         assertStarter(EndTowers.T1_SHULKER_TOWER.id(), "셜커");
-        assertUpgrade(EndTowers.T1_ENDERMITE_TOWER.id(), EndTowers.T2_ENDERMAN_TOWER.id(), "엔더맨", 80);
-        assertUpgrade(EndTowers.T2_ENDERMAN_TOWER.id(), EndTowers.T3_END_CRYSTAL_TOWER.id(), "엔드 수정", 130);
-        assertUpgrade(EndTowers.T1_SHULKER_TOWER.id(), EndTowers.T2_SHULKER_TOWER.id(), "견고한 셜커", 80);
-        assertUpgrade(EndTowers.T2_SHULKER_TOWER.id(), EndTowers.T3_SHULKER_TOWER.id(), "완강한 셜커", 130);
+        assertUpgrade(EndTowers.T1_ENDERMITE_TOWER.id(), EndTowers.T2_ENDERMAN_TOWER.id(), "엔더맨", 100);
+        assertUpgrade(EndTowers.T2_ENDERMAN_TOWER.id(), EndTowers.T3_END_CRYSTAL_TOWER.id(), "엔드 수정", 150);
+        assertUpgrade(EndTowers.T1_SHULKER_TOWER.id(), EndTowers.T2_SHULKER_TOWER.id(), "견고한 셜커", 100);
+        assertUpgrade(EndTowers.T2_SHULKER_TOWER.id(), EndTowers.T3_SHULKER_TOWER.id(), "완강한 셜커", 150);
     }
 
     @Test
@@ -171,7 +171,6 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("10초"));
         assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 매초 회복합니다."));
         assertTrue(description.contains("<#E66F6F>최대 체력 5%</#E66F6F>"));
-        assertTrue(plainDescription.contains("피해량 상한(최종 피해 제외): 250"));
         assertTrue(plainDescription.contains("타워 공격력의 75%를 임시 획득"));
         assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1 블록"));
         assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
@@ -200,7 +199,7 @@ class EndTowerCatalogTest {
         assertTrue(description.contains("10초에 걸쳐"));
         assertTrue(description.contains("체력 50%, 공격력 75%"));
         assertTrue(description.contains("체력 4%, 공격력 6%"));
-        assertTrue(description.contains("최대 250"));
+        assertTrue(description.contains("최대 300"));
     }
 
     @Test
