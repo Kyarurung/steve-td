@@ -22,13 +22,21 @@ final class WarlockCombat {
         return isRanged(type) ? Math.max(0.0, config.value(DAMAGE_CAP)) : 0.0;
     }
 
+    double modifyAttackDamage(TowerType type, double attackDamage) {
+        return applyDamageCap(type, attackDamage);
+    }
+
     double modifyOutgoingDamage(TowerType type, double damageAmount) {
-        if (!Double.isFinite(damageAmount)) {
+        return applyDamageCap(type, damageAmount);
+    }
+
+    private double applyDamageCap(TowerType type, double amount) {
+        if (!Double.isFinite(amount)) {
             return 0.0;
         }
-        double resolvedDamage = Math.max(0.0, damageAmount);
+        double resolvedAmount = Math.max(0.0, amount);
         double cap = damageCap(type);
-        return cap > 0.0 ? Math.min(cap, resolvedDamage) : resolvedDamage;
+        return cap > 0.0 ? Math.min(cap, resolvedAmount) : resolvedAmount;
     }
 
     double splashRadius(WarlockTower tower) {
@@ -97,46 +105,6 @@ final class WarlockCombat {
 
     double maximumLifeSteal(WarlockTower tower) {
         return maximumLifeSteal(tower.type());
-    }
-
-    double regenerationPerSecond(WarlockTower tower) {
-        return regenerationPerSecondForCount(tower.type(), tower.roundSacrificeCount());
-    }
-
-    double regenerationPerSecondForCount(TowerType type, int roundSacrificeCount) {
-        if (!isRanged(type)) {
-            return 0.0;
-        }
-        return steppedBonus(
-                roundSacrificeCount,
-                config.integer(RANGED_REGEN_EVERY),
-                config.value(RANGED_REGEN_STEP)
-        );
-    }
-
-    double maximumRegenerationPerSecond(WarlockTower tower) {
-        return tower.is(WarlockTowers.RANGED_WARLOCK_TOWER)
-                ? Double.POSITIVE_INFINITY
-                : 0.0;
-    }
-
-    int regenerationIntervalTicks() {
-        return Math.max(1, config.integer(RANGED_REGEN_TICKS));
-    }
-
-    double meleeRoundDamageBonus(WarlockTower tower) {
-        return meleeRoundDamageBonusForCount(tower.type(), tower.roundSacrificeCount());
-    }
-
-    double meleeRoundDamageBonusForCount(TowerType type, int roundSacrificeCount) {
-        if (!isMelee(type)) {
-            return 0.0;
-        }
-        return steppedBonus(
-                roundSacrificeCount,
-                config.integer(MELEE_DAMAGE_EVERY),
-                config.value(MELEE_DAMAGE_STEP)
-        );
     }
 
     int meleeAttackIntervalReduction(WarlockTower tower) {

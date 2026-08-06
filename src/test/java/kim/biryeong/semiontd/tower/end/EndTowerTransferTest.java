@@ -102,7 +102,7 @@ class EndTowerTransferTest {
         String crystalHeavyDetails = plainRuntimeDetails(dragon);
         assertTrue(crystalHeavyDetails.contains("엔드 수정, 셜커 스택: 1 / 0"));
         assertTrue(crystalHeavyDetails.contains("공격 속도: -1틱 / -10틱"));
-        assertTrue(String.join("\n", dragon.runtimeDetailLines()).contains("<#D94343>추가 공격력: 0.6</#D94343>"));
+        assertTrue(String.join("\n", dragon.runtimeDetailLines()).contains("<#D94343>영구 공격력: 0.6</#D94343>"));
 
         tick(dragon, lane, 4);
 
@@ -586,11 +586,11 @@ class EndTowerTransferTest {
         String eggDetails = plainRuntimeDetails(core);
         assertTrue(eggDetails.contains("엔더 드래곤 능력치"));
         assertTrue(eggDetails.contains("엔드 수정, 셜커 스택: 0 / 1"));
-        assertTrue(eggDetails.contains("추가 공격력: 0.0"));
+        assertTrue(eggDetails.contains("영구 공격력: 0.0"));
         assertTrue(eggDetails.contains("사거리: 5.0 블록 / 8.0 블록"));
         assertTrue(eggDetails.contains("공격 속도: -0틱 / -10틱"));
         assertTrue(eggDetails.contains("공격 범위: 1 블록 / 5 블록"));
-        assertTrue(eggDetails.contains("추가 체력: 4.0"));
+        assertTrue(eggDetails.contains("영구 체력: 4.0"));
         assertTrue(eggDetails.contains("재생: 0 / 30 HP/s"));
         assertTrue(eggDetails.contains("생명력 흡수: 0.0% / 10.0%"));
         assertTrue(eggDetails.contains("피해 감소: 0% / 20%"));
@@ -598,7 +598,7 @@ class EndTowerTransferTest {
         String styledEggDetails = String.join("\n", core.runtimeDetailLines());
         assertTrue(styledEggDetails.contains("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>"));
         assertTrue(styledEggDetails.contains("<#D9B94F>공격 범위: 1 블록 / 5 블록</#D9B94F>"));
-        assertTrue(styledEggDetails.contains("<#E66F6F>추가 체력: 4.0</#E66F6F>"));
+        assertTrue(styledEggDetails.contains("<#E66F6F>영구 체력: 4.0</#E66F6F>"));
         assertTrue(styledEggDetails.contains("<#72A9E6>피해 감소: 0% / 20%</#72A9E6>"));
         assertTrue(styledEggDetails.contains("<#79C97B>재생: 0 / 30 HP/s</#79C97B>"));
 
@@ -715,14 +715,16 @@ class EndTowerTransferTest {
         dragon.tick(lane);
         lane.addTower(tower(EndTowers.T3_END_CRYSTAL_TOWER, 1));
         dragon.tick(lane);
-
         assertEquals(20.0, dragon.roundDamageBonus(), 0.0001);
-        assertEquals(30.0, dragon.previewHatchedAttackDamage(), 0.0001);
+        assertEquals(25.0, dragon.previewHatchedAttackDamage(), 0.0001);
         assertEquals(30.0, dragon.modifyAttackDamage(null, null, 10.0), 0.0001);
+        assertEquals(25.0, dragon.modifyResolvedAttackDamage(null, null, 30.0), 0.0001);
+        assertEquals(20.0, dragon.modifyResolvedAttackDamage(null, null, 20.0), 0.0001);
+        assertEquals(0.0, dragon.modifyResolvedAttackDamage(null, null, -10.0), 0.0001);
         assertEquals(25.0, dragon.modifyResolvedOutgoingDamage(null, null, 30.0), 0.0001);
         assertEquals(20.0, dragon.modifyResolvedOutgoingDamage(null, null, 20.0), 0.0001);
         assertEquals(0.0, dragon.modifyResolvedOutgoingDamage(null, null, -10.0), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("피해량 상한: 25"));
+        assertTrue(plainRuntimeDetails(dragon).contains("피해·공격력 상한: 25"));
     }
 
     @Test

@@ -8,6 +8,7 @@ final class WarlockState {
     private double roundIntervalReduction;
     private int totalSacrificeCount;
     private int roundSacrificeCount;
+    private boolean awakenedThisRound;
 
     double absorbBasePermanently(
             double sacrificedHealth,
@@ -54,6 +55,7 @@ final class WarlockState {
         roundDamageBonus = 0.0;
         roundIntervalReduction = 0.0;
         roundSacrificeCount = 0;
+        awakenedThisRound = false;
     }
 
     void copyFrom(WarlockState source) {
@@ -67,6 +69,19 @@ final class WarlockState {
         roundIntervalReduction = source.roundIntervalReduction;
         totalSacrificeCount = source.totalSacrificeCount;
         roundSacrificeCount = source.roundSacrificeCount;
+        awakenedThisRound = source.awakenedThisRound;
+    }
+
+    boolean awaken() {
+        if (awakenedThisRound) {
+            return false;
+        }
+        awakenedThisRound = true;
+        return true;
+    }
+
+    boolean awakenedThisRound() {
+        return awakenedThisRound;
     }
 
     double permanentHealthBonus() {

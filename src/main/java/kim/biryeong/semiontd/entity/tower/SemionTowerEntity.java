@@ -162,7 +162,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         getAttribute(Attributes.MAX_HEALTH).setBaseValue(tower.currentMaxHealth());
         getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(attackDamage);
         getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(targetAcquireRange);
-        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(moveSpeed);
+        getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(resolvedMovementSpeed());
         getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
         setHealth((float) tower.health());
         installBilModel(blockbenchModelId);
@@ -337,21 +337,20 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         if (runtimeMonster != null) {
             if (runtimeMonster.senderTeam().isPresent()) {
                 damageAmount *= 1.0 + timedEffects.magnitude(TimedEffectType.TOWER_INCOME_DAMAGE_BONUS);
-            } else {
+            }
+            else {
                 damageAmount *= 1.0 + timedEffects.magnitude(TimedEffectType.TOWER_WAVE_DAMAGE_BONUS);
             }
         }
-        return Math.max(0.0, damageAmount);
+        if (runtimeTower != null) {damageAmount = runtimeTower.modifyResolvedAttackDamage(this, target, damageAmount);
+        }
+        return Double.isFinite(damageAmount) ? Math.max(0.0, damageAmount) : 0.0;
     }
 
     public double applyTraitOutgoingDamage(Monster target, double damageAmount) {
         return applyTowerFinalDamageBonus(applyTraitOutgoingDamage(target, damageAmount, 0.0));
     }
 
-    /**
-     * Applies the existing trait damage calculation without the runtime tower's
-     * own final-damage bonus, allowing only that tower bonus to run after a cap.
-     */
     public double applyTraitOutgoingDamageBeforeTowerFinalAgainst(
             SemionMonsterEntity target,
             double damageAmount
@@ -383,10 +382,6 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                 * traitFinalDamageMultiplier();
     }
 
-    /**
-     * Applies only the tower's own final-damage bonus after a tower-specific
-     * damage cap. Trait damage effects retain their original pre-cap behavior.
-     */
     public double applyTowerFinalDamageBonus(double damageAmount) {
         if (!Double.isFinite(damageAmount) || damageAmount <= 0.0) {
             return 0.0;
@@ -440,12 +435,20 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         return Math.max(minimumInterval, resolvedInterval);
     }
 
+    private double resolvedMovementSpeed() {
+        if (runtimeTower == null) {
+            return moveSpeed;
+        }
+        return Math.max(0.0, runtimeTower.adjustMovementSpeed(moveSpeed)
+        );
+    }
+
     public boolean playsRangedAttackSound() {
         return attackDamage > 0.0 && attackRange() > 3.0;
     }
 
     public double chaseSpeedModifier() {
-        return moveSpeed;
+        return resolvedMovementSpeed();
     }
 
     public boolean deployedAtFinalDefense() {

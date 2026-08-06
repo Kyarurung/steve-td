@@ -10,26 +10,35 @@ final class WarlockStats {
     }
 
     List<String> create(WarlockTower tower) {
-        return WarlockStatsView.core(new WarlockStatsView.CoreStats(
-                tower.totalSacrificeCount(),
-                new WarlockStatsView.CombatStats(
-                        combat.damageCap(tower.type()),
-                        tower.additionalAttackDamage(),
-                        tower.attackIntervalReduction(),
-                        tower.maximumAttackIntervalReduction(),
-                        tower.splashRadius(),
-                        combat.maximumSplashRadius(tower),
-                        combat.maximumSplashRadius(tower) > 0.0
-                ),
-                new WarlockStatsView.DefenseStats(
-                        tower.additionalHealth(),
-                        tower.regenerationPerSecond(),
-                        tower.maximumRegenerationPerSecond(),
-                        combat.lifeStealRatio(tower),
-                        combat.maximumLifeSteal(tower),
-                        tower.damageReduction(),
-                        tower.maximumDamageReduction()
+        boolean showAwakening =
+                tower.is(WarlockTowers.RANGED_WARLOCK_TOWER)
+                        || tower.is(WarlockTowers.MELEE_WARLOCK_TOWER);
+
+        return WarlockStatsView.core(
+                new WarlockStatsView.CoreStats(
+                        tower.totalSacrificeCount(),
+                        tower.roundSacrificeCount(),
+                        showAwakening,
+                        tower.awakenedThisRound(),
+                        new WarlockStatsView.CombatStats(
+                                combat.damageCap(tower.type()),
+                                tower.additionalAttackDamage(),
+                                tower.attackIntervalReduction(),
+                                tower.maximumAttackIntervalReduction(),
+                                tower.splashRadius(),
+                                combat.maximumSplashRadius(tower),
+                                combat.maximumSplashRadius(tower) > 0.0
+                        ),
+                        new WarlockStatsView.DefenseStats(
+                                tower.additionalHealth(),
+                                tower.regenerationPerSecond(),
+                                tower.maximumRegenerationPerSecond(),
+                                combat.lifeStealRatio(tower),
+                                combat.maximumLifeSteal(tower),
+                                tower.damageReduction(),
+                                tower.maximumDamageReduction()
+                        )
                 )
-        ));
+        );
     }
 }

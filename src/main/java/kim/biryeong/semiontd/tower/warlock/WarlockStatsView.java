@@ -13,8 +13,12 @@ final class WarlockStatsView {
         DefenseStats defense = stats.defense();
         ArrayList<String> lines = new ArrayList<>();
         lines.add("<white>흡수한 타워: " + stats.totalSacrifices() + "기</white>");
+        lines.add("<white>이번 라운드에 흡수한 타워: " + stats.roundSacrifices() + "기</white>");
+        if (stats.showAwakening()) {
+            lines.add(stats.awakened() ? "<#B77DE8>각성 상태: 각성</#B77DE8>" : "<gray>각성 상태: 미각성</gray>");
+        }
         if (combat.maximumAttackDamage() > 0.0) {
-            lines.add("<#D94343>피해량 상한: "
+            lines.add("<#D94343>피해·공격력 상한: "
                     + compactOneDecimal(combat.maximumAttackDamage()) + "</#D94343>");
         }
         lines.add("<#D94343>추가 공격력: " + oneDecimal(combat.additionalAttackDamage())
@@ -61,7 +65,14 @@ final class WarlockStatsView {
         return oneDecimal(value * 100.0) + "%";
     }
 
-    record CoreStats(int totalSacrifices, CombatStats combat, DefenseStats defense) {
+    record CoreStats(
+            int totalSacrifices,
+            int roundSacrifices,
+            boolean showAwakening,
+            boolean awakened,
+            CombatStats combat,
+            DefenseStats defense
+    ) {
     }
 
     record CombatStats(
