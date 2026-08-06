@@ -193,30 +193,32 @@ public final class WarlockTowers {
         ));
         TowerDescriptionRegistry.registerTemplate(RANGED_WARLOCK_TOWER, List.of(
                 "<gray>흑마법사 핵심 타워입니다.</gray>",
-                "<gray>체력이 {ability.threshold:percent} 미만일 때 주위 {ability.warlock_global.sacrificeRadius:blocks} 이내의 타워를 흡수합니다. 흡수된 타워의 체력과 공격력의 {ability.roundStat:percent}를 이번 라운드 동안 획득합니다.</gray>",
-                "<red> 흡수할 타워는 먼저 설치된 타워부터 흡수됩니다.</red>",
+                "<gray>체력이 {ability.threshold:percent} 이하일 때 주위 {ability.warlock_global.sacrificeRadius:blocks} 이내의 타워를 흡수합니다. 흡수된 타워의 체력과 공격력의 {ability.roundStat:percent}를 이번 라운드 동안 획득합니다.</gray>",
+                "<red>흡수할 타워는 먼저 설치된 타워부터 흡수됩니다.</red>",
                 "<gray>또한 흡수한 대상의 공격속도가 이 타워의 기본 공격속도보다 빠를 경우 이번 라운드 동안 그 차이만큼 획득합니다. (최대 {ability.warlock_global.speedCap:integer} 감소, 최소 {ability.warlock_global.minInterval:integer}틱)</gray>",
-                "<green>이번 라운드에 흡수한 타워 {ability.regenEvery:integer}기마다 초당 재생이 {ability.regenStep:number} 증가합니다.</green>",
                 "<green>흡수한 타워마다 해당 타워의 체력 {ability.permanentHealth:percent}, 공격력의 {ability.permanentDamage:percent}를 영구적으로 얻습니다.</green>",
-                "<green>이 게임동안 흡수를 {ability.lifeEvery:integer}번 할때마다, {ability.lifeStep:percent}의 생명력 흡수를 얻습니다. (최대 {ability.lifeCap:percent})</green>",
+                "<green>이 게임 동안 흡수를 {ability.lifeEvery:integer}번 할 때마다 생명력 흡수를 {ability.lifeStep:percent} 얻습니다. (최대 {ability.lifeCap:percent})</green>",
                 "<green>타워를 흡수할 때마다 공격 범위가 {ability.splashStep:precise_blocks} 증가합니다. (최대 {ability.splashCap:blocks}, {ability.splashDamage:percent} 피해)</green>",
-                "<green>이 타워가 한 라운드에 흡수한 타워가 {ability.defenseThreshold:integer}기가 넘어갈 경우, 이 타워가 받는 피해량이 {ability.defense:percent} 감소합니다.",
+                "<green>이 타워가 한 라운드에 흡수한 타워가 {ability.defenseThreshold:integer}기를 초과하면 받는 피해가 {ability.defense:percent} 감소합니다.</green>",
                 "<green>생존 중인 애완 타워마다 체력이 {ability.petHealth:percent}, 공격력이 {ability.petDamage:percent} 증가합니다.</green>",
-                "<green>최대 체력 {ability.petHealthCap:percent}, 공격력 {ability.petDamageCap:percent}까지 증가합니다.</green>"
+                "<green>최대 체력 {ability.petHealthCap:percent}, 공격력 {ability.petDamageCap:percent}까지 증가합니다.</green>",
+                "<green>이번 라운드에 타워를 {ability.warlock_global.awakeningAbsorptions:integer}기 이상 흡수하고, 생존한 타워가 이 코어뿐이며 체력이 {ability.warlock_global.awakeningThreshold:percent} 이하가 되면 각성합니다.</green>",
+                "<green>각성 시 체력을 {ability.awakeningHeal:number} 회복하고, 초당 체력을 {ability.awakeningRegeneration:number} 회복합니다.</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(MELEE_WARLOCK_TOWER, List.of(
                 "<gray>흑마법사 핵심 타워입니다.</gray>",
-                "<gray>피격 시 체력이 {ability.threshold:percent} 미만일 경우 주위 {ability.warlock_global.sacrificeRadius:blocks} 이내의 아군 하나를 희생합니다.</gray>",
+                "<gray>피격 시 체력이 {ability.threshold:percent} 이하일 경우 주위 {ability.warlock_global.sacrificeRadius:blocks} 이내의 아군 하나를 희생합니다.</gray>",
                 "<green>흡수할 타워는 먼저 설치된 타워부터 흡수됩니다.</green>",
                 "<gray>타워를 희생할 경우 이번 라운드 동안 해당 타워의 체력과 공격력의 {ability.roundStat:percent}를 얻습니다.</gray>",
                 "<green>이번 라운드에 타워를 흡수할 때마다 공격 주기가 {ability.speedStep:integer}틱 감소합니다. (최소 {ability.warlock_global.minInterval:integer}틱)</green>",
-                "<green>이번 라운드에 흡수한 타워 {ability.damageEvery:integer}기마다 공격력이 {ability.damageStep:number} 증가합니다.</green>",
                 "<green>이번 라운드에 흡수한 타워마다 공격 범위가 {ability.splashStep:precise_blocks} 증가합니다. (최대 {ability.splashCap:blocks}, {ability.splashDamage:percent} 피해)</green>",
                 "<green>흡수한 타워마다 해당 타워의 체력 {ability.permanentHealth:percent}, 공격력의 {ability.permanentDamage:percent}를 추가로 얻습니다.</green>",
-                "<green>이번 게임에서 타워를 {ability.defenseEvery:integer}기 흡수할 때 마다, 피해가 {ability.defenseStep:percent} 감소하고 최대 {ability.defenseCap:percent}까지 감소합니다.",
-                "<green>이번 라운드에 흡수한 타워마다 생명력 흡수를 {ability.lifeStep:percent}씩 얻습니다. (최대 {ability.lifeCap:percent})",
+                "<green>이번 게임에서 타워를 {ability.defenseEvery:integer}기 흡수할 때마다 피해가 {ability.defenseStep:percent} 감소하며, 최대 {ability.defenseCap:percent}까지 감소합니다.</green>",
+                "<green>이번 라운드에 흡수한 타워마다 생명력 흡수를 {ability.lifeStep:percent} 얻습니다. (최대 {ability.lifeCap:percent})</green>",
                 "<green>생존 중인 희생양마다 체력이 {ability.petHealth:percent}, 공격력이 {ability.petDamage:percent} 증가합니다.</green>",
-                "<green>최대 체력 {ability.petHealthCap:percent}, 공격력 {ability.petDamageCap:percent}까지 증가합니다.</green>"
+                "<green>최대 체력 {ability.petHealthCap:percent}, 공격력 {ability.petDamageCap:percent}까지 증가합니다.</green>",
+                "<green>이번 라운드에 타워를 {ability.warlock_global.awakeningAbsorptions:integer}기 이상 흡수하고, 생존한 타워가 이 코어뿐이며 체력이 {ability.warlock_global.awakeningThreshold:percent} 이하가 되면 각성합니다.</green>",
+                "<green>각성 중 공격력이 {ability.awakeningDamage:number}, 이동속도가 {ability.awakeningMoveSpeed:percent} 증가합니다.</green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_SLAVE, List.of(
                 "<gray>흑마법사가 데려온 양입니다. 이 양은 더 희귀하데요.<gray>",

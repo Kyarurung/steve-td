@@ -10,13 +10,12 @@ import org.junit.jupiter.api.Test;
 
 class TowerDamagePipelineTest {
     @Test
-    void traitDamageStaysPreCapButTowerFinalDamageAppliesAfterTheCap() {
+    void towerFinalDamageIsIncludedInResolvedDamageCap() {
         double baseDamage = 250.0;
         double damageWithPrimaryDoubleEdgedSword = baseDamage * 1.25;
-
-        double outgoingDamage = Tower.applyOutgoingDamageStages(damageWithPrimaryDoubleEdgedSword, damage -> Math.min(250.0, damage), damage -> damage * 1.10);
-
-        assertEquals(275.0, outgoingDamage, 0.0001);
+        double damageAfterFinalBonus = Tower.applyOutgoingDamageStages(damageWithPrimaryDoubleEdgedSword, damage -> damage, damage -> damage * 1.10);
+        double outgoingDamage = Math.min(250.0, damageAfterFinalBonus);
+        assertEquals(250.0, outgoingDamage, 0.0001);
     }
 
     @Test

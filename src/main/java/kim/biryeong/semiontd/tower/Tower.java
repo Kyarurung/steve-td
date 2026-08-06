@@ -368,6 +368,10 @@ public abstract class Tower {
         return damageAmount;
     }
 
+    public double modifyResolvedAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+        return damageAmount;
+    }
+
     public double finalDamageBonus() {
         return 0.0;
     }
@@ -419,10 +423,6 @@ public abstract class Tower {
         return finalDamageModifier.applyAsDouble(modifiedDamage);
     }
 
-    /**
-     * Applies damage that already passed the source tower's outgoing modifiers.
-     * Target-side mitigation is still evaluated for each target.
-     */
     public DamageResult damageResolvedTargetResult(
             SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
@@ -472,23 +472,6 @@ public abstract class Tower {
         onAttack(towerEntity, target, attemptedDamage, killedTarget);
     }
 
-    public void onAttackResolved(
-            SemionTowerEntity towerEntity,
-            SemionMonsterEntity target,
-            double attemptedDamage,
-            double dealtDamage,
-            boolean killedTarget
-    ) {
-        onAttackResolved(
-                towerEntity,
-                target,
-                attemptedDamage,
-                attemptedDamage,
-                dealtDamage,
-                killedTarget
-        );
-    }
-
     public void onKill(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
     }
 
@@ -500,19 +483,11 @@ public abstract class Tower {
 
     public double modifyOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {return damageAmount;}
 
-    public double modifyResolvedOutgoingDamage(
-            SemionTowerEntity towerEntity,
-            SemionMonsterEntity target,
-            double damageAmount
-    ) {
+    public double modifyResolvedOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return damageAmount;
     }
 
-    public double modifyAppliedDamage(
-            SemionTowerEntity towerEntity,
-            SemionMonsterEntity target,
-            double damageAmount
-    ) {
+    public double modifyAppliedDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return damageAmount;
     }
 
@@ -584,6 +559,8 @@ public abstract class Tower {
     public double adjustAttackRange(double baseRange) {
         return baseRange;
     }
+
+    public double adjustMovementSpeed(double baseSpeed) {return baseSpeed;}
 
     public boolean isDestroyed(PlayerLane lane) {
         return health <= 0.0;

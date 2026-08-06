@@ -70,9 +70,15 @@ public class WarlockTower extends EntityBackedTower {
 
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        return (damageAmount + state.permanentDamageBonus() + state.roundDamageBonus()
-                + combat.meleeRoundDamageBonus(this))
-                * (1.0 + passiveDamageBonus());
+        double resolvedAttackDamage = (damageAmount + state.permanentDamageBonus() + state.roundDamageBonus() + awakeningDamageBonus()) * (1.0 + passiveDamageBonus());
+        return combat.modifyAttackDamage(type(), resolvedAttackDamage);
+    }
+
+    @Override
+    public double adjustMovementSpeed(double baseSpeed) {if (!is(WarlockTowers.MELEE_WARLOCK_TOWER) || !state.awakenedThisRound()) {
+            return baseSpeed;
+        }
+        return baseSpeed * (1.0 + Math.max(0.0, ability(MELEE_AWAKENING_MOVE_SPEED)));
     }
 
     @Override
@@ -106,7 +112,13 @@ public class WarlockTower extends EntityBackedTower {
         return damageAmount * Math.max(0.0, 1.0 - damageReduction());
     }
 
-    @Override
+    private double awakeningDamageBonus() {
+        if (!is(WarlockTowers.MELEE_WARLOCK_TOWER) || !state.awakenedThisRound()) {
+            return 0.0;
+        }
+        return Math.max(0.0, ability(MELEE_AWAKENING_DAMAGE));
+    }
+
     public void onDamaged(
             SemionTowerEntity towerEntity,
             DamageSource damageSource,
@@ -126,25 +138,143 @@ public class WarlockTower extends EntityBackedTower {
             }
             return;
         }
-        if (is(WarlockTowers.RANGED_WARLOCK_TOWER) && healthRatio(currentHealth) < ability(RANGED_THRESHOLD)) {
-            sacrifices.sacrifice(
-                    this,
-                    towerEntity,
-                    currentLane,
-                    sacrificeRadius(SACRIFICE_RADIUS),
-                    Comparator.comparingInt(Tower::aggroPriority)
-            );
+        if (is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
+            if (healthRatio(currentHealth) <= ability(RANGED_THRESHOLD)) {
+                sacrifices.sacrifice(
+                        this,
+                        towerEntity,
+                        currentLane,
+                        sacrificeRadius(SACRIFICE_RADIUS),
+                        Comparator.comparingInt(Tower::aggroPriority)
+                );
+            }
+            tryAwaken(currentLane, towerEntity);
             return;
         }
-        if (is(WarlockTowers.MELEE_WARLOCK_TOWER) && healthRatio(currentHealth) < ability(MELEE_THRESHOLD)) {
-            sacrifices.sacrifice(
-                    this,
+        if (is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
+            if (healthRatio(currentHealth) <= ability(MELEE_THRESHOLD)) {
+                sacrifices.sacrifice(
+                        this,
+                        towerEntity,
+                        currentLane,
+                        sacrificeRadius(SACRIFICE_RADIUS),
+                        Comparator.comparingInt(Tower::aggroPriority).reversed()
+                );
+            }
+            tryAwaken(currentLane, towerEntity);
+        }
+    }
+
+    private void tryAwaken(PlayerLane lane, SemionTowerEntity towerEntity) {
+        if (!is(WarlockTowers.RANGED_WARLOCK_TOWER)
+                && !is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
+            return;
+        }
+        if (state.awakenedThisRound()) {
+            return;
+        }
+        if (!meetsAwakeningConditions(
+                state.roundSacrificeCount(),
+                abilityInt(AWAKENING_ABSORPTIONS),
+                healthRatio(health()),
+                ability(AWAKENING_THRESHOLD),
+                onlyCoreTowerAlive(lane)
+        )) {
+            return;
+        }
+        if (!state.awaken()) {
+            return;
+        }
+        regenerationTicks = 0;
+        if (is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
+            heal(
                     towerEntity,
-                    currentLane,
-                    sacrificeRadius(SACRIFICE_RADIUS),
-                    Comparator.comparingInt(Tower::aggroPriority).reversed()
+                    ability(RANGED_AWAKENING_HEAL)
             );
         }
+        onStateChanged(lane);
+    }
+
+    double regenerationPerSecond() {
+        if (!is(WarlockTowers.RANGED_WARLOCK_TOWER)
+                || !state.awakenedThisRound()) {
+            return 0.0;
+        }
+        return Math.max(
+                0.0,
+                ability(RANGED_AWAKENING_REGENERATION)
+        );
+    }
+
+    double maximumRegenerationPerSecond() {
+        if (!is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
+            return 0.0;
+        }
+        return Math.max(
+                0.0,
+                ability(RANGED_AWAKENING_REGENERATION)
+        );
+    }
+
+    private void tickRegeneration(PlayerLane lane) {
+        double amount = regenerationPerSecond();
+        if (health() <= 0.0 || amount <= 0.0) {
+            regenerationTicks = 0;
+            return;
+        }
+        if (health() >= currentMaxHealth()) {
+            regenerationTicks = 0;
+            return;
+        }
+        int intervalTicks = Math.max(
+                1,
+                abilityInt(
+                        RANGED_AWAKENING_REGENERATION_TICKS
+                )
+        );
+        regenerationTicks++;
+        if (regenerationTicks < intervalTicks) {
+            return;
+        }
+        regenerationTicks %= intervalTicks;
+        syncHealth(health() + amount);
+        onStateChanged(lane);
+    }
+
+    private boolean onlyCoreTowerAlive(PlayerLane lane) {
+        if (lane == null
+                || health() <= 0.0
+                || !lane.towers().contains(this)) {
+            return false;
+        }
+        return lane.towers().stream()
+                .filter(tower -> tower.health() > 0.0)
+                .noneMatch(tower -> tower != this);
+    }
+
+    static boolean meetsAwakeningConditions(
+            int roundAbsorptions,
+            int requiredAbsorptions,
+            double currentHealthRatio,
+            double healthThreshold,
+            boolean onlyCoreAlive
+    ) {
+        if (!Double.isFinite(currentHealthRatio)
+                || !Double.isFinite(healthThreshold)) {
+            return false;
+        }
+        return roundAbsorptions >= Math.max(0, requiredAbsorptions)
+                && onlyCoreAlive
+                && currentHealthRatio > 0.0
+                && currentHealthRatio <= Math.max(0.0, healthThreshold);
+    }
+
+    private int abilityInt(WarlockConfig.Ability key) {
+        return WarlockConfig.RUNTIME.integer(key);
+    }
+
+    boolean awakenedThisRound() {
+        return state.awakenedThisRound();
     }
 
     @Override
@@ -207,7 +337,6 @@ public class WarlockTower extends EntityBackedTower {
     public void resetForRound(PlayerLane lane) {
         currentLane = lane;
         state.resetRound();
-        regenerationTicks = 0;
         super.resetForRound(lane);
         refreshWarlockCoreStats(lane);
     }
@@ -223,7 +352,6 @@ public class WarlockTower extends EntityBackedTower {
     protected void copyRuntimeStateFrom(Tower previousTower) {
         if (previousTower instanceof WarlockTower warlockTower) {
             state.copyFrom(warlockTower.state);
-            regenerationTicks = warlockTower.regenerationTicks;
         }
     }
 
@@ -300,33 +428,6 @@ public class WarlockTower extends EntityBackedTower {
                 type().attackIntervalTicks() - combat.minimumAttackIntervalTicks()
         );
         return Math.min(maximumByMinimumInterval, combat.maximumAttackIntervalReduction());
-    }
-
-    double regenerationPerSecond() {
-        return combat.regenerationPerSecond(this);
-    }
-
-    double maximumRegenerationPerSecond() {
-        return combat.maximumRegenerationPerSecond(this);
-    }
-
-    private void tickRegeneration(PlayerLane lane) {
-        double amount = regenerationPerSecond();
-        if (health() <= 0.0 || amount <= 0.0) {
-            regenerationTicks = 0;
-            return;
-        }
-        if (health() >= currentMaxHealth()) {
-            return;
-        }
-        int intervalTicks = combat.regenerationIntervalTicks();
-        regenerationTicks++;
-        if (regenerationTicks < intervalTicks) {
-            return;
-        }
-        regenerationTicks %= intervalTicks;
-        syncHealth(health() + amount);
-        onStateChanged(lane);
     }
 
     double maximumDamageReduction() {
