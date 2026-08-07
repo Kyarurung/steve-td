@@ -9612,19 +9612,45 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void warlockTowerDescriptionsRenderConfiguredAbilityValues(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> abilities = new java.util.LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> rangedAbilities = new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
+        Map<String, Map<String, Double>> abilities =
+                new java.util.LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> rangedAbilities =
+                new java.util.LinkedHashMap<>(
+                        abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id())
+                );
         rangedAbilities.put("threshold", 0.25);
-        rangedAbilities.put("splashStep", 3.0);
-        abilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), rangedAbilities);
+        rangedAbilities.put("roundStat", 0.35);
 
-        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+        abilities.put(
+                WarlockTowers.RANGED_WARLOCK_TOWER.id(),
+                rangedAbilities
+        );
+        TowerBalanceRuntime.apply(
+                new TowerBalanceConfig(
+                        defaults.towers(),
+                        defaults.upgradeCosts(),
+                        abilities
+                )
+        );
         try {
-            TowerType resolved = TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER);
-            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("체력이 25% 이하")), "Warlock description should render configured absorb threshold.")) {
+            TowerType resolved =
+                    TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER);
+            String description = String.join(
+                    "\n",
+                    resolved.description()
+            ).replaceAll("<[^>]+>", "");
+            if (!assertTrue(
+                    context,
+                    description.contains("체력 25% 이하이면"),
+                    "Warlock description should render configured absorb threshold."
+            )) {
                 return;
             }
-            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("공격 범위가 3블록 증가")), "Warlock description should render configured attack range.")) {
+            if (!assertTrue(
+                    context,
+                    description.contains("흡수한 타워 체력과 피해의 35%"),
+                    "Warlock description should render configured temporary stat ratio."
+            )) {
                 return;
             }
         } finally {

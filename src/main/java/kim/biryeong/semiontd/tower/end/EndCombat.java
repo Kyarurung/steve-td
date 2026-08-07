@@ -37,7 +37,6 @@ final class EndCombat {
     }
 
     double damageCap() {return Math.max(0.0, config.value(DAMAGE_CAP));}
-    double applyDamageCap(double damageAmount) {if (!Double.isFinite(damageAmount) || damageAmount <= 0.0) {return 0.0;}return Math.min(damageCap(), damageAmount);}
     double finalDamageBonus(boolean dragon) {return dragon ? Math.max(0.0, config.value(DRAGON_FINAL_DAMAGE)) : 0.0;}
     double dragonRangeBonus(boolean dragon) {return dragon ? Math.max(0.0, config.value(DRAGON_RANGE_BONUS)) : 0.0;}
     double dragonEvolutionHealth() {return Math.max(0.0, config.value(DRAGON_EVOLUTION));}

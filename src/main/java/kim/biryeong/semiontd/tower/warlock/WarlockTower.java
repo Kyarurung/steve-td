@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -23,6 +24,7 @@ public class WarlockTower extends EntityBackedTower {
     private final WarlockStats stats;
     private PlayerLane currentLane;
     private int regenerationTicks;
+    private int awakeningVfxTicks;
 
     public WarlockTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -70,8 +72,7 @@ public class WarlockTower extends EntityBackedTower {
 
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        double resolvedAttackDamage = (damageAmount + state.permanentDamageBonus() + state.roundDamageBonus() + awakeningDamageBonus()) * (1.0 + passiveDamageBonus());
-        return combat.modifyAttackDamage(type(), resolvedAttackDamage);
+        return (damageAmount + state.permanentDamageBonus() + state.roundDamageBonus() + awakeningDamageBonus()) * (1.0 + passiveDamageBonus());
     }
 
     @Override
@@ -79,29 +80,6 @@ public class WarlockTower extends EntityBackedTower {
             return baseSpeed;
         }
         return baseSpeed * (1.0 + Math.max(0.0, ability(MELEE_AWAKENING_MOVE_SPEED)));
-    }
-
-    @Override
-    public double modifyOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        return combat.modifyOutgoingDamage(type(), damageAmount);
-    }
-
-    @Override
-    public double modifyResolvedOutgoingDamage(
-            SemionTowerEntity towerEntity,
-            SemionMonsterEntity target,
-            double damageAmount
-    ) {
-        return combat.modifyOutgoingDamage(type(), damageAmount);
-    }
-
-    @Override
-    public double modifyAppliedDamage(
-            SemionTowerEntity towerEntity,
-            SemionMonsterEntity target,
-            double damageAmount
-    ) {
-        return combat.modifyOutgoingDamage(type(), damageAmount);
     }
 
     @Override
@@ -186,6 +164,9 @@ public class WarlockTower extends EntityBackedTower {
             return;
         }
         regenerationTicks = 0;
+        awakeningVfxTicks = 0;
+        towerEntity.setGlowingTag(true);
+        TowerVfxService.showWarlockAwakening(towerEntity);
         if (is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
             heal(
                     towerEntity,
@@ -331,11 +312,15 @@ public class WarlockTower extends EntityBackedTower {
         currentLane = lane;
         super.tick(lane);
         tickRegeneration(lane);
+        tickAwakeningVfx(lane);
     }
 
     @Override
     public void resetForRound(PlayerLane lane) {
         currentLane = lane;
+        setAwakeningGlow(lane, false);
+        awakeningVfxTicks = 0;
+        regenerationTicks = 0;
         state.resetRound();
         super.resetForRound(lane);
         refreshWarlockCoreStats(lane);
@@ -368,6 +353,42 @@ public class WarlockTower extends EntityBackedTower {
         onStateChanged(lane);
         heal(towerEntity, gainedHealth);
         onStateChanged(lane);
+    }
+
+    private void tickAwakeningVfx(PlayerLane lane) {
+        if (!state.awakenedThisRound()) {
+            awakeningVfxTicks = 0;
+            return;
+        }
+        if (lane == null || lane.arenaWorld() == null) {
+            return;
+        }
+        awakeningVfxTicks++;
+        entityId().ifPresent(id -> {
+            var entity = lane.arenaWorld().getEntity(id);
+            if (!(entity instanceof SemionTowerEntity towerEntity) || !towerEntity.isAlive()) {
+                return;
+            }
+            if (awakeningVfxTicks % 2 == 0) {
+                TowerVfxService.showWarlockAwakeningAura(towerEntity);
+            }
+            if (awakeningVfxTicks % 10 == 0) {
+                TowerVfxService.showWarlockAwakeningSparkBurst(towerEntity);
+            }
+        });
+    }
+
+    private void setAwakeningGlow(PlayerLane lane, boolean glowing) {
+        if (lane == null || lane.arenaWorld() == null) {
+            return;
+        }
+
+        entityId().ifPresent(id -> {
+            var entity = lane.arenaWorld().getEntity(id);
+            if (entity instanceof SemionTowerEntity towerEntity) {
+                towerEntity.setGlowingTag(glowing);
+            }
+        });
     }
 
     private double passiveHealthBonus() {

@@ -34,32 +34,47 @@ public record HeaderMessage(Component contents, int width) implements DialogBody
         return MAP_CODEC;
     }
 
-    public PlainMessage asVanillaBody(PacketContext context) {
+    public Component asVanillaComponent() {
         Component title = Component.literal(" ")
                 .append(this.contents)
                 .append(" ");
-        int sideWidth = Math.max(0, (this.width - getWidth(title) - 8) / 2);
+
+        int sideWidth = Math.max(0, (this.width - getWidth(title) - 23) / 2);
 
         MutableComponent side = TextUncenterer.filler(sideWidth)
                 .copy()
                 .withStyle(style -> style.withStrikethrough(true).withShadowColor(0));
 
-        Component text = Component.empty()
+        return Component.empty()
                 .append(side)
                 .append(title)
                 .append(side.copy());
+    }
 
-        return new PlainMessage(text, this.width);
+    public PlainMessage asVanillaBody(PacketContext context) {
+        return new PlainMessage(asVanillaComponent(), this.width);
+    }
+
+    public static Component dividerComponent(int width) {
+        return TextUncenterer.filler(Math.max(0, width))
+                .copy()
+                .withStyle(style -> style.withColor(0xFFFFFF).withStrikethrough(true).withShadowColor(0));
+    }
+
+    public static PlainMessage divider(int width) {
+        return new PlainMessage(dividerComponent(width), width);
     }
 
     private static int getWidth(Component text) {
         final int[] width = {0};
+
         text.visit((style, string) -> {
             if (!string.isEmpty()) {
                 width[0] += getTextWidth(style, string);
             }
             return Optional.empty();
         }, Style.EMPTY);
+
         return width[0];
     }
 

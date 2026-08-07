@@ -42,8 +42,9 @@ public final class EndTowers {
             .aggroPriority(10)
             .visual(EntityVisual.vanilla(byId(EntityType.ENDERMITE)))
             .description(List.of(
-                    "<gray>공격력이 높은 엔더마이트 입니다.</gray>",
-                    "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
+                    "<gray><#ec8d34>피해</#ec8d34>가 낮은 엔더마이트 입니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
             ))
             .build();
 
@@ -56,8 +57,9 @@ public final class EndTowers {
             .aggroPriority(10)
             .visual(EntityVisual.vanilla(byId(EntityType.ENDERMAN)))
             .description(List.of(
-                    "<gray>공격력이 높은 엔더맨 입니다.</gray>",
-                    "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
+                    "<gray><#ec8d34>피해</#ec8d34>가 보통인 엔더맨 입니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
             ))
             .build();
 
@@ -70,8 +72,9 @@ public final class EndTowers {
             .aggroPriority(10)
             .visual(EntityVisual.vanilla(byId(EntityType.END_CRYSTAL)))
             .description(List.of(
-                    "<gray>공격력이 매우 높은 엔드 수정 입니다.</gray>",
-                    "<green>공격을 하지 않지만, 엔드 수정 계열의 힘 전달을 완료하면 엔더 드래곤의 공격 능력을 강화합니다.</green>"
+                    "<gray><#ec8d34>피해</#ec8d34>가 높은 엔드 수정 입니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
             ))
             .build();
 
@@ -84,9 +87,10 @@ public final class EndTowers {
             .aggroPriority(10)
             .visual(EntityVisual.vanilla(byId(EntityType.SHULKER)))
             .description(List.of(
-                    "<gray>체력이 높은 셜커 입니다.</gray>",
-                    "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
-                    "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
+                    "<gray><#fc5454>체력</#fc5454>이 낮은 셜커입니다.</gray>",
+                    "<gray><#f3ba59>피해</#f3ba59>를 <#f3ba59>{ability.damageReduction:percent} 감소</#f3ba59>합니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#fc5454>체력</#fc5454>을 강화합니다.</gray>"
             ))
             .build();
 
@@ -99,9 +103,10 @@ public final class EndTowers {
             .aggroPriority(10)
             .visual(ShulkerVisual.builder().color(DyeColor.PURPLE).build())
             .description(List.of(
-                    "<gray>체력이 높은 견고한 셜커 입니다.</gray>",
-                    "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
-                    "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
+                    "<gray><#fc5454>체력</#fc5454>이 보통인 견고한 셜커입니다.</gray>",
+                    "<gray><#f3ba59>피해</#f3ba59>를 <#f3ba59>{ability.damageReduction:percent} 감소</#f3ba59>합니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#fc5454>체력</#fc5454>을 강화합니다.</gray>"
             ))
             .build();
 
@@ -114,13 +119,12 @@ public final class EndTowers {
             .aggroPriority(10)
             .visual(ShulkerVisual.builder().color(DyeColor.BLACK).build())
             .description(List.of(
-                    "<gray>체력이 매우 높은 완강한 셜커 입니다.</gray>",
-                    "<yellow>받는 피해가 {ability.damageReduction:percent} 감소합니다.</yellow>",
-                    "<green>공격을 하지 않지만, 셜커 계열의 힘 전달을 완료하면 엔더 드래곤의 내구력을 강화합니다.</green>"
+                    "<gray><#fc5454>체력</#fc5454>이 높은 완강한 셜커입니다.</gray>",
+                    "<gray><#f3ba59>피해</#f3ba59>를 <#f3ba59>{ability.damageReduction:percent} 감소</#f3ba59>합니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#fc5454>체력</#fc5454>을 강화합니다.</gray>"
             ))
             .build();
-
-
 
     private static final Set<String> ENDER_TOWER_IDS = Set.of(
             BASE_END_TOWER.id(),
@@ -154,20 +158,14 @@ public final class EndTowers {
 
     private static List<String> dragonDescription() {
         return List.of(
-                "<gray>알로 소환되며, 라운드 시작 시 <#B77DE8>아기 드래곤</#B77DE8>으로 변합니다.</gray>",
-                "<gray><#E66F6F>최대 체력 " + ability(DRAGON_EVOLUTION, "integer") + "</#E66F6F> 이상이면 <#B77DE8>엔더 드래곤</#B77DE8>으로 진화합니다.</gray>",
-                "<gray><#B77DE8>아기 드래곤</#B77DE8> 크기는 <#E66F6F>최대 체력 " + ability(PHANTOM_SCALE_HEALTH, "integer") + "</#E66F6F>당 " + ability(PHANTOM_SCALE_STEP, "number") + "씩 증가합니다.</gray>",
-                "<gray>힘 전달 " + ability(TRANSFER_TICKS, "seconds") + " 후 타워 <#D94343>사망</#D94343>, <#E66F6F>체력 " + ability(TRANSFER_HEAL, "integer") + "</#E66F6F> 회복합니다.</gray>",
-                "<gray>전달 중인 셜커 타워의 <#E66F6F>최대 체력 " + ability(TRANSFER_HEAL_RATIO, "percent_integer") + "</#E66F6F>만큼 매초 회복합니다.</gray>",
-                "<gray><#D94343>공격력</#D94343>: 타워 공격력의 <#D94343>" + ability(ROUND_DAMAGE_RATIO, "percent_integer") + "</#D94343>를 임시 획득, <#D94343>" + ability(PERMANENT_DAMAGE_RATIO, "percent_integer") + "</#D94343> 영구 누적</gray>",
-                "<gray><#E66F6F>체력</#E66F6F>: 타워 체력의 <#E66F6F>" + ability(ROUND_HEALTH_RATIO, "percent_integer") + "</#E66F6F>를 임시 획득, <#E66F6F>" + ability(PERMANENT_HEALTH_RATIO, "percent_integer") + "</#E66F6F> 영구 누적</gray>",
-                "<gray><#D9B94F>공격 범위</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(SPLASH_1, "integer") + ", " + ability(SPLASH_2, "integer") + ", " + ability(SPLASH_3, "integer") + ", " + ability(SPLASH_4, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(SPLASH_STEP, "number") + " 블록</#D9B94F></gray>",
-                "<gray><#D9B94F>공격 속도</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_SPEED_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>-" + ability(ATTACK_SPEED_STEP, "integer") + "틱</#D9B94F></gray>",
-                "<gray><#D9B94F>사거리</#D9B94F>: 엔드 수정 <#D9B94F>" + ability(ATTACK_RANGE_STACKS, "integer") + "</#D9B94F>스택마다 <#D9B94F>+" + ability(ATTACK_RANGE_STEP, "number") + " 블록</#D9B94F></gray>",
-                "<gray><#D94343>생명력 흡수</#D94343>: 셜커 <#D94343>" + ability(LIFE_STEAL_STACKS, "integer") + "</#D94343>스택마다 <#D94343>+" + ability(LIFE_STEAL_STEP, "percent") + "</#D94343></gray>",
-                "<gray><#72A9E6>피해 감소</#72A9E6>: 셜커 <#72A9E6>" + ability(DAMAGE_REDUCTION_STACKS, "integer") + "</#72A9E6>스택마다 <#72A9E6>+" + ability(DAMAGE_REDUCTION_STEP, "percent_integer") + "</#72A9E6></gray>",
-                "<gray><#79C97B>재생</#79C97B>: 셜커 <#79C97B>" + ability(REGENERATION_STACKS, "integer") + "</#79C97B>스택마다 <#79C97B>+" + ability(REGENERATION_STEP, "integer") + " HP/s</#79C97B></gray>",
-                "<gray><#B77DE8>엔더 드래곤</#B77DE8>: <#D94343>최종 피해 +" + ability(DRAGON_FINAL_DAMAGE, "percent_integer") + "</#D94343> / <#D9B94F>추가 사거리 +" + ability(DRAGON_RANGE_BONUS, "number") + " 블록</#D9B94F></gray>"
+                "<gray>알로 소환되며, 라운드 시작 시 <#cc00fa>아기 드래곤</#cc00fa>으로 변합니다.</gray>",
+                "<gray><#cc00fa>아기 드래곤</#cc00fa> 크기는 <#fc5454>최대 체력 " + ability(PHANTOM_SCALE_HEALTH, "integer") + "</#fc5454>당 " + ability(PHANTOM_SCALE_STEP, "number") + "씩 증가합니다.</gray>",
+                "<gray><#fc5454>최대 체력 " + ability(DRAGON_EVOLUTION, "integer") + "</#fc5454> 이상이면 <#cc00fa>엔더 드래곤</#cc00fa>으로 진화합니다.</gray>",
+                "<gray><#cc00fa>엔더 드래곤</#cc00fa>으로 진화하면 추가 능력을 획득합니다.</gray>",
+                "<gray>힘 전달 " + ability(TRANSFER_TICKS, "seconds") + " 후 타워 사망, <#fc5454>체력 " + ability(TRANSFER_HEAL, "integer") + "</#fc5454>을 회복합니다.</gray>",
+                "<gray>전달 중인 셜커 타워의 <#fc5454>최대 체력 " + ability(TRANSFER_HEAL_RATIO, "percent_integer") + "</#fc5454>만큼 회복합니다.</gray>",
+                "<gray>타워 <#ec8d34>피해</#ec8d34>의 <#ec8d34>" + ability(ROUND_DAMAGE_RATIO, "percent_integer") + "</#ec8d34>를 임시 획득, <#ec8d34>" + ability(PERMANENT_DAMAGE_RATIO, "percent_integer") + "</#ec8d34> 영구 누적</gray>",
+                "<gray>타워 <#fc5454>체력</#fc5454>의 <#fc5454>" + ability(ROUND_HEALTH_RATIO, "percent_integer") + "</#fc5454>를 임시 획득, <#fc5454>" + ability(PERMANENT_HEALTH_RATIO, "percent_integer") + "</#fc5454> 영구 누적</gray>"
         );
     }
 

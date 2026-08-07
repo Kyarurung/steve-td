@@ -20,6 +20,8 @@ final class WarlockStats {
                         tower.roundSacrificeCount(),
                         showAwakening,
                         tower.awakenedThisRound(),
+                        tower.is(WarlockTowers.RANGED_WARLOCK_TOWER),
+                        tower.is(WarlockTowers.MELEE_WARLOCK_TOWER),
                         new WarlockStatsView.CombatStats(
                                 combat.damageCap(tower.type()),
                                 tower.additionalAttackDamage(),

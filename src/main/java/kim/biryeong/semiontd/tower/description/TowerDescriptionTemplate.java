@@ -12,14 +12,15 @@ import kim.biryeong.semiontd.tower.TowerType;
 
 public final class TowerDescriptionTemplate {
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^{}]+)}");
-    private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat(
-            "0.##",
-            DecimalFormatSymbols.getInstance(Locale.ROOT)
-    );
-    private static final DecimalFormat PRECISE_NUMBER_FORMAT = new DecimalFormat(
-            "0.###",
-            DecimalFormatSymbols.getInstance(Locale.ROOT)
-    );
+    private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(Locale.ROOT));
+    private static final DecimalFormat PRECISE_NUMBER_FORMAT = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.ROOT));
+    private static final String ATTACK_DAMAGE_COLOR = "#ec8d34";
+    private static final String HEALTH_COLOR = "#fc5454";
+    private static final String AGGRO_PRIORITY_COLOR = "#a80000";
+    private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
+    private static final String ATTACK_SPEED_COLOR = "#ffe78d";
+    private static final String DIAMOND_GRADIENT = "<gradient:#ffffff:#d5fff6:#a1fbe8:#4aedd9:#20c5b5:#1aaaa7:#11727a:#145e53>";
+    private static final String GRADIENT_CLOSE = "</gradient>";
 
     private TowerDescriptionTemplate() {
     }
@@ -68,7 +69,6 @@ public final class TowerDescriptionTemplate {
         if (expression.isBlank()) {
             throw new IllegalArgumentException("Blank tower description expression.");
         }
-
         double result = 0.0;
         char operator = '+';
         int tokenStart = 0;
@@ -127,12 +127,13 @@ public final class TowerDescriptionTemplate {
             case "damage" -> type.damage();
             case "attackIntervalTicks" -> type.attackIntervalTicks();
             case "attackIntervalSeconds" -> type.attackIntervalTicks() / 20.0;
+            case "attacksPerSecond" -> 20.0 / Math.max(1, type.attackIntervalTicks());
             case "aggroPriority" -> type.aggroPriority();
             default -> throw new IllegalArgumentException("Unknown tower stat token: " + key);
         };
     }
 
-    private static String format(double value, String format) {
+    public static String format(double value, String format) {
         return switch (format) {
             case "integer", "int" -> Long.toString(Math.round(value));
             case "percent" -> formatNumber(value * 100.0) + "%";
@@ -140,12 +141,56 @@ public final class TowerDescriptionTemplate {
             case "seconds", "second" -> formatNumber(value / 20.0) + "초";
             case "blocks", "block" -> formatNumber(value) + "블록";
             case "precise_blocks", "precise_block" -> formatPreciseNumber(value) + "블록";
-            case "number", "" -> formatNumber(value);
+            case "attack_damage", "ad" -> formatAttackDamage(value);
+            case "health", "hp" -> formatHealth(value);
+            case "aggro", "priority" -> formatAggroPriority(value);
+            case "attack_range", "range" -> formatAttackRange(value);
+            case "attack_speed", "as" -> formatAttackSpeed(value);
+            case "sell_price", "sell" -> formatSellPrice(value);
+            case "number", "num", "" -> formatNumber(value);
             default -> throw new IllegalArgumentException("Unknown tower description format: " + format);
         };
     }
 
-    private static String formatNumber(double value) {
+    public static String formatIncrease(double baseValue, double currentValue, String format) {
+        if (!Double.isFinite(baseValue) || !Double.isFinite(currentValue) || baseValue <= 0.0 || currentValue <= baseValue) {
+            return "";
+        }
+        long increasePercent = Math.round(((currentValue - baseValue) / baseValue) * 100.0);
+        if (increasePercent <= 0L) {
+            return "";
+        }
+        return " <white>(</white><green>+" + increasePercent + "%</green><white>)</white>";
+    }
+
+    private static String styledStat(String color, String icon, String label, String formattedValue) {
+        return "<" + color + ">" + icon + " " + label + "</" + color + "><white>: </white><" + color + ">" + formattedValue + "</" + color + ">";
+    }
+
+    public static String styledEndStat(String color, String icon, String label, String value, String unit, String progress) {
+        return "<" + color + ">" + icon + " " + label + "</" + color + "><white>: </white><" + color + ">" + value + unit + "</" + color + ">" + (progress.isEmpty() ? "" : "<white> " + progress + "</white>");
+    }
+
+    public static String stackProgress(int currentStacks, int stacksPerStep, double currentValue, double maximumValue) {
+        if (stacksPerStep <= 0 || currentValue >= maximumValue - 0.0001) {return "(MAX)";}
+        int nextStacks = (currentStacks / stacksPerStep + 1) * stacksPerStep;
+        return "(" + nextStacks + ")";
+    }
+
+    public static String splashProgress(int currentStacks, int... thresholds) {
+        for (int threshold : thresholds) {if (currentStacks < threshold) {return "(" + threshold + ")";}}
+        return "(MAX)";
+    }
+
+    public static String tooltipStat(String color, String icon, String label, String value) {
+        return "<" + color + ">" + icon + " " + label + "</" + color + ">" + "<white>: </white>" + "<" + color + ">" + value + "</" + color + ">";
+    }
+
+    public static String tooltipAttackSpeedTicks(int ticks) {
+        return "<dark_gray>(" + ticks + "틱)</dark_gray>";
+    }
+
+    public static String formatNumber(double value) {
         synchronized (NUMBER_FORMAT) {
             return NUMBER_FORMAT.format(value);
         }
@@ -155,5 +200,33 @@ public final class TowerDescriptionTemplate {
         synchronized (PRECISE_NUMBER_FORMAT) {
             return PRECISE_NUMBER_FORMAT.format(value);
         }
+    }
+
+    private static String formatAttackDamage(double value) {
+        return styledStat(ATTACK_DAMAGE_COLOR, "\uD83E\uDE93", "피해", formatNumber(value));
+    }
+
+    private static String formatHealth(double value) {
+        return styledStat(HEALTH_COLOR, "\u2764", "체력", formatNumber(value));
+    }
+
+    private static String formatAttackSpeed(double value) {
+        return styledStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", formatNumber(value) + "회/초");
+    }
+
+    public static String formatAttackSpeedTicks(int ticks) {
+        return "<white>(</white><" + ATTACK_SPEED_COLOR + ">" + ticks + "틱</" + ATTACK_SPEED_COLOR + "><white>)</white>";
+    }
+
+    private static String formatAttackRange(double value) {
+        return styledStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "사거리", formatNumber(value) + " 블록");
+    }
+
+    private static String formatAggroPriority(double value) {
+        return styledStat(AGGRO_PRIORITY_COLOR, "\uD83D\uDCA2", "어그로", Long.toString(Math.round(value)));
+    }
+
+    private static String formatSellPrice(double value) {
+        return DIAMOND_GRADIENT + "\uD83D\uDC8E 판매가<white>: </white>" + Math.round(value) + " 다이아" + GRADIENT_CLOSE;
     }
 }

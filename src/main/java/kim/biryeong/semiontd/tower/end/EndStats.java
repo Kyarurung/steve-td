@@ -9,10 +9,10 @@ final class EndStats {
         this.combat = combat;
     }
 
-    List<String> create(EndTower tower, boolean waveActive) {
+    List<String> create(EndTower tower) {
         if (!tower.isCoreTower()) {
             double reduction = EndTowers.isShulkerLine(tower.type()) ? combat.shulkerDamageReduction(tower.type()) : 0.0;
-            return EndStatsView.feeder(waveActive, tower.transferProgress(), reduction);
+            return EndStatsView.feeder(reduction);
         }
         double maxHealth = tower.isEgg() ? tower.previewHatchedMaxHealth() : tower.currentMaxHealth();
         int intervalReduction = Math.max(0, tower.type().attackIntervalTicks() - tower.previewHatchedAttackIntervalTicks());
