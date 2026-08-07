@@ -43,7 +43,7 @@ public final class EndTowerJob extends SemionJob {
                 SemionText.mini("<gray><#fc5454>셜커</#fc5454> 계열은 <#fc5454>체력</#fc5454>을 강화합니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<gray><#cc00fa>엔더 드래곤</#cc00fa>으로 진화하면</gray>"),
-                SemionText.mini("<gray><#cc00fa>추가 능력</#cc00fa>을 획득합니다.</gray>")
+                SemionText.mini("<gray>추가 <yellow>고유 능력</yellow>을 획득합니다.</gray>")
         );
     }
 
