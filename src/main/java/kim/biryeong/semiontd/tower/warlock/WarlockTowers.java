@@ -77,7 +77,7 @@ public final class WarlockTowers {
     public static final TowerType T2_SLAVE = tower(
             "t2_slave",
             "희생\"양\"",
-            130,
+            85,
             120,
             2,
             8,
@@ -93,7 +93,7 @@ public final class WarlockTowers {
     public static final TowerType T3_SLAVE = tower(
             "t3_slave",
             "희생\"양\"",
-            280,
+            135,
             185,
             2,
             12,
@@ -124,7 +124,7 @@ public final class WarlockTowers {
     public static final TowerType T2_RANGED_SLAVE = tower(
             "t2_ranged_slave",
             "애완 개구리",
-            100,
+            90,
             120,
             7,
             8,
@@ -140,7 +140,7 @@ public final class WarlockTowers {
     public static final TowerType T3_RANGED_SLAVE = tower(
             "t3_ranged_slave",
             "애완 개구리",
-            240,
+            140,
             185,
             7,
             12,

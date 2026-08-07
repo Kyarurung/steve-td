@@ -47,7 +47,7 @@ final class EndStatsView {
             case PHANTOM -> "<white>상태: <#cc00fa>아기 드래곤</#cc00fa></white>";
             case DRAGON -> "<white>상태: <#cc00fa>엔더 드래곤</#cc00fa></white>";
         });
-        lines.add("<white>엔드 수정, 셜커 스택: " + stats.endCrystalStacks() + " / " + stats.shulkerStacks() + "</white>");
+        lines.add("<white><#fc5454>셜커</#fc5454> 계열, <#ec8d34>엔드 수정</#ec8d34> 계열 누적 수: <#fc5454>" + stats.shulkerStacks() + "</#fc5454> <dark_gray>|</dark_gray> <#ec8d34>" + stats.endCrystalStacks() + "</#ec8d34></white>");
         lines.add(styledEndStat(DAMAGE_COLOR, "\u2694", "피해량 상한", compactOneDecimal(combat.maximumAttackDamage()), "", ""));
         lines.add(styledEndStat(DAMAGE_COLOR, "\uD83E\uDE93", "영구 피해", "+" + oneDecimal(combat.additionalAttackDamage()), "", ""));
         lines.add(styledEndStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", "-" + combat.attackIntervalReductionTicks(), "틱", stackProgress(stats.endCrystalStacks(), attackSpeedStacks, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));

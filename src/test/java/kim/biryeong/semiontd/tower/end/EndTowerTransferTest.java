@@ -91,7 +91,7 @@ class EndTowerTransferTest {
         assertEquals(1, dragon.roundCompletedTransferCount());
         assertEquals(19, dragon.adjustAttackInterval(20));
         String crystalHeavyDetails = plainRuntimeDetails(dragon);
-        assertTrue(crystalHeavyDetails.contains("엔드 수정, 셜커 스택: 1 / 0"));
+        assertTrue(crystalHeavyDetails.contains("셜커 계열, 엔드 수정 계열 누적 수: 0 | 1"));
         assertTrue(crystalHeavyDetails.contains("공격 속도: -1틱 (30)"));
         assertTrue(crystalHeavyDetails.contains("영구 피해: +0.6"));
         tick(dragon, lane, 4);
@@ -552,7 +552,7 @@ class EndTowerTransferTest {
         assertEquals(4.0, core.permanentHealthBonus(), 0.0001);
         assertEquals(0.0, core.splashRadius(), 0.0001);
         String eggDetails = plainRuntimeDetails(core);
-        assertTrue(eggDetails.contains("엔드 수정, 셜커 스택: 0 / 1"));
+        assertTrue(eggDetails.contains("셜커 계열, 엔드 수정 계열 누적 수: 1 | 0"));
         assertTrue(eggDetails.contains("피해량 상한: 300"));
         assertTrue(eggDetails.contains("영구 피해: +0.0"));
         assertTrue(eggDetails.contains("사거리: +5.0 블록 (50)"));
@@ -608,7 +608,7 @@ class EndTowerTransferTest {
         assertEquals(2.0, dragon.splashRadius(), 0.0001);
         assertEquals(5, dragon.adjustAttackInterval(20));
         assertEquals(99.0, dragon.modifyIncomingDamage(null, null, 100.0), 0.0001);
-        assertTrue(plainRuntimeDetails(dragon).contains("엔드 수정, 셜커 스택: 20 / 20"));
+        assertTrue(plainRuntimeDetails(dragon).contains("셜커 계열, 엔드 수정 계열 누적 수: 20 | 20"));
         assertTrue(plainRuntimeDetails(dragon).contains("생명력 흡수: +0% (30)"));
 
         dragon.resetRoundTransferBonuses(null);

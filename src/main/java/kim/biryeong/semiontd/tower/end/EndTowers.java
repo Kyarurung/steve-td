@@ -33,51 +33,6 @@ public final class EndTowers {
             .description(dragonDescription())
             .build();
 
-    public static final TowerType T1_ENDERMITE_TOWER = TowerType.builder("t1_endermite_tower", "엔더 마이트")
-            .mineralCost(50)
-            .maxHealth(50)
-            .range(0)
-            .damage(10)
-            .attackIntervalTicks(20)
-            .aggroPriority(10)
-            .visual(EntityVisual.vanilla(byId(EntityType.ENDERMITE)))
-            .description(List.of(
-                    "<gray><#ec8d34>피해</#ec8d34>가 낮은 엔더마이트 입니다.</gray>",
-                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
-                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
-            ))
-            .build();
-
-    public static final TowerType T2_ENDERMAN_TOWER = TowerType.builder("t2_enderman_tower", "엔더맨")
-            .mineralCost(100)
-            .maxHealth(50)
-            .range(0)
-            .damage(15)
-            .attackIntervalTicks(20)
-            .aggroPriority(10)
-            .visual(EntityVisual.vanilla(byId(EntityType.ENDERMAN)))
-            .description(List.of(
-                    "<gray><#ec8d34>피해</#ec8d34>가 보통인 엔더맨 입니다.</gray>",
-                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
-                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
-            ))
-            .build();
-
-    public static final TowerType T3_END_CRYSTAL_TOWER = TowerType.builder("t3_end_crystal_tower", "엔드 수정")
-            .mineralCost(150)
-            .maxHealth(50)
-            .range(0)
-            .damage(20)
-            .attackIntervalTicks(20)
-            .aggroPriority(10)
-            .visual(EntityVisual.vanilla(byId(EntityType.END_CRYSTAL)))
-            .description(List.of(
-                    "<gray><#ec8d34>피해</#ec8d34>가 높은 엔드 수정 입니다.</gray>",
-                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
-                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
-            ))
-            .build();
-
     public static final TowerType T1_SHULKER_TOWER = TowerType.builder("t1_shulker_tower", "셜커")
             .mineralCost(50)
             .maxHealth(100)
@@ -126,31 +81,76 @@ public final class EndTowers {
             ))
             .build();
 
+    public static final TowerType T1_ENDERMITE_TOWER = TowerType.builder("t1_endermite_tower", "엔더 마이트")
+            .mineralCost(50)
+            .maxHealth(50)
+            .range(0)
+            .damage(10)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.ENDERMITE)))
+            .description(List.of(
+                    "<gray><#ec8d34>피해</#ec8d34>가 낮은 엔더마이트 입니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
+            ))
+            .build();
+
+    public static final TowerType T2_ENDERMAN_TOWER = TowerType.builder("t2_enderman_tower", "엔더맨")
+            .mineralCost(100)
+            .maxHealth(50)
+            .range(0)
+            .damage(15)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.ENDERMAN)))
+            .description(List.of(
+                    "<gray><#ec8d34>피해</#ec8d34>가 보통인 엔더맨 입니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
+            ))
+            .build();
+
+    public static final TowerType T3_END_CRYSTAL_TOWER = TowerType.builder("t3_end_crystal_tower", "엔드 수정")
+            .mineralCost(150)
+            .maxHealth(50)
+            .range(0)
+            .damage(20)
+            .attackIntervalTicks(20)
+            .aggroPriority(10)
+            .visual(EntityVisual.vanilla(byId(EntityType.END_CRYSTAL)))
+            .description(List.of(
+                    "<gray><#ec8d34>피해</#ec8d34>가 높은 엔드 수정 입니다.</gray>",
+                    "<gray>이 타워는 공격을 하지 않습니다.</gray>",
+                    "<gray>힘 전달을 완료하면 <#cc00fa>엔더 드래곤</#cc00fa>의 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"
+            ))
+            .build();
+
     private static final Set<String> ENDER_TOWER_IDS = Set.of(
             BASE_END_TOWER.id(),
-            T1_ENDERMITE_TOWER.id(),
-            T2_ENDERMAN_TOWER.id(),
-            T3_END_CRYSTAL_TOWER.id(),
             T1_SHULKER_TOWER.id(),
             T2_SHULKER_TOWER.id(),
-            T3_SHULKER_TOWER.id()
+            T3_SHULKER_TOWER.id(),
+            T1_ENDERMITE_TOWER.id(),
+            T2_ENDERMAN_TOWER.id(),
+            T3_END_CRYSTAL_TOWER.id()
     );
 
-    private static final Set<String> END_CRYSTAL_LINE_IDS = Set.of(
-            T1_ENDERMITE_TOWER.id(), T2_ENDERMAN_TOWER.id(), T3_END_CRYSTAL_TOWER.id()
-    );
     private static final Set<String> SHULKER_LINE_IDS = Set.of(
             T1_SHULKER_TOWER.id(), T2_SHULKER_TOWER.id(), T3_SHULKER_TOWER.id()
+    );
+    private static final Set<String> END_CRYSTAL_LINE_IDS = Set.of(
+            T1_ENDERMITE_TOWER.id(), T2_ENDERMAN_TOWER.id(), T3_END_CRYSTAL_TOWER.id()
     );
 
     static {
         TowerDescriptionRegistry.registerTemplate(BASE_END_TOWER, BASE_END_TOWER.description());
-        TowerDescriptionRegistry.registerTemplate(T1_ENDERMITE_TOWER, T1_ENDERMITE_TOWER.description());
-        TowerDescriptionRegistry.registerTemplate(T2_ENDERMAN_TOWER, T2_ENDERMAN_TOWER.description());
-        TowerDescriptionRegistry.registerTemplate(T3_END_CRYSTAL_TOWER, T3_END_CRYSTAL_TOWER.description());
         TowerDescriptionRegistry.registerTemplate(T1_SHULKER_TOWER, T1_SHULKER_TOWER.description());
         TowerDescriptionRegistry.registerTemplate(T2_SHULKER_TOWER, T2_SHULKER_TOWER.description());
         TowerDescriptionRegistry.registerTemplate(T3_SHULKER_TOWER, T3_SHULKER_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T1_ENDERMITE_TOWER, T1_ENDERMITE_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T2_ENDERMAN_TOWER, T2_ENDERMAN_TOWER.description());
+        TowerDescriptionRegistry.registerTemplate(T3_END_CRYSTAL_TOWER, T3_END_CRYSTAL_TOWER.description());
     }
 
     private EndTowers() {
@@ -181,16 +181,16 @@ public final class EndTowers {
         return type != null && type.id().equals(BASE_END_TOWER.id());
     }
 
-    public static boolean isEndCrystalLine(TowerType type) {
-        return type != null && END_CRYSTAL_LINE_IDS.contains(type.id());
-    }
-
     public static boolean isShulkerLine(TowerType type) {
         return type != null && SHULKER_LINE_IDS.contains(type.id());
     }
 
+    public static boolean isEndCrystalLine(TowerType type) {
+        return type != null && END_CRYSTAL_LINE_IDS.contains(type.id());
+    }
+
     public static boolean isTransferableTower(TowerType type) {
-        return isEndCrystalLine(type) || isShulkerLine(type);
+        return isShulkerLine(type) || isEndCrystalLine(type);
     }
 
     public static int transferTier(TowerType type) {

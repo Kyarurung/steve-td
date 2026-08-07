@@ -39,8 +39,8 @@ public final class EndTowerJob extends SemionJob {
                 SemionText.mini("<gray><#fc5454>체력 " + percent(PERMANENT_HEALTH_RATIO) + "</#fc5454>, <#ec8d34>피해 " + percent(PERMANENT_DAMAGE_RATIO) + "</#ec8d34>를 영구 누적합니다.</gray>"),
                 SemionText.mini("<gray><#ec8d34>피해량</#ec8d34>은 최대 <#ec8d34>" + number() + "</#ec8d34>까지 증가합니다.</gray>"),
                 Component.empty(),
-                SemionText.mini("<gray><#ec8d34>엔드 수정</#ec8d34> 계열은 <#ec8d34>피해</#ec8d34>를,</gray>"),
-                SemionText.mini("<gray><#fc5454>셜커</#fc5454> 계열은 <#fc5454>체력</#fc5454>을 강화합니다.</gray>"),
+                SemionText.mini("<gray><#fc5454>셜커</#fc5454> 계열은 <#fc5454>체력</#fc5454>을,</gray>"),
+                SemionText.mini("<gray><#ec8d34>엔드 수정</#ec8d34> 계열은 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<gray><#cc00fa>엔더 드래곤</#cc00fa>으로 진화하면</gray>"),
                 SemionText.mini("<gray>추가 <yellow>고유 능력</yellow>을 획득합니다.</gray>")
