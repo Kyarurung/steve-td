@@ -175,7 +175,7 @@ public final class WarlockTowers {
     private static List<String> baseWarlockDescription() {
         return List.of(
                 "<gray>치명적인 피해를 입으면 주위 " + ability(BASE_RADIUS, "blocks") + " 내 아군을 흡수하고, <#fc5454>최대 체력의 " + ability(BASE_HEAL, "percent") + "</#fc5454>를 회복합니다.</gray>",
-                "<gray>희생한 타워의 <#fc5454>체력 " + ability(BASE_PERMANENT_HEALTH, "percent") + "</#fc5454>, <#ec8d34>공격력 " + ability(BASE_PERMANENT_DAMAGE, "percent") + "</#ec8d34>를 영구 누적합니다.</gray>",
+                "<gray>희생한 타워의 <#fc5454>체력 " + ability(BASE_PERMANENT_HEALTH, "percent") + "</#fc5454>, <#ec8d34>피해 " + ability(BASE_PERMANENT_DAMAGE, "percent") + "</#ec8d34>를 영구 누적합니다.</gray>",
                 "<gray>업그레이드 시 원거리 또는 근거리 전투 방식을 선택할 수 있으며, 선택 후에는 변경할 수 없습니다.</gray>",
                 "<gray>흑마법사 핵심 타워는 단 한 기만 설치할 수 있습니다.</gray>"
         );

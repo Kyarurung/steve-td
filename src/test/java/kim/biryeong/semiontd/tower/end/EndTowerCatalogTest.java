@@ -190,8 +190,8 @@ class EndTowerCatalogTest {
                 .reduce("", (left, right) -> left + "\n" + right);
 
         assertTrue(description.contains("10초에 걸쳐"));
-        assertTrue(description.contains("체력 50%, 공격력 75%"));
-        assertTrue(description.contains("체력 4%, 공격력 6%"));
+        assertTrue(description.contains("체력 50%, 피해 75%"));
+        assertTrue(description.contains("체력 4%, 피해 6%"));
         assertTrue(description.contains("최대 300"));
     }
 
