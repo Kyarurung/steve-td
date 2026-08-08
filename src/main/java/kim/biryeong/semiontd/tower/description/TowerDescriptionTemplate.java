@@ -19,6 +19,7 @@ public final class TowerDescriptionTemplate {
     private static final String AGGRO_PRIORITY_COLOR = "#a80000";
     private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
     private static final String ATTACK_SPEED_COLOR = "#ffe78d";
+    private static final String RESISTANCE_COLOR = "#53DFFF";
     private static final String DIAMOND_GRADIENT = "<gradient:#ffffff:#d5fff6:#a1fbe8:#4aedd9:#20c5b5:#1aaaa7:#11727a:#145e53>";
     private static final String GRADIENT_CLOSE = "</gradient>";
 
@@ -182,14 +183,6 @@ public final class TowerDescriptionTemplate {
         return "(MAX)";
     }
 
-    public static String tooltipStat(String color, String icon, String label, String value) {
-        return "<" + color + ">" + icon + " " + label + "</" + color + ">" + "<white>: </white>" + "<" + color + ">" + value + "</" + color + ">";
-    }
-
-    public static String tooltipAttackSpeedTicks(int ticks) {
-        return "<dark_gray>(" + ticks + "틱)</dark_gray>";
-    }
-
     public static String formatNumber(double value) {
         synchronized (NUMBER_FORMAT) {
             return NUMBER_FORMAT.format(value);
@@ -202,15 +195,15 @@ public final class TowerDescriptionTemplate {
         }
     }
 
-    private static String formatAttackDamage(double value) {
+    public static String formatAttackDamage(double value) {
         return styledStat(ATTACK_DAMAGE_COLOR, "\uD83E\uDE93", "피해", formatNumber(value));
     }
 
-    private static String formatHealth(double value) {
+    public static String formatHealth(double value) {
         return styledStat(HEALTH_COLOR, "\u2764", "체력", formatNumber(value));
     }
 
-    private static String formatAttackSpeed(double value) {
+    public static String formatAttackSpeed(double value) {
         return styledStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", formatNumber(value) + "회/초");
     }
 
@@ -218,15 +211,19 @@ public final class TowerDescriptionTemplate {
         return "<white>(</white><" + ATTACK_SPEED_COLOR + ">" + ticks + "틱</" + ATTACK_SPEED_COLOR + "><white>)</white>";
     }
 
-    private static String formatAttackRange(double value) {
+    public static String formatAttackRange(double value) {
         return styledStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "사거리", formatNumber(value) + " 블록");
     }
 
-    private static String formatAggroPriority(double value) {
+    public static String formatAggroPriority(double value) {
         return styledStat(AGGRO_PRIORITY_COLOR, "\uD83D\uDCA2", "어그로", Long.toString(Math.round(value)));
     }
 
-    private static String formatSellPrice(double value) {
+    public static String formatResistance(double value) {
+        return styledStat(RESISTANCE_COLOR, "\u2726", "저항", formatNumber(value));
+    }
+
+    public static String formatSellPrice(double value) {
         return DIAMOND_GRADIENT + "\uD83D\uDC8E 판매가<white>: </white>" + Math.round(value) + " 다이아" + GRADIENT_CLOSE;
     }
 }

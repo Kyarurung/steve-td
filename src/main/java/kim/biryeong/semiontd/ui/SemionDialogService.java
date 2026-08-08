@@ -1475,26 +1475,28 @@ public final class SemionDialogService {
     }
 
     private static Component summonTooltip(SummonMonsterType type, boolean affordable) {
-        MutableComponent tooltip = mutableMiniMessage(
-                "<white><bold>" + type.displayName() + "</bold></white>\n"
-                        + "<gray>🏷 역할</gray> <yellow>" + roleList(type) + "</yellow>\n"
-                        + "<green>◆ 비용 " + type.gasCost() + " 에메랄드</green>"
-                        + (affordable ? "" : " <red>(부족)</red>")
-                        + " <dark_gray>|</dark_gray> <yellow>📈 인컴 +" + type.incomeGain() + "</yellow>\n"
-                        + "<aqua>💎 처치 " + type.mineralReward() + " 다이아</aqua> "
-                        + "<light_purple>⚖ 효율 " + oneDecimal(type.incomeRatio() * 100.0) + "%</light_purple>\n"
-                        + "<red>❤ 체력 " + Math.round(type.maxHealth()) + "</red> "
-                        + "<blue>🛡 방어 " + oneDecimal(type.armor()) + "</blue> "
-                        + "<dark_purple>✦ 저항 " + oneDecimal(type.resistance()) + "</dark_purple>\n"
-                        + "<dark_red>⚔ 공격 " + oneDecimal(type.attackDamage()) + "</dark_red> "
-                        + "<gray>" + attackKindIcon(type.attackKind()) + " 방식 " + attackKindLabel(type.attackKind()) + "</gray> "
-                        + "<gold>🔥 피해 " + damageTypeLabel(type.damageType()) + "</gold>\n"
-                        + "<green>⚡ 공속 " + attacksPerSecond(13) + "/초</green> "
-                        + "<white>📏 크기 " + oneDecimal(type.dimensions().width()) + "x" + oneDecimal(type.dimensions().height()) + "</white>\n"
-                        + "<light_purple>🎯 타겟 " + oneDecimal(type.targetRolePriority()) + "</light_purple> "
-                        + "<yellow>✨ 능력 " + abilityActivationList(type) + "</yellow>"
+        double attacksPerSecond = 20.0 / 13.0;
+        MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + type.displayName() + "</bold></yellow> <dark_gray>|</dark_gray> <gray>" + roleList(type) + "</gray>\n"
         );
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage("<green>\u2B22 " + type.gasCost() + " 에메랄드</green>" + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
+                + DIAMOND_GRADIENT + "\uD83D\uDC8E 처치 보상<white>: </white>" + type.mineralReward() + " 다이아" + GRADIENT_CLOSE + "\n"
+                + "<yellow>\uD83D\uDCC8 인컴<white>: </white>+" + type.incomeGain() + " <white>(</white>" + formatNumber(type.incomeRatio() * 100.0) + "%<white>)</white></yellow>\n"
+        ));
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage(
+                formatHealth(type.maxHealth()) + "\n"
+                        + formatAttackDamage(type.attackDamage()) + "\n"
+                        + formatAttackSpeed(attacksPerSecond) + " " + formatAttackSpeedTicks(13) + "\n"
+                        + "<#f3ba59>\uD83D\uDEE1 방어</#f3ba59><white>: </white><#f3ba59>" + formatNumber(type.armor()) + "</#f3ba59> <dark_gray>|</dark_gray> " + formatResistance(type.resistance()) + "\n"
+                        + formatAggroPriority(type.targetRolePriority()) + "\n"
+        ));
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage("<gold>\uD83D\uDD25 피해 유형</gold><white>: </white><gold>" + damageTypeLabel(type.damageType()) + "</gold> <dark_gray>|</dark_gray> <gray>" + attackKindIcon(type.attackKind()) + " 공격 방식</gray><white>: </white><gray>" + attackKindLabel(type.attackKind()) + "</gray>\n"
+                + "<white>\uD83D\uDCCF 크기<white>: </white>" + formatNumber(type.dimensions().width()) + "x" + formatNumber(type.dimensions().height()) + "</white> <dark_gray>|</dark_gray> <yellow>⭐ 능력</yellow><white>: </white><yellow>" + abilityActivationList(type) + "</yellow>\n"
+        ));
         appendSummonDescription(tooltip, type.description());
+
         return tooltip;
     }
 
@@ -1535,11 +1537,10 @@ public final class SemionDialogService {
     }
 
     private static void appendSummonDescription(MutableComponent tooltip, List<String> description) {
-        if (description.isEmpty()) {
+        if (description == null || description.stream().noneMatch(line -> line != null && !line.isBlank())) {
             return;
         }
-        tooltip.append(Component.literal("\n\n"));
-        tooltip.append(miniMessage("<gray>설명</gray>"));
+        tooltip.append(dividerComponent(160));
         for (String line : description) {
             if (line != null && !line.isBlank()) {
                 tooltip.append(Component.literal("\n- ").withStyle(ChatFormatting.DARK_GRAY));

@@ -49,14 +49,14 @@ final class EndStatsView {
         });
         lines.add("<white><#fc5454>셜커</#fc5454> 계열, <#ec8d34>엔드 수정</#ec8d34> 계열 누적 수: <#fc5454>" + stats.shulkerStacks() + "</#fc5454> <dark_gray>|</dark_gray> <#ec8d34>" + stats.endCrystalStacks() + "</#ec8d34></white>");
         lines.add(styledEndStat(DAMAGE_COLOR, "\u2694", "피해량 상한", compactOneDecimal(combat.maximumAttackDamage()), "", ""));
-        lines.add(styledEndStat(DAMAGE_COLOR, "\uD83E\uDE93", "영구 피해", "+" + oneDecimal(combat.additionalAttackDamage()), "", ""));
-        lines.add(styledEndStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", "-" + combat.attackIntervalReductionTicks(), "틱", stackProgress(stats.endCrystalStacks(), attackSpeedStacks, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
-        lines.add(styledEndStat(ATTACK_SPEED_COLOR, "⭕", "공격 범위", "+" + compactOneDecimal(combat.currentSplashRadius()), " 블록", splashProgress(stats.endCrystalStacks(), splash1, splash2, splash3, splash4)));
-        lines.add(styledEndStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "사거리", "+" + oneDecimal(combat.currentAttackRange()), " 블록", stackProgress(stats.endCrystalStacks(), attackRangeStacks, combat.currentAttackRange(), combat.maximumAttackRange())));
         lines.add(styledEndStat(HEALTH_COLOR, "\u2764", "영구 체력", "+" + oneDecimal(defense.additionalHealth()), "", ""));
         lines.add(styledEndStat(REGENERATION_COLOR, "➕", "재생", "+" + compactOneDecimal(defense.currentRegeneration()), " HP/s", stackProgress(stats.shulkerStacks(), regenerationStacks, defense.currentRegeneration(), defense.maximumRegeneration())));
         lines.add(styledEndStat(LIFE_STEAL_COLOR, "\uD83E\uDE78", "생명력 흡수", "+" + Math.round(defense.currentLifeSteal() * 100.0), "%", stackProgress(stats.shulkerStacks(), lifeStealStacks, defense.currentLifeSteal(), defense.maximumLifeSteal())));
         lines.add(styledEndStat(DAMAGE_REDUCTION_COLOR, "\uD83D\uDEE1", "피해 감소", "+" + Math.round(defense.currentDamageReduction() * 100.0), "%", stackProgress(stats.shulkerStacks(), damageReductionStacks, defense.currentDamageReduction(), defense.maximumDamageReduction())));
+        lines.add(styledEndStat(DAMAGE_COLOR, "\uD83E\uDE93", "영구 피해", "+" + oneDecimal(combat.additionalAttackDamage()), "", ""));
+        lines.add(styledEndStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", "-" + combat.attackIntervalReductionTicks(), "틱", stackProgress(stats.endCrystalStacks(), attackSpeedStacks, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
+        lines.add(styledEndStat(ATTACK_SPEED_COLOR, "⭕", "공격 범위", "+" + compactOneDecimal(combat.currentSplashRadius()), " 블록", splashProgress(stats.endCrystalStacks(), splash1, splash2, splash3, splash4)));
+        lines.add(styledEndStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "사거리", "+" + oneDecimal(combat.currentAttackRange()), " 블록", stackProgress(stats.endCrystalStacks(), attackRangeStacks, combat.currentAttackRange(), combat.maximumAttackRange())));
         if (evolution.showBonuses()) {
             lines.add(styledEndStat(DAMAGE_COLOR, "\u2694", "최종 피해", "+" + Math.round(evolution.finalDamageBonus() * 100.0), "%", ""));
             lines.add(styledEndStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "추가 사거리", "+" + oneDecimal(evolution.dragonRangeBonus()), " 블록", ""));
@@ -74,13 +74,13 @@ final class EndStatsView {
         return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
     }
 
-    record CoreStats(EndTowerState state, int endCrystalStacks, int shulkerStacks, CombatStats combat, DefenseStats defense, EvolutionStats evolution) {
-    }
-
-    record CombatStats(double maximumAttackDamage, double additionalAttackDamage, double currentAttackRange, double maximumAttackRange, int attackIntervalReductionTicks, int maximumAttackIntervalReductionTicks, double currentSplashRadius, double maximumSplashRadius) {
+    record CoreStats(EndTowerState state, int shulkerStacks, int endCrystalStacks, DefenseStats defense, CombatStats combat, EvolutionStats evolution) {
     }
 
     record DefenseStats(double additionalHealth, double currentRegeneration, double maximumRegeneration, double currentLifeSteal, double maximumLifeSteal, double currentDamageReduction, double maximumDamageReduction) {
+    }
+
+    record CombatStats(double maximumAttackDamage, double additionalAttackDamage, double currentAttackRange, double maximumAttackRange, int attackIntervalReductionTicks, int maximumAttackIntervalReductionTicks, double currentSplashRadius, double maximumSplashRadius) {
     }
 
     record EvolutionStats(boolean showBonuses, double finalDamageBonus, double dragonRangeBonus) {

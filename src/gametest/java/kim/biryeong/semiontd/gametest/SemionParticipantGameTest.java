@@ -5505,72 +5505,53 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 towerPos.getZ()
         )));
 
-        lane.enqueueWaveMonster(new WaveMonsterEntry(
-                "tower-move-target",
-                200.0,
-                0.0,
-                0.0,
-                AttackKind.MELEE,
-                "minecraft:zombie",
-                null,
-                1
-        ));
-        lane.tick(context.getLevel().getServer());
-
-        if (!assertEquals(context, 1, lane.activeMonsters().size(), "Lane should spawn one monster for the movement test.")) {
+        TestTower tower = (TestTower) lane.towers().getFirst();
+        if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should still exist.")) {
+            return;
+        }
+        if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            context.fail(Component.literal("Tower entity should still be present in the arena world."));
             return;
         }
 
-        int monsterEntityId = lane.activeMonsters().getFirst().minecraftEntityId();
-        context.runAfterDelay(1, () -> {
-            if (!(lane.arenaWorld().getEntity(monsterEntityId) instanceof SemionMonsterEntity monsterEntity)) {
-                context.fail(Component.literal("Anchor test monster entity should exist."));
-                return;
-            }
-            monsterEntity.setNoAi(true);
+        Vec3 initialTowerPosition = towerEntity.position();
+        SemionMonsterEntity monsterEntity = spawnRoleMonsterEntity(
+                context,
+                "tower-move-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                initialTowerPosition.add(8.0, 0.0, 0.0),
+                100000.0,
+                List.of(SummonRole.RUSH)
+        );
+        monsterEntity.setNoAi(true);
+        double initialDistance = initialTowerPosition.distanceTo(monsterEntity.position());
 
-            TestTower tower = (TestTower) lane.towers().getFirst();
-            if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should still exist.")) {
+        context.runAfterDelay(40, () -> {
+            if (!assertTrue(context, monsterEntity.isAlive() && !monsterEntity.isRemoved(), "Anchor test monster entity should still exist.")) {
                 return;
             }
-            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
                 context.fail(Component.literal("Tower entity should still be present in the arena world."));
                 return;
             }
-            Vec3 initialTowerPosition = towerEntity.position();
-            double initialDistance = initialTowerPosition.distanceTo(monsterEntity.position());
-
-            context.runAfterDelay(40, () -> {
-                if (!assertTrue(
-                        context,
-                        lane.arenaWorld().getEntity(monsterEntityId) instanceof SemionMonsterEntity,
-                        "Anchor test monster entity should still exist."
-                )) {
-                    return;
-                }
-                SemionMonsterEntity currentMonsterEntity = (SemionMonsterEntity) lane.arenaWorld().getEntity(monsterEntityId);
-
-                if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
-                    context.fail(Component.literal("Tower entity should still be present in the arena world."));
-                    return;
-                }
-                Vec3 currentTowerPos = currentTowerEntity.position();
-                if (!assertTrue(
-                        context,
-                        currentTowerPos.distanceTo(initialTowerPosition) > 0.1,
-                        "Tower entity should move away from its initial position toward a live target that starts out of range."
-                )) {
-                    return;
-                }
-                if (!assertTrue(
-                        context,
-                        currentTowerPos.distanceTo(currentMonsterEntity.position()) < initialDistance,
-                        "Tower entity should get closer to the out-of-range target."
-                )) {
-                    return;
-                }
-                context.succeed();
-            });
+            Vec3 currentTowerPos = currentTowerEntity.position();
+            if (!assertTrue(
+                    context,
+                    currentTowerPos.distanceTo(initialTowerPosition) > 0.1,
+                    "Tower entity should move away from its initial position toward a live target that starts out of range."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    currentTowerPos.distanceTo(monsterEntity.position()) < initialDistance,
+                    "Tower entity should get closer to the out-of-range target."
+            )) {
+                return;
+            }
+            context.succeed();
         });
     }
 

@@ -18,8 +18,17 @@ final class EndStats {
         int intervalReduction = Math.max(0, tower.type().attackIntervalTicks() - tower.previewHatchedAttackIntervalTicks());
         return EndStatsView.core(new EndStatsView.CoreStats(
                 tower.state(),
-                tower.endCrystalCount(),
                 tower.shulkerCount(),
+                tower.endCrystalCount(),
+                new EndStatsView.DefenseStats(
+                        tower.permanentHealthBonus(),
+                        combat.regenerationPerSecond(),
+                        combat.maximumRegeneration(),
+                        combat.lifeStealRatio(),
+                        combat.maximumLifeSteal(),
+                        combat.damageReduction(),
+                        combat.maximumDamageReduction()
+                ),
                 new EndStatsView.CombatStats(
                         combat.damageCap(),
                         tower.permanentDamageBonus(),
@@ -29,15 +38,6 @@ final class EndStats {
                         combat.maximumAttackIntervalReduction(tower.type()),
                         combat.splashRadius(true),
                         combat.maximumSplashRadius()
-                ),
-                new EndStatsView.DefenseStats(
-                        tower.permanentHealthBonus(),
-                        combat.regenerationPerSecond(),
-                        combat.maximumRegeneration(),
-                        combat.lifeStealRatio(),
-                        combat.maximumLifeSteal(),
-                        combat.damageReduction(),
-                        combat.maximumDamageReduction()
                 ),
                 new EndStatsView.EvolutionStats(
                         (tower.isEgg() || tower.isDragon()) && maxHealth >= combat.dragonEvolutionHealth(),
