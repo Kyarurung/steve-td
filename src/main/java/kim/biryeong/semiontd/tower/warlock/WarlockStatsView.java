@@ -34,9 +34,6 @@ final class WarlockStatsView {
                     ? "<gray>각성 상태</gray><white>: </white><dark_purple>각성</dark_purple>"
                     : "<gray>각성 상태</gray><white>: </white><gray>미각성</gray>");
         }
-        if (combat.maximumAttackDamage() > 0.0) {
-            lines.add(styledEndStat(DAMAGE_COLOR, "\u2694", "피해량 상한", compactOneDecimal(combat.maximumAttackDamage()), "", ""));
-        }
         lines.add(styledEndStat(DAMAGE_COLOR, "\uD83E\uDE93", "영구 피해", "+" + oneDecimal(combat.additionalAttackDamage()), "", ""));
         lines.add(styledEndStat(HEALTH_COLOR, "\u2764", "영구 체력", "+" + oneDecimal(defense.additionalHealth()), "", ""));
         if (melee) {
@@ -70,11 +67,6 @@ final class WarlockStatsView {
         return String.format(Locale.ROOT, "%.1f", value);
     }
 
-    private static String compactOneDecimal(double value) {
-        String formatted = oneDecimal(value);
-        return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
-    }
-
     private static String precise(double value) {
         String formatted = String.format(Locale.ROOT, "%.3f", value);
         return formatted.replaceFirst("\\.?0+$", "");
@@ -97,7 +89,6 @@ final class WarlockStatsView {
     }
 
     record CombatStats(
-            double maximumAttackDamage,
             double additionalAttackDamage,
             int attackIntervalReductionTicks,
             int maximumAttackIntervalReductionTicks,

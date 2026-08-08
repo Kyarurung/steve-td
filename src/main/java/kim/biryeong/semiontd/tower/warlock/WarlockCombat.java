@@ -18,10 +18,6 @@ final class WarlockCombat {
         this.config = config;
     }
 
-    double damageCap(TowerType type) {
-        return isRanged(type) ? Math.max(0.0, config.value(DAMAGE_CAP)) : 0.0;
-    }
-
     double splashRadius(WarlockTower tower) {
         if (tower.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
             return splashRadiusForCount(tower.totalSacrificeCount());

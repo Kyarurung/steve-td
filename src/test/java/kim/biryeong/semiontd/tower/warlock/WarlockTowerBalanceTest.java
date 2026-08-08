@@ -50,6 +50,26 @@ class WarlockTowerBalanceTest {
         assertEquals(7.0, meleeStats.damage(), 0.0001);
         assertEquals(20, meleeStats.attackIntervalTicks());
         assertEquals(80, meleeStats.aggroPriority());
+        assertEquals(85, config.upgradeCost(
+                WarlockTowers.T1_SLAVE.id(),
+                WarlockTowers.T2_SLAVE.id(),
+                -1
+        ));
+        assertEquals(135, config.upgradeCost(
+                WarlockTowers.T2_SLAVE.id(),
+                WarlockTowers.T3_SLAVE.id(),
+                -1
+        ));
+        assertEquals(90, config.upgradeCost(
+                WarlockTowers.T1_RANGED_SLAVE.id(),
+                WarlockTowers.T2_RANGED_SLAVE.id(),
+                -1
+        ));
+        assertEquals(140, config.upgradeCost(
+                WarlockTowers.T2_RANGED_SLAVE.id(),
+                WarlockTowers.T3_RANGED_SLAVE.id(),
+                -1
+        ));
 
         assertEquals(350.0, config.ability(WarlockTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
         assertEquals(0.085, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
@@ -190,7 +210,7 @@ class WarlockTowerBalanceTest {
         assertTrue(details.contains("흡수한 타워: 0기"));
         assertTrue(details.contains("이번 라운드에 흡수한 타워: 0기"));
         assertTrue(details.contains("각성 상태: 미각성"));
-        assertTrue(details.contains("피해량 상한: 350"));
+        assertFalse(details.contains("피해량 상한"));
         assertTrue(details.contains("영구 피해: +0.0"));
         assertTrue(details.contains("영구 체력: +0.0"));
         assertTrue(details.contains("공격 속도: -0틱"));
@@ -240,7 +260,6 @@ class WarlockTowerBalanceTest {
                         true,
                         false,
                         new WarlockStatsView.CombatStats(
-                                350.0,
                                 42.5,
                                 4,
                                 15,
@@ -263,7 +282,7 @@ class WarlockTowerBalanceTest {
         assertTrue(details.contains("흡수한 타워: 12기"));
         assertTrue(details.contains("이번 라운드에 흡수한 타워: 7기"));
         assertTrue(details.contains("각성 상태: 각성"));
-        assertTrue(details.contains("피해량 상한: 350"));
+        assertFalse(details.contains("피해량 상한"));
         assertTrue(details.contains("영구 피해: +42.5"));
         assertTrue(details.contains("영구 체력: +75.0"));
         assertTrue(details.contains("공격 속도: -4틱"));

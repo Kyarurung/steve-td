@@ -36,7 +36,6 @@ final class EndCombat {
         return damageAmount * (1.0 + transferredDamageBonus / type.damage());
     }
 
-    double damageCap() {return Math.max(0.0, config.value(DAMAGE_CAP));}
     double finalDamageBonus(boolean dragon) {return dragon ? Math.max(0.0, config.value(DRAGON_FINAL_DAMAGE)) : 0.0;}
     double dragonRangeBonus(boolean dragon) {return dragon ? Math.max(0.0, config.value(DRAGON_RANGE_BONUS)) : 0.0;}
     double dragonEvolutionHealth() {return Math.max(0.0, config.value(DRAGON_EVOLUTION));}
