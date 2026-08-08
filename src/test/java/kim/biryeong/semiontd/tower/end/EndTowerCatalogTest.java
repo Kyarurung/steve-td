@@ -165,27 +165,20 @@ class EndTowerCatalogTest {
         );
         String plainDescription = description.replaceAll("<[^>]+>", "");
         assertTrue(plainDescription.contains("알로 소환되며"));
-        assertTrue(plainDescription.contains("라운드 시작 시 아기 드래곤"));
-        assertTrue(plainDescription.contains("이상이면"));
+        assertTrue(plainDescription.contains("라운드 시작 시 아기 드래곤으로 변합니다."));
         assertTrue(plainDescription.contains("아기 드래곤 크기는 최대 체력 100당 0.2씩 증가합니다."));
-        assertTrue(plainDescription.contains("10초"));
-        assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 매초 회복합니다."));
-        assertTrue(description.contains("<#E66F6F>최대 체력 5%</#E66F6F>"));
-        assertTrue(plainDescription.contains("타워 공격력의 75%를 임시 획득"));
-        assertTrue(plainDescription.contains("공격 범위: 엔드 수정 15, 60, 150, 300스택마다 +1 블록"));
-        assertTrue(plainDescription.contains("엔드 수정 30스택마다 -1틱"));
-        assertTrue(plainDescription.contains("사거리: 엔드 수정 50스택마다 +0.5 블록"));
-        assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득"));
-        assertTrue(plainDescription.contains("셜커 30스택마다 +1%"));
-        assertTrue(plainDescription.contains("피해 감소: 셜커 15스택마다 +1%"));
-        assertTrue(plainDescription.contains("셜커 10스택마다 +1 HP/s"));
-        assertFalse(plainDescription.contains("(최대"));
-        assertTrue(plainDescription.contains("엔더 드래곤: 최종 피해 +20% / 추가 사거리 +2 블록"));
+        assertTrue(plainDescription.contains("최대 체력 2000 이상이면 엔더 드래곤으로 진화합니다."));
+        assertTrue(plainDescription.contains("엔더 드래곤으로 진화하면 추가 능력을 획득합니다."));
+        assertTrue(plainDescription.contains("힘 전달 10초 후 타워 사망, 체력 30을 회복합니다."));
+        assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 회복합니다."));
+        assertTrue(plainDescription.contains("타워 피해의 75%를 임시 획득, 6% 영구 누적"));
+        assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득, 4% 영구 누적"));
         assertFalse(description.contains("{ability."));
-        assertTrue(description.contains("<#B77DE8>엔더 드래곤</#B77DE8>:"));
-        assertTrue(description.contains("<#D94343>공격력</#D94343>"));
-        assertTrue(description.contains("<#E66F6F>체력</#E66F6F>"));
-        assertTrue(description.contains("<#72A9E6>피해 감소</#72A9E6>"));
+        assertTrue(description.contains("<#cc00fa>아기 드래곤</#cc00fa>"));
+        assertTrue(description.contains("<#cc00fa>엔더 드래곤</#cc00fa>"));
+        assertTrue(description.contains("<#ec8d34>피해</#ec8d34>"));
+        assertTrue(description.contains("<#fc5454>체력</#fc5454>"));
+        assertTrue(description.contains("<#fc5454>최대 체력 5%</#fc5454>"));
     }
 
     @Test
@@ -197,19 +190,19 @@ class EndTowerCatalogTest {
                 .reduce("", (left, right) -> left + "\n" + right);
 
         assertTrue(description.contains("10초에 걸쳐"));
-        assertTrue(description.contains("체력 50%, 공격력 75%"));
-        assertTrue(description.contains("체력 4%, 공격력 6%"));
+        assertTrue(description.contains("체력 50%, 피해 75%"));
+        assertTrue(description.contains("체력 4%, 피해 6%"));
         assertTrue(description.contains("최대 300"));
     }
 
     @Test
     void everyEndFeederRegistersItsDescriptionTemplate() {
-        assertDescription(EndTowers.T1_ENDERMITE_TOWER, "공격력이 높은 엔더마이트", "엔더 드래곤의 공격 능력");
-        assertDescription(EndTowers.T2_ENDERMAN_TOWER, "공격력이 높은 엔더맨", "엔더 드래곤의 공격 능력");
-        assertDescription(EndTowers.T3_END_CRYSTAL_TOWER, "공격력이 매우 높은 엔드 수정", "엔더 드래곤의 공격 능력");
-        assertDescription(EndTowers.T1_SHULKER_TOWER, "체력이 높은 셜커", "엔더 드래곤의 내구력");
-        assertDescription(EndTowers.T2_SHULKER_TOWER, "체력이 높은 견고한 셜커", "엔더 드래곤의 내구력");
-        assertDescription(EndTowers.T3_SHULKER_TOWER, "체력이 매우 높은 완강한 셜커", "엔더 드래곤의 내구력");
+        assertDescription(EndTowers.T1_ENDERMITE_TOWER, "피해가 낮은 엔더마이트", "엔더 드래곤의 피해");
+        assertDescription(EndTowers.T2_ENDERMAN_TOWER, "피해가 보통인 엔더맨", "엔더 드래곤의 피해");
+        assertDescription(EndTowers.T3_END_CRYSTAL_TOWER, "피해가 높은 엔드 수정", "엔더 드래곤의 피해");
+        assertDescription(EndTowers.T1_SHULKER_TOWER, "체력이 낮은 셜커", "엔더 드래곤의 체력");
+        assertDescription(EndTowers.T2_SHULKER_TOWER, "체력이 보통인 견고한 셜커", "엔더 드래곤의 체력");
+        assertDescription(EndTowers.T3_SHULKER_TOWER, "체력이 높은 완강한 셜커", "엔더 드래곤의 체력");
     }
 
     @Test
@@ -264,7 +257,7 @@ class EndTowerCatalogTest {
             String summary,
             String effect
     ) {
-        String description = String.join("\n", TowerDescriptionRegistry.describe(towerType).orElseThrow());
+        String description = String.join("\n", TowerDescriptionRegistry.describe(towerType).orElseThrow()).replaceAll("<[^>]+>", "");
         assertTrue(description.contains(summary));
         assertTrue(description.contains(effect));
     }

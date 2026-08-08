@@ -18,27 +18,6 @@ final class WarlockCombat {
         this.config = config;
     }
 
-    double damageCap(TowerType type) {
-        return isRanged(type) ? Math.max(0.0, config.value(DAMAGE_CAP)) : 0.0;
-    }
-
-    double modifyAttackDamage(TowerType type, double attackDamage) {
-        return applyDamageCap(type, attackDamage);
-    }
-
-    double modifyOutgoingDamage(TowerType type, double damageAmount) {
-        return applyDamageCap(type, damageAmount);
-    }
-
-    private double applyDamageCap(TowerType type, double amount) {
-        if (!Double.isFinite(amount)) {
-            return 0.0;
-        }
-        double resolvedAmount = Math.max(0.0, amount);
-        double cap = damageCap(type);
-        return cap > 0.0 ? Math.min(cap, resolvedAmount) : resolvedAmount;
-    }
-
     double splashRadius(WarlockTower tower) {
         if (tower.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
             return splashRadiusForCount(tower.totalSacrificeCount());

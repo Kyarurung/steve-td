@@ -18,9 +18,11 @@ public final class WarlockTowerJob extends SemionJob {
                 ID,
                 Component.literal("흑마법사"),
                 List.of(
-                        SemionText.mini("<gray>아군 타워를 희생해 흑마법사 타워를 키우는 빌더입니다.</gray>"),
-                        SemionText.mini("<red>흑마법사 타워는 한 라인에 하나만 운용할 수 있습니다.</red>"),
-                        SemionText.mini("<red><bold>♿ 이 빌더는 테스트 중인 빌더입니다 ♿</red>")
+                        SemionText.mini("<gray>아군 타워를 희생해 <dark_purple>흑마법사</dark_purple> 타워를 키우는 빌더입니다.</gray>"),
+                        SemionText.mini("<gray>한 라운드에 충분한 타워를 흡수하고 <dark_purple>흑마법사</dark_purple>만 생존한 채 체력이 낮아지면 <dark_purple>각성</dark_purple>합니다.</gray>"),
+                        SemionText.mini("<gray>원거리는 회복·재생, 근거리는 피해·이동 속도를 얻으며 각성은 라운드 종료 시 해제됩니다.</gray>"),
+                        SemionText.mini("<red><dark_purple>흑마법사</dark_purple> 타워는 한 라인에 하나만 운용할 수 있습니다.</red>"),
+                        SemionText.mini("<red><bold>♿ 이 빌더는 테스트 중인 빌더입니다 ♿</bold></red>")
                 )
         );
     }

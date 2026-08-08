@@ -225,7 +225,7 @@ final class EndTransferController {
     }
 
     private static int saturatedAdd(int value, int increment) {
-        if (increment <= 0 || value >= Integer.MAX_VALUE) {
+        if (increment <= 0 || value == Integer.MAX_VALUE) {
             return value;
         }
         return value > Integer.MAX_VALUE - increment ? Integer.MAX_VALUE : value + increment;

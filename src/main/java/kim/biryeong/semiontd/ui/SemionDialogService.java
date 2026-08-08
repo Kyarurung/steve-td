@@ -81,6 +81,8 @@ import net.minecraft.server.dialog.action.StaticAction;
 import net.minecraft.server.dialog.body.DialogBody;
 import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.server.level.ServerPlayer;
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
+import static kim.biryeong.semiontd.ui.dialog.body.HeaderMessage.dividerComponent;
 
 public final class SemionDialogService {
     private static final int BODY_WIDTH = 256;
@@ -103,6 +105,13 @@ public final class SemionDialogService {
     private static final int TRAIT_COLUMNS = 5;
     private static final int SUMMON_PAGE_SIZE = 25;
     private static final int BUILD_GUIDE_PAGE_SIZE = 4;
+    private static final String ATTACK_DAMAGE_COLOR = "#ec8d34";
+    private static final String HEALTH_COLOR = "#fc5454";
+    private static final String AGGRO_PRIORITY_COLOR = "#a80000";
+    private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
+    private static final String ATTACK_SPEED_COLOR = "#ffe78d";
+    private static final String DIAMOND_GRADIENT = "<gradient:#ffffff:#d5fff6:#a1fbe8:#4aedd9:#20c5b5:#1aaaa7:#11727a:#145e53>";
+    private static final String GRADIENT_CLOSE = "</gradient>";
     private static final DateTimeFormatter STATISTICS_TIME_FORMAT = DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm")
             .withZone(ZoneId.systemDefault());
@@ -111,10 +120,7 @@ public final class SemionDialogService {
         ArrayList<DialogBody> bodies = new ArrayList<>();
         bodies.add(new HeaderMessage(miniMessage("<gradient:#facc15:#22d3ee><bold>플레이어 현황</bold></gradient>"), PLAYER_STATUS_WIDTH));
         bodies.add(new PlainMessage(playerStatusHeader(), PLAYER_STATUS_WIDTH));
-        bodies.add(new PlainMessage(
-                miniMessage("<dark_gray>──────────────────────────────────────────────────</dark_gray>"),
-                PLAYER_STATUS_WIDTH
-        ));
+        bodies.add(new PlainMessage(miniMessage("<dark_gray>──────────────────────────────────────────────────</dark_gray>"), PLAYER_STATUS_WIDTH));
         TeamId currentTeam = null;
         MutableComponent teamBody = null;
         for (PlayerStatusRow row : playerStatusRows(game)) {
@@ -601,31 +607,23 @@ public final class SemionDialogService {
         StringBuilder body = new StringBuilder();
         body.append("<gradient:#facc15:#22d3ee><bold>타워 상세 정보</bold></gradient>\n");
         body.append("<white><bold>").append(tower.type().displayName()).append("</bold></white>\n");
-        body.append("<gray>🏷 팀</gray> <white>").append(tower.teamId()).append("</white>");
-        body.append(" <dark_gray>|</dark_gray> <gray>라인</gray> <yellow>#").append(tower.laneId()).append("</yellow>\n");
-        body.append("<gray>📍 위치</gray> <white>")
-                .append(tower.position().x()).append(", ")
-                .append(tower.position().y()).append(", ")
-                .append(tower.position().z()).append("</white>");
-        body.append(" <dark_gray>|</dark_gray> <gray>⭐ 레벨</gray> <gold>").append(tower.level()).append("</gold>\n");
-        body.append("<red>❤ 체력 ").append(Math.round(tower.health())).append("</red>");
-        body.append("<dark_gray>/</dark_gray><red>").append(Math.round(currentMaxHealth)).append("</red>")
-                .append(statDeltaSuffix(tower.type().maxHealth(), currentMaxHealth, true));
-        body.append(" <yellow>🧲 어그로 ").append(tower.type().aggroPriority()).append("</yellow>\n");
-        body.append("<dark_red>⚔ 피해 ").append(oneDecimal(currentDamage)).append("</dark_red>")
-                .append(statDeltaSuffix(tower.type().damage(), currentDamage, true));
-        body.append(" <light_purple>🎯 사거리 ").append(oneDecimal(currentRange)).append("</light_purple>")
-                .append(statDeltaSuffix(tower.type().range(), currentRange, true))
-                .append('\n');
+        body.append("<white>팀</white> ").append(teamMarkup(tower.teamId())).append(" <dark_gray>|</dark_gray> ").append("<white>라인</white> <yellow>#").append(tower.laneId()).append("</yellow>\n");
+        body.append("<divider>\n");
+        body.append(format(currentMaxHealth, "hp")).append(formatIncrease(tower.type().maxHealth(), currentMaxHealth, "hp")).append('\n');
+        body.append(format(currentDamage, "ad")).append(formatIncrease(tower.type().damage(), currentDamage, "ad")).append('\n');
         double baseAttacksPerSecond = 20.0 / Math.max(1, tower.type().attackIntervalTicks());
         double currentAttacksPerSecond = 20.0 / Math.max(1, currentAttackIntervalTicks);
-        body.append("<green>⚡ 공속 ").append(oneDecimal(currentAttacksPerSecond)).append("/초</green>")
-                .append(statDeltaSuffix(baseAttacksPerSecond, currentAttacksPerSecond, true));
-        body.append(" <dark_gray>(</dark_gray><gray>").append(currentAttackIntervalTicks).append("틱</gray><dark_gray>)</dark_gray>\n");
-        towerEntity.ifPresent(entity -> appendTowerTimedEffects(body, entity));
+        body.append(format(currentAttacksPerSecond, "as")).append(formatIncrease(baseAttacksPerSecond, currentAttacksPerSecond, "as")).append(" ").append(formatAttackSpeedTicks(currentAttackIntervalTicks)).append('\n');
+        body.append(format(currentRange, "range")).append(formatIncrease(tower.type().range(), currentRange, "range")).append(" <dark_gray>|</dark_gray> ").append(format(tower.type().aggroPriority(), "aggro")).append('\n');
+        body.append("<divider>\n");
+        towerEntity.ifPresent(entity -> {int beforeLength = body.length();appendTowerTimedEffects(body, entity);if (body.length() > beforeLength) {body.append("<divider>\n");}});
+        int beforeRuntimeLength = body.length();
         appendTowerRuntimeDetails(body, tower);
-        body.append("<aqua>💎 판매 환불 ").append(tower.sellRefundAmount()).append(" 다이아</aqua>\n");
+        if (body.length() > beforeRuntimeLength) {body.append("<divider>\n");}
+        body.append(format(tower.sellRefundAmount(), "sell")).append('\n');
+        body.append("<divider>\n");
         appendTowerDescription(body, tower.type().description());
+        body.append("<divider>\n");
         if (!ownedByPlayer) {
             body.append("\n<red>자신이 설치한 타워만 업그레이드하거나 판매할 수 있습니다.</red>\n");
         } else if (!sameLane) {
@@ -1020,15 +1018,12 @@ public final class SemionDialogService {
     }
 
     private static void appendTowerRuntimeDetails(StringBuilder body, Tower tower) {
-        List<String> lines = towerRuntimeDetailLines(tower);
+        List<String> lines = towerRuntimeDetailLines(tower).stream().filter(line -> line != null && !line.isBlank()).toList();
         if (lines.isEmpty()) {
             return;
         }
-        body.append("<yellow>✨ 성장/시너지 상태</yellow>\n");
-        for (String line : lines) {
-            if (line != null && !line.isBlank()) {
-                body.append("<dark_gray>-</dark_gray> <green>").append(line).append("</green>\n");
-            }
+        body.append("<yellow>⭐ 고유 능력</yellow>\n");
+        for (String line : lines) {body.append("<dark_gray>-</dark_gray> <green>").append(line).append("</green>\n");
         }
     }
 
@@ -1157,15 +1152,29 @@ public final class SemionDialogService {
         if (split < 0) {
             return List.of(new HeaderMessage(miniMessage(body), BODY_WIDTH));
         }
-
         ArrayList<DialogBody> bodies = new ArrayList<>();
+        MutableComponent contentComponent = Component.empty();
         String header = body.substring(0, split);
         String content = body.substring(split + 1);
         if (!header.isBlank()) {
-            bodies.add(new HeaderMessage(miniMessage(header), BODY_WIDTH));
+            contentComponent.append(new HeaderMessage(miniMessage(header), BODY_WIDTH).asVanillaComponent());
         }
-        if (!content.isBlank()) {
-            bodies.add(new PlainMessage(miniMessage(content), BODY_WIDTH));
+        String[] sections = content.split("(?m)^<divider>\\n?", -1);
+        for (int i = 0; i < sections.length; i++) {
+            String section = sections[i].strip();
+            if (!section.isBlank()) {
+                if (!contentComponent.getSiblings().isEmpty()) {
+                    contentComponent.append("\n");
+                }
+                contentComponent.append(miniMessage(section));
+            }
+            if (i < sections.length - 1) {
+                contentComponent.append("\n");
+                contentComponent.append(dividerComponent(BODY_WIDTH));
+            }
+        }
+        if (!contentComponent.getSiblings().isEmpty()) {
+            bodies.add(new PlainMessage(contentComponent, BODY_WIDTH));
         }
         return bodies;
     }
@@ -1300,16 +1309,16 @@ public final class SemionDialogService {
 
     private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable, boolean recommended) {
         var type = entry.type();
-        MutableComponent tooltip = mutableMiniMessage(
-                "<white><bold>" + type.displayName() + "</bold></white>\n"
-                        + (recommended ? "<blue>빌드 추천</blue>\n" : "")
-                        + "<aqua>💎 " + mineralCost + " 다이아</aqua>" + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
-                        + "<red>❤ 체력 " + Math.round(type.maxHealth()) + "</red> "
-                        + "<yellow>🧲 어그로 " + type.aggroPriority() + "</yellow>\n"
-                        + "<dark_red>⚔ 피해 " + oneDecimal(type.damage()) + "</dark_red> "
-                        + "<light_purple>🎯 사거리 " + oneDecimal(type.range()) + "</light_purple>\n"
-                        + "<green>⚡ 공속 " + attacksPerSecond(type.attackIntervalTicks()) + "/초</green>"
-        );
+        double attacksPerSecond = 20.0 / Math.max(1, type.attackIntervalTicks());
+        MutableComponent tooltip = mutableMiniMessage("<white><bold>" + type.displayName() + "</bold></white>\n" + (recommended ? "<blue>빌드 추천</blue>\n" : "") + DIAMOND_GRADIENT + "\uD83D\uDC8E " + mineralCost + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n");
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage(
+                "<" + HEALTH_COLOR + ">\u2764 체력</" + HEALTH_COLOR + ">" + "<white>: </white>" + "<" + HEALTH_COLOR + ">" + formatNumber(type.maxHealth()) + "</" + HEALTH_COLOR + ">\n"
+                        + "<" + ATTACK_DAMAGE_COLOR + ">\uD83E\uDE93 피해</" + ATTACK_DAMAGE_COLOR + ">" + "<white>: </white>" + "<" + ATTACK_DAMAGE_COLOR + ">" + formatNumber(type.damage()) + "</" + ATTACK_DAMAGE_COLOR + ">\n"
+                        + "<" + ATTACK_SPEED_COLOR + ">\u26A1 공격 속도</" + ATTACK_SPEED_COLOR + ">" + "<white>: </white>" + "<" + ATTACK_SPEED_COLOR + ">" + formatNumber(attacksPerSecond) + "회/초</" + ATTACK_SPEED_COLOR + "> " + "<white>(</white>" + "<" + ATTACK_SPEED_COLOR + ">" + type.attackIntervalTicks() + "틱</" + ATTACK_SPEED_COLOR + ">" + "<white>)</white>\n"
+                        + "<" + ATTACK_RANGE_COLOR + ">\uD83C\uDFF9 사거리</" + ATTACK_RANGE_COLOR + ">" + "<white>: </white>" + "<" + ATTACK_RANGE_COLOR + ">" + formatNumber(type.range()) + " 블록</" + ATTACK_RANGE_COLOR + ">" + " <dark_gray>|</dark_gray> " + "<" + AGGRO_PRIORITY_COLOR + ">\uD83D\uDCA2 어그로</" + AGGRO_PRIORITY_COLOR + ">" + "<white>: </white>" + "<" + AGGRO_PRIORITY_COLOR + ">" + type.aggroPriority() + "</" + AGGRO_PRIORITY_COLOR + ">\n"
+        ));
+        tooltip.append(dividerComponent(160));
         appendTowerDescription(tooltip, type.description());
         return tooltip;
     }
@@ -1325,23 +1334,28 @@ public final class SemionDialogService {
     private static Component upgradeTooltip(TowerUpgradeOption option, boolean affordable, boolean recommended, Tower currentTower) {
         Optional<ProductionTowerCatalog.CatalogEntry> target = ProductionTowerCatalog.entry(option.targetType());
         if (target.isEmpty()) {
-            return Component.literal("대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아");
+            return Component.literal(
+                    "대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아"
+            );
         }
         var entry = target.get();
         var type = entry.type();
+        double attacksPerSecond = 20.0 / Math.max(1, type.attackIntervalTicks());
         MutableComponent tooltip = mutableMiniMessage(
                 "<yellow><bold>" + option.displayName() + "</bold></yellow>\n"
                         + (recommended ? "<blue>빌드 추천</blue>\n" : "")
                         + "<gray>대상</gray> <white>" + type.displayName() + "</white>\n"
-                        + "<aqua>💎 " + option.mineralCost() + " 다이아</aqua>"
-                        + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
+                        + DIAMOND_GRADIENT + "\uD83D\uDC8E " + option.mineralCost() + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
                         + advExperienceRequirementLine(currentTower, option)
-                        + "<red>❤ 체력 " + Math.round(type.maxHealth()) + "</red> "
-                        + "<yellow>🧲 어그로 " + type.aggroPriority() + "</yellow>\n"
-                        + "<dark_red>⚔ 피해 " + oneDecimal(type.damage()) + "</dark_red> "
-                        + "<light_purple>🎯 사거리 " + oneDecimal(type.range()) + "</light_purple>\n"
-                        + "<green>⚡ 공속 " + attacksPerSecond(type.attackIntervalTicks()) + "/초</green>"
         );
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage(
+                "<" + HEALTH_COLOR + ">\u2764 체력</" + HEALTH_COLOR + ">" + "<white>: </white>" + "<" + HEALTH_COLOR + ">" + formatNumber(type.maxHealth()) + "</" + HEALTH_COLOR + ">\n"
+                        + "<" + ATTACK_DAMAGE_COLOR + ">\uD83E\uDE93 피해</" + ATTACK_DAMAGE_COLOR + ">" + "<white>: </white>" + "<" + ATTACK_DAMAGE_COLOR + ">" + formatNumber(type.damage()) + "</" + ATTACK_DAMAGE_COLOR + ">\n"
+                        + "<" + ATTACK_SPEED_COLOR + ">\u26A1 공격 속도</" + ATTACK_SPEED_COLOR + ">" + "<white>: </white>" + "<" + ATTACK_SPEED_COLOR + ">" + formatNumber(attacksPerSecond) + "회/초</" + ATTACK_SPEED_COLOR + "> " + "<white>(</white>" + "<" + ATTACK_SPEED_COLOR + ">" + type.attackIntervalTicks() + "틱</" + ATTACK_SPEED_COLOR + ">" + "<white>)</white>\n"
+                        + "<" + ATTACK_RANGE_COLOR + ">\uD83C\uDFF9 사거리</" + ATTACK_RANGE_COLOR + ">" + "<white>: </white>" + "<" + ATTACK_RANGE_COLOR + ">" + formatNumber(type.range()) + " 블록</" + ATTACK_RANGE_COLOR + ">" + " <dark_gray>|</dark_gray> " + "<" + AGGRO_PRIORITY_COLOR + ">\uD83D\uDCA2 어그로</" + AGGRO_PRIORITY_COLOR + ">" + "<white>: </white>" + "<" + AGGRO_PRIORITY_COLOR + ">" + type.aggroPriority() + "</" + AGGRO_PRIORITY_COLOR + ">\n"
+        ));
+        tooltip.append(dividerComponent(160));
         appendTowerDescription(tooltip, type.description());
         return tooltip;
     }
@@ -1461,26 +1475,28 @@ public final class SemionDialogService {
     }
 
     private static Component summonTooltip(SummonMonsterType type, boolean affordable) {
-        MutableComponent tooltip = mutableMiniMessage(
-                "<white><bold>" + type.displayName() + "</bold></white>\n"
-                        + "<gray>🏷 역할</gray> <yellow>" + roleList(type) + "</yellow>\n"
-                        + "<green>◆ 비용 " + type.gasCost() + " 에메랄드</green>"
-                        + (affordable ? "" : " <red>(부족)</red>")
-                        + " <dark_gray>|</dark_gray> <yellow>📈 인컴 +" + type.incomeGain() + "</yellow>\n"
-                        + "<aqua>💎 처치 " + type.mineralReward() + " 다이아</aqua> "
-                        + "<light_purple>⚖ 효율 " + oneDecimal(type.incomeRatio() * 100.0) + "%</light_purple>\n"
-                        + "<red>❤ 체력 " + Math.round(type.maxHealth()) + "</red> "
-                        + "<blue>🛡 방어 " + oneDecimal(type.armor()) + "</blue> "
-                        + "<dark_purple>✦ 저항 " + oneDecimal(type.resistance()) + "</dark_purple>\n"
-                        + "<dark_red>⚔ 공격 " + oneDecimal(type.attackDamage()) + "</dark_red> "
-                        + "<gray>" + attackKindIcon(type.attackKind()) + " 방식 " + attackKindLabel(type.attackKind()) + "</gray> "
-                        + "<gold>🔥 피해 " + damageTypeLabel(type.damageType()) + "</gold>\n"
-                        + "<green>⚡ 공속 " + attacksPerSecond(13) + "/초</green> "
-                        + "<white>📏 크기 " + oneDecimal(type.dimensions().width()) + "x" + oneDecimal(type.dimensions().height()) + "</white>\n"
-                        + "<light_purple>🎯 타겟 " + oneDecimal(type.targetRolePriority()) + "</light_purple> "
-                        + "<yellow>✨ 능력 " + abilityActivationList(type) + "</yellow>"
+        double attacksPerSecond = 20.0 / 13.0;
+        MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + type.displayName() + "</bold></yellow> <dark_gray>|</dark_gray> <gray>" + roleList(type) + "</gray>\n"
         );
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage("<green>\u2B22 " + type.gasCost() + " 에메랄드</green>" + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
+                + DIAMOND_GRADIENT + "\uD83D\uDC8E 처치 보상<white>: </white>" + type.mineralReward() + " 다이아" + GRADIENT_CLOSE + "\n"
+                + "<yellow>\uD83D\uDCC8 인컴<white>: </white>+" + type.incomeGain() + " <white>(</white>" + formatNumber(type.incomeRatio() * 100.0) + "%<white>)</white></yellow>\n"
+        ));
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage(
+                formatHealth(type.maxHealth()) + "\n"
+                        + formatAttackDamage(type.attackDamage()) + "\n"
+                        + formatAttackSpeed(attacksPerSecond) + " " + formatAttackSpeedTicks(13) + "\n"
+                        + "<#f3ba59>\uD83D\uDEE1 방어</#f3ba59><white>: </white><#f3ba59>" + formatNumber(type.armor()) + "</#f3ba59> <dark_gray>|</dark_gray> " + formatResistance(type.resistance()) + "\n"
+                        + formatAggroPriority(type.targetRolePriority()) + "\n"
+        ));
+        tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
+        tooltip.append(mutableMiniMessage("<gold>\uD83D\uDD25 피해 유형</gold><white>: </white><gold>" + damageTypeLabel(type.damageType()) + "</gold> <dark_gray>|</dark_gray> <gray>" + attackKindIcon(type.attackKind()) + " 공격 방식</gray><white>: </white><gray>" + attackKindLabel(type.attackKind()) + "</gray>\n"
+                + "<white>\uD83D\uDCCF 크기<white>: </white>" + formatNumber(type.dimensions().width()) + "x" + formatNumber(type.dimensions().height()) + "</white> <dark_gray>|</dark_gray> <yellow>⭐ 능력</yellow><white>: </white><yellow>" + abilityActivationList(type) + "</yellow>\n"
+        ));
         appendSummonDescription(tooltip, type.description());
+
         return tooltip;
     }
 
@@ -1500,7 +1516,6 @@ public final class SemionDialogService {
         if (description.isEmpty()) {
             return;
         }
-        tooltip.append(Component.literal("\n\n설명"));
         for (String line : description) {
             if (line != null && !line.isBlank()) {
                 tooltip.append(Component.literal("\n- ").withStyle(ChatFormatting.DARK_GRAY));
@@ -1522,11 +1537,10 @@ public final class SemionDialogService {
     }
 
     private static void appendSummonDescription(MutableComponent tooltip, List<String> description) {
-        if (description.isEmpty()) {
+        if (description == null || description.stream().noneMatch(line -> line != null && !line.isBlank())) {
             return;
         }
-        tooltip.append(Component.literal("\n\n"));
-        tooltip.append(miniMessage("<gray>설명</gray>"));
+        tooltip.append(dividerComponent(160));
         for (String line : description) {
             if (line != null && !line.isBlank()) {
                 tooltip.append(Component.literal("\n- ").withStyle(ChatFormatting.DARK_GRAY));

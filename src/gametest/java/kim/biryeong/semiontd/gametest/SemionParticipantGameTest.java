@@ -5539,72 +5539,53 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 towerPos.getZ()
         )));
 
-        lane.enqueueWaveMonster(new WaveMonsterEntry(
-                "tower-move-target",
-                200.0,
-                0.0,
-                0.0,
-                AttackKind.MELEE,
-                "minecraft:zombie",
-                null,
-                1
-        ));
-        lane.tick(context.getLevel().getServer());
-
-        if (!assertEquals(context, 1, lane.activeMonsters().size(), "Lane should spawn one monster for the movement test.")) {
+        TestTower tower = (TestTower) lane.towers().getFirst();
+        if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should still exist.")) {
+            return;
+        }
+        if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            context.fail(Component.literal("Tower entity should still be present in the arena world."));
             return;
         }
 
-        int monsterEntityId = lane.activeMonsters().getFirst().minecraftEntityId();
-        context.runAfterDelay(1, () -> {
-            if (!(lane.arenaWorld().getEntity(monsterEntityId) instanceof SemionMonsterEntity monsterEntity)) {
-                context.fail(Component.literal("Anchor test monster entity should exist."));
-                return;
-            }
-            monsterEntity.setNoAi(true);
+        Vec3 initialTowerPosition = towerEntity.position();
+        SemionMonsterEntity monsterEntity = spawnRoleMonsterEntity(
+                context,
+                "tower-move-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                initialTowerPosition.add(8.0, 0.0, 0.0),
+                100000.0,
+                List.of(SummonRole.RUSH)
+        );
+        monsterEntity.setNoAi(true);
+        double initialDistance = initialTowerPosition.distanceTo(monsterEntity.position());
 
-            TestTower tower = (TestTower) lane.towers().getFirst();
-            if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should still exist.")) {
+        context.runAfterDelay(40, () -> {
+            if (!assertTrue(context, monsterEntity.isAlive() && !monsterEntity.isRemoved(), "Anchor test monster entity should still exist.")) {
                 return;
             }
-            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
                 context.fail(Component.literal("Tower entity should still be present in the arena world."));
                 return;
             }
-            Vec3 initialTowerPosition = towerEntity.position();
-            double initialDistance = initialTowerPosition.distanceTo(monsterEntity.position());
-
-            context.runAfterDelay(40, () -> {
-                if (!assertTrue(
-                        context,
-                        lane.arenaWorld().getEntity(monsterEntityId) instanceof SemionMonsterEntity,
-                        "Anchor test monster entity should still exist."
-                )) {
-                    return;
-                }
-                SemionMonsterEntity currentMonsterEntity = (SemionMonsterEntity) lane.arenaWorld().getEntity(monsterEntityId);
-
-                if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
-                    context.fail(Component.literal("Tower entity should still be present in the arena world."));
-                    return;
-                }
-                Vec3 currentTowerPos = currentTowerEntity.position();
-                if (!assertTrue(
-                        context,
-                        currentTowerPos.distanceTo(initialTowerPosition) > 0.1,
-                        "Tower entity should move away from its initial position toward a live target that starts out of range."
-                )) {
-                    return;
-                }
-                if (!assertTrue(
-                        context,
-                        currentTowerPos.distanceTo(currentMonsterEntity.position()) < initialDistance,
-                        "Tower entity should get closer to the out-of-range target."
-                )) {
-                    return;
-                }
-                context.succeed();
-            });
+            Vec3 currentTowerPos = currentTowerEntity.position();
+            if (!assertTrue(
+                    context,
+                    currentTowerPos.distanceTo(initialTowerPosition) > 0.1,
+                    "Tower entity should move away from its initial position toward a live target that starts out of range."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    currentTowerPos.distanceTo(monsterEntity.position()) < initialDistance,
+                    "Tower entity should get closer to the out-of-range target."
+            )) {
+                return;
+            }
+            context.succeed();
         });
     }
 
@@ -9786,19 +9767,45 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void warlockTowerDescriptionsRenderConfiguredAbilityValues(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> abilities = new java.util.LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> rangedAbilities = new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
+        Map<String, Map<String, Double>> abilities =
+                new java.util.LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> rangedAbilities =
+                new java.util.LinkedHashMap<>(
+                        abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id())
+                );
         rangedAbilities.put("threshold", 0.25);
-        rangedAbilities.put("splashStep", 3.0);
-        abilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), rangedAbilities);
+        rangedAbilities.put("roundStat", 0.35);
 
-        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+        abilities.put(
+                WarlockTowers.RANGED_WARLOCK_TOWER.id(),
+                rangedAbilities
+        );
+        TowerBalanceRuntime.apply(
+                new TowerBalanceConfig(
+                        defaults.towers(),
+                        defaults.upgradeCosts(),
+                        abilities
+                )
+        );
         try {
-            TowerType resolved = TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER);
-            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("체력이 25% 이하")), "Warlock description should render configured absorb threshold.")) {
+            TowerType resolved =
+                    TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER);
+            String description = String.join(
+                    "\n",
+                    resolved.description()
+            ).replaceAll("<[^>]+>", "");
+            if (!assertTrue(
+                    context,
+                    description.contains("체력 25% 이하이면"),
+                    "Warlock description should render configured absorb threshold."
+            )) {
                 return;
             }
-            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("공격 범위가 3블록 증가")), "Warlock description should render configured attack range.")) {
+            if (!assertTrue(
+                    context,
+                    description.contains("흡수한 타워 체력과 피해의 35%"),
+                    "Warlock description should render configured temporary stat ratio."
+            )) {
                 return;
             }
         } finally {

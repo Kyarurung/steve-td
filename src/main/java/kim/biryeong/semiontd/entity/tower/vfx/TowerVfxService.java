@@ -33,7 +33,6 @@ import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.TeamId;
-import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
@@ -60,6 +59,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 
 public final class TowerVfxService {
     private static final double RANGED_ATTACK_RANGE_THRESHOLD = 3.0;
@@ -83,6 +85,9 @@ public final class TowerVfxService {
     private static final DustParticleOptions WARLOCK_SACRIFICE_SOUL_PARTICLE = new DustParticleOptions(0xD500F9, 0.95F);
     private static final DustParticleOptions TRANSCENDENCE_GOLD_PARTICLE = new DustParticleOptions(0xF4D35E, 1.15F);
     private static final DustParticleOptions TRANSCENDENCE_LIGHT_PARTICLE = new DustParticleOptions(0xFFF4CC, 0.9F);
+    private static final DustParticleOptions WARLOCK_AWAKENING_DARK_PARTICLE = new DustParticleOptions(0x4A0072, 1.35F);
+    private static final DustParticleOptions WARLOCK_AWAKENING_MANA_PARTICLE = new DustParticleOptions(0x189BE5, 1.1F);
+    private static final DustParticleOptions WARLOCK_AWAKENING_BRIGHT_PARTICLE = new DustParticleOptions(0xE040FB, 0.9F);
     private static final DustParticleOptions MAGIC_HIT_PARTICLE = new DustParticleOptions(0xA66CFF, 0.8F);
 
     private static final Set<String> UNDEAD_TOWER_IDS = Set.of(
@@ -699,12 +704,19 @@ public final class TowerVfxService {
                 renderIllagerRaidActivation(raidActivation, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             } else if (event instanceof WarlockSacrificeEvent sacrifice) {
                 renderWarlockSacrifice(sacrifice, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof WarlockAwakeningEvent awakening) {
+                switch (awakening.visual) {
+                    case BURST -> renderWarlockAwakeningBurst(awakening, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+                    case AURA -> renderWarlockAwakeningAura(awakening, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+                    case SPARK -> renderWarlockAwakeningSpark(awakening, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+                }
             } else if (event instanceof TranscendenceEvent transcendence) {
                 renderTranscendence(transcendence, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             } else if (event instanceof MagicHitEvent magicHit) {
                 renderMagicHit(magicHit, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             }
         }
+
         long elapsedMicros = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - started);
         Set<VfxLaneKey> lanes = new HashSet<>();
         for (PendingEvent event : batch) {
@@ -1605,6 +1617,96 @@ public final class TowerVfxService {
         public void drawParticle(ParticleOptions particle, int step, Vector3f position) {
             points.add(new ParticlePoint(particle, new Vec3(position.x, position.y, position.z)));
         }
+    }
+
+    private enum WarlockAwakeningVisual {
+        BURST,
+        AURA,
+        SPARK
+    }
+
+    private static final class WarlockAwakeningEvent extends PendingEvent {
+        private final Vec3 center;
+        private final WarlockAwakeningVisual visual;
+
+        private WarlockAwakeningEvent(EventContext context, Vec3 center, WarlockAwakeningVisual visual) {
+            super(context, Phase.KILL_EFFECT);
+            this.center = center;
+            this.visual = visual;
+        }
+    }
+
+    public static void showWarlockAwakening(SemionTowerEntity warlock) {
+        if (!config.enabled() || warlock == null) {
+            return;
+        }
+        Vec3 center = towerCenter(warlock);
+        EventContext context = context(warlock, center);
+        if (context != null) {
+            enqueue(new WarlockAwakeningEvent(context, center, WarlockAwakeningVisual.BURST));
+        }
+    }
+
+    public static void showWarlockAwakeningAura(SemionTowerEntity warlock) {
+        if (!config.enabled() || warlock == null) {
+            return;
+        }
+        Vec3 center = towerCenter(warlock);
+        EventContext context = context(warlock, center);
+        if (context != null) {
+            enqueue(new WarlockAwakeningEvent(context, center, WarlockAwakeningVisual.AURA));
+        }
+    }
+
+    public static void showWarlockAwakeningSparkBurst(SemionTowerEntity warlock) {
+        if (!config.enabled() || warlock == null) {
+            return;
+        }
+        Vec3 center = towerCenter(warlock);
+        EventContext context = context(warlock, center);
+        if (context != null) {
+            enqueue(new WarlockAwakeningEvent(context, center, WarlockAwakeningVisual.SPARK));
+        }
+    }
+
+    private static void renderWarlockAwakeningBurst(WarlockAwakeningEvent event, long gameTime, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 220, 96, true);
+        Vec3 center = event.center;
+        Vec3 base = center.add(0.0, -0.65, 0.0);
+        sendParticle(event.context(), ParticleTypes.EXPLOSION_EMITTER, "minecraft:explosion_emitter", center, true, config, packetCounts, shapeCounts);
+        sendSphere(event.context(), WARLOCK_AWAKENING_DARK_PARTICLE, "minecraft:witch", center, 1.55, points * 40 / 100, true, config, packetCounts, shapeCounts);
+        sendSphere(event.context(), WARLOCK_AWAKENING_MANA_PARTICLE, "minecraft:reverse_portal", center, 0.9, points * 25 / 100, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), WARLOCK_AWAKENING_BRIGHT_PARTICLE, "minecraft:electric_spark", base, 2.0, points * 20 / 100, true, config, packetCounts, shapeCounts);
+        sendCircle(event.context(), WARLOCK_AWAKENING_DARK_PARTICLE, "minecraft:witch", base.add(0.0, 0.08, 0.0), 1.25, points * 15 / 100, true, config, packetCounts, shapeCounts);
+    }
+
+    private static void renderWarlockAwakeningAura(WarlockAwakeningEvent event, long gameTime, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 48, 24, true);
+        int trailPoints = Math.max(4, points / 6);
+        double phase = gameTime * 0.18;
+        Vec3 center = event.center.add(0.0, -1.5, 0.0);
+        for (int index = 0; index < 6; index++) {
+            double angle = phase + Math.PI * 2.0 * index / 6.0;
+            Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
+            Vec3 side = new Vec3(-direction.z, 0.0, direction.x);
+            double height = 0.15 + (index % 3) * 0.35;
+            Vec3 start = center.add(direction.scale(2.4)).add(0.0, height, 0.0);
+            Vec3 control = center.add(direction.scale(1.15)).add(side.scale(0.65)).add(0.0, height + 0.35, 0.0);
+            Vec3 end = center.add(0.0, 0.15, 0.0);
+            ParticleOptions particle = index % 2 == 0 ? WARLOCK_AWAKENING_MANA_PARTICLE : WARLOCK_AWAKENING_BRIGHT_PARTICLE;
+            String gcbParticle = index % 2 == 0 ? "minecraft:reverse_portal" : "minecraft:witch";
+            sendTrail(event.context(), particle, gcbParticle, start, control, end, trailPoints, true, config, packetCounts, shapeCounts);
+        }
+    }
+
+    private static void renderWarlockAwakeningSpark(WarlockAwakeningEvent event, long gameTime, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 36, 0, false);
+        if (points <= 0) {
+            return;
+        }
+        Vec3 center = event.center.add(0.0, -1.4, 0.0);
+        sendSphere(event.context(), ParticleTypes.GLOW, "minecraft:glow", center, 0.72, points * 2 / 3, false, config, packetCounts, shapeCounts);
+        sendSphere(event.context(), ParticleTypes.END_ROD, "minecraft:end_rod", center.add(0.0, 0.18, 0.0), 0.34, Math.max(4, points / 3), false, config, packetCounts, shapeCounts);
     }
 
     private static final class LaneStats {

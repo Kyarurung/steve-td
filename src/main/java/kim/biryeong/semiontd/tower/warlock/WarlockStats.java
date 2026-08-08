@@ -11,8 +11,9 @@ final class WarlockStats {
 
     List<String> create(WarlockTower tower) {
         boolean showAwakening =
-                tower.is(WarlockTowers.RANGED_WARLOCK_TOWER)
-                        || tower.is(WarlockTowers.MELEE_WARLOCK_TOWER);
+                WarlockConfig.AWAKENING_ENABLED
+                        && (tower.is(WarlockTowers.RANGED_WARLOCK_TOWER)
+                        || tower.is(WarlockTowers.MELEE_WARLOCK_TOWER));
 
         return WarlockStatsView.core(
                 new WarlockStatsView.CoreStats(
@@ -20,8 +21,9 @@ final class WarlockStats {
                         tower.roundSacrificeCount(),
                         showAwakening,
                         tower.awakenedThisRound(),
+                        tower.is(WarlockTowers.RANGED_WARLOCK_TOWER),
+                        tower.is(WarlockTowers.MELEE_WARLOCK_TOWER),
                         new WarlockStatsView.CombatStats(
-                                combat.damageCap(tower.type()),
                                 tower.additionalAttackDamage(),
                                 tower.attackIntervalReduction(),
                                 tower.maximumAttackIntervalReduction(),

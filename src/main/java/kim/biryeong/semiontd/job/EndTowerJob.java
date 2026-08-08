@@ -23,7 +23,7 @@ public final class EndTowerJob extends SemionJob {
                 ID,
                 Component.literal("엔드 빌더"),
                 List.of(
-                        SemionText.mini("<gray>타워를 설치해 엔더 드래곤을</gray>"),
+                        SemionText.mini("<gray>타워를 설치해 <#cc00fa>엔더 드래곤</#cc00fa>을</gray>"),
                         SemionText.mini("<gray>성장시키는 빌더입니다.</gray>")
                 )
         );
@@ -32,18 +32,18 @@ public final class EndTowerJob extends SemionJob {
     @Override
     public List<Component> description() {
         return List.of(
-                SemionText.mini("<gray>아군 타워의 체력과 공격력을</gray>"),
+                SemionText.mini("<gray>아군 타워의 <#fc5454>체력</#fc5454>과 <#ec8d34>피해</#ec8d34>를</gray>"),
                 SemionText.mini("<gray>" + seconds() + "에 걸쳐 힘을 받습니다.</gray>"),
-                SemionText.mini("<gray>체력 " + percent(ROUND_HEALTH_RATIO) + ", 공격력 " + percent(ROUND_DAMAGE_RATIO) + "를</gray>"),
+                SemionText.mini("<gray><#fc5454>체력 " + percent(ROUND_HEALTH_RATIO) + "</#fc5454>, <#ec8d34>피해 " + percent(ROUND_DAMAGE_RATIO) + "</#ec8d34>를</gray>"),
                 SemionText.mini("<gray>해당 라운드 동안 얻고,</gray>"),
-                SemionText.mini("<gray>체력 " + percent(PERMANENT_HEALTH_RATIO) + ", 공격력 " + percent(PERMANENT_DAMAGE_RATIO) + "를 영구 누적합니다.</gray>"),
-                SemionText.mini("<gray>피해량은 최대 " + number() + "까지 증가합니다.</gray>"),
+                SemionText.mini("<gray><#fc5454>체력 " + percent(PERMANENT_HEALTH_RATIO) + "</#fc5454>, <#ec8d34>피해 " + percent(PERMANENT_DAMAGE_RATIO) + "</#ec8d34>를 영구 누적합니다.</gray>"),
+                SemionText.mini("<gray><#ec8d34>피해량</#ec8d34>은 최대 <#ec8d34>" + number() + "</#ec8d34>까지 증가합니다.</gray>"),
                 Component.empty(),
-                SemionText.mini("<gray>엔드 수정 계열은 공격 능력을,</gray>"),
-                SemionText.mini("<gray>셜커 계열은 내구력을 강화합니다.</gray>"),
+                SemionText.mini("<gray><#fc5454>셜커</#fc5454> 계열은 <#fc5454>체력</#fc5454>을,</gray>"),
+                SemionText.mini("<gray><#ec8d34>엔드 수정</#ec8d34> 계열은 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"),
                 Component.empty(),
-                SemionText.mini("<gray>엔더 드래곤으로 진화하면</gray>"),
-                SemionText.mini("<gray>추가 능력을 획득합니다.</gray>")
+                SemionText.mini("<gray><#cc00fa>엔더 드래곤</#cc00fa>으로 진화하면</gray>"),
+                SemionText.mini("<gray>추가 <yellow>고유 능력</yellow>을 획득합니다.</gray>")
         );
     }
 
