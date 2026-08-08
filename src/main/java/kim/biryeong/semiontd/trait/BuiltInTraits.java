@@ -76,7 +76,8 @@ public final class BuiltInTraits {
                 "디버프가 걸린 적에게 입히는 피해가 증가합니다.");
         register(IGNITE_ID, 1, "점화",
                 "기본 공격이 적을 4초간 점화해 1초마다 마법 피해를 줍니다.",
-                "점화는 디버프로 취급되며 반복 공격 시 더 강한 점화를 유지합니다.");
+                "점화는 디버프로 취급되며 반복 공격 시 더 강한 점화를 유지합니다.",
+                "마법 피해를 주는 능력에는 점화가 적용되지 않습니다.");
         register(GIANT_SLAYER_ID, 1, "거인학살자",
                 "현재 체력이 일정 수치 이상인 적에게 입히는 피해가 증가합니다.");
         register(FINISHING_BLOW_ID, 1, "마무리타격",
@@ -161,7 +162,7 @@ public final class BuiltInTraits {
                     + number(value(id, "flatDamagePerTick") * scale)
                     + " + 공격력×라운드×"
                     + percentage(value(id, "attackDamageRatioPerRound") * scale)
-                    + " 마법 피해";
+                    + " 마법 피해 (마법 피해 능력 제외)";
             case "giant_slayer" -> "현재 체력 "
                     + number(value(id, "currentHealthThreshold"))
                     + " 이상 피해 "

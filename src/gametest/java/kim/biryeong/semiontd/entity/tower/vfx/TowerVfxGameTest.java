@@ -168,6 +168,29 @@ public final class TowerVfxGameTest {
     }
 
     @GameTest
+    public void magicDamageEmitsHitVfxAtTarget(GameTestHelper context) {
+        List<Vec3> observed = new ArrayList<>();
+        TowerVfxService.setMagicHitTestObserver(observed::add);
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("magic-hit-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            tower.setPos(2.0, 2.0, 2.0);
+            tower.configure(new TestTower(WarlockTowers.BASE_WARLOCK_TOWER, owner), null);
+            SemionMonsterEntity target = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+            target.setPos(5.0, 2.0, 2.0);
+
+            TowerVfxService.showMagicHit(tower, target);
+
+            if (observed.size() != 1 || observed.getFirst().distanceTo(TowerVfxService.targetCenter(target)) > 1.0E-6) {
+                throw new AssertionError("Magic damage should emit one VFX event at the target");
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setMagicHitTestObserver(null);
+        }
+    }
+
+    @GameTest
     public void transcendenceDebugCommandParses(GameTestHelper context) {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         var parsed = dispatcher.parse(
@@ -176,6 +199,19 @@ public final class TowerVfxGameTest {
         );
         if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
             throw new AssertionError("Expected /semiontd-debug vfx transcendence to parse completely");
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void magicHitDebugCommandParses(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        var parsed = dispatcher.parse(
+                "semiontd-debug vfx magic_hit",
+                context.getLevel().getServer().createCommandSourceStack()
+        );
+        if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+            throw new AssertionError("Expected /semiontd-debug vfx magic_hit to parse completely");
         }
         context.succeed();
     }

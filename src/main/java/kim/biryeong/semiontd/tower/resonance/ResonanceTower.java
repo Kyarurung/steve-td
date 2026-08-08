@@ -12,6 +12,7 @@ import kim.biryeong.semiontd.api.area.TowerAreaEffectRequest;
 import kim.biryeong.semiontd.api.area.TowerAreaTargetMode;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.effect.TimedEffectType;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
@@ -169,7 +170,7 @@ public final class ResonanceTower extends EntityBackedTower {
         }
         double strikeDamage = damageAmount * ability("focusStrikeDamageRatio");
         if (strikeDamage > 0.0) {
-            boolean killed = damageTarget(towerEntity, target, strikeDamage);
+            boolean killed = damageTarget(towerEntity, target, strikeDamage, DamageType.MAGIC);
             TowerVfxService.showSecondaryAttack(towerEntity, target);
             if (killed) {
                 onKill(towerEntity, target, strikeDamage);
@@ -315,7 +316,7 @@ public final class ResonanceTower extends EntityBackedTower {
             boolean killed = false;
             boolean changed = damageAmount > 0.0;
             if (damageAmount > 0.0) {
-                killed = damageTarget(towerEntity, monster, damageAmount);
+                killed = damageTarget(towerEntity, monster, damageAmount, DamageType.MAGIC);
                 if (killed) {
                     onKill(towerEntity, monster, damageAmount);
                 }

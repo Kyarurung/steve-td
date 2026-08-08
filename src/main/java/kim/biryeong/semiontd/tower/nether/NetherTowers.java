@@ -271,23 +271,23 @@ public final class NetherTowers {
         TowerDescriptionRegistry.registerTemplate(T1_MAGMA_CUBE, List.of(
                 "<gray>광역 공격과 주기 폭발로 적 무리를 상대합니다.</gray>",
                 "<green>공격 대상 주변 {ability.splashRadius:blocks}에 주 대상 피해의 {ability.splashDamageRatio:percent}를 줍니다.</green>",
-                "<yellow>잃은 체력에 비례해 공격 속도가 최대 {ability.missingHealthAttackSpeedBonusCap:percent} 증가합니다. 체력이 {ability.nether_global.criticalHealthThreshold:percent} 이하일 때 {ability.pulseIntervalTicks:seconds}마다 공격 대상 주변 {ability.pulseRadius:blocks}에 기본 공격력의 {ability.pulseDamageRatio:percent} 피해를 줍니다.</yellow>",
-                "<red>[좀비] 전환 시 주변 {ability.zombieTransitionPulseRadius:blocks}에 기본 공격력의 {ability.zombieTransitionPulseDamageRatio:percent} 피해를 한 번 줍니다.</red>"
+                "<yellow>잃은 체력에 비례해 공격 속도가 최대 {ability.missingHealthAttackSpeedBonusCap:percent} 증가합니다. 체력이 {ability.nether_global.criticalHealthThreshold:percent} 이하일 때 {ability.pulseIntervalTicks:seconds}마다 공격 대상 주변 {ability.pulseRadius:blocks}에 기본 공격력의 {ability.pulseDamageRatio:percent} 마법 피해를 줍니다.</yellow>",
+                "<red>[좀비] 전환 시 주변 {ability.zombieTransitionPulseRadius:blocks}에 기본 공격력의 {ability.zombieTransitionPulseDamageRatio:percent} 마법 피해를 한 번 줍니다.</red>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_BLAZE, List.of(
                 "<gray>중거리에서 광역 공격과 추가 공격을 함께 사용합니다.</gray>",
                 "<green>공격 대상 주변 {ability.splashRadius:blocks}에 주 대상 피해의 {ability.splashDamageRatio:percent}를 줍니다.</green>",
-                "<yellow>잃은 체력에 비례해 공격 속도가 최대 {ability.missingHealthAttackSpeedBonusCap:percent} 증가합니다. 체력이 낮을 때 {ability.pulseIntervalTicks:seconds}마다 공격 대상 주변에 기본 공격력의 {ability.pulseDamageRatio:percent} 피해를 줍니다.</yellow>",
-                "<green>{ability.extraAttackEvery:integer}번째 공격마다 {ability.secondaryRange:blocks} 안의 다른 적에게 주 대상 피해의 {ability.extraAttackDamageRatio:percent}를 추가로 줍니다. 다른 적이 없으면 같은 대상을 다시 공격합니다.</green>",
-                "<red>[좀비] 전환 시 주변 {ability.zombieTransitionPulseRadius:blocks}에 기본 공격력의 {ability.zombieTransitionPulseDamageRatio:percent} 피해를 한 번 줍니다.</red>"
+                "<yellow>잃은 체력에 비례해 공격 속도가 최대 {ability.missingHealthAttackSpeedBonusCap:percent} 증가합니다. 체력이 낮을 때 {ability.pulseIntervalTicks:seconds}마다 공격 대상 주변에 기본 공격력의 {ability.pulseDamageRatio:percent} 마법 피해를 줍니다.</yellow>",
+                "<green>{ability.extraAttackEvery:integer}번째 공격마다 {ability.secondaryRange:blocks} 안의 다른 적에게 주 대상 피해의 {ability.extraAttackDamageRatio:percent}만큼 마법 피해를 추가로 줍니다. 다른 적이 없으면 같은 대상을 다시 공격합니다.</green>",
+                "<red>[좀비] 전환 시 주변 {ability.zombieTransitionPulseRadius:blocks}에 기본 공격력의 {ability.zombieTransitionPulseDamageRatio:percent} 마법 피해를 한 번 줍니다.</red>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_GHAST, List.of(
                 "<gray>긴 사거리에서 넓은 범위를 공격하는 광역 타워입니다.</gray>",
                 "<green>공격 대상 주변 {ability.splashRadius:blocks}에 주 대상 피해의 {ability.splashDamageRatio:percent}를 줍니다. 체력이 낮아지면 반경이 {ability.lowHealthSplashRadiusBonus:blocks} 늘어납니다.</green>",
-                "<yellow>잃은 체력에 비례해 공격 속도가 최대 {ability.missingHealthAttackSpeedBonusCap:percent} 증가합니다. 체력이 낮을 때 {ability.pulseIntervalTicks:seconds}마다 공격 대상 주변에 기본 공격력의 {ability.pulseDamageRatio:percent} 피해를 줍니다.</yellow>",
-                "<green>{ability.extraAttackEvery:integer}번째 공격마다 다른 적에게 주 대상 피해의 {ability.extraAttackDamageRatio:percent}를 추가로 줍니다.</green>",
+                "<yellow>잃은 체력에 비례해 공격 속도가 최대 {ability.missingHealthAttackSpeedBonusCap:percent} 증가합니다. 체력이 낮을 때 {ability.pulseIntervalTicks:seconds}마다 공격 대상 주변에 기본 공격력의 {ability.pulseDamageRatio:percent} 마법 피해를 줍니다.</yellow>",
+                "<green>{ability.extraAttackEvery:integer}번째 공격마다 다른 적에게 주 대상 피해의 {ability.extraAttackDamageRatio:percent}만큼 마법 피해를 추가로 줍니다.</green>",
                 "<yellow>체력이 {ability.nether_global.criticalHealthThreshold:percent} 이하일 때 공격한 대상에게 {ability.markDurationTicks:seconds} 동안 받는 타워 피해 {ability.criticalMarkDamageTakenBonus:percent} 증가 표식을 남깁니다.</yellow>",
-                "<red>[좀비] 전환 시 주변 {ability.zombieTransitionPulseRadius:blocks}에 기본 공격력의 {ability.zombieTransitionPulseDamageRatio:percent} 피해를 한 번 줍니다.</red>"
+                "<red>[좀비] 전환 시 주변 {ability.zombieTransitionPulseRadius:blocks}에 기본 공격력의 {ability.zombieTransitionPulseDamageRatio:percent} 마법 피해를 한 번 줍니다.</red>"
         ));
 
         TowerDescriptionRegistry.registerTemplate(T1_SKELETON, List.of(

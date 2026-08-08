@@ -65,7 +65,7 @@ class ResonanceTowerTest {
     }
 
     @Test
-    void everyNearbyTowerCountsWhileDifferentOwnerAndOutOfRangeTowersDoNot() {
+    void everyDifferentAspectTowerInstanceCountsAsALink() {
         ResonanceTower focus = tower(ResonanceTowers.FOCUS_CRYSTAL, new GridPosition(0, 0, 0));
         ResonanceTower sameSpecies = tower(ResonanceTowers.FOCUS_CRYSTAL, new GridPosition(1, 0, 0));
         ResonanceTower wave = tower(ResonanceTowers.WAVE_CRYSTAL, new GridPosition(-1, 0, 0));
@@ -83,7 +83,7 @@ class ResonanceTowerTest {
         ResonanceService.refresh(List.of(focus, sameSpecies, wave, duplicateWave, otherOwner, outOfRange));
 
         assertEquals(1, focus.resonanceLevel());
-        assertEquals(3, focus.resonanceLinks());
+        assertEquals(2, focus.resonanceLinks());
     }
 
     @Test
@@ -120,7 +120,7 @@ class ResonanceTowerTest {
         ResonanceTower bloom = tower(ResonanceTowers.AMPLIFY_CORE, new GridPosition(0, 0, 0));
 
         ResonanceService.refresh(concat(wave, nearbyNonWaveSpecies()));
-        ResonanceService.refresh(concat(bloom, nearbyDifferentSpecies()));
+        ResonanceService.refresh(concat(bloom, nearbyNonWaveSpecies()));
 
         assertEquals(3, wave.resonanceLevel());
         assertEquals(100.0, wave.modifyAttackDamage(null, null, 100.0), 0.0001);

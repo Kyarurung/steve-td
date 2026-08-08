@@ -88,6 +88,7 @@ public final class TowerVfxService {
     private static final DustParticleOptions WARLOCK_AWAKENING_DARK_PARTICLE = new DustParticleOptions(0x4A0072, 1.35F);
     private static final DustParticleOptions WARLOCK_AWAKENING_MANA_PARTICLE = new DustParticleOptions(0x189BE5, 1.1F);
     private static final DustParticleOptions WARLOCK_AWAKENING_BRIGHT_PARTICLE = new DustParticleOptions(0xE040FB, 0.9F);
+    private static final DustParticleOptions MAGIC_HIT_PARTICLE = new DustParticleOptions(0xA66CFF, 0.8F);
 
     private static final Set<String> UNDEAD_TOWER_IDS = Set.of(
             UndeadTowers.T1_ZOMBIE_TOWER.id(), UndeadTowers.T2_ZOMBIE_TOWER.id(), UndeadTowers.T3_ZOMBIE_TOWER.id(),
@@ -119,6 +120,7 @@ public final class TowerVfxService {
     private static volatile Consumer<Vec3> illagerRaidActivationTestObserver;
     private static volatile BiConsumer<Vec3, Vec3> warlockSacrificeTestObserver;
     private static volatile Consumer<List<Vec3>> transcendenceTestObserver;
+    private static volatile Consumer<Vec3> magicHitTestObserver;
     private static final Set<net.minecraft.resources.ResourceLocation> MISSING_STYLE_WARNINGS = ConcurrentHashMap.newKeySet();
     private static final Map<net.minecraft.resources.ResourceLocation, Long> STYLE_ERROR_LOG_TICKS = new ConcurrentHashMap<>();
 
@@ -177,6 +179,17 @@ public final class TowerVfxService {
         EventContext context = context(tower, targetCenter(target));
         if (context != null) {
             enqueue(new AttackEvent(context, towerCenter(tower), targetCenter(target), visualKind(tower.attackRange()), true));
+        }
+    }
+
+    public static void showMagicHit(SemionTowerEntity tower, SemionMonsterEntity target) {
+        if (!config.enabled() || tower == null || target == null) {
+            return;
+        }
+        Vec3 impact = targetCenter(target);
+        EventContext context = context(tower, impact);
+        if (context != null) {
+            enqueueMagicHit(context, impact);
         }
     }
 
@@ -295,6 +308,21 @@ public final class TowerVfxService {
         enqueueTranscendence(context, centers);
     }
 
+    public static void showMagicHitDebug(ServerPlayer player) {
+        if (!config.enabled() || player == null || !(player.level() instanceof ServerLevel level)) {
+            return;
+        }
+        Vec3 impact = player.getEyePosition().add(player.getLookAngle().scale(5.0));
+        EventContext context = new EventContext(
+                new VfxLaneKey(level.dimension(), TeamId.RED, 0),
+                player.getUUID(),
+                BuilderPalette.DEFAULT,
+                level.getGameTime(),
+                List.of(Recipient.snapshot(player))
+        );
+        enqueueMagicHit(context, impact);
+    }
+
     private static void enqueueWarlockSacrifice(EventContext context, Vec3 sacrificedCenter, Vec3 warlockCenter) {
         BiConsumer<Vec3, Vec3> observer = warlockSacrificeTestObserver;
         if (observer != null) {
@@ -310,6 +338,14 @@ public final class TowerVfxService {
             observer.accept(snapshot);
         }
         enqueue(new TranscendenceEvent(context, snapshot));
+    }
+
+    private static void enqueueMagicHit(EventContext context, Vec3 impact) {
+        Consumer<Vec3> observer = magicHitTestObserver;
+        if (observer != null) {
+            observer.accept(impact);
+        }
+        enqueue(new MagicHitEvent(context, impact));
     }
 
     public static void endServerTick(MinecraftServer server) {
@@ -530,6 +566,10 @@ public final class TowerVfxService {
         transcendenceTestObserver = observer;
     }
 
+    static void setMagicHitTestObserver(Consumer<Vec3> observer) {
+        magicHitTestObserver = observer;
+    }
+
     private static Vec3 towerCenter(SemionTowerEntity tower) {
         return tower == null
                 ? Vec3.ZERO
@@ -672,6 +712,8 @@ public final class TowerVfxService {
                 }
             } else if (event instanceof TranscendenceEvent transcendence) {
                 renderTranscendence(transcendence, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof MagicHitEvent magicHit) {
+                renderMagicHit(magicHit, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             }
         }
 
@@ -707,6 +749,22 @@ public final class TowerVfxService {
             sendSphere(event.context(), event.context().palette().accentParticle(), event.context().palette().gcbAccentParticle(),
                     event.impact, event.secondary ? 0.28 : 0.42, impactPoints, false, config, packetCounts, shapeCounts);
             sendParticle(event.context(), event.kind.particle, event.kind.gcbParticle, event.impact, false, config, packetCounts, shapeCounts);
+        }
+    }
+
+    private static void renderMagicHit(
+            MagicHitEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 6, 0, false);
+        if (points > 0) {
+            sendSphere(event.context(), MAGIC_HIT_PARTICLE, "minecraft:enchant", event.impact, 0.28,
+                    points, false, config, packetCounts, shapeCounts);
+            sendParticle(event.context(), ParticleTypes.ENCHANT, "minecraft:enchant", event.impact,
+                    false, config, packetCounts, shapeCounts);
         }
     }
 
@@ -1428,6 +1486,15 @@ public final class TowerVfxService {
         private TranscendenceEvent(EventContext context, List<Vec3> centers) {
             super(context, Phase.AREA_DAMAGE);
             this.centers = centers;
+        }
+    }
+
+    private static final class MagicHitEvent extends PendingEvent {
+        private final Vec3 impact;
+
+        private MagicHitEvent(EventContext context, Vec3 impact) {
+            super(context, Phase.SECONDARY_ATTACK);
+            this.impact = impact;
         }
     }
 

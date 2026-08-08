@@ -40,7 +40,8 @@ public final class ProductionTowerService {
         }
 
         GridPosition position = GridPosition.from(placementPos.get());
-        if (laneContext.lane.hasTowerAt(position)) {
+        if (laneContext.lane.towers().stream().anyMatch(tower ->
+                tower.position().x() == position.x() && tower.position().z() == position.z())) {
             return TowerPlacementResult.OCCUPIED;
         }
 

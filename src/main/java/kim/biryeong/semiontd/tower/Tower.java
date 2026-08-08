@@ -6,6 +6,7 @@ import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -35,8 +36,8 @@ public abstract class Tower {
     private int placedRound;
     private int currentRound = 1;
     private TowerType roundCombatType;
-    private double roundDamageDealt;
-    private double roundIgniteDamageDealt;
+    private double roundPhysicalDamageDealt;
+    private double roundMagicDamageDealt;
     private double roundDamageTaken;
     private boolean waveStartedAfterPlacement;
     private int cooldownTicks;
@@ -208,8 +209,8 @@ public abstract class Tower {
         this.placedRound = previousTower.placedRound();
         this.currentRound = previousTower.currentRound();
         this.roundCombatType = previousTower.roundCombatType();
-        this.roundDamageDealt = previousTower.roundDamageDealt();
-        this.roundIgniteDamageDealt = previousTower.roundIgniteDamageDealt();
+        this.roundPhysicalDamageDealt = previousTower.roundPhysicalDamageDealt();
+        this.roundMagicDamageDealt = previousTower.roundMagicDamageDealt();
         this.roundDamageTaken = previousTower.roundDamageTaken();
         this.waveStartedAfterPlacement = previousTower.waveStartedAfterPlacement();
     }
@@ -261,8 +262,8 @@ public abstract class Tower {
     public void markWaveStarted(int currentRound) {
         this.currentRound = Math.max(1, currentRound);
         this.roundCombatType = type;
-        this.roundDamageDealt = 0.0;
-        this.roundIgniteDamageDealt = 0.0;
+        this.roundPhysicalDamageDealt = 0.0;
+        this.roundMagicDamageDealt = 0.0;
         this.roundDamageTaken = 0.0;
         if (placedRound > 0 && currentRound >= placedRound) {
             waveStartedAfterPlacement = true;
@@ -278,24 +279,32 @@ public abstract class Tower {
     }
 
     public double roundDamageDealt() {
-        return roundDamageDealt;
+        return roundPhysicalDamageDealt + roundMagicDamageDealt;
     }
 
-    public double roundIgniteDamageDealt() {return roundIgniteDamageDealt;}
+    public double roundPhysicalDamageDealt() {
+        return roundPhysicalDamageDealt;
+    }
+
+    public double roundMagicDamageDealt() {
+        return roundMagicDamageDealt;
+    }
 
     public double roundDamageTaken() {
         return roundDamageTaken;
     }
 
     public void recordDamageDealt(double amount) {
-        if (Double.isFinite(amount) && amount > 0.0) {
-            roundDamageDealt += amount;
-        }
+        recordDamageDealt(amount, DamageType.PHYSICAL);
     }
 
-    public void recordIgniteDamageDealt(double amount) {
+    public void recordDamageDealt(double amount, DamageType damageType) {
         if (Double.isFinite(amount) && amount > 0.0) {
-            roundIgniteDamageDealt += amount;
+            if (damageType == DamageType.MAGIC) {
+                roundMagicDamageDealt += amount;
+            } else {
+                roundPhysicalDamageDealt += amount;
+            }
         }
     }
 
@@ -384,16 +393,34 @@ public abstract class Tower {
         return damageTargetResult(towerEntity, target, baseDamage).killed();
     }
 
+    public boolean damageTarget(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage,
+            DamageType damageType
+    ) {
+        return damageTargetResult(towerEntity, target, baseDamage, damageType).killed();
+    }
+
     public DamageResult damageTargetResult(
             SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
             double baseDamage
     ) {
+        return damageTargetResult(towerEntity, target, baseDamage, DamageType.PHYSICAL);
+    }
+
+    public DamageResult damageTargetResult(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage,
+            DamageType damageType
+    ) {
         if (towerEntity == null || target == null || !Double.isFinite(baseDamage)) {
             return DamageResult.NONE;
         }
         double outgoingDamage = resolveOutgoingDamage(towerEntity, target, baseDamage);
-        return damageResolvedTargetResult(towerEntity, target, outgoingDamage);
+        return damageResolvedTargetResult(towerEntity, target, outgoingDamage, damageType);
     }
 
     public double resolveOutgoingDamage(
@@ -428,6 +455,15 @@ public abstract class Tower {
             SemionMonsterEntity target,
             double outgoingDamage
     ) {
+        return damageResolvedTargetResult(towerEntity, target, outgoingDamage, DamageType.PHYSICAL);
+    }
+
+    public DamageResult damageResolvedTargetResult(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double outgoingDamage,
+            DamageType damageType
+    ) {
         if (towerEntity == null
                 || target == null
                 || !Double.isFinite(outgoingDamage)
@@ -444,14 +480,18 @@ public abstract class Tower {
             return DamageResult.NONE;
         }
         double previousHealth = runtimeMonster == null ? target.getHealth() : runtimeMonster.health();
+        DamageType resolvedDamageType = damageType == null ? DamageType.PHYSICAL : damageType;
         boolean killed = target.applyRuntimeDamage(
                 towerEntity.damageSources().mobAttack(towerEntity),
                 damageAmount,
-                DamageType.PHYSICAL
+                resolvedDamageType
         );
         double currentHealth = runtimeMonster == null ? target.getHealth() : runtimeMonster.health();
         double dealtDamage = Math.max(0.0, previousHealth - currentHealth);
-        recordDamageDealt(dealtDamage);
+        recordDamageDealt(dealtDamage, resolvedDamageType);
+        if (dealtDamage > 0.0 && resolvedDamageType == DamageType.MAGIC) {
+            TowerVfxService.showMagicHit(towerEntity, target);
+        }
         if (runtimeMonster != null && dealtDamage > 0.0) {
             runtimeMonster.recordLastHit(ownerPlayer, KillSourceKind.TOWER);
         }

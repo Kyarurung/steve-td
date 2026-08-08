@@ -68,12 +68,17 @@ class NetherTowerCatalogTest {
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
 
         String brute = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T3_PIGLIN_BRUTE).description());
+        String magmaCube = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T1_MAGMA_CUBE).description());
+        String blaze = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T2_BLAZE).description());
         String ghast = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T3_GHAST).description());
 
         assertTrue(brute.contains("추가 16% 흡혈"));
         assertTrue(brute.contains("[좀비]"));
         assertTrue(ghast.contains("100%"));
         assertTrue(ghast.contains("75%"));
+        assertTrue(magmaCube.contains("마법 피해"));
+        assertTrue(blaze.contains("마법 피해"));
+        assertTrue(ghast.contains("마법 피해"));
         assertFalse(brute.contains("[계승]"));
         assertFalse(brute.contains("[해금]"));
         assertFalse(ghast.contains("[계승]"));

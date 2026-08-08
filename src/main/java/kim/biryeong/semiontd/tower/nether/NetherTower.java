@@ -11,6 +11,7 @@ import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.effect.TimedEffectType;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
@@ -441,7 +442,8 @@ public class NetherTower extends EntityBackedTower {
                 request,
                 monster -> damageAmount,
                 true,
-                (monster, appliedDamage, killed) -> heal(towerEntity, appliedDamage * lifeStealRatio(monster))
+                (monster, appliedDamage, killed) -> heal(towerEntity, appliedDamage * lifeStealRatio(monster)),
+                DamageType.MAGIC
         );
     }
 
@@ -464,7 +466,8 @@ public class NetherTower extends EntityBackedTower {
                 request,
                 monster -> damageAmount,
                 true,
-                (monster, appliedDamage, killed) -> heal(towerEntity, appliedDamage * lifeStealRatio(monster))
+                (monster, appliedDamage, killed) -> heal(towerEntity, appliedDamage * lifeStealRatio(monster)),
+                DamageType.MAGIC
         );
     }
 
@@ -473,7 +476,7 @@ public class NetherTower extends EntityBackedTower {
         if (extraTarget == null || !extraTarget.isAlive()) {
             return;
         }
-        boolean killed = damageTarget(towerEntity, extraTarget, damageAmount);
+        boolean killed = damageTarget(towerEntity, extraTarget, damageAmount, DamageType.MAGIC);
         TowerVfxService.showSecondaryAttack(towerEntity, extraTarget);
         heal(towerEntity, damageAmount * lifeStealRatio(extraTarget));
         if (killed) {

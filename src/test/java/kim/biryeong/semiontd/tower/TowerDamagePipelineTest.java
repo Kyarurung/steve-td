@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import java.util.UUID;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class TowerDamagePipelineTest {
         tierOne.syncHealth(80.0);
         assertEquals(0.0, tierOne.roundDamageTaken(), 0.0001);
         tierOne.recordDamageDealt(125.5);
-        tierOne.recordIgniteDamageDealt(12.5);
+        tierOne.recordDamageDealt(12.5, DamageType.MAGIC);
         tierOne.recordDamageTaken(40.25);
         tierOne.recordDamageDealt(Double.NaN);
         tierOne.recordDamageTaken(-5.0);
@@ -35,15 +36,17 @@ class TowerDamagePipelineTest {
         ProductionTower tierTwo = tower(tierTwoType);
         tierTwo.copyFrom(tierOne, 50);
 
-        assertEquals(125.5, tierTwo.roundDamageDealt(), 0.0001);
-        assertEquals(12.5, tierTwo.roundIgniteDamageDealt(), 0.0001);
+        assertEquals(138.0, tierTwo.roundDamageDealt(), 0.0001);
+        assertEquals(125.5, tierTwo.roundPhysicalDamageDealt(), 0.0001);
+        assertEquals(12.5, tierTwo.roundMagicDamageDealt(), 0.0001);
         assertEquals(40.25, tierTwo.roundDamageTaken(), 0.0001);
         assertSame(tierOneType, tierTwo.roundCombatType());
 
         tierTwo.markWaveStarted(4);
 
         assertEquals(0.0, tierTwo.roundDamageDealt(), 0.0001);
-        assertEquals(0.0, tierTwo.roundIgniteDamageDealt(), 0.0001);
+        assertEquals(0.0, tierTwo.roundPhysicalDamageDealt(), 0.0001);
+        assertEquals(0.0, tierTwo.roundMagicDamageDealt(), 0.0001);
         assertEquals(0.0, tierTwo.roundDamageTaken(), 0.0001);
         assertSame(tierTwoType, tierTwo.roundCombatType());
     }
