@@ -182,23 +182,25 @@ public final class WarlockTowers {
     }
 
     private static List<String> rangedWarlockDescription() {
-        return List.of(
+        List<String> lines = List.of(
                 "<gray><#fc5454>체력 " + ability(RANGED_THRESHOLD, "percent") + "</#fc5454> 이하이면 주위 " + globalAbility(SACRIFICE_RADIUS, "number") + " 블록 내 아군을 흡수합니다.</gray>",
                 "<gray>흡수한 타워 <#fc5454>체력</#fc5454>과 <#ec8d34>피해</#ec8d34>의 " + ability(RANGED_ROUND_STAT, "percent") + "를 이번 라운드 동안 획득합니다.</gray>",
                 "<gray>흡수한 타워마다 <#fc5454>체력 +" + ability(RANGED_PERMANENT_HEALTH, "percent") + "</#fc5454>, <#ec8d34>피해 +" + ability(RANGED_PERMANENT_DAMAGE, "percent") + "</#ec8d34>를 영구 누적합니다.</gray>",
                 "<gray>이번 라운드에 " + globalAbility(AWAKENING_ABSORPTIONS, "integer") + "기 이상 흡수하고, 이 타워만 생존한 상태에서 <#fc5454>체력 " + globalAbility(AWAKENING_THRESHOLD, "percent") + "</#fc5454> 이하이면 <dark_purple>흑마법사</dark_purple>가 <dark_purple>각성</dark_purple>하기 시작합니다.</gray>",
                 "<gray>각성 시 <#fc5454>체력 " + ability(RANGED_AWAKENING_HEAL, "number") + "</#fc5454>을 회복하고 <#20985d>재생 +" + ability(RANGED_AWAKENING_REGENERATION, "number") + " HP/s</#20985d>를 획득하며, 라운드 종료 시 각성이 해제됩니다.</gray>"
         );
+        return WarlockConfig.AWAKENING_ENABLED ? lines : lines.subList(0, 3);
     }
 
     private static List<String> meleeWarlockDescription() {
-        return List.of(
+        List<String> lines = List.of(
                 "<gray><#fc5454>체력 " + ability(MELEE_THRESHOLD, "percent") + "</#fc5454> 이하이면 주위 " + globalAbility(SACRIFICE_RADIUS, "number") + " 블록 내 아군을 흡수합니다.</gray>",
                 "<gray>흡수한 타워 <#fc5454>체력</#fc5454>과 <#ec8d34>피해</#ec8d34>의 " + ability(MELEE_ROUND_STAT, "percent") + "를 이번 라운드 동안 획득합니다.</gray>",
                 "<gray>흡수한 타워마다 <#fc5454>체력 +" + ability(MELEE_PERMANENT_HEALTH, "percent") + "</#fc5454>, <#ec8d34>피해 +" + ability(MELEE_PERMANENT_DAMAGE, "percent") + "</#ec8d34>를 영구 누적합니다.</gray>",
                 "<gray>이번 라운드에 " + globalAbility(AWAKENING_ABSORPTIONS, "integer") + "기 이상 흡수하고, 이 타워만 생존한 상태에서 <#fc5454>체력 " + globalAbility(AWAKENING_THRESHOLD, "percent") + "</#fc5454> 이하이면 <dark_purple>흑마법사</dark_purple>가 <dark_purple>각성</dark_purple>하기 시작합니다.</gray>",
                 "<gray>각성 시 <#ec8d34>피해 +" + ability(MELEE_AWAKENING_DAMAGE, "number") + "</#ec8d34>, 이동 속도 +" + ability(MELEE_AWAKENING_MOVE_SPEED, "percent") + "를 획득하며, 라운드 종료 시 각성이 해제됩니다.</gray>"
         );
+        return WarlockConfig.AWAKENING_ENABLED ? lines : lines.subList(0, 3);
     }
 
     private static String ability(WarlockConfig.Ability ability, String format) {

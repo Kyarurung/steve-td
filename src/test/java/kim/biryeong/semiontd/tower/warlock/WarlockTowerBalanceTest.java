@@ -149,6 +149,7 @@ class WarlockTowerBalanceTest {
 
     @Test
     void descriptionUsesAttackRangeTerminologyAndExactStep() {
+        assertFalse(WarlockConfig.AWAKENING_ENABLED);
         String description = String.join("\n", TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER).description()).replaceAll("<[^>]+>", "");
         assertTrue(description.contains("체력 55% 이하이면"));
         assertTrue(description.contains("주위 25 블록 내"));
@@ -158,12 +159,7 @@ class WarlockTowerBalanceTest {
         assertTrue(description.contains("체력 +2.5%"));
         assertTrue(description.contains("피해 +5%"));
         assertTrue(description.contains("영구 누적"));
-        assertTrue(description.contains("20기 이상 흡수"));
-        assertTrue(description.contains("이 타워만 생존한 상태"));
-        assertTrue(description.contains("체력 40% 이하이면 흑마법사가"));
-        assertTrue(description.contains("각성 시 체력 400"));
-        assertTrue(description.contains("재생 +40 HP/s"));
-        assertTrue(description.contains("라운드 종료 시 각성이 해제"));
+        assertFalse(description.contains("각성"));
         assertFalse(description.contains("공격 속도"));
         assertFalse(description.contains("공격 범위"));
         assertFalse(description.contains("생명력 흡수"));
@@ -180,12 +176,7 @@ class WarlockTowerBalanceTest {
         assertTrue(meleeDescription.contains("체력 +5%"));
         assertTrue(meleeDescription.contains("피해 +2.5%"));
         assertTrue(meleeDescription.contains("영구 누적"));
-        assertTrue(meleeDescription.contains("20기 이상 흡수"));
-        assertTrue(meleeDescription.contains("이 타워만 생존한 상태"));
-        assertTrue(meleeDescription.contains("체력 40% 이하이면 흑마법사가"));
-        assertTrue(meleeDescription.contains("각성 시 피해 +75"));
-        assertTrue(meleeDescription.contains("이동 속도 +30%"));
-        assertTrue(meleeDescription.contains("라운드 종료 시 각성이 해제"));
+        assertFalse(meleeDescription.contains("각성"));
         assertFalse(meleeDescription.contains("공격 속도"));
         assertFalse(meleeDescription.contains("공격 범위"));
         assertFalse(meleeDescription.contains("생명력 흡수"));
@@ -211,14 +202,13 @@ class WarlockTowerBalanceTest {
         assertEquals(5, tower.minimumAttackIntervalTicks());
         assertTrue(details.contains("흡수한 타워: 0기"));
         assertTrue(details.contains("이번 라운드에 흡수한 타워: 0기"));
-        assertTrue(details.contains("각성 상태: 미각성"));
+        assertFalse(details.contains("각성 상태:"));
         assertFalse(details.contains("피해량 상한"));
         assertTrue(details.contains("영구 피해: +0.0"));
         assertTrue(details.contains("영구 체력: +0.0"));
         assertTrue(details.contains("공격 속도: -0틱"));
         assertTrue(details.contains("공격 범위: +0 블록 (1)"));
-        assertTrue(details.contains("재생: +0 HP/s"));
-        assertFalse(details.contains("재생: +0 HP/s (MAX)"));
+        assertFalse(details.contains("재생:"));
         assertTrue(details.contains("생명력 흡수: +0.0% (5)"));
         assertTrue(details.contains("피해 감소: +0.0% (4)"));
         assertFalse(details.contains("제한 없음"));
@@ -237,7 +227,7 @@ class WarlockTowerBalanceTest {
         assertEquals(5, melee.minimumAttackIntervalTicks());
         assertTrue(meleeDetails.contains("흡수한 타워: 0기"));
         assertTrue(meleeDetails.contains("이번 라운드에 흡수한 타워: 0기"));
-        assertTrue(meleeDetails.contains("각성 상태: 미각성"));
+        assertFalse(meleeDetails.contains("각성 상태:"));
         assertTrue(meleeDetails.contains("영구 피해: +0.0"));
         assertTrue(meleeDetails.contains("영구 체력: +0.0"));
         assertTrue(meleeDetails.contains("공격 속도: -0틱 (1)"));

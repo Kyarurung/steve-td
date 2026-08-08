@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower.warlock;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 final class WarlockConfig {
     static final WarlockConfig RUNTIME = new WarlockConfig();
+    static final boolean AWAKENING_ENABLED = false;
 
     private WarlockConfig() {
     }
