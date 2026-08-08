@@ -47,6 +47,7 @@ public final class ResonanceService {
                 .filter(candidate -> candidate != tower)
                 .filter(candidate -> sameOwnerLane(tower, candidate))
                 .filter(candidate -> distance(tower.position(), candidate.position()) <= ability(tower, "linkRange"))
+                .filter(candidate -> candidate.aspect() != tower.aspect())
                 .limit(maxLinks)
                 .count();
 

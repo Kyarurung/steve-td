@@ -248,7 +248,7 @@ public final class ResonanceTowers {
     private static void registerDescription(TowerType type) {
         java.util.ArrayList<String> template = new java.util.ArrayList<>(type.description());
         template.add(LINK_DESCRIPTION);
-        template.add("<green>자신을 제외한 주변 무블룸 {ability.level1RequiredLinks:integer}/{ability.level2RequiredLinks:integer}/{ability.level3RequiredLinks:integer}기와 연결되면 공명 1/2/3단계 효과를 얻습니다. 같은 종류와 티어도 각각 1링크로 계산합니다.</green>");
+        template.add("<green>자신과 다른 종류의 주변 무블룸 {ability.level1RequiredLinks:integer}/{ability.level2RequiredLinks:integer}/{ability.level3RequiredLinks:integer}종과 연결되면 공명 1/2/3단계 효과를 얻습니다. 같은 종류가 여러 기 있어도 1링크만 계산합니다.</green>");
         template.add("<green>현재 해금: 공명 {ability.maxResonanceLevel:integer}단계 까지 활성화 가능합니다.</green>");
         switch (aspectOf(type)) {
             case FOCUS -> addFocusDescription(template);
@@ -263,14 +263,14 @@ public final class ResonanceTowers {
         template.add("<green>공명 1단계: 공격속도 +{ability.focusLevel1AttackSpeedBonus:percent}</green>");
         template.add("<green>공명 2단계: 공격속도 +{ability.focusLevel2AttackSpeedBonus:percent}, 피해 +{ability.focusLevel2DamageBonus:percent}</green>");
         template.add("<green>공명 3단계: 공격속도 +{ability.focusLevel3AttackSpeedBonus:percent}, 피해 +{ability.focusLevel3DamageBonus:percent}</green>");
-        template.add("<green>{ability.focusStrikeEveryAttacks:integer}번째 공격마다 주 대상에게 {ability.focusStrikeDamageRatio:percent} 추가 피해를 줍니다.</green>");
+        template.add("<green>{ability.focusStrikeEveryAttacks:integer}번째 공격마다 주 대상에게 {ability.focusStrikeDamageRatio:percent} 추가 마법 피해를 줍니다.</green>");
     }
 
     private static void addWaveDescription(java.util.List<String> template) {
         template.add("<green>공명 1단계: 공격속도 +{ability.waveLevel1AttackSpeedBonus:percent}</green>");
-        template.add("<green>공명 2단계: 매 공격마다 {ability.waveLevel2SplashRadius:blocks} 범위에 {ability.waveLevel2SplashDamageRatio:percent} 스플래시 피해를 줍니다.</green>");
-        template.add("<green>공명 3단계: 스플래시가 {ability.waveLevel3SplashRadius:blocks}, {ability.waveLevel3SplashDamageRatio:percent}로 강화됩니다.</green>");
-        template.add("<green>{ability.wavePulseEveryAttacks:integer}번째 공격마다 {ability.wavePulseRadius:blocks} 범위에 {ability.wavePulseDamageRatio:percent} 파동 피해를 줍니다.</green>");
+        template.add("<green>공명 2단계: 매 공격마다 {ability.waveLevel2SplashRadius:blocks} 범위에 {ability.waveLevel2SplashDamageRatio:percent} 마법 스플래시 피해를 줍니다.</green>");
+        template.add("<green>공명 3단계: 마법 스플래시가 {ability.waveLevel3SplashRadius:blocks}, {ability.waveLevel3SplashDamageRatio:percent}로 강화됩니다.</green>");
+        template.add("<green>{ability.wavePulseEveryAttacks:integer}번째 공격마다 {ability.wavePulseRadius:blocks} 범위에 {ability.wavePulseDamageRatio:percent} 마법 파동 피해를 줍니다.</green>");
     }
 
     private static void addFrostDescription(java.util.List<String> template) {
@@ -278,7 +278,7 @@ public final class ResonanceTowers {
         template.add("<green>공명 2단계: 디버프가 {ability.frostLevel2SlowTicks:seconds}, 이동속도 -{ability.frostLevel2SlowMagnitude:percent}, 공격속도 -{ability.frostLevel2AttackSpeedReductionMagnitude:percent}로 강화됩니다.</green>");
         template.add("<green>{ability.frostAuraRange:blocks} 안 무블룸은 둔화 대상에게 피해 +{ability.frostLevel2AuraDamageVsSlowedBonus:percent}를 얻습니다.</green>");
         template.add("<green>공명 3단계: 디버프가 {ability.frostLevel3SlowTicks:seconds}, 이동속도 -{ability.frostLevel3SlowMagnitude:percent}, 공격속도 -{ability.frostLevel3AttackSpeedReductionMagnitude:percent}로 강화되고 오라 피해가 +{ability.frostLevel3AuraDamageVsSlowedBonus:percent}가 됩니다.</green>");
-        template.add("<green>{ability.frostPulseEveryAttacks:integer}번째 공격마다 {ability.frostPulseRadius:blocks} 범위에 {ability.frostPulseDamageRatio:percent} 피해와 {ability.frostPulseSlowTicks:seconds} 동안 이동속도 -{ability.frostPulseSlowMagnitude:percent}, 공격속도 -{ability.frostPulseAttackSpeedReductionMagnitude:percent}를 줍니다.</green>");
+        template.add("<green>{ability.frostPulseEveryAttacks:integer}번째 공격마다 {ability.frostPulseRadius:blocks} 범위에 {ability.frostPulseDamageRatio:percent} 마법 피해와 {ability.frostPulseSlowTicks:seconds} 동안 이동속도 -{ability.frostPulseSlowMagnitude:percent}, 공격속도 -{ability.frostPulseAttackSpeedReductionMagnitude:percent}를 줍니다.</green>");
     }
 
     private static void addBloomDescription(java.util.List<String> template) {

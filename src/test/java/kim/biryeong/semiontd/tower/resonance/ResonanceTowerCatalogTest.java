@@ -153,6 +153,9 @@ class ResonanceTowerCatalogTest {
         assertTrue(waveDescription.stream().anyMatch(line -> line.contains("공명 3단계")));
         assertTrue(frostDescription.stream().anyMatch(line -> line.contains("공명 3단계")));
         assertTrue(bloomDescription.stream().anyMatch(line -> line.contains("공명 3단계")));
+        assertTrue(focusDescription.stream().anyMatch(line -> line.contains("추가 마법 피해")));
+        assertTrue(waveDescription.stream().anyMatch(line -> line.contains("마법 스플래시")));
+        assertTrue(frostDescription.stream().anyMatch(line -> line.contains("마법 피해")));
         assertTrue(waveDescription.stream().anyMatch(line -> line.contains("범위 공격")));
         assertTrue(bloomDescription.stream().anyMatch(line -> line.contains("저항 효과")));
         assertFalse(playerFacingLines.stream().anyMatch(line -> line.contains("꽃밭")));
@@ -269,7 +272,7 @@ class ResonanceTowerCatalogTest {
         var description = TowerBalanceRuntime.resolve(ResonanceTowers.FOCUS_CORE).description();
 
         assertTrue(description.stream().anyMatch(line -> line.contains("7칸")));
-        assertTrue(description.stream().anyMatch(line -> line.contains("2/4/6기")));
+        assertTrue(description.stream().anyMatch(line -> line.contains("2/4/6종")));
         assertTrue(description.stream().anyMatch(line -> line.contains("11%")));
         assertTrue(description.stream().anyMatch(line -> line.contains("22%") && line.contains("13%")));
         assertTrue(description.stream().anyMatch(line -> line.contains("33%") && line.contains("17%")));

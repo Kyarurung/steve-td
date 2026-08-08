@@ -19,6 +19,7 @@ import kim.biryeong.semiontd.config.LeaderTargetingConfig;
 import kim.biryeong.semiontd.config.MonsterScalingConfig;
 import kim.biryeong.semiontd.config.RoundWaveConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
+import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
@@ -103,6 +104,7 @@ public final class SemionGame {
     private boolean finalDefenseForcedThisRound;
     private boolean emeraldIncomeBoostAnnounced;
     private String catalogVersion;
+    private RoundWaveConfig selectedRoundWave;
 
     public SemionGame(EconomyConfig economyConfig, WaveConfig waveConfig, GameArena arena) {
         this(economyConfig, waveConfig, arena, null);
@@ -194,6 +196,17 @@ public final class SemionGame {
         }
         int remainingTicks = Math.max(0, DEFAULT_PREPARE_TICKS - phaseTicks);
         return (remainingTicks + 19) / 20;
+    }
+
+    public List<WaveMonsterEntry> upcomingWaveEntries(UUID playerId) {
+        if (phase != RoundPhase.PREPARE_AND_SUMMON || selectedRoundWave == null) {
+            return List.of();
+        }
+        SemionPlayer player = players.get(playerId);
+        if (player == null) {
+            return List.of();
+        }
+        return selectedRoundWave.entriesForLane("lane_" + player.laneId());
     }
 
     public Map<TeamId, SemionTeam> teams() {
@@ -736,6 +749,7 @@ public final class SemionGame {
         attemptedRoundsByPlayer.clear();
         clearedRoundsByPlayer.clear();
         eliminationOrder.clear();
+        selectedRoundWave = null;
         rosterLocked = false;
         phase = RoundPhase.ENDED;
     }
@@ -1001,7 +1015,7 @@ public final class SemionGame {
         phaseTicks = 0;
         finalDefenseForcedThisRound = false;
         currentWaveTeamIds.clear();
-        RoundWaveConfig roundWave = waveConfig.selectForRound(currentRound, random).orElse(null);
+        RoundWaveConfig roundWave = selectedRoundWave;
         for (SemionTeam team : livingTeams()) {
             currentWaveTeamIds.add(team.id());
             team.laneGroup().setCurrentRound(currentRound);
@@ -1073,6 +1087,7 @@ public final class SemionGame {
     private void startPreparePhase(MinecraftServer server) {
         phase = RoundPhase.PREPARE_AND_SUMMON;
         phaseTicks = 0;
+        selectedRoundWave = waveConfig.selectForRound(currentRound, random).orElse(null);
         for (SemionTeam team : livingTeams()) {
             team.resetForRound();
         }

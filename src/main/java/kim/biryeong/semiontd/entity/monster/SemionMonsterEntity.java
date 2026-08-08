@@ -487,7 +487,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         double dealtDamage = Math.max(0.0, previousHealth - runtimeMonster.health());
         if (dealtDamage > 0.0) {
             if (state.sourceTower() != null) {
-                state.sourceTower().recordIgniteDamageDealt(dealtDamage);
+                state.sourceTower().recordDamageDealt(dealtDamage, DamageType.MAGIC);
             }
             runtimeMonster.recordLastHit(state.sourcePlayer(), KillSourceKind.TOWER);
         }

@@ -17,7 +17,7 @@ public final class ResonanceTowerJob extends SemionJob {
                 Component.literal("무블룸 빌더"),
                 List.of(
                         SemionText.mini("<gray>다른 종의 무블룸을 1칸 안에 모아 공명 단계를 올리는 빌더입니다.</gray>"),
-                        SemionText.mini("<gray>자신을 제외한 주변 무블룸 1/3/5기와 연결되면 공명 1/2/3단계가 열립니다.</gray>")
+                        SemionText.mini("<gray>자신과 다른 종류의 주변 무블룸 1/3/5종과 연결되면 공명 1/2/3단계가 열립니다. 같은 종류 중복은 링크가 늘지 않습니다.</gray>")
                 )
         );
     }

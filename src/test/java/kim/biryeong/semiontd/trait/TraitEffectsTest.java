@@ -76,10 +76,12 @@ final class TraitEffectsTest {
                         .effectSummary(TraitSlot.PRIMARY).getString()
         );
         assertEquals(
-                "4초간 매초 1 + 공격력×라운드×0.375% 마법 피해",
+                "4초간 매초 1 + 공격력×라운드×0.375% 마법 피해 (마법 피해 능력 제외)",
                 TraitRegistry.find(BuiltInTraits.IGNITE_ID).orElseThrow()
                         .effectSummary(TraitSlot.SECONDARY).getString()
         );
+        assertTrue(TraitRegistry.find(BuiltInTraits.IGNITE_ID).orElseThrow().description().stream()
+                .anyMatch(line -> line.getString().equals("마법 피해를 주는 능력에는 점화가 적용되지 않습니다.")));
     }
 
     @Test

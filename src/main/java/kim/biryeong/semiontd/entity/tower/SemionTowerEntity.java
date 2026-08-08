@@ -953,6 +953,17 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             return;
         }
 
+        applyDamage(serverLevel, damageSource, damageAmount);
+    }
+
+    public void hurtIgnoringReductions(DamageSource damageSource, double damageAmount) {
+        if (!(level() instanceof ServerLevel serverLevel) || damageAmount <= 0.0) {
+            return;
+        }
+        applyDamage(serverLevel, damageSource, damageAmount);
+    }
+
+    private void applyDamage(ServerLevel serverLevel, DamageSource damageSource, double damageAmount) {
         double previousHealth = getHealth();
         super.actuallyHurt(serverLevel, damageSource, (float) damageAmount);
         invulnerableTime = 0;

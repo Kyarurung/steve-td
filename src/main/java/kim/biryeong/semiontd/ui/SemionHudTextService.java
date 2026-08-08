@@ -11,6 +11,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.game.MatchMode;
 import kim.biryeong.semiontd.game.ParticipantSelectionPlan;
 import kim.biryeong.semiontd.game.ParticipantSelectionService;
@@ -26,6 +28,7 @@ import kim.biryeong.semiontd.placeholder.SemionPlaceholders;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -80,8 +83,8 @@ public final class SemionHudTextService {
                     new TowerDamageSummary(
                             type.id(),
                             type.displayName(),
-                            tower.roundDamageDealt(),
-                            tower.roundIgniteDamageDealt(),
+                            tower.roundPhysicalDamageDealt(),
+                            tower.roundMagicDamageDealt(),
                             tower.roundDamageTaken()
                     ),
                     TowerDamageSummary::merge
@@ -89,8 +92,8 @@ public final class SemionHudTextService {
         }
 
         List<TowerDamageSummary> summaries = List.copyOf(byType.values());
-        double totalDealt = summaries.stream().mapToDouble(TowerDamageSummary::dealt).sum();
-        double totalIgniteDealt = summaries.stream().mapToDouble(TowerDamageSummary::igniteDealt).sum();
+        double totalPhysical = summaries.stream().mapToDouble(TowerDamageSummary::physical).sum();
+        double totalMagic = summaries.stream().mapToDouble(TowerDamageSummary::magic).sum();
         double totalTaken = summaries.stream().mapToDouble(TowerDamageSummary::taken).sum();
         StringBuilder text = new StringBuilder();
         text.append("<gold>").append(damageRoundLabel(game)).append("</gold>");
@@ -100,9 +103,10 @@ public final class SemionHudTextService {
                     .append(remainingPrepareSeconds)
                     .append("초</green>");
         }
-        text.append(" <dark_gray>|</dark_gray> <red>⚔ ").append(formatDamage(totalDealt)).append("</red>")
-                .append(" <dark_gray>|</dark_gray> <gold>🔥 ").append(formatDamage(totalIgniteDealt)).append("</gold>")
+        text.append(" <dark_gray>|</dark_gray> <red>물리 ").append(formatDamage(totalPhysical)).append("</red>")
+                .append(" <dark_gray>|</dark_gray> <light_purple>마법 ").append(formatDamage(totalMagic)).append("</light_purple>")
                 .append(" <dark_gray>|</dark_gray> <aqua>🛡 ").append(formatDamage(totalTaken)).append("</aqua>\n");
+        appendCompactNextWavePreview(text, viewerId, game);
         appendDamageTop(text, summaries, true);
         appendDamageTop(text, summaries, false);
         return text.toString();
@@ -163,7 +167,11 @@ public final class SemionHudTextService {
             appendEliminatedPlayerHud(text, viewer, player, playerTeam, viewingTeam);
         } else if (player != null) {
             appendActivePlayerHud(text, viewer, player, playerTeam);
-            appendTeamBossSummary(text, game);
+            if (game.phase() == RoundPhase.PREPARE_AND_SUMMON) {
+                appendNextWavePreview(text, viewerId, game);
+            } else {
+                appendTeamBossSummary(text, game);
+            }
         } else {
             appendSpectatorHud(text, viewingTeam);
         }
@@ -227,12 +235,14 @@ public final class SemionHudTextService {
         }
         for (int index = 0; index < top.size(); index++) {
             TowerDamageSummary summary = top.get(index);
-            double value = dealt ? summary.dealt() : summary.taken();
             text.append("<gray>").append(index + 1).append(".</gray> <white>")
-                    .append(summary.displayName()).append("</white> ")
-                    .append(dealt ? "<red>" : "<aqua>")
-                    .append(formatDamage(value))
-                    .append(dealt ? "</red>\n" : "</aqua>\n");
+                    .append(summary.displayName()).append("</white> ");
+            if (dealt) {
+                text.append("<red>물리 ").append(formatDamage(summary.physical())).append("</red> ")
+                        .append("<light_purple>마법 ").append(formatDamage(summary.magic())).append("</light_purple>\n");
+            } else {
+                text.append("<aqua>").append(formatDamage(summary.taken())).append("</aqua>\n");
+            }
         }
     }
 
@@ -247,13 +257,17 @@ public final class SemionHudTextService {
         };
     }
 
-    private record TowerDamageSummary(String id, String displayName, double dealt, double igniteDealt, double taken) {
+    private record TowerDamageSummary(String id, String displayName, double physical, double magic, double taken) {
+        private double dealt() {
+            return physical + magic;
+        }
+
         private TowerDamageSummary merge(TowerDamageSummary other) {
             return new TowerDamageSummary(
                     id,
                     displayName,
-                    dealt + other.dealt,
-                    igniteDealt + other.igniteDealt,
+                    physical + other.physical,
+                    magic + other.magic,
                     taken + other.taken
             );
         }
@@ -362,6 +376,94 @@ public final class SemionHudTextService {
                     .append(bossHealthText(team))
                     .append('\n');
         }
+    }
+
+    private static void appendNextWavePreview(StringBuilder text, UUID viewerId, SemionGame game) {
+        List<WaveMonsterEntry> entries = game.upcomingWaveEntries(viewerId);
+        text.append("<dark_gray>────</dark_gray>\n");
+        text.append("<aqua><bold>다음 웨이브</bold></aqua>\n");
+        if (entries.isEmpty()) {
+            text.append("<gray>정보 없음</gray>\n");
+        } else {
+            int shown = Math.min(3, entries.size());
+            for (int index = 0; index < shown; index++) {
+                WaveMonsterEntry entry = entries.get(index);
+                text.append("<white>").append(monsterNameMarkup(entry)).append("</white>")
+                        .append(" <gray>×").append(entry.count()).append("</gray>")
+                        .append(" <red>♥").append(formatDamage(entry.health())).append("</red> ")
+                        .append(definingStatMarkup(entry))
+                        .append('\n');
+            }
+            if (entries.size() > shown) {
+                text.append("<gray>외 ").append(entries.size() - shown).append("종</gray>\n");
+            }
+        }
+        game.playerLane(viewerId).ifPresent(lane -> {
+            if (lane.queuedSummonCount() > 0) {
+                text.append("<yellow>추가 소환 ").append(lane.queuedSummonCount()).append("기</yellow>")
+                        .append(" <dark_gray>·</dark_gray> <gray>위협 ")
+                        .append(formatDamage(lane.queuedSummonThreat())).append("</gray>\n");
+            }
+        });
+    }
+
+    private static void appendCompactNextWavePreview(StringBuilder text, UUID viewerId, SemionGame game) {
+        if (game.phase() != RoundPhase.PREPARE_AND_SUMMON) {
+            return;
+        }
+        List<WaveMonsterEntry> entries = game.upcomingWaveEntries(viewerId);
+        text.append("<aqua>다음</aqua> ");
+        if (entries.isEmpty()) {
+            text.append("<gray>정보 없음</gray>\n");
+            return;
+        }
+        int totalCount = entries.stream().mapToInt(WaveMonsterEntry::count).sum();
+        text.append("<white>").append(monsterNameMarkup(entries.getFirst())).append("</white>");
+        if (entries.size() > 1) {
+            text.append(" <gray>외 ").append(entries.size() - 1).append("종</gray>");
+        }
+        text.append(" <dark_gray>·</dark_gray> <gray>").append(totalCount).append("기</gray>");
+        game.playerLane(viewerId).ifPresent(lane -> {
+            if (lane.queuedSummonCount() > 0) {
+                text.append(" <yellow>+소환 ").append(lane.queuedSummonCount()).append("</yellow>");
+            }
+        });
+        text.append('\n');
+    }
+
+    private static String monsterNameMarkup(WaveMonsterEntry entry) {
+        if (entry.entityType() == null || entry.entityType().isBlank()) {
+            return "특수 적";
+        }
+        ResourceLocation entityType = ResourceLocation.tryParse(entry.entityType());
+        if (entityType == null) {
+            return "특수 적";
+        }
+        return "<lang:entity."
+                + entityType.getNamespace()
+                + "."
+                + entityType.getPath().replace('/', '.')
+                + ">";
+    }
+
+    private static String definingStatMarkup(WaveMonsterEntry entry) {
+        if (entry.attackKind() == AttackKind.RANGED) {
+            return "<gold>사거리 " + formatStat(entry.attackRange()) + "</gold>";
+        }
+        if (entry.movementSpeedMultiplier() >= 1.15) {
+            return "<yellow>속도 ×" + formatStat(entry.movementSpeedMultiplier()) + "</yellow>";
+        }
+        if (entry.armor() > 0.0) {
+            return "<aqua>🛡" + formatStat(entry.armor()) + "</aqua>";
+        }
+        return "<red>⚔" + formatStat(entry.attackDamage()) + "</red>";
+    }
+
+    private static String formatStat(double value) {
+        if (value == Math.rint(value)) {
+            return Long.toString(Math.round(value));
+        }
+        return String.format(Locale.ROOT, "%.1f", value);
     }
 
     private static Optional<SemionTeam> viewingTeam(ServerPlayer viewer, SemionGame game) {

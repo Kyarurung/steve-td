@@ -213,6 +213,7 @@ import kim.biryeong.semiontd.ui.SemionDialogService;
 import kim.biryeong.semiontd.ui.SemionDisplayHudService;
 import kim.biryeong.semiontd.ui.SemionHudTextService;
 import kim.biryeong.semiontd.ui.SemionSidebarHudService;
+import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -1339,10 +1340,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, !scoreboardText.contains(upgradedTowerLimitText), "Scoreboard HUD should not duplicate purchased tower slots from actionbar.")) {
             return;
         }
-        if (!assertTrue(context, scoreboardText.contains("전체 팀 보스"), "Scoreboard HUD should keep the full team boss summary.")) {
+        if (!assertTrue(context, scoreboardText.contains("다음 웨이브"), "Preparation HUD should replace the team summary with the upcoming wave.")) {
             return;
         }
-        if (!assertTrue(context, activeText.contains("전체 팀 보스"), "Active HUD should keep the full team boss summary.")) {
+        if (!assertTrue(context, activeText.contains("정보 없음"), "Preparation HUD should handle rounds without configured monsters.")) {
+            return;
+        }
+        if (!assertTrue(context, !activeText.contains("animal_pig_1"), "Preparation HUD should not expose internal monster ids.")) {
             return;
         }
 
@@ -1411,6 +1415,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             ProductionTower tower = new ProductionTower(type, playerId, TeamId.RED, 1, new GridPosition(index, 0, 0));
             tower.markWaveStarted(1);
             tower.recordDamageDealt(dealt[index]);
+            if (index == 0) {
+                tower.recordDamageDealt(25.0, DamageType.MAGIC);
+            }
             tower.recordDamageTaken(taken[index]);
             lane.addTower(tower);
             if (index == 0) {
@@ -1429,10 +1436,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, markup.contains("<gray>준비</gray> <green>25초</green>"), "Damage sidebar should show the remaining preparation time before the wave.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Damage Type 1</white> <red>650"), "Same tower types should aggregate their dealt damage.")) {
+        if (!assertTrue(context, markup.contains("<aqua>다음</aqua>"), "Damage sidebar should keep a compact upcoming-wave line during preparation.")) {
             return;
         }
-        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <red>"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
+        if (!assertTrue(context, markup.contains("Damage Type 1</white> <red>물리 650</red> <light_purple>마법 25"),
+                "Same tower types should aggregate and split physical and magic damage.")) {
+            return;
+        }
+        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <red>물리"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
             return;
         }
         int takenHeader = markup.indexOf("받은 피해 TOP 5");
@@ -1443,7 +1454,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
-        if (!assertTrue(context, markup.split("\\R").length <= 13, "Damage sidebar should stay within thirteen content lines.")) {
+        if (!assertTrue(context, markup.split("\\R").length <= 14, "Damage sidebar should stay within the sidebar line limit.")) {
             return;
         }
         context.succeed();
@@ -2720,6 +2731,26 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 context,
                 lane.arenaWorld().getFluidState(waterPos).isSource(),
                 "Water tower marker should expose a real source-water fluid state."
+        )) {
+            return;
+        }
+        long mineralBeforeStackAttempt = game.players().get(playerId).economy().mineral();
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.OCCUPIED,
+                ProductionTowerService.placeTower(game, playerId, waterPos, OceanTowers.T1_WATER.id()),
+                "Water tower markers must not become a new floor for stacked tower placement."
+        )) {
+            return;
+        }
+        if (!assertEquals(context, 1, lane.towers().size(), "Rejected water tower stacking must not add another tower.")) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                mineralBeforeStackAttempt,
+                game.players().get(playerId).economy().mineral(),
+                "Rejected water tower stacking must not spend diamonds."
         )) {
             return;
         }
@@ -5279,7 +5310,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, target.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Bee poison should preserve tower kill attribution.")) {
             return;
         }
-        if (!assertClose(context, 100.0 - target.runtimeMonster().health(), beeTower.roundDamageDealt(), "Bee poison should count toward its source tower damage.")) {
+        if (!assertClose(context, 0.0, beeTower.roundPhysicalDamageDealt(), "Bee poison should not count as physical damage.")) {
+            return;
+        }
+        if (!assertClose(context, 100.0 - target.runtimeMonster().health(), beeTower.roundMagicDamageDealt(), "Bee poison should count as source-tower magic damage.")) {
             return;
         }
         context.succeed();
@@ -5373,7 +5407,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, killTarget.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Ignite kills should keep tower kill attribution.")) {
             return;
         }
-        if (!assertClose(context, 84.5, sourceTower.roundIgniteDamageDealt(), "Ignite ticks should count separately for the tower that applied the retained ignite.")) {
+        if (!assertClose(context, 84.5, sourceTower.roundMagicDamageDealt(), "Ignite ticks should count as magic damage for the tower that applied the retained ignite.")) {
             return;
         }
         context.succeed();
@@ -5416,21 +5450,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (int tick = 0; tick < 20; tick++) {
             splashTarget.aiStep();
         }
-        if (!assertClose(context, 50.0, sourceTower.roundDamageDealt(),
-                "Normal damage stats should exclude independently tracked ignite damage.")) {
+        if (!assertClose(context, 50.0, sourceTower.roundPhysicalDamageDealt(),
+                "Basic-attack splash should remain physical damage.")) {
             return;
         }
-        if (!assertClose(context, 5.75, sourceTower.roundIgniteDamageDealt(),
-                "Damage stats should retain a visible ignite subtotal.")) {
+        if (!assertClose(context, 5.75, sourceTower.roundMagicDamageDealt(),
+                "Ignite should merge into the source tower's magic damage.")) {
             return;
         }
         String markup = SemionHudTextService.damageSidebarMarkupFor(playerId, game);
-        if (!assertTrue(context, markup.contains("<red>⚔ 50</red> <dark_gray>|</dark_gray> <gold>🔥 6</gold>"),
-                "Damage sidebar should show normal and ignite damage as independent totals.")) {
+        if (!assertTrue(context, markup.contains("<red>물리 50</red> <dark_gray>|</dark_gray> <light_purple>마법 6</light_purple>"),
+                "Damage sidebar should show physical and magic totals without a separate ignite subtotal.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <red>50</red>"),
-                "Tower damage ranking should exclude independently tracked ignite damage.")) {
+        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <red>물리 50</red> <light_purple>마법 6</light_purple>"),
+                "Tower damage ranking should split physical and magic damage.")) {
             return;
         }
         context.succeed();
@@ -6436,6 +6470,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("magma-pulse-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, NetherTowerJob.ID);
         PlayerLane lane = redLane(game, 1);
+        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.IGNITE_ID, BuiltInTraits.NONE_ID));
         NetherTower tower = new NetherTower(
                 TowerBalanceRuntime.resolve(NetherTowers.T1_MAGMA_CUBE),
                 playerId,
@@ -6459,25 +6494,118 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 1,
                 towerEntity.position().add(4.0, 0.0, 0.0),
                 100.0,
-                List.of(SummonRole.RUSH)
-        );
-        SemionMonsterEntity nearby = spawnRoleMonsterEntity(
-                context,
-                "magma-pulse-nearby",
-                Optional.empty(),
-                TeamId.RED,
-                1,
-                target.position().add(1.5, 0.0, 0.0),
                 100.0,
+                0.0,
                 List.of(SummonRole.RUSH)
         );
 
         tower.onAttack(towerEntity, target, tower.type().damage(), false);
 
-        if (!assertClose(context, 89.5, target.getHealth(), "Magma cube pulse should deal 150% of its configured 7 base damage.")) {
+        if (!assertClose(context, 89.5, target.getHealth(), "Magma cube pulse should use magic resistance instead of 100 armor.")) {
             return;
         }
-        if (!assertClose(context, 89.5, nearby.getHealth(), "Magma cube pulse should be centered on the attack target.")) {
+        if (!assertTrue(context, target.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Magma cube magic pulse should not apply ignite.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void netherTransitionPulseAndExtraAttackUseMagicDamageWithoutIgnite(GameTestHelper context) {
+        UUID playerId = stableUuid("nether-magic-abilities-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, NetherTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.IGNITE_ID, BuiltInTraits.NONE_ID));
+
+        GridPosition magmaPosition = GridPosition.from(towerPlacementPos(lane));
+        NetherTower magmaCube = new NetherTower(
+                TowerBalanceRuntime.resolve(NetherTowers.T1_MAGMA_CUBE),
+                playerId,
+                TeamId.RED,
+                1,
+                magmaPosition
+        );
+        lane.addTower(magmaCube);
+        SemionTowerEntity magmaEntity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(magmaCube.entityId().orElseThrow());
+        SemionMonsterEntity transitionTarget = spawnRoleMonsterEntity(
+                context,
+                "nether-transition-magic-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                magmaEntity.position().add(1.0, 0.0, 0.0),
+                1_000.0,
+                100.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        transitionTarget.setNoAi(true);
+        lane.activeMonsters().add(transitionTarget.runtimeMonster());
+        magmaCube.syncHealth(0.01);
+        magmaEntity.setHealth(0.01F);
+        magmaCube.tick(lane);
+
+        double transitionBaseDamage = magmaCube.type().damage()
+                * TowerBalanceRuntime.ability(magmaCube.type().id(), "zombieTransitionPulseDamageRatio");
+        double transitionDamage = magmaCube.resolveOutgoingDamage(magmaEntity, transitionTarget, transitionBaseDamage);
+        if (!assertClose(context, 1_000.0 - transitionDamage, transitionTarget.getHealth(),
+                "Zombie transition pulse should use magic resistance instead of armor.")) {
+            return;
+        }
+        if (!assertTrue(context, transitionTarget.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Zombie transition magic pulse should not apply ignite.")) {
+            return;
+        }
+        transitionTarget.discard();
+
+        GridPosition blazePosition = new GridPosition(magmaPosition.x() + 8, magmaPosition.y(), magmaPosition.z());
+        NetherTower blaze = new NetherTower(
+                TowerBalanceRuntime.resolve(NetherTowers.T2_BLAZE),
+                playerId,
+                TeamId.RED,
+                1,
+                blazePosition
+        );
+        lane.addTower(blaze);
+        blaze.syncHealth(blaze.currentMaxHealth() * 0.30);
+        SemionTowerEntity blazeEntity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(blaze.entityId().orElseThrow());
+        SemionMonsterEntity extraTarget = spawnRoleMonsterEntity(
+                context,
+                "nether-extra-magic-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                blazeEntity.position().add(2.0, 0.0, 0.0),
+                1_000.0,
+                100.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        extraTarget.setNoAi(true);
+        int extraAttackEvery = TowerBalanceRuntime.abilityInt(blaze.type().id(), "extraAttackEvery");
+        for (int attack = 1; attack < extraAttackEvery; attack++) {
+            blaze.syncHealth(blaze.currentMaxHealth() * 0.30);
+            blazeEntity.setHealth((float) blaze.health());
+            blaze.onAttack(blazeEntity, extraTarget, blaze.type().damage(), false);
+        }
+        blaze.syncHealth(blaze.currentMaxHealth() * 0.30);
+        blazeEntity.setHealth((float) blaze.health());
+        double beforeExtraAttack = extraTarget.getHealth();
+        blaze.onAttack(blazeEntity, extraTarget, blaze.type().damage(), false);
+        double expectedExtraDamage = blaze.resolveOutgoingDamage(
+                blazeEntity,
+                extraTarget,
+                blaze.type().damage() * TowerBalanceRuntime.ability(blaze.type().id(), "extraAttackDamageRatio")
+        );
+        if (!assertClose(context, beforeExtraAttack - expectedExtraDamage, extraTarget.getHealth(),
+                "Blaze extra attack should use magic resistance instead of armor.")) {
+            return;
+        }
+        if (!assertTrue(context, extraTarget.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Blaze magic extra attack should not apply ignite.")) {
             return;
         }
         context.succeed();
@@ -7431,10 +7559,46 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Shared-template game should start.")) {
             return;
         }
+        String previewMonsterId = game.upcomingWaveEntries(redId).getFirst().id();
+        String prepareHud = SemionHudTextService.matchSidebarMarkupFor(
+                redId,
+                Optional.of(game.teams().get(TeamId.RED)),
+                game,
+                MatchMode.NORMAL
+        );
+        if (!assertTrue(context, prepareHud.contains("다음 웨이브") && !prepareHud.contains("전체 팀 보스"),
+                "Preparation should show the selected wave instead of the team boss summary.")) {
+            return;
+        }
+        if (!assertTrue(context, prepareHud.contains("<lang:entity.minecraft.") && !prepareHud.contains(previewMonsterId),
+                "Preparation should use the client's localized entity name without exposing the internal monster id.")) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                "TranslatableContents",
+                SemionText.mini("<lang:entity.minecraft.hoglin>").getContents().getClass().getSimpleName(),
+                "Upcoming-wave entity names should remain translatable on the client."
+        )) {
+            return;
+        }
         tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS + 1);
         String redMonsterId = redLane(game, 1).activeMonsters().getFirst().id();
         String blueMonsterId = lane(game, TeamId.BLUE, 1).activeMonsters().getFirst().id();
+        if (!assertEquals(context, previewMonsterId, redMonsterId, "The prepared template should be the one spawned when combat starts.")) {
+            return;
+        }
         if (!assertEquals(context, redMonsterId, blueMonsterId, "All teams should receive the same infinite-wave template.")) {
+            return;
+        }
+        String combatHud = SemionHudTextService.matchSidebarMarkupFor(
+                redId,
+                Optional.of(game.teams().get(TeamId.RED)),
+                game,
+                MatchMode.NORMAL
+        );
+        if (!assertTrue(context, combatHud.contains("전체 팀 보스") && !combatHud.contains("다음 웨이브"),
+                "Combat should restore the team boss summary.")) {
             return;
         }
         context.succeed();
@@ -7500,6 +7664,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         PlayerLane targetLane = lane(game, result.targetTeam().orElseThrow(), result.targetLaneId().orElseThrow());
         if (!assertEquals(context, 1, targetLane.queuedSummonCount(), "Successful summon should queue one monster in the target lane.")) {
+            return;
+        }
+        UUID targetPlayerId = result.targetTeam().orElseThrow() == TeamId.RED ? redId : blueId;
+        String targetHud = SemionHudTextService.matchSidebarMarkupFor(
+                targetPlayerId,
+                Optional.of(game.teams().get(result.targetTeam().orElseThrow())),
+                game,
+                MatchMode.NORMAL
+        );
+        if (!assertTrue(context, targetHud.contains("추가 소환 1기"), "Target HUD should include queued income summons in its warning.")) {
             return;
         }
         if (!assertEquals(context, Optional.of(1), result.scheduledRound(), "Prepare phase summon should be scheduled for the current round.")) {
@@ -9961,7 +10135,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 1, focus.resonanceLevel(), "T1 focus should cap at resonance level 1.")) {
             return;
         }
-        if (!assertEquals(context, 6, focus.resonanceLinks(), "Focus should count every nearby tower, including the same type and tier.")) {
+        if (!assertEquals(context, 5, focus.resonanceLinks(), "Focus should exclude its own type and count duplicate types only once.")) {
             return;
         }
         if (!assertEquals(context, TowerUpgradeResult.SUCCESS, ProductionTowerService.upgradeTower(game, playerId, focusPos, ResonanceTowers.FOCUS_PRISM.id()), "Focus crystal should upgrade into T2 focus prism.")) {
@@ -9983,7 +10157,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 lane.killTower(tower);
             }
         }
-        if (!assertEquals(context, 6, focus.resonanceLinks(), "Links captured at wave start should survive nearby tower deaths.")) {
+        if (!assertEquals(context, 5, focus.resonanceLinks(), "Links captured at wave start should survive nearby tower deaths.")) {
             return;
         }
         lane.markWaveStarted(2);
@@ -10061,6 +10235,148 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 250.0, focus.modifyAttackDamage(null, target, 100.0), "Frost aura should make nearby mooblooms deal bonus damage to debuffed targets.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void resonanceDamageAbilitiesUseMagicDamageWithoutIgnite(GameTestHelper context) {
+        UUID playerId = stableUuid("resonance-magic-abilities-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, ResonanceTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.IGNITE_ID, BuiltInTraits.NONE_ID));
+        BlockPos center = towerPlacementPos(lane);
+
+        ResonanceTower focus = addResonanceTower(lane, playerId, ResonanceTowers.FOCUS_CORE, center);
+        ResonanceTower wave = addResonanceTower(lane, playerId, ResonanceTowers.WAVE_CORE, center);
+        ResonanceTower frost = addResonanceTower(lane, playerId, ResonanceTowers.FROST_CORE, center);
+        addResonanceTower(lane, playerId, ResonanceTowers.FOCUS_CRYSTAL, center);
+        addResonanceTower(lane, playerId, ResonanceTowers.FOCUS_PRISM, center);
+        addResonanceTower(lane, playerId, ResonanceTowers.WAVE_CRYSTAL, center);
+        addResonanceTower(lane, playerId, ResonanceTowers.WAVE_PRISM, center);
+        addResonanceTower(lane, playerId, ResonanceTowers.FROST_CRYSTAL, center);
+        addResonanceTower(lane, playerId, ResonanceTowers.FROST_PRISM, center);
+        ResonanceService.refresh(lane.towers());
+        if (!assertEquals(context, 3, focus.resonanceLevel(), "Focus should reach resonance level 3.")) {
+            return;
+        }
+        if (!assertEquals(context, 3, wave.resonanceLevel(), "Wave should reach resonance level 3.")) {
+            return;
+        }
+        if (!assertEquals(context, 3, frost.resonanceLevel(), "Frost should reach resonance level 3.")) {
+            return;
+        }
+
+        SemionTowerEntity focusEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(focus.entityId().orElseThrow());
+        SemionMonsterEntity focusTarget = spawnRoleMonsterEntity(
+                context,
+                "resonance-focus-magic-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                focusEntity.position().add(4.0, 0.0, 0.0),
+                5_000.0,
+                100.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        focusTarget.setNoAi(true);
+        int focusEvery = TowerBalanceRuntime.abilityInt(focus.type().id(), "focusStrikeEveryAttacks");
+        for (int attack = 1; attack < focusEvery; attack++) {
+            focus.onAttack(focusEntity, focusTarget, focus.type().damage(), false);
+        }
+        double beforeFocusStrike = focusTarget.getHealth();
+        focus.onAttack(focusEntity, focusTarget, focus.type().damage(), false);
+        double expectedFocusDamage = focus.resolveOutgoingDamage(
+                focusEntity,
+                focusTarget,
+                focus.type().damage() * TowerBalanceRuntime.ability(focus.type().id(), "focusStrikeDamageRatio")
+        );
+        if (!assertClose(context, beforeFocusStrike - expectedFocusDamage, focusTarget.getHealth(),
+                "Focus strike should use magic resistance instead of armor.")) {
+            return;
+        }
+        if (!assertTrue(context, focusTarget.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Focus magic strike should not apply ignite.")) {
+            return;
+        }
+        focusTarget.discard();
+
+        SemionTowerEntity waveEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(wave.entityId().orElseThrow());
+        SemionMonsterEntity wavePrimary = spawnRoleMonsterEntity(
+                context,
+                "resonance-wave-primary",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                waveEntity.position().add(4.0, 0.0, 0.0),
+                5_000.0,
+                List.of(SummonRole.RUSH)
+        );
+        SemionMonsterEntity waveSecondary = spawnRoleMonsterEntity(
+                context,
+                "resonance-wave-magic-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                wavePrimary.position().add(1.0, 0.0, 0.0),
+                5_000.0,
+                100.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        wavePrimary.setNoAi(true);
+        waveSecondary.setNoAi(true);
+        double beforeWaveSplash = waveSecondary.getHealth();
+        double expectedWaveDamage = wave.resolveOutgoingDamage(
+                waveEntity,
+                waveSecondary,
+                wave.type().damage() * TowerBalanceRuntime.ability(wave.type().id(), "waveLevel3SplashDamageRatio")
+        );
+        wave.onAttack(waveEntity, wavePrimary, wave.type().damage(), false);
+        if (!assertClose(context, beforeWaveSplash - expectedWaveDamage, waveSecondary.getHealth(),
+                "Wave splash should use magic resistance instead of armor.")) {
+            return;
+        }
+        if (!assertTrue(context, waveSecondary.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Wave magic splash should not apply ignite.")) {
+            return;
+        }
+        wavePrimary.discard();
+        waveSecondary.discard();
+
+        SemionTowerEntity frostEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(frost.entityId().orElseThrow());
+        SemionMonsterEntity frostTarget = spawnRoleMonsterEntity(
+                context,
+                "resonance-frost-magic-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                frostEntity.position().add(4.0, 0.0, 0.0),
+                5_000.0,
+                100.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        frostTarget.setNoAi(true);
+        int frostEvery = TowerBalanceRuntime.abilityInt(frost.type().id(), "frostPulseEveryAttacks");
+        for (int attack = 1; attack < frostEvery; attack++) {
+            frost.onAttack(frostEntity, frostTarget, frost.type().damage(), false);
+        }
+        double beforeFrostPulse = frostTarget.getHealth();
+        frost.onAttack(frostEntity, frostTarget, frost.type().damage(), false);
+        double expectedFrostDamage = frost.resolveOutgoingDamage(
+                frostEntity,
+                frostTarget,
+                frost.type().damage() * TowerBalanceRuntime.ability(frost.type().id(), "frostPulseDamageRatio")
+        );
+        if (!assertClose(context, beforeFrostPulse - expectedFrostDamage, frostTarget.getHealth(),
+                "Frost pulse should use magic resistance instead of armor.")) {
+            return;
+        }
+        if (!assertTrue(context, frostTarget.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Frost magic pulse should not apply ignite.")) {
             return;
         }
         context.succeed();
@@ -10550,6 +10866,58 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TowerPlacementResult.SUCCESS,
                 ProductionTowerService.placeTower(game, playerId, secondTowerPos, WarlockTowers.T1_SLAVE.id()),
                 "Warlock sacrifice towers should still be placeable while one core exists."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void siegeTrueDamageTriggersWarlockSacrifice(GameTestHelper context) {
+        UUID playerId = stableUuid("warlock-siege-damage-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos corePos = towerPlacementPos(lane);
+        WarlockTower core = new WarlockTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.BASE_WARLOCK_TOWER),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(corePos)
+        );
+        WarlockSacrificeTower sacrifice = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T1_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(nearbyTowerPlacementPos(lane, corePos))
+        );
+        lane.addTower(core);
+        lane.addTower(sacrifice);
+        SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
+        core.syncHealth(10.0);
+        coreEntity.setHealth(10.0F);
+
+        SemionMonsterEntity warden = spawnSummonEntity(
+                context,
+                "warden-special-damage",
+                TeamId.BLUE,
+                TeamId.RED,
+                1,
+                coreEntity.position().add(1.0, 0.0, 0.0),
+                100.0,
+                0.0
+        );
+        warden.setTarget(coreEntity);
+        new SiegeTrueDamageGoal(warden, 50.0, 20, 1, 0.0).tick();
+
+        if (!assertEquals(context, 0.0, sacrifice.health(), "Warlock should absorb an allied tower after siege true damage.")) {
+            return;
+        }
+        if (!assertTrue(
+                context,
+                core.health() > 0.0 && coreEntity.getHealth() > 0.0F,
+                "Warlock sacrifice healing must survive the siege ability's fixed-damage application."
         )) {
             return;
         }
@@ -11871,16 +12239,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         return BlockPos.containing(lane.laneLayout().positionAt(0.35));
     }
 
-    private static void addResonanceTower(PlayerLane lane, UUID playerId, TowerType type, BlockPos position) {
+    private static ResonanceTower addResonanceTower(PlayerLane lane, UUID playerId, TowerType type, BlockPos position) {
         GridPosition gridPosition = GridPosition.from(position);
-        lane.addTower(new ResonanceTower(
+        ResonanceTower tower = new ResonanceTower(
                 TowerBalanceRuntime.resolve(type),
                 playerId,
                 lane.teamId(),
                 lane.laneId(),
                 gridPosition,
                 gridPosition
-        ));
+        );
+        lane.addTower(tower);
+        return tower;
     }
 
     private static BlockPos nearbyTowerPlacementPos(PlayerLane lane, BlockPos origin) {
@@ -11966,6 +12336,32 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             double maxHealth,
             List<SummonRole> roles
     ) {
+        return spawnRoleMonsterEntity(
+                context,
+                id,
+                senderTeam,
+                targetTeam,
+                targetLaneId,
+                position,
+                maxHealth,
+                0.0,
+                0.0,
+                roles
+        );
+    }
+
+    private static SemionMonsterEntity spawnRoleMonsterEntity(
+            GameTestHelper context,
+            String id,
+            Optional<TeamId> senderTeam,
+            TeamId targetTeam,
+            int targetLaneId,
+            Vec3 position,
+            double maxHealth,
+            double armor,
+            double resistance,
+            List<SummonRole> roles
+    ) {
         Monster monster = new Monster(
                 id,
                 targetTeam,
@@ -11973,13 +12369,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 Optional.empty(),
                 senderTeam,
                 maxHealth,
-                0,
+                armor,
                 0,
                 AttackKind.MELEE,
                 "minecraft:zombie",
                 null,
                 DamageType.PHYSICAL,
-                0,
+                resistance,
                 SummonTier.T1,
                 roles,
                 0

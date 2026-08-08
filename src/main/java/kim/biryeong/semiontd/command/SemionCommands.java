@@ -438,6 +438,8 @@ public final class SemionCommands {
                                 .executes(context -> debugTranscendenceVfx(context.getSource())))
                         .then(literal("ignite")
                                 .executes(context -> debugIgniteVfx(context.getSource())))
+                        .then(literal("magic_hit")
+                                .executes(context -> debugMagicHitVfx(context.getSource())))
                         .then(literal("ocean_supply")
                                 .executes(context -> debugOceanSupplyVfx(context.getSource())))
                         .then(literal("ocean_dehydrated")
@@ -524,6 +526,12 @@ public final class SemionCommands {
     private static int debugIgniteVfx(CommandSourceStack source) throws CommandSyntaxException {
         TraitVfx.showIgniteDebug(source.getPlayerOrException());
         success(source, "점화 VFX를 4초간 재생합니다.");
+        return 1;
+    }
+
+    private static int debugMagicHitVfx(CommandSourceStack source) throws CommandSyntaxException {
+        TowerVfxService.showMagicHitDebug(source.getPlayerOrException());
+        success(source, "마법 피해 적중 VFX를 재생했습니다.");
         return 1;
     }
 
