@@ -171,7 +171,8 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedAttackDamage() {
-        return type().damage() + transfers.permanentDamageBonus() + transfers.roundDamageBonus();
+        double damageAmount = type().damage() + transfers.permanentDamageBonus() + transfers.roundDamageBonus();
+        return combat.applyDamageCap(damageAmount);
     }
 
     public int previewHatchedAttackIntervalTicks() {
@@ -203,11 +204,20 @@ public final class EndTower extends EntityBackedTower {
         return isHatched() ? combat.modifyAttackDamage(type(), damageBonus(), damageAmount) : damageAmount;
     }
 
-    @Override public double modifyResolvedOutgoingDamage( SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount ) {
+    @Override
+    public double modifyResolvedAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         if (!isCoreTower()) {
             return damageAmount;
         }
-        return Math.min(combat.damageCap(), Math.max(0.0, damageAmount));
+        return combat.applyDamageCap(damageAmount);
+    }
+
+    @Override
+    public double modifyResolvedOutgoingDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
+        if (!isCoreTower()) {
+            return damageAmount;
+        }
+        return combat.applyDamageCap(damageAmount);
     }
 
     @Override

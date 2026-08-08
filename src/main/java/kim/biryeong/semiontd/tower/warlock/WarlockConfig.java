@@ -20,6 +20,8 @@ final class WarlockConfig {
         SACRIFICE_RADIUS(Scope.GLOBAL, "sacrificeRadius"),
         MIN_INTERVAL(Scope.GLOBAL, "minInterval"),
         SPEED_CAP(Scope.GLOBAL, "speedCap"),
+        AWAKENING_ABSORPTIONS(Scope.GLOBAL, "awakeningAbsorptions"),
+        AWAKENING_THRESHOLD(Scope.GLOBAL, "awakeningThreshold"),
         BASE_RADIUS(Scope.BASE, "sacrificeRadius"),
         BASE_HEAL(Scope.BASE, "fatalHeal"),
         BASE_PERMANENT_HEALTH(Scope.BASE, "permanentHealth"),
@@ -31,9 +33,6 @@ final class WarlockConfig {
         RANGED_LIFE_EVERY(Scope.RANGED, "lifeEvery"),
         RANGED_LIFE_STEP(Scope.RANGED, "lifeStep"),
         RANGED_LIFE_CAP(Scope.RANGED, "lifeCap"),
-        RANGED_REGEN_EVERY(Scope.RANGED, "regenEvery"),
-        RANGED_REGEN_STEP(Scope.RANGED, "regenStep"),
-        RANGED_REGEN_TICKS(Scope.RANGED, "regenTicks"),
         RANGED_SPLASH_STEP(Scope.RANGED, "splashStep"),
         RANGED_SPLASH_CAP(Scope.RANGED, "splashCap"),
         RANGED_SPLASH_DAMAGE(Scope.RANGED, "splashDamage"),
@@ -43,6 +42,9 @@ final class WarlockConfig {
         RANGED_PET_HEALTH_CAP(Scope.RANGED, "petHealthCap"),
         RANGED_PET_DAMAGE(Scope.RANGED, "petDamage"),
         RANGED_PET_DAMAGE_CAP(Scope.RANGED, "petDamageCap"),
+        RANGED_AWAKENING_HEAL(Scope.RANGED, "awakeningHeal"),
+        RANGED_AWAKENING_REGENERATION(Scope.RANGED, "awakeningRegeneration"),
+        RANGED_AWAKENING_REGENERATION_TICKS(Scope.RANGED, "awakeningRegenerationTicks"),
         MELEE_THRESHOLD(Scope.MELEE, "threshold"),
         MELEE_ROUND_STAT(Scope.MELEE, "roundStat"),
         MELEE_PERMANENT_HEALTH(Scope.MELEE, "permanentHealth"),
@@ -50,8 +52,6 @@ final class WarlockConfig {
         MELEE_LIFE_STEP(Scope.MELEE, "lifeStep"),
         MELEE_LIFE_CAP(Scope.MELEE, "lifeCap"),
         MELEE_SPEED_STEP(Scope.MELEE, "speedStep"),
-        MELEE_DAMAGE_EVERY(Scope.MELEE, "damageEvery"),
-        MELEE_DAMAGE_STEP(Scope.MELEE, "damageStep"),
         MELEE_SPLASH_STEP(Scope.MELEE, "splashStep"),
         MELEE_SPLASH_CAP(Scope.MELEE, "splashCap"),
         MELEE_SPLASH_DAMAGE(Scope.MELEE, "splashDamage"),
@@ -61,7 +61,9 @@ final class WarlockConfig {
         MELEE_PET_HEALTH(Scope.MELEE, "petHealth"),
         MELEE_PET_HEALTH_CAP(Scope.MELEE, "petHealthCap"),
         MELEE_PET_DAMAGE(Scope.MELEE, "petDamage"),
-        MELEE_PET_DAMAGE_CAP(Scope.MELEE, "petDamageCap");
+        MELEE_PET_DAMAGE_CAP(Scope.MELEE, "petDamageCap"),
+        MELEE_AWAKENING_DAMAGE(Scope.MELEE, "awakeningDamage"),
+        MELEE_AWAKENING_MOVE_SPEED(Scope.MELEE, "awakeningMoveSpeed");
 
         private final Scope scope;
         private final String key;

@@ -652,7 +652,9 @@ public record TowerBalanceConfig(
                 Map.entry("damageCap", 350.0),
                 Map.entry("sacrificeRadius", 25.0),
                 Map.entry("minInterval", 5.0),
-                Map.entry("speedCap", 15.0)
+                Map.entry("speedCap", 15.0),
+                Map.entry("awakeningAbsorptions", 20.0),
+                Map.entry("awakeningThreshold", 0.40)
         ));
         putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), Map.of(
                 "fatalHeal", 0.35,
@@ -661,16 +663,16 @@ public record TowerBalanceConfig(
                 "permanentDamage", 0.05
         ));
         putAbilities(abilities, WarlockTowers.RANGED_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("threshold", 0.30),
+                Map.entry("threshold", 0.55),
                 Map.entry("roundStat", 0.40),
                 Map.entry("permanentHealth", 0.025),
                 Map.entry("permanentDamage", 0.05),
                 Map.entry("lifeEvery", 5.0),
                 Map.entry("lifeStep", 0.005),
-                Map.entry("lifeCap", 0.12),
-                Map.entry("regenEvery", 4.0),
-                Map.entry("regenStep", 10.0),
-                Map.entry("regenTicks", 20.0),
+                Map.entry("lifeCap", 0.085),
+                Map.entry("awakeningHeal", 400.0),
+                Map.entry("awakeningRegeneration", 40.0),
+                Map.entry("awakeningRegenerationTicks", 20.0),
                 Map.entry("splashStep", 0.1),
                 Map.entry("splashCap", 8.0),
                 Map.entry("splashDamage", 0.50),
@@ -682,15 +684,15 @@ public record TowerBalanceConfig(
                 Map.entry("petDamageCap", 0.75)
         ));
         putAbilities(abilities, WarlockTowers.MELEE_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("threshold", 0.30),
+                Map.entry("threshold", 0.55),
                 Map.entry("roundStat", 0.60),
                 Map.entry("permanentHealth", 0.05),
                 Map.entry("permanentDamage", 0.025),
                 Map.entry("lifeStep", 0.01),
-                Map.entry("lifeCap", 0.20),
+                Map.entry("lifeCap", 0.16),
                 Map.entry("speedStep", 1.0),
-                Map.entry("damageEvery", 4.0),
-                Map.entry("damageStep", 15.0),
+                Map.entry("awakeningDamage", 75.0),
+                Map.entry("awakeningMoveSpeed", 0.30),
                 Map.entry("splashStep", 0.25),
                 Map.entry("splashCap", 2.0),
                 Map.entry("splashDamage", 0.75),

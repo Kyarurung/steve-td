@@ -9795,7 +9795,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
         try {
             TowerType resolved = TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER);
-            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("체력이 25% 미만")), "Warlock description should render configured absorb threshold.")) {
+            if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("체력이 25% 이하")), "Warlock description should render configured absorb threshold.")) {
                 return;
             }
             if (!assertTrue(context, resolved.description().stream().anyMatch(line -> line.contains("공격 범위가 3블록 증가")), "Warlock description should render configured attack range.")) {

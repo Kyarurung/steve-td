@@ -27,10 +27,10 @@ final class EndStatsView {
         });
         lines.add("<#B77DE8>엔더 드래곤</#B77DE8><white> 능력치</white>");
         lines.add("<white>엔드 수정, 셜커 스택: " + stats.endCrystalStacks() + " / " + stats.shulkerStacks() + "</white>");
-        lines.add("<#D94343>피해량 상한: " + compactOneDecimal(combat.maximumAttackDamage()) + "</#D94343>");
-        lines.add("<#D94343>추가 공격력: " + oneDecimal(combat.additionalAttackDamage()) + "</#D94343><white> / </white><#D9B94F>사거리: " + oneDecimal(combat.currentAttackRange()) + " 블록 / " + oneDecimal(combat.maximumAttackRange()) + " 블록</#D9B94F>");
+        lines.add("<#D94343>피해·공격력 상한: " + compactOneDecimal(combat.maximumAttackDamage()) + "</#D94343>");
+        lines.add("<#D94343>영구 공격력: " + oneDecimal(combat.additionalAttackDamage()) + "</#D94343><white> / </white><#D9B94F>사거리: " + oneDecimal(combat.currentAttackRange()) + " 블록 / " + oneDecimal(combat.maximumAttackRange()) + " 블록</#D9B94F>");
         lines.add("<#D9B94F>공격 속도: -" + combat.attackIntervalReductionTicks() + "틱 / -" + combat.maximumAttackIntervalReductionTicks() + "틱</#D9B94F><white> / </white><#D9B94F>공격 범위: " + Math.round(combat.currentSplashRadius()) + " 블록 / " + Math.round(combat.maximumSplashRadius()) + " 블록</#D9B94F>");
-        lines.add("<#E66F6F>추가 체력: " + oneDecimal(defense.additionalHealth()) + "</#E66F6F><white> / </white><#79C97B>재생: " + Math.round(defense.currentRegeneration()) + " / " + Math.round(defense.maximumRegeneration()) + " HP/s</#79C97B>");
+        lines.add("<#E66F6F>영구 체력: " + oneDecimal(defense.additionalHealth()) + "</#E66F6F><white> / </white><#79C97B>재생: " + Math.round(defense.currentRegeneration()) + " / " + Math.round(defense.maximumRegeneration()) + " HP/s</#79C97B>");
         lines.add("<#D94343>생명력 흡수: " + percent(defense.currentLifeSteal()) + " / " + percent(defense.maximumLifeSteal()) + "</#D94343><white> / </white><#72A9E6>피해 감소: " + percentInteger(defense.currentDamageReduction()) + " / " + percentInteger(defense.maximumDamageReduction()) + "</#72A9E6>");
         if (evolution.showBonuses()) {lines.add("<#D94343>최종 피해: +" + percentInteger(evolution.finalDamageBonus()) + "</#D94343><white> / </white><#D9B94F>추가 사거리: +" + oneDecimal(evolution.dragonRangeBonus()) + " 블록</#D9B94F>");}
         return lines;
