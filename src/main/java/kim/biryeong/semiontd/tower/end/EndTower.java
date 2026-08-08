@@ -243,7 +243,7 @@ public final class EndTower extends EntityBackedTower {
 
     @Override
     public List<String> runtimeDetailLines() {
-        return stats.create(this, waveActive);
+        return stats.create(this);
     }
 
     @Override

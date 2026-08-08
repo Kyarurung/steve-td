@@ -20,11 +20,8 @@ final class EndStatsView {
     private static final String LIFE_STEAL_COLOR = "#e32042";
     private static final String DAMAGE_REDUCTION_COLOR = "#f3ba59";
 
-    static List<String> feeder(boolean waveActive, double transferProgress, double damageReduction) {
+    static List<String> feeder(double damageReduction) {
         ArrayList<String> lines = new ArrayList<>();
-        lines.add(waveActive
-                ? "<gray>힘 전달 진행률: <#cc00fa>" + oneDecimal(transferProgress * 100.0) + "%</#cc00fa></gray>"
-                : "<gray>엔더 드래곤에게 힘 전달 대기 중</gray>");
         if (damageReduction > 0.0) {
             lines.add(styledEndStat(DAMAGE_REDUCTION_COLOR, "\uD83D\uDEE1", "피해 감소", "+" + Math.round(damageReduction * 100.0), "%", ""));
         }

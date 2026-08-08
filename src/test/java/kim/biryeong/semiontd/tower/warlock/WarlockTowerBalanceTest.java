@@ -163,6 +163,7 @@ class WarlockTowerBalanceTest {
         assertTrue(description.contains("체력 40% 이하이면 흑마법사가"));
         assertTrue(description.contains("각성 시 체력 400"));
         assertTrue(description.contains("재생 +40 HP/s"));
+        assertTrue(description.contains("라운드 종료 시 각성이 해제"));
         assertFalse(description.contains("공격 속도"));
         assertFalse(description.contains("공격 범위"));
         assertFalse(description.contains("생명력 흡수"));
@@ -184,6 +185,7 @@ class WarlockTowerBalanceTest {
         assertTrue(meleeDescription.contains("체력 40% 이하이면 흑마법사가"));
         assertTrue(meleeDescription.contains("각성 시 피해 +75"));
         assertTrue(meleeDescription.contains("이동 속도 +30%"));
+        assertTrue(meleeDescription.contains("라운드 종료 시 각성이 해제"));
         assertFalse(meleeDescription.contains("공격 속도"));
         assertFalse(meleeDescription.contains("공격 범위"));
         assertFalse(meleeDescription.contains("생명력 흡수"));

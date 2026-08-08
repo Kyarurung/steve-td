@@ -79,7 +79,6 @@ class EndTowerTransferTest {
         assertEquals(6.075, dragon.damageBonus(), 0.0001);
         assertEquals(0.0, dragon.healthBonus(), 0.0001);
         assertEquals(0.75, enderman.transferProgress(), 0.0001);
-        assertTrue(plainRuntimeDetails(enderman).contains("힘 전달 진행률: 75.0%"));
         tick(dragon, lane, 1);
         assertEquals(1, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
