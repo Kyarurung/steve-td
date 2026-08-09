@@ -63,22 +63,10 @@ final class EndTransferState {
         if (progress == null || progress.appliedRatio <= 0.0) {
             return false;
         }
-        roundHealthContribution = subtract(
-                roundHealthContribution,
-                progress.roundHealthBonus * progress.appliedRatio
-        );
-        permanentHealthBonus = subtract(
-                permanentHealthBonus,
-                progress.permanentHealthBonus * progress.appliedRatio
-        );
-        roundDamageContribution = subtract(
-                roundDamageContribution,
-                progress.roundDamageBonus * progress.appliedRatio
-        );
-        permanentDamageBonus = subtract(
-                permanentDamageBonus,
-                progress.permanentDamageBonus * progress.appliedRatio
-        );
+        roundHealthContribution = subtract(roundHealthContribution, progress.roundHealthBonus * progress.appliedRatio);
+        permanentHealthBonus = subtract(permanentHealthBonus, progress.permanentHealthBonus * progress.appliedRatio);
+        roundDamageContribution = subtract(roundDamageContribution, progress.roundDamageBonus * progress.appliedRatio);
+        permanentDamageBonus = subtract(permanentDamageBonus, progress.permanentDamageBonus * progress.appliedRatio);
         progress.appliedRatio = 0.0;
         return true;
     }

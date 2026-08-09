@@ -42,6 +42,7 @@ public final class EndTowerJob extends SemionJob {
                 SemionText.mini("<gray>" + healthText("체력 " + percent(ROUND_HEALTH_RATIO)) + ", " + attackDamageText("피해 " + percent(ROUND_DAMAGE_RATIO)) + "를</gray>"),
                 SemionText.mini("<gray>해당 라운드 동안 얻고,</gray>"),
                 SemionText.mini("<gray>" + healthText("체력 " + percent(PERMANENT_HEALTH_RATIO)) + ", " + attackDamageText("피해 " + percent(PERMANENT_DAMAGE_RATIO)) + "를 영구 누적합니다.</gray>"),
+                SemionText.mini("<gray>능력치는 높아질수록 증가 효율이 감소합니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<gray>" + healthText("셜커") + " 계열은 " + healthText("체력") + "을,</gray>"),
                 SemionText.mini("<gray>" + attackDamageText("엔드 수정") + " 계열은 " + attackDamageText("피해") + "를 강화합니다.</gray>"),

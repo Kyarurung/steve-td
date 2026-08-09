@@ -932,6 +932,7 @@ public record TowerBalanceConfig(
                 SPLASH_2,
                 SPLASH_3,
                 SPLASH_4,
+                SPLASH_5,
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
                 DAMAGE_REDUCTION_STACKS,
@@ -955,7 +956,8 @@ public record TowerBalanceConfig(
                 SPLASH_1,
                 SPLASH_2,
                 SPLASH_3,
-                SPLASH_4
+                SPLASH_4,
+                SPLASH_5
         );
         requireIntegralIntRange(end,
                 TRANSFER_TICKS,
@@ -970,6 +972,7 @@ public record TowerBalanceConfig(
                 SPLASH_2,
                 SPLASH_3,
                 SPLASH_4,
+                SPLASH_5,
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
                 DAMAGE_REDUCTION_STACKS
@@ -1466,9 +1469,11 @@ public record TowerBalanceConfig(
         values.put(TRANSFER_HEAL.key(), 30.0);
         values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
         values.put(ROUND_HEALTH_RATIO.key(), 0.50);
-        values.put(PERMANENT_HEALTH_RATIO.key(), 0.03);
+        values.put(PERMANENT_HEALTH_RATIO.key(), 0.05);
+        values.put(HEALTH_LOG_SCALE.key(), 5000.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
-        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.03);
+        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.05);
+        values.put(DAMAGE_LOG_SCALE.key(), 250.0);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);

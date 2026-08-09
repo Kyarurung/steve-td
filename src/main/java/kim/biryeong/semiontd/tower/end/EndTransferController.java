@@ -193,19 +193,37 @@ final class EndTransferController {
     }
 
     double permanentHealthBonus() {
-        return state.permanentHealthBonus();
+        return logScale(state.permanentHealthBonus(), config.value(HEALTH_LOG_SCALE));
     }
 
     double permanentDamageBonus() {
-        return state.permanentDamageBonus();
+        return logScale(state.permanentDamageBonus(), config.value(DAMAGE_LOG_SCALE));
     }
 
     double roundHealthBonus() {
-        return state.roundHealthContribution();
+        double permanent = state.permanentHealthBonus();
+        double total = permanent + state.roundHealthContribution();
+        double scale = config.value(HEALTH_LOG_SCALE);
+        return Math.max(0.0, logScale(total, scale) - logScale(permanent, scale)
+        );
     }
 
     double roundDamageBonus() {
-        return state.roundDamageContribution();
+        double permanent = state.permanentDamageBonus();
+        double total = permanent + state.roundDamageContribution();
+        double scale = config.value(DAMAGE_LOG_SCALE);
+        return Math.max(0.0, logScale(total, scale) - logScale(permanent, scale)
+        );
+    }
+
+    private static double logScale(double raw, double scale) {
+        if (raw <= 0.0) {
+            return 0.0;
+        }
+        if (scale <= 0.0) {
+            return raw;
+        }
+        return scale * Math.log1p(raw / scale);
     }
 
     static double progress(Tower tower) {
