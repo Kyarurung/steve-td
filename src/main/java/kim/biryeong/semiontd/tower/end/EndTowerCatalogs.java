@@ -24,12 +24,10 @@ public final class EndTowerCatalogs {
         registerTower(EndTowers.T1_ENDERMITE_TOWER, 1);
         registerTower(EndTowers.T2_ENDERMAN_TOWER, 2);
         registerTower(EndTowers.T3_END_CRYSTAL_TOWER, 3);
-
         link(EndTowers.T1_SHULKER_TOWER, EndTowers.T2_SHULKER_TOWER, "견고한 셜커");
         link(EndTowers.T2_SHULKER_TOWER, EndTowers.T3_SHULKER_TOWER, "완강한 셜커");
         link(EndTowers.T1_ENDERMITE_TOWER, EndTowers.T2_ENDERMAN_TOWER, "엔더맨");
         link(EndTowers.T2_ENDERMAN_TOWER, EndTowers.T3_END_CRYSTAL_TOWER, "엔드 수정");
-
         JobRegistry.registerIfAbsent(new EndTowerJob());
     }
 
