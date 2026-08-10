@@ -2,11 +2,11 @@ package kim.biryeong.semiontd.tower.legion;
 
 import java.util.Optional;
 
-final class BeeStingPolicy {
+public final class BeeStingPolicy {
     private BeeStingPolicy() {
     }
 
-    static State applySting(State previous, int maxStacks, int durationTicks, int tickIntervalTicks) {
+    public static State applySting(State previous, int maxStacks, int durationTicks, int tickIntervalTicks) {
         int resolvedMaxStacks = Math.max(1, maxStacks);
         int resolvedDuration = Math.max(1, durationTicks);
         int resolvedInterval = Math.max(1, tickIntervalTicks);
@@ -18,7 +18,7 @@ final class BeeStingPolicy {
         return new State(stacks, resolvedDuration, ticksUntilDamage);
     }
 
-    static TickResult tick(State state, double damagePerStack, int tickIntervalTicks) {
+    public static TickResult tick(State state, double damagePerStack, int tickIntervalTicks) {
         if (state == null) {
             return new TickResult(Optional.empty(), 0.0);
         }
@@ -35,16 +35,16 @@ final class BeeStingPolicy {
         return new TickResult(Optional.of(new State(state.stacks(), remainingTicks, ticksUntilDamage)), damage);
     }
 
-    record State(int stacks, int remainingTicks, int ticksUntilDamage) {
-        State {
+    public record State(int stacks, int remainingTicks, int ticksUntilDamage) {
+        public State {
             stacks = Math.max(1, stacks);
             remainingTicks = Math.max(0, remainingTicks);
             ticksUntilDamage = Math.max(1, ticksUntilDamage);
         }
     }
 
-    record TickResult(Optional<State> state, double damage) {
-        TickResult {
+    public record TickResult(Optional<State> state, double damage) {
+        public TickResult {
             state = state == null ? Optional.empty() : state;
             damage = Math.max(0.0, damage);
         }

@@ -5297,10 +5297,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (int sting = 0; sting < 3; sting++) {
             beeTower.onAttack(towerEntity, target, 0.0, false);
             for (int tick = 0; tick < 5; tick++) {
-                beeTower.tick(lane);
+                target.aiStep();
             }
         }
+        double healthBeforeSale = target.runtimeMonster().health();
+        if (!assertTrue(context, lane.removeTower(beeTower), "Bee tower should be removable while poison remains active.")) {
+            TowerBalanceRuntime.apply(defaults);
+            return;
+        }
+        for (int tick = 0; tick < 5; tick++) {
+            target.aiStep();
+        }
         TowerBalanceRuntime.apply(defaults);
+        if (!assertTrue(context, target.runtimeMonster().health() < healthBeforeSale, "Bee poison should keep ticking after its source tower is sold.")) {
+            return;
+        }
         if (!assertTrue(
                 context,
                 target.getHealth() <= 80.0F,

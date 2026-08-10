@@ -1,13 +1,8 @@
 package kim.biryeong.semiontd.tower.legion;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.effect.TimedEffectType;
-import kim.biryeong.semiontd.entity.monster.DamageType;
-import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -16,10 +11,8 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import net.minecraft.world.entity.Entity;
 
 public class BeeTower extends EntityBackedTower {
-    private final Map<Integer, BeeStingPolicy.State> stings = new HashMap<>();
     private int currentSwarmStacks;
 
     public BeeTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
@@ -47,7 +40,6 @@ public class BeeTower extends EntityBackedTower {
     public void tick(PlayerLane lane) {
         refreshSwarmStacks(lane);
         super.tick(lane);
-        tickStings(lane);
     }
 
     @Override
@@ -55,30 +47,25 @@ public class BeeTower extends EntityBackedTower {
         if (target == null || killedTarget) {
             return;
         }
-        stings.put(target.getId(), BeeStingPolicy.applySting(
-                stings.get(target.getId()),
-                maxPoisonStacks(),
-                abilityTicks("poisonDurationTicks"),
-                abilityTicks("poisonTickIntervalTicks")
-        ));
         target.applyTimedEffect(
                 TimedEffectType.MONSTER_POISONED,
                 1.0,
                 abilityTicks("poisonDurationTicks")
         );
+        target.applyBeePoison(
+                ownerPlayer(),
+                this,
+                towerEntity.applyTraitOutgoingDamageAgainst(target, poisonDamagePerStack()),
+                maxPoisonStacks(),
+                abilityTicks("poisonDurationTicks"),
+                abilityTicks("poisonTickIntervalTicks")
+        );
     }
 
     @Override
     public void onRemoved(PlayerLane lane) {
-        stings.clear();
         super.onRemoved(lane);
         refreshBeeSwarmStacks(lane);
-    }
-
-    @Override
-    public void resetForRound(PlayerLane lane) {
-        stings.clear();
-        super.resetForRound(lane);
     }
 
     private void refreshSwarmStacks(PlayerLane lane) {
@@ -104,69 +91,6 @@ public class BeeTower extends EntityBackedTower {
 
     private int maxSwarmStacks() {
         return TowerBalanceRuntime.abilityInt(type().id(), "maxSwarmStacks");
-    }
-
-    private void tickStings(PlayerLane lane) {
-        if (lane == null || stings.isEmpty()) {
-            return;
-        }
-        SemionTowerEntity towerEntity = towerEntity(lane);
-        if (towerEntity == null) {
-            stings.clear();
-            return;
-        }
-        Iterator<Map.Entry<Integer, BeeStingPolicy.State>> iterator = stings.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<Integer, BeeStingPolicy.State> entry = iterator.next();
-            Entity entity = lane.arenaWorld().getEntity(entry.getKey());
-            if (!(entity instanceof SemionMonsterEntity monster) || monster.isRemoved() || !monster.isAlive()) {
-                iterator.remove();
-                continue;
-            }
-            BeeStingPolicy.TickResult result = BeeStingPolicy.tick(
-                    entry.getValue(),
-                    poisonDamagePerStack(),
-                    abilityTicks("poisonTickIntervalTicks")
-            );
-            if (result.damage() > 0.0) {
-                applyPoisonDamage(towerEntity, monster, result.damage());
-            }
-            if (result.state().isPresent() && monster.isAlive() && !monster.isRemoved()) {
-                entry.setValue(result.state().orElseThrow());
-            } else {
-                iterator.remove();
-            }
-        }
-    }
-
-    private SemionTowerEntity towerEntity(PlayerLane lane) {
-        if (lane == null || entityId().isEmpty()) {
-            return null;
-        }
-        Entity entity = lane.arenaWorld().getEntity(entityId().getAsInt());
-        return entity instanceof SemionTowerEntity towerEntity && towerEntity.isAlive() && !towerEntity.isRemoved()
-                ? towerEntity
-                : null;
-    }
-
-    private void applyPoisonDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double baseDamage) {
-        var runtimeMonster = target.runtimeMonster();
-        double traitDamage = towerEntity.applyTraitOutgoingDamageAgainst(target, baseDamage);
-        double damageAmount = target.towerDamageTaken(traitDamage);
-        if (damageAmount <= 0.0) {
-            return;
-        }
-        double previousHealth = runtimeMonster == null ? 0.0 : runtimeMonster.health();
-        target.applyRuntimeDamage(
-                towerEntity.damageSources().mobAttack(towerEntity),
-                damageAmount,
-                DamageType.MAGIC
-        );
-        double dealtDamage = runtimeMonster == null ? 0.0 : Math.max(0.0, previousHealth - runtimeMonster.health());
-        recordDamageDealt(dealtDamage, DamageType.MAGIC);
-        if (dealtDamage > 0.0) {
-            runtimeMonster.recordLastHit(ownerPlayer(), KillSourceKind.TOWER);
-        }
     }
 
     private int maxPoisonStacks() {
