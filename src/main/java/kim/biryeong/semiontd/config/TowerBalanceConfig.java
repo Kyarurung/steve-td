@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.end.EndConfig.Ability;
@@ -176,6 +178,7 @@ public record TowerBalanceConfig(
         addNetherTowers(towers);
         addEndTowers(towers);
         addOceanTowers(towers);
+        addAncientCityTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -246,6 +249,7 @@ public record TowerBalanceConfig(
         putNetherUpgrades(upgradeCosts);
         putEndUpgrades(upgradeCosts);
         putOceanUpgrades(upgradeCosts);
+        putAncientCityUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -854,6 +858,7 @@ public record TowerBalanceConfig(
         putNetherAbilities(abilities);
         putEndAbilities(abilities);
         putOceanAbilities(abilities);
+        putAncientCityAbilities(abilities);
 
         return new TowerBalanceConfig(
                 towers,
@@ -1290,6 +1295,10 @@ public record TowerBalanceConfig(
         addTower(towers, OceanTowers.T3_GIANT_COD);
     }
 
+    private static void addAncientCityTowers(Map<String, TowerStats> towers) {
+        AncientCityTowers.all().forEach(type -> addTower(towers, type));
+    }
+
     private static void putNetherUpgrades(Map<String, Long> upgrades) {
         putUpgrade(upgrades, NetherTowers.T1_STRIDER, NetherTowers.T2_PIGLIN.id(), 100);
         putUpgrade(upgrades, NetherTowers.T2_PIGLIN, NetherTowers.T3_PIGLIN_BRUTE.id(), 180);
@@ -1321,6 +1330,108 @@ public record TowerBalanceConfig(
         putUpgrade(upgrades, OceanTowers.T2_LARGE_SALMON, OceanTowers.T3_GIANT_SALMON.id(), 200);
         putUpgrade(upgrades, OceanTowers.T1_COD, OceanTowers.T2_LARGE_COD.id(), 100);
         putUpgrade(upgrades, OceanTowers.T2_LARGE_COD, OceanTowers.T3_GIANT_COD.id(), 210);
+    }
+
+    private static void putAncientCityUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, AncientCityTowers.CATALYST_T1, AncientCityTowers.CATALYST_T2.id(), 110);
+        putUpgrade(upgrades, AncientCityTowers.CATALYST_T2, AncientCityTowers.CATALYST_T3.id(), 230);
+        putUpgrade(upgrades, AncientCityTowers.SENSOR_T1, AncientCityTowers.SENSOR_T2.id(), 90);
+        putUpgrade(upgrades, AncientCityTowers.SENSOR_T2, AncientCityTowers.SENSOR_T3.id(), 190);
+        putUpgrade(upgrades, AncientCityTowers.SHRIEKER_T1, AncientCityTowers.SHRIEKER_T2.id(), 110);
+        putUpgrade(upgrades, AncientCityTowers.SHRIEKER_T2, AncientCityTowers.SHRIEKER_T3.id(), 220);
+        putUpgrade(upgrades, AncientCityTowers.WARDEN_T1, AncientCityTowers.WARDEN_T2.id(), 160);
+        putUpgrade(upgrades, AncientCityTowers.WARDEN_T2, AncientCityTowers.WARDEN_T3.id(), 300);
+    }
+
+    private static void putAncientCityAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, AncientCityStates.CONFIG_ID, Map.of(
+                "maxSculk", 96.0,
+                "initialSculk", 5.0,
+                "waveStartSpread", 2.0,
+                "deathSpreadCapPerRound", 4.0,
+                "resonanceDamageCap", 2.00,
+                "maxCombinedDamageBonus", 2.30,
+                "finalDefenseSeedCount", 5.0,
+                "incomeMagicDamageMultiplier", 1.75
+        ));
+        putCatalystAbilities(abilities, AncientCityTowers.CATALYST_T1, 6, 60, 2.0, 0.10);
+        putCatalystAbilities(abilities, AncientCityTowers.CATALYST_T2, 9, 50, 2.5, 0.15);
+        putCatalystAbilities(abilities, AncientCityTowers.CATALYST_T3, 30, 40, 3.0, 0.20);
+        putSensorAbilities(abilities, AncientCityTowers.SENSOR_T1, 5, 40, 0.10, 60);
+        putSensorAbilities(abilities, AncientCityTowers.SENSOR_T2, 8, 36, 0.20, 80);
+        putSensorAbilities(abilities, AncientCityTowers.SENSOR_T3, 26, 30, 0.30, 100);
+        putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T1, 4, 60, 2.0, 0.10, 40);
+        putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T2, 8, 50, 2.5, 0.15, 50);
+        putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T3, 34, 40, 3.0, 0.20, 60);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T1, 10, 60, 2);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T2, 16, 50, 3);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T3, 55, 40, 4);
+    }
+
+    private static void putCatalystAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double damage,
+            double cooldown,
+            double radius,
+            double damageReduction
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "magicDamage", damage,
+                "retaliationCooldownTicks", cooldown,
+                "retaliationRadius", radius,
+                "sculkDamageReduction", damageReduction
+        ));
+    }
+
+    private static void putSensorAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double damage,
+            double cooldown,
+            double markBonus,
+            double markDuration
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "magicDamage", damage,
+                "magicCooldownTicks", cooldown,
+                "markDamageBonus", markBonus,
+                "markDurationTicks", markDuration
+        ));
+    }
+
+    private static void putShriekerAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double damage,
+            double cooldown,
+            double radius,
+            double slow,
+            double slowDuration
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "magicDamage", damage,
+                "magicCooldownTicks", cooldown,
+                "magicRadius", radius,
+                "slowMagnitude", slow,
+                "slowDurationTicks", slowDuration
+        ));
+    }
+
+    private static void putWardenAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double damage,
+            double cooldown,
+            double targets
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "magicDamage", damage,
+                "magicCooldownTicks", cooldown,
+                "targetCount", targets,
+                "sculkExtraTargets", 1.0,
+                "secondaryDamageRatio", 0.25
+        ));
     }
 
     private static void putNetherAbilities(Map<String, Map<String, Double>> abilities) {

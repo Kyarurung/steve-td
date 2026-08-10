@@ -106,6 +106,7 @@ import kim.biryeong.semiontd.game.TowerSellResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.game.VanillaTeamBridge;
 import kim.biryeong.semiontd.job.AnimalTowerJob;
+import kim.biryeong.semiontd.job.AncientCityTowerJob;
 import kim.biryeong.semiontd.job.EndTowerJob;
 import kim.biryeong.semiontd.job.IllagerTowerJob;
 import kim.biryeong.semiontd.job.JobContext;
@@ -156,6 +157,9 @@ import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTower;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.animal.FoxTower;
@@ -6521,6 +6525,259 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void ancientCityTerritorySeedsAndGrowsWithoutResetting(GameTestHelper context) {
+        UUID playerId = stableUuid("ancient-city-territory-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AncientCityTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos origin = towerPlacementPos(lane);
+        AncientCityTower catalyst = new AncientCityTower(
+                TowerBalanceRuntime.resolve(AncientCityTowers.CATALYST_T1),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(origin)
+        );
+        lane.addTower(catalyst);
+        if (!(lane.arenaWorld().getEntity(catalyst.entityId().orElseThrow()) instanceof SemionTowerEntity catalystEntity)) {
+            context.fail(Component.literal("Ancient-city catalyst should spawn a clickable tower entity."));
+            return;
+        }
+        if (!assertClose(context, 0.65, catalystEntity.getBbWidth(),
+                "Block-display tower hitbox width should match its visible block.")) {
+            return;
+        }
+        if (!assertClose(context, 0.65, catalystEntity.getBbHeight(),
+                "Block-display tower hitbox height should match its visible block.")) {
+            return;
+        }
+        if (!assertTrue(context, !catalystEntity.isInvisible(),
+                "Block-display towers should hide only the client armor-stand proxy so server raycasts remain targetable.")) {
+            return;
+        }
+
+        if (!assertEquals(context, 5, AncientCityStates.territoryCount(playerId),
+                "The first ancient-city tower should seed five sculk cells.")) {
+            return;
+        }
+        if (!assertTrue(context, AncientCityStates.territoryPositions(playerId).stream()
+                        .allMatch(position -> lane.arenaWorld().getBlockState(position).is(Blocks.SCULK)),
+                "Every recorded territory cell should be an actual sculk block.")) {
+            return;
+        }
+        BlockPos otherSculk = AncientCityStates.territoryPositions(playerId).stream()
+                .filter(position -> position.getX() != origin.getX() || position.getZ() != origin.getZ())
+                .findFirst()
+                .orElseThrow();
+        catalyst.syncPosition(GridPosition.from(origin.offset(20, 0, 0)));
+        if (!assertTrue(context, !AncientCityStates.resonanceActive(catalyst),
+                "A tower that moved off sculk should lose resonance even when its original position remains on sculk.")) {
+            return;
+        }
+        catalyst.syncPosition(GridPosition.from(otherSculk));
+        if (!assertTrue(context, AncientCityStates.resonanceActive(catalyst),
+                "A tower should gain resonance when its current position moves onto owned sculk.")) {
+            return;
+        }
+        catalyst.syncPosition(GridPosition.from(origin));
+
+        lane.markWaveStarted(1);
+        if (!assertEquals(context, 7, AncientCityStates.territoryCount(playerId),
+                "Wave start should spread two connected sculk cells.")) {
+            return;
+        }
+        Vec3 deathPosition = lane.laneLayout().positionAt(0.75);
+        AncientCityStates.recordAttributedDeath(playerId, lane, 1, deathPosition);
+        BlockPos deathCell = BlockPos.containing(deathPosition);
+        if (!assertTrue(context, AncientCityStates.territoryPositions(playerId).stream()
+                        .anyMatch(position -> position.getX() == deathCell.getX() && position.getZ() == deathCell.getZ()),
+                "A death outside the connected territory should create a new sculk seed.")) {
+            return;
+        }
+        for (int death = 1; death < 5; death++) {
+            AncientCityStates.recordAttributedDeath(playerId, lane, 1, deathPosition);
+        }
+        if (!assertEquals(context, 11, AncientCityStates.territoryCount(playerId),
+                "Attributed deaths should spread at most four successful cells per round.")) {
+            return;
+        }
+
+        BlockPos secondPosition = nearbyTowerPlacementPos(lane, origin);
+        AncientCityTower sensor = new AncientCityTower(
+                TowerBalanceRuntime.resolve(AncientCityTowers.SENSOR_T1),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(secondPosition)
+        );
+        lane.addTower(sensor);
+        if (!assertEquals(context, 11, AncientCityStates.territoryCount(playerId),
+                "Additional tier-one towers must not create another seed.")) {
+            return;
+        }
+
+        AncientCityTower upgraded = new AncientCityTower(
+                TowerBalanceRuntime.resolve(AncientCityTowers.CATALYST_T2),
+                playerId,
+                TeamId.RED,
+                1,
+                catalyst.originalPosition(),
+                catalyst.position()
+        );
+        upgraded.copyFrom(catalyst, 110);
+        lane.replaceTower(catalyst, upgraded);
+        if (!assertEquals(context, 11, AncientCityStates.territoryCount(playerId),
+                "Upgrading should preserve the existing territory.")) {
+            return;
+        }
+        GridPosition finalDefensePosition = lane.nextFinalDefenseTowerPosition(upgraded);
+        upgraded.moveToFinalDefense(lane, finalDefensePosition);
+        if (!assertTrue(context, AncientCityStates.resonanceActive(upgraded),
+                "A final-defense tower standing on its reseeded sculk should retain resonance.")) {
+            return;
+        }
+        upgraded.syncPosition(new GridPosition(
+                finalDefensePosition.x() + 20,
+                finalDefensePosition.y(),
+                finalDefensePosition.z()
+        ));
+        if (!assertTrue(context, !AncientCityStates.resonanceActive(upgraded),
+                "Final-defense deployment alone should not keep resonance after moving off reseeded sculk.")) {
+            return;
+        }
+        lane.removeTower(upgraded);
+        lane.removeTower(sensor);
+        AncientCityStates.recordAttributedDeath(playerId, lane, 2, deathPosition);
+        if (!assertEquals(context, 11, AncientCityStates.territoryCount(playerId),
+                "Selling every ancient-city tower should keep territory but stop growth.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void ancientCitySensorUsesMagicDamageAndDoesNotApplyIgnite(GameTestHelper context) {
+        UUID playerId = stableUuid("ancient-city-sensor-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AncientCityTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.IGNITE_ID, BuiltInTraits.NONE_ID));
+        AncientCityTower sensor = new AncientCityTower(
+                TowerBalanceRuntime.resolve(AncientCityTowers.SENSOR_T1),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(towerPlacementPos(lane))
+        );
+        lane.addTower(sensor);
+        lane.markWaveStarted(1);
+        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(sensor.entityId().orElseThrow());
+        SemionMonsterEntity target = spawnRoleMonsterEntity(
+                context,
+                "ancient-sensor-target",
+                Optional.of(TeamId.BLUE),
+                TeamId.RED,
+                1,
+                towerEntity.position().add(2.0, 0.0, 0.0),
+                1_000.0,
+                100.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        target.setNoAi(true);
+        target.runtimeMonster().markMinecraftEntitySpawned(
+                target.getId(), target.getX(), target.getY(), target.getZ()
+        );
+        lane.activeMonsters().add(target.runtimeMonster());
+
+        sensor.tick(lane);
+        double expectedMagicDamage = 5.0 * (1.0 + 7.0 / 96.0 * 2.00) * 1.75;
+        if (!assertClose(context, 1_000.0 - expectedMagicDamage, target.getHealth(),
+                "Sensor ability should use magic resistance and the income-target multiplier.")) {
+            return;
+        }
+        if (!assertClose(context, expectedMagicDamage, sensor.roundMagicDamageDealt(),
+                "Sensor ability damage should be recorded as magic damage.")) {
+            return;
+        }
+        if (!assertClose(context, 0.0, sensor.roundPhysicalDamageDealt(),
+                "Sensor ability must not be recorded as physical damage.")) {
+            return;
+        }
+        if (!assertTrue(context, target.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
+                "Ancient-city magic abilities must not apply ignite.")) {
+            return;
+        }
+        if (!assertTrue(context, target.activeTimedEffectTicks(TimedEffectType.MONSTER_MARKED) > 0,
+                "Sensor damage should apply its owner-scoped mark after the first hit.")) {
+            return;
+        }
+
+        SemionMonsterEntity basicTarget = spawnRoleMonsterEntity(
+                context,
+                "ancient-basic-target",
+                Optional.empty(),
+                TeamId.RED,
+                1,
+                towerEntity.position().add(3.0, 0.0, 0.0),
+                1_000.0,
+                List.of(SummonRole.RUSH)
+        );
+        basicTarget.setNoAi(true);
+        towerEntity.damageBasicAttackSecondaryTargetResult(basicTarget, sensor.type().damage());
+        if (!assertTrue(context, basicTarget.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) > 0,
+                "Ancient-city physical basic attacks should still apply ignite.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void ancientCityMagicTargetsOtherLanesAtFinalDefense(GameTestHelper context) {
+        UUID playerId = stableUuid("ancient-city-final-defense-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AncientCityTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        AncientCityTower sensor = new AncientCityTower(
+                TowerBalanceRuntime.resolve(AncientCityTowers.SENSOR_T1),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(towerPlacementPos(lane))
+        );
+        lane.addTower(sensor);
+        lane.markWaveStarted(1);
+        sensor.moveToFinalDefense(lane, lane.nextFinalDefenseTowerPosition(sensor));
+        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(sensor.entityId().orElseThrow());
+        SemionMonsterEntity target = spawnRoleMonsterEntity(
+                context,
+                "ancient-final-defense-target",
+                Optional.of(TeamId.BLUE),
+                TeamId.RED,
+                2,
+                towerEntity.position().add(2.0, 0.0, 0.0),
+                1_000.0,
+                0.0,
+                0.0,
+                List.of(SummonRole.RUSH)
+        );
+        target.setNoAi(true);
+        target.runtimeMonster().markMinecraftEntitySpawned(
+                target.getId(), target.getX(), target.getY(), target.getZ()
+        );
+
+        sensor.tick(lane);
+        if (!assertTrue(context, target.getHealth() < 1_000.0,
+                "Ancient-city magic should target another lane's monster at final defense.")) {
+            return;
+        }
+        if (!assertTrue(context, sensor.roundMagicDamageDealt() > 0.0,
+                "Final-defense ancient-city ability damage should be recorded as magic damage.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void netherTransitionPulseAndExtraAttackUseMagicDamageWithoutIgnite(GameTestHelper context) {
         UUID playerId = stableUuid("nether-magic-abilities-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, NetherTowerJob.ID);
@@ -9892,7 +10149,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(OceanTowerJob.ID), "Built-in reload should register the ocean tower job.")) {
             return;
         }
-        if (!assertEquals(context, 44L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family including end and the six ocean paths.")) {
+        if (!assertPresent(context, JobRegistry.find(AncientCityTowerJob.ID), "Built-in reload should register the ancient-city tower job.")) {
+            return;
+        }
+        if (!assertEquals(context, 48L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family including ancient city.")) {
             return;
         }
         context.succeed();

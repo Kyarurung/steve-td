@@ -21,6 +21,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
@@ -60,6 +61,7 @@ public final class TowerVfxGameTest {
         assertPalette(IllagerTowers.T1_VINDICATOR, BuilderPalette.ILLAGER);
         assertPalette(NetherTowers.T1_STRIDER, BuilderPalette.NETHER);
         assertPalette(OceanTowers.T1_WATER, BuilderPalette.OCEAN);
+        assertPalette(AncientCityTowers.CATALYST_T1, BuilderPalette.ANCIENT_CITY);
         context.succeed();
     }
 
@@ -223,6 +225,19 @@ public final class TowerVfxGameTest {
                 "semiontd-debug vfx ocean_supply",
                 "semiontd-debug vfx ocean_dehydrated"
         )) {
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void ancientCityDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("growth", "catalyst", "sensor", "shriek", "warden")) {
+            String command = "semiontd-debug vfx ancient_city " + effect;
             var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");

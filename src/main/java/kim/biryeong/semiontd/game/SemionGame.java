@@ -35,6 +35,7 @@ import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -732,6 +733,7 @@ public final class SemionGame {
     private void closeRuntimeState() {
         for (UUID playerId : players.keySet()) {
             VillagerAdvStates.clear(playerId);
+            AncientCityStates.clear(playerId);
         }
         for (SemionTeam team : teams.values()) {
             team.closeRuntime();

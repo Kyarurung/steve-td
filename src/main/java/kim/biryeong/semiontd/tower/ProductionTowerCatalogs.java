@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.job.JobRegistry;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.end.EndTowerCatalogs;
 import kim.biryeong.semiontd.tower.illager.IllagerTowerCatalogs;
@@ -33,6 +34,7 @@ public final class ProductionTowerCatalogs {
             NetherTowerCatalogs.register();
             EndTowerCatalogs.register();
             OceanTowerCatalogs.register();
+            AncientCityTowerCatalogs.register();
         }
     }
 }
