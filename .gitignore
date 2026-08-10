@@ -18,7 +18,10 @@ out/
 hs_err_pid*
 
 # Common working directory
-run
+run/*
+!run/mods/
+run/mods/*
+!run/mods/*.jar
 logs/
 
 # Hermes local planning artifacts
