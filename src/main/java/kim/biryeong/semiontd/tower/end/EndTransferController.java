@@ -213,19 +213,11 @@ final class EndTransferController {
     }
 
     private double damageSoftCap(double raw) {
-        return softCap(
-                raw,
-                config.value(DAMAGE_THRESHOLD),
-                config.value(DAMAGE_SCALE)
-        );
+        return softCap(raw, config.value(DAMAGE_THRESHOLD), config.value(DAMAGE_SCALE));
     }
 
     private double healthSoftCap(double raw) {
-        return softCap(
-                raw,
-                config.value(HEALTH_THRESHOLD),
-                config.value(HEALTH_SCALE)
-        );
+        return softCap(raw, config.value(HEALTH_THRESHOLD), config.value(HEALTH_SCALE));
     }
 
     private static double softCap(double raw, double threshold, double scale) {

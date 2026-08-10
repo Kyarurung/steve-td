@@ -12032,7 +12032,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 1.0, entity.getScale(), "Max-health-proportional scale must stop after evolving into the Ender Dragon.")) {
             return;
         }
-        if (!assertClose(context, 12.0, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant the configured 20% final damage.")) {
+        if (!assertClose(context, 11.0, entity.applyTraitOutgoingDamage(null, 10.0), "DRAGON state should grant the configured 10% final damage.")) {
             return;
         }
         SemionMonsterEntity facingTarget = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());

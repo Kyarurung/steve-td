@@ -99,7 +99,7 @@ class EndTowerCatalogTest {
         assertEquals(50.0, config.ability(EndTower.CONFIG_ID, "attackRangeStacks", -1.0), 0.0001);
         assertEquals(0.5, config.ability(EndTower.CONFIG_ID, "attackRangeStep", -1.0), 0.0001);
         assertEquals(3.0, config.ability(EndTower.CONFIG_ID, "attackRangeCap", -1.0), 0.0001);
-        assertEquals(0.20, config.ability(EndTower.CONFIG_ID, "dragonFinalDamage", -1.0), 0.0001);
+        assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonFinalDamage", -1.0), 0.0001);
         assertEquals(2.0, config.ability(EndTower.CONFIG_ID, "dragonRangeBonus", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTowers.T1_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);
         assertEquals(0.30, config.ability(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction", -1.0), 0.0001);

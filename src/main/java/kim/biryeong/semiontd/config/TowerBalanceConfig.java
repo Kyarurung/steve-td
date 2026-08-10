@@ -1506,7 +1506,7 @@ public record TowerBalanceConfig(
         values.put(ATTACK_RANGE_STACKS.key(), 50.0);
         values.put(ATTACK_RANGE_STEP.key(), 0.5);
         values.put(ATTACK_RANGE_CAP.key(), 3.0);
-        values.put(DRAGON_FINAL_DAMAGE.key(), 0.20);
+        values.put(DRAGON_FINAL_DAMAGE.key(), 0.10);
         values.put(DRAGON_RANGE_BONUS.key(), 2.0);
         return Collections.unmodifiableMap(values);
     }

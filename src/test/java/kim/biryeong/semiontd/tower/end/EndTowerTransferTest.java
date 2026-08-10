@@ -799,7 +799,7 @@ class EndTowerTransferTest {
                 0.0001
         );
         String dragonDetails = plainRuntimeDetails(tower);
-        assertTrue(dragonDetails.contains("최종 피해: +20%"));
+        assertTrue(dragonDetails.contains("최종 피해: +10%"));
         assertTrue(dragonDetails.contains("추가 사거리: +2 블록"));
         tower.resetForRound(null);
         assertEquals(EndTowerState.EGG, tower.state());
@@ -890,19 +890,11 @@ class EndTowerTransferTest {
     }
 
     private static double expectedDamageBonus(double raw) {
-        return expectedSoftCap(
-                raw,
-                EndConfig.RUNTIME.value(DAMAGE_THRESHOLD),
-                EndConfig.RUNTIME.value(DAMAGE_SCALE)
-        );
+        return expectedSoftCap(raw, EndConfig.RUNTIME.value(DAMAGE_THRESHOLD), EndConfig.RUNTIME.value(DAMAGE_SCALE));
     }
 
     private static double expectedHealthBonus(double raw) {
-        return expectedSoftCap(
-                raw,
-                EndConfig.RUNTIME.value(HEALTH_THRESHOLD),
-                EndConfig.RUNTIME.value(HEALTH_SCALE)
-        );
+        return expectedSoftCap(raw, EndConfig.RUNTIME.value(HEALTH_THRESHOLD), EndConfig.RUNTIME.value(HEALTH_SCALE));
     }
 
     private static double expectedSoftCap(double raw, double threshold, double scale) {

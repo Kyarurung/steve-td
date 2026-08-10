@@ -216,6 +216,14 @@ public final class TowerDescriptionTemplate {
         return "<" + DAMAGE_REDUCTION_COLOR + ">" + text + "</" + DAMAGE_REDUCTION_COLOR + ">";
     }
 
+    public static String attackSpeedText(String text) {
+        return "<" + ATTACK_SPEED_COLOR + ">" + text + "</" + ATTACK_SPEED_COLOR + ">";
+    }
+
+    public static String attackRangeText(String text) {
+        return "<" + ATTACK_RANGE_COLOR + ">" + text + "</" + ATTACK_RANGE_COLOR + ">";
+    }
+
     public static String formatHealth(double value, String progress) {
         return styledProgressStat(HEALTH_COLOR, "\u2764", "체력", formatNumber(value), progress);
     }

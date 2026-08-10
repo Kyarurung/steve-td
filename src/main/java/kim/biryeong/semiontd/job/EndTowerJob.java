@@ -48,7 +48,9 @@ public final class EndTowerJob extends SemionJob {
                 SemionText.mini("<gray>" + attackDamageText("엔드 수정") + " 계열은 " + attackDamageText("피해") + "를 강화합니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<gray>" + endText("엔더 드래곤") + "으로 진화하면</gray>"),
-                SemionText.mini("<gray>추가 <yellow>고유 능력</yellow>을 획득합니다.</gray>")
+                SemionText.mini("<gray>추가 <yellow>고유 능력</yellow>을 획득합니다.</gray>"),
+                Component.empty(),
+                SemionText.mini("<dark_red>초보자에게 추천하지 않습니다.</dark_red>")
         );
     }
 
