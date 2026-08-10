@@ -9807,7 +9807,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 );
         rangedAbilities.put("threshold", 0.25);
         rangedAbilities.put("roundStat", 0.35);
+        Map<String, Double> globalAbilities =
+                new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.CONFIG_ID));
+        globalAbilities.put("damageSoftCap", 125.0);
 
+        abilities.put(WarlockTowers.CONFIG_ID, globalAbilities);
         abilities.put(
                 WarlockTowers.RANGED_WARLOCK_TOWER.id(),
                 rangedAbilities
@@ -9837,6 +9841,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                     context,
                     description.contains("흡수한 타워 체력과 피해의 35%"),
                     "Warlock description should render configured temporary stat ratio."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    description.contains("추가 피해는 125까지 그대로 적용")
+                            && !description.contains("추가 피해는 최대"),
+                    "Warlock description should render the configured logarithmic damage soft cap."
             )) {
                 return;
             }

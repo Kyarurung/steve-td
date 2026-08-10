@@ -24,7 +24,8 @@ final class WarlockStats {
                         tower.is(WarlockTowers.RANGED_WARLOCK_TOWER),
                         tower.is(WarlockTowers.MELEE_WARLOCK_TOWER),
                         new WarlockStatsView.CombatStats(
-                                tower.additionalAttackDamage(),
+                                tower.rawDamageBonus(),
+                                tower.effectiveDamageBonus(),
                                 tower.attackIntervalReduction(),
                                 tower.maximumAttackIntervalReduction(),
                                 tower.splashRadius(),

@@ -17,7 +17,7 @@ final class WarlockConfig {
     }
 
     enum Ability {
-        DAMAGE_CAP(Scope.GLOBAL, "damageCap"),
+        DAMAGE_SOFT_CAP(Scope.GLOBAL, "damageSoftCap"),
         SACRIFICE_RADIUS(Scope.GLOBAL, "sacrificeRadius"),
         MIN_INTERVAL(Scope.GLOBAL, "minInterval"),
         SPEED_CAP(Scope.GLOBAL, "speedCap"),

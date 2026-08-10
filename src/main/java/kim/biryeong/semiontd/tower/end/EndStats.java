@@ -30,7 +30,8 @@ final class EndStats {
                         combat.maximumDamageReduction()
                 ),
                 new EndStatsView.CombatStats(
-                        tower.permanentDamageBonus(),
+                        tower.damageBonus(),
+                        tower.effectiveDamageBonus(),
                         tower.previewHatchedAttackRange(),
                         combat.maximumAttackRange(tower.type(), tower.isDragon()),
                         intervalReduction,

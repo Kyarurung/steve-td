@@ -23,7 +23,7 @@ public final class EndConfig {
         TRANSFER_TICKS("transferTicks"),
         TRANSFER_HEAL("transferHeal"),
         TRANSFER_HEAL_RATIO("transferHealRatio"),
-        DAMAGE_CAP("damageCap"),
+        DAMAGE_SOFT_CAP("damageSoftCap"),
         ROUND_DAMAGE_RATIO("roundDamageRatio"),
         PERMANENT_DAMAGE_RATIO("permanentDamageRatio"),
         ROUND_HEALTH_RATIO("roundHealthRatio"),

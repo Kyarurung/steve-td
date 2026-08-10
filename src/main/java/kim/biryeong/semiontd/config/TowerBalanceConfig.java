@@ -649,7 +649,7 @@ public record TowerBalanceConfig(
                 "poisonTickIntervalTicks", 20.0
         ));
         putAbilities(abilities, WarlockTowers.CONFIG_ID, Map.ofEntries(
-                Map.entry("damageCap", 350.0),
+                Map.entry("damageSoftCap", 180.0),
                 Map.entry("sacrificeRadius", 25.0),
                 Map.entry("minInterval", 5.0),
                 Map.entry("speedCap", 15.0),
@@ -910,6 +910,8 @@ public record TowerBalanceConfig(
             }
         });
 
+        validateDamageScaling(WarlockTowers.CONFIG_ID);
+
         Map<String, Double> end = abilities.get(EndTowers.CONFIG_ID);
         if (end == null) {
             return;
@@ -923,7 +925,7 @@ public record TowerBalanceConfig(
 
         requirePositive(end,
                 DRAGON_EVOLUTION,
-                DAMAGE_CAP,
+                DAMAGE_SOFT_CAP,
                 TRANSFER_TICKS,
                 TRANSFER_ATTACK_SPEED_STACKS,
                 ATTACK_SPEED_STACKS,
@@ -989,6 +991,17 @@ public record TowerBalanceConfig(
             if (value != null && value <= 0.0) {
                 throw new IllegalArgumentException("End balance ability must be positive: " + key);
             }
+        }
+    }
+
+    private void validateDamageScaling(String configId) {
+        Map<String, Double> values = abilities.get(configId);
+        if (values == null) {
+            return;
+        }
+        Double softCap = values.get("damageSoftCap");
+        if (softCap != null && (!Double.isFinite(softCap) || softCap <= 0.0)) {
+            throw new IllegalArgumentException(configId + ".damageSoftCap must be finite and positive.");
         }
     }
 
@@ -1468,7 +1481,7 @@ public record TowerBalanceConfig(
         values.put(TRANSFER_TICKS.key(), 200.0);
         values.put(TRANSFER_HEAL.key(), 30.0);
         values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
-        values.put(DAMAGE_CAP.key(), 300.0);
+        values.put(DAMAGE_SOFT_CAP.key(), 120.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.75);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.06);
         values.put(ROUND_HEALTH_RATIO.key(), 0.50);

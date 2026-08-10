@@ -171,7 +171,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedAttackDamage() {
-        return type().damage() + transfers.permanentDamageBonus() + transfers.roundDamageBonus();
+        return type().damage() + effectiveDamageBonus();
     }
 
     public int previewHatchedAttackIntervalTicks() {
@@ -281,6 +281,10 @@ public final class EndTower extends EntityBackedTower {
 
     public double damageBonus() {
         return transfers.permanentDamageBonus() + transfers.roundDamageBonus();
+    }
+
+    public double effectiveDamageBonus() {
+        return combat.effectiveDamageBonus(damageBonus());
     }
 
     public double permanentHealthBonus() {

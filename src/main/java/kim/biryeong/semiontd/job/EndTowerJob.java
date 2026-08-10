@@ -33,11 +33,11 @@ public final class EndTowerJob extends SemionJob {
     public List<Component> description() {
         return List.of(
                 SemionText.mini("<gray>아군 타워의 <#fc5454>체력</#fc5454>과 <#ec8d34>피해</#ec8d34>를</gray>"),
-                SemionText.mini("<gray>" + seconds() + "에 걸쳐 힘을 받습니다.</gray>"),
+                SemionText.mini("<gray>흡수해 " + seconds() + "에 걸쳐 힘을 얻습니다.</gray>"),
                 SemionText.mini("<gray><#fc5454>체력 " + percent(ROUND_HEALTH_RATIO) + "</#fc5454>, <#ec8d34>피해 " + percent(ROUND_DAMAGE_RATIO) + "</#ec8d34>를</gray>"),
                 SemionText.mini("<gray>해당 라운드 동안 얻고,</gray>"),
                 SemionText.mini("<gray><#fc5454>체력 " + percent(PERMANENT_HEALTH_RATIO) + "</#fc5454>, <#ec8d34>피해 " + percent(PERMANENT_DAMAGE_RATIO) + "</#ec8d34>를 영구 누적합니다.</gray>"),
-                SemionText.mini("<gray><#ec8d34>피해량</#ec8d34>은 최대 <#ec8d34>" + number() + "</#ec8d34>까지 증가합니다.</gray>"),
+                SemionText.mini("<gray>흡수로 얻는 추가 피해는 <#ec8d34>" + number(DAMAGE_SOFT_CAP) + "</#ec8d34>까지 그대로 적용되며, 이후 완만하게 증가합니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<gray><#fc5454>셜커</#fc5454> 계열은 <#fc5454>체력</#fc5454>을,</gray>"),
                 SemionText.mini("<gray><#ec8d34>엔드 수정</#ec8d34> 계열은 <#ec8d34>피해</#ec8d34>를 강화합니다.</gray>"),
@@ -70,8 +70,8 @@ public final class EndTowerJob extends SemionJob {
         return number(TowerBalanceRuntime.ability(EndTowers.CONFIG_ID, ability.key()) * 100.0) + "%";
     }
 
-    private static String number() {
-        return number(TowerBalanceRuntime.ability(EndTowers.CONFIG_ID, Ability.DAMAGE_CAP.key()));
+    private static String number(Ability ability) {
+        return number(TowerBalanceRuntime.ability(EndTowers.CONFIG_ID, ability.key()));
     }
 
     private static String number(double value) {

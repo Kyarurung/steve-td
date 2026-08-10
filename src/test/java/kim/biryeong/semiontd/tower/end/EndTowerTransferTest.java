@@ -93,7 +93,7 @@ class EndTowerTransferTest {
         String crystalHeavyDetails = plainRuntimeDetails(dragon);
         assertTrue(crystalHeavyDetails.contains("셜커 계열, 엔드 수정 계열 누적 수: 0 | 1"));
         assertTrue(crystalHeavyDetails.contains("공격 속도: -1틱 (30)"));
-        assertTrue(crystalHeavyDetails.contains("영구 피해: +0.6"));
+        assertTrue(crystalHeavyDetails.contains("현재 추가 피해: +8.1"));
         tick(dragon, lane, 4);
         assertEquals(1, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
@@ -279,6 +279,30 @@ class EndTowerTransferTest {
                 IllegalArgumentException.class,
                 () -> TowerBalanceRuntime.apply(endConfig(Map.of("attackSpeedMinimumTicks", 16.0)))
         );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> TowerBalanceRuntime.apply(endConfig(Map.of("damageSoftCap", 0.0)))
+        );
+    }
+
+    @Test
+    void legacyEndConfigReceivesTheSoftCapWhileIgnoringItsOldHardCap() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
+        end.remove("damageSoftCap");
+        end.put("damageCap", 250.0);
+        abilities.put(EndTower.CONFIG_ID, end);
+
+        TowerBalanceConfig merged = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                abilities
+        ).withMissingDefaults(defaults);
+
+        assertEquals(120.0, merged.ability(EndTower.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
+        TowerBalanceRuntime.apply(merged);
+        assertEquals(374.4316, new EndCombat(EndConfig.RUNTIME, new EndTransferController(EndConfig.RUNTIME)).effectiveDamageBonus(1_000.0), 0.0001);
     }
 
     @Test
@@ -554,7 +578,7 @@ class EndTowerTransferTest {
         String eggDetails = plainRuntimeDetails(core);
         assertTrue(eggDetails.contains("셜커 계열, 엔드 수정 계열 누적 수: 1 | 0"));
         assertFalse(eggDetails.contains("피해량 상한"));
-        assertTrue(eggDetails.contains("영구 피해: +0.0"));
+        assertTrue(eggDetails.contains("현재 추가 피해: +0.0"));
         assertTrue(eggDetails.contains("사거리: 5.0 블록 (50)"));
         assertTrue(eggDetails.contains("공격 속도: -0틱 (30)"));
         assertTrue(eggDetails.contains("공격 범위: +1 블록 (15)"));
@@ -603,7 +627,8 @@ class EndTowerTransferTest {
         assertEquals(1080.0, dragon.healthBonus(), 0.0001);
         assertEquals(162.0, dragon.damageBonus(), 0.0001);
         assertEquals(1280.0, dragon.effectBaseMaxHealth(), 0.0001);
-        assertEquals(86.0, dragon.modifyAttackDamage(null, null, 5.0), 0.0001);
+        assertEquals(156.0126, dragon.effectiveDamageBonus(), 0.0001);
+        assertEquals(83.0063, dragon.modifyAttackDamage(null, null, 5.0), 0.0001);
         assertEquals(5.0, dragon.adjustAttackRange(5.0), 0.0001);
         assertEquals(2.0, dragon.splashRadius(), 0.0001);
         assertEquals(5, dragon.adjustAttackInterval(20));
@@ -668,36 +693,53 @@ class EndTowerTransferTest {
     }
 
     @Test
-    void legacyDamageCapDoesNotAffectDamageOrRuntimeStats() {
+    void damageScalingAppliesTheLogarithmicTailWithoutAHardCap() {
         applyEndAbilities(Map.ofEntries(
                 Map.entry("transferTicks", 1.0),
                 Map.entry("roundDamageRatio", 1.0),
                 Map.entry("permanentDamageRatio", 0.0),
-                Map.entry("damageCap", 25.0)
+                Map.entry("damageSoftCap", 10.0)
         ));
         PlayerLane lane = lane();
         EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
         lane.addTower(dragon);
         dragon.onWaveStarted(lane, 1);
         dragon.tick(lane);
-        lane.addTower(tower(EndTowers.T3_END_CRYSTAL_TOWER, 1));
+        for (int index = 0; index < 3; index++) {
+            lane.addTower(tower(EndTowers.T3_END_CRYSTAL_TOWER, index + 1));
+        }
         dragon.tick(lane);
-        assertEquals(20.0, dragon.roundDamageBonus(), 0.0001);
-        assertEquals(30.0, dragon.previewHatchedAttackDamage(), 0.0001);
-        assertEquals(30.0, dragon.modifyAttackDamage(null, null, 10.0), 0.0001);
-        assertEquals(30.0, dragon.modifyResolvedAttackDamage(null, null, 30.0), 0.0001);
-        assertEquals(20.0, dragon.modifyResolvedAttackDamage(null, null, 20.0), 0.0001);
-        assertEquals(-10.0, dragon.modifyResolvedAttackDamage(null, null, -10.0), 0.0001);
-        assertEquals(30.0, dragon.modifyResolvedOutgoingDamage(null, null, 30.0), 0.0001);
-        assertEquals(20.0, dragon.modifyResolvedOutgoingDamage(null, null, 20.0), 0.0001);
-        assertEquals(-10.0, dragon.modifyResolvedOutgoingDamage(null, null, -10.0), 0.0001);
-        assertFalse(plainRuntimeDetails(dragon).contains("피해량 상한"));
+        assertEquals(60.0, dragon.roundDamageBonus(), 0.0001);
+        assertEquals(27.9176, dragon.effectiveDamageBonus(), 0.0001);
+        assertEquals(37.9176, dragon.previewHatchedAttackDamage(), 0.0001);
+        assertEquals(37.9176, dragon.modifyAttackDamage(null, null, 10.0), 0.0001);
+        assertTrue(plainRuntimeDetails(dragon).contains("현재 추가 피해: +27.9 (누적 60.0)"));
+    }
+
+    @Test
+    void twentyTierThreeCrystalsUseTheLiveEndDamageCurve() {
+        applyTransferDuration(1);
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        lane.addTower(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.tick(lane);
+        for (int index = 0; index < 20; index++) {
+            lane.addTower(tower(EndTowers.T3_END_CRYSTAL_TOWER, index + 1));
+        }
+
+        dragon.tick(lane);
+
+        assertEquals(324.0, dragon.damageBonus(), 0.0001);
+        assertEquals(239.1902, dragon.effectiveDamageBonus(), 0.0001);
+        assertEquals(249.1902, dragon.previewHatchedAttackDamage(), 0.0001);
+        assertEquals(299.0283, dragon.previewHatchedAttackDamage() * 1.20, 0.0001);
     }
 
     @Test
     void splashRatioUsesUncappedPrimaryDamage() {
         applyEndAbilities(Map.of(
-                "damageCap", 25.0,
+                "damageSoftCap", 10.0,
                 "splashDamageRatio", 0.66
         ));
         PlayerLane lane = lane();

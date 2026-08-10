@@ -34,7 +34,14 @@ final class WarlockStatsView {
                     ? "<gray>각성 상태</gray><white>: </white><dark_purple>각성</dark_purple>"
                     : "<gray>각성 상태</gray><white>: </white><gray>미각성</gray>");
         }
-        lines.add(styledEndStat(DAMAGE_COLOR, "\uD83E\uDE93", "영구 피해", "+" + oneDecimal(combat.additionalAttackDamage()), "", ""));
+        lines.add(styledEndStat(
+                DAMAGE_COLOR,
+                "\uD83E\uDE93",
+                "현재 추가 피해",
+                "+" + oneDecimal(combat.effectiveAttackDamage()),
+                "",
+                damageProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())
+        ));
         lines.add(styledEndStat(HEALTH_COLOR, "\u2764", "영구 체력", "+" + oneDecimal(defense.additionalHealth()), "", ""));
         if (melee) {
             lines.add(styledEndStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", "-" + combat.attackIntervalReductionTicks(), "틱",
@@ -63,6 +70,12 @@ final class WarlockStatsView {
         return maximumValue > 0.0 && currentValue >= maximumValue - 0.0001 ? "(MAX)" : "";
     }
 
+    private static String damageProgress(double rawDamage, double effectiveDamage) {
+        return rawDamage > effectiveDamage + 0.0001
+                ? "(누적 " + oneDecimal(rawDamage) + ")"
+                : "";
+    }
+
     private static String oneDecimal(double value) {
         return String.format(Locale.ROOT, "%.1f", value);
     }
@@ -89,7 +102,8 @@ final class WarlockStatsView {
     }
 
     record CombatStats(
-            double additionalAttackDamage,
+            double rawAttackDamage,
+            double effectiveAttackDamage,
             int attackIntervalReductionTicks,
             int maximumAttackIntervalReductionTicks,
             double splashRadius,
