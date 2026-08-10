@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.entity.boss.goal;
 
+import java.util.Comparator;
 import java.util.EnumSet;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.entity.boss.SemionBossEntity;
@@ -51,7 +52,8 @@ public final class BossAttackLaneMonsterGoal extends Goal {
                 ).stream()
                 .filter(SemionMonsterEntity.class::isInstance)
                 .map(SemionMonsterEntity.class::cast)
-                .findFirst()
+                .min(Comparator.comparingDouble((SemionMonsterEntity monster) -> boss.distanceToSqr(monster))
+                        .thenComparingInt(SemionMonsterEntity::getId))
                 .orElse(null);
         if (target == null) {
             return;

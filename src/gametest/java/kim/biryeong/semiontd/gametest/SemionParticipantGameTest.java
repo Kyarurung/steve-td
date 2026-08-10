@@ -7064,12 +7064,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         boss.setNoAi(true);
         context.getLevel().addFreshEntity(boss);
 
-        SemionMonsterEntity primary = spawnBossTargetMonster(context, "boss-splash-primary", anchor.add(2.0, 0.0, 0.0));
         SemionMonsterEntity nearby = spawnBossTargetMonster(context, "boss-splash-nearby", anchor.add(3.0, 0.0, 0.0));
+        SemionMonsterEntity primary = spawnBossTargetMonster(context, "boss-splash-primary", anchor.add(2.0, 0.0, 0.0));
         SemionMonsterEntity far = spawnBossTargetMonster(context, "boss-splash-far", anchor.add(7.0, 0.0, 0.0));
 
         context.runAfterDelay(1, () -> {
             new BossAttackLaneMonsterGoal(boss).tick();
+
+            if (!assertEquals(context, primary, boss.getTarget(), "Boss should select the nearest eligible monster regardless of spawn order.")) {
+                return;
+            }
 
             if (!assertTrue(context, primary.getHealth() < 100.0F, "Boss should damage its primary target.")) {
                 return;
