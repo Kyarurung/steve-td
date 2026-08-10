@@ -25,11 +25,8 @@ public final class SQLiteMatchResultRepository implements MatchResultRepository 
     @Override
     public synchronized void saveMatchResult(MatchResult matchResult) {
         try (Connection connection = SQLiteSupport.connect(path)) {
-            if (exists(connection, matchResult.matchId())) {
-                return;
-            }
             try (PreparedStatement statement = connection.prepareStatement(
-                    "INSERT INTO match_results (match_id, payload) VALUES (?, ?)"
+                    "INSERT OR IGNORE INTO match_results (match_id, payload) VALUES (?, ?)"
             )) {
                 statement.setLong(1, matchResult.matchId().value());
                 statement.setString(2, GSON.toJson(matchResult));
@@ -58,20 +55,15 @@ public final class SQLiteMatchResultRepository implements MatchResultRepository 
 
     private void initialize() {
         try (Connection connection = SQLiteSupport.connect(path);
-             Statement statement = connection.createStatement()) {
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS match_results (match_id INTEGER, payload TEXT)");
-            statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_match_results_match_id ON match_results (match_id)");
+            Statement statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS match_results (match_id INTEGER NOT NULL, payload TEXT NOT NULL)");
+            statement.executeUpdate("DELETE FROM match_results WHERE match_id IS NULL OR payload IS NULL");
+            statement.executeUpdate("DELETE FROM match_results WHERE rowid NOT IN (SELECT MIN(rowid) FROM match_results GROUP BY match_id)");
+            statement.executeUpdate("DROP INDEX IF EXISTS idx_match_results_match_id");
+            statement.executeUpdate("CREATE UNIQUE INDEX idx_match_results_match_id ON match_results (match_id)");
         } catch (SQLException exception) {
             throw new PersistenceException("Failed to initialize SQLite match result store " + path, exception);
         }
     }
 
-    private boolean exists(Connection connection, MatchId matchId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM match_results WHERE match_id = ? LIMIT 1")) {
-            statement.setLong(1, matchId.value());
-            try (ResultSet results = statement.executeQuery()) {
-                return results.next();
-            }
-        }
-    }
 }

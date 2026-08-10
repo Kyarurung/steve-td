@@ -50,7 +50,8 @@ public final class SQLiteJobStatisticsStore {
             sent_income_threat, income_attack_success_threat,
             own_lane_diamond_gain, assist_clear_diamond_gain, income_generated,
             assist_clear_threat, incoming_income_threat,
-            primary_trait_id, primary_trait_version, secondary_trait_id, secondary_trait_version
+            primary_trait_id, primary_trait_version, secondary_trait_id, secondary_trait_version,
+            catalog_version
             """;
     private static final String AGGREGATE_COLUMNS = """
             job_id, appearances, wins, placement_samples, placement_sum, final_round_sum,
@@ -62,15 +63,16 @@ public final class SQLiteJobStatisticsStore {
             first_match_at_epoch_millis, last_match_at_epoch_millis, updated_at_epoch_millis
             """;
     private static final String INSERT_FACT = "INSERT OR IGNORE INTO job_stat_participant_facts ("
-            + FACT_COLUMNS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + FACT_COLUMNS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String UPSERT_HISTORY_FACT = "INSERT INTO job_stat_participant_facts ("
-            + FACT_COLUMNS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            + FACT_COLUMNS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
             + "ON CONFLICT(match_id, player_id) DO UPDATE SET "
             + "cleared_round = excluded.cleared_round, "
             + "primary_trait_id = excluded.primary_trait_id, "
             + "primary_trait_version = excluded.primary_trait_version, "
             + "secondary_trait_id = excluded.secondary_trait_id, "
-            + "secondary_trait_version = excluded.secondary_trait_version";
+            + "secondary_trait_version = excluded.secondary_trait_version, "
+            + "catalog_version = excluded.catalog_version";
     private static final String UPSERT_AGGREGATE = """
             INSERT INTO job_statistics (
             """ + AGGREGATE_COLUMNS + """
@@ -277,6 +279,7 @@ public final class SQLiteJobStatisticsStore {
                         primary_trait_version INTEGER NOT NULL DEFAULT 0,
                         secondary_trait_id TEXT NOT NULL DEFAULT 'semion-td:none',
                         secondary_trait_version INTEGER NOT NULL DEFAULT 0,
+                        catalog_version TEXT,
                         PRIMARY KEY (match_id, player_id)
                     )
                     """);
@@ -294,6 +297,7 @@ public final class SQLiteJobStatisticsStore {
                     "TEXT NOT NULL DEFAULT 'semion-td:none'");
             ensureColumn(connection, "job_stat_participant_facts", "secondary_trait_version",
                     "INTEGER NOT NULL DEFAULT 0");
+            ensureColumn(connection, "job_stat_participant_facts", "catalog_version", "TEXT");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_job_stat_facts_job_id "
                     + "ON job_stat_participant_facts (job_id)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_job_stat_facts_ended_at "
@@ -303,6 +307,8 @@ public final class SQLiteJobStatisticsStore {
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_job_stat_facts_traits "
                     + "ON job_stat_participant_facts (job_id, primary_trait_id, primary_trait_version, "
                     + "secondary_trait_id, secondary_trait_version)");
+            statement.executeUpdate("CREATE INDEX IF NOT EXISTS idx_job_stat_facts_catalog_version "
+                    + "ON job_stat_participant_facts (catalog_version)");
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS job_statistics (
                         job_id TEXT PRIMARY KEY,
@@ -548,7 +554,8 @@ public final class SQLiteJobStatisticsStore {
                     participant.stats(),
                     roundOutcomes,
                     participant.traitLoadout(),
-                    participant.finalTowerComposition()
+                    participant.finalTowerComposition(),
+                    matchResult.catalogVersion()
             ));
         }
         return facts;
@@ -603,6 +610,11 @@ public final class SQLiteJobStatisticsStore {
         statement.setInt(25, fact.traitLoadout().primaryTraitVersion());
         statement.setString(26, fact.traitLoadout().secondaryTraitId());
         statement.setInt(27, fact.traitLoadout().secondaryTraitVersion());
+        if (fact.catalogVersion() == null) {
+            statement.setNull(28, Types.VARCHAR);
+        } else {
+            statement.setString(28, fact.catalogVersion());
+        }
     }
 
     private static void bindAggregate(PreparedStatement statement, ParticipantFact fact, long updatedAt) throws SQLException {
@@ -920,7 +932,8 @@ public final class SQLiteJobStatisticsStore {
             PlayerMatchStatsSnapshot stats,
             List<RoundOutcome> roundOutcomes,
             TraitLoadoutSnapshot traitLoadout,
-            List<TowerCompositionEntry> finalTowerComposition
+            List<TowerCompositionEntry> finalTowerComposition,
+            String catalogVersion
     ) {
         private ParticipantFact {
             traitLoadout = traitLoadout == null ? TraitLoadoutSnapshot.none() : traitLoadout;
