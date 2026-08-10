@@ -97,7 +97,7 @@ public class UndeadTowers {
             5,
             byId(EntityType.BOGGED),
             List.of(
-                    "<gray> 원거리 특화 타워입니다. </green>",
+                    "<gray> 원거리 특화 타워입니다. </gray>",
                     "<green> 공격 시 임의의 대상 1체를 추가로 공격합니다. </green>",
                     "<green> 공격 시 피해의 10% 를 흡수합니다. </green>",
                     "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 0.1 증가시킵니다. (최대 20)</green>"
@@ -132,7 +132,7 @@ public class UndeadTowers {
             5,
             byId(EntityType.STRAY),
             List.of(
-                    "<gray> 원거리 특화 타워입니다. </green>",
+                    "<gray> 원거리 특화 타워입니다. </gray>",
                     "<green> 공격 시 사거리보다 2블록 넓은 범위에서 임의의 대상 2체를 추가로 공격합니다. </green>",
                     "<green> 공격 시 피해의 15% 를 흡수합니다. </green>",
                     "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 0.3 증가시킵니다. (최대 30)</green>"
@@ -216,7 +216,7 @@ public class UndeadTowers {
                 "<green> 피격 시 {ability.damageBoostTicks:seconds}간 공격력이 {ability.damageBoostOnHit:number} 증가합니다. </green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T2_RANGED_SKELETON_TOWER, List.of(
-                "<gray> 원거리 특화 타워입니다. </green>",
+                "<gray> 원거리 특화 타워입니다. </gray>",
                 "<green> 공격 시 임의의 대상 {ability.extraTargets:integer}체를 추가로 공격합니다. </green>",
                 "<green> 공격 시 피해의 {ability.lifeStealRatio:percent} 를 흡수합니다. </green>",
                 "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 {ability.stackDamage:number} 증가시킵니다. (최대 {ability.stackDamageCap:number})</green>"
@@ -228,7 +228,7 @@ public class UndeadTowers {
                 "<green> {ability.deathStackRange:blocks} 내의 타워/웨이브/인컴 몹 사망 시 공격력을 {ability.damagePerStack:number}, 체력을 {ability.healthPerStack:number} 증가시킵니다. 최대 {ability.stackCap:integer}스택 </green>"
         ));
         TowerDescriptionRegistry.registerTemplate(T3_RANGED_SKELETON_TOWER, List.of(
-                "<gray> 원거리 특화 타워입니다. </green>",
+                "<gray> 원거리 특화 타워입니다. </gray>",
                 "<green> 공격 시 사거리보다 {ability.extraTargetRangeBonus:blocks} 넓은 범위에서 임의의 대상 {ability.extraTargets:integer}체를 추가로 공격합니다. </green>",
                 "<green> 공격 시 피해의 {ability.lifeStealRatio:percent} 를 흡수합니다. </green>",
                 "<green> 주위 타워/웨이브/인컴 몹 사망 시 영구적으로 피해를 {ability.stackDamage:number} 증가시킵니다. (최대 {ability.stackDamageCap:number})</green>"

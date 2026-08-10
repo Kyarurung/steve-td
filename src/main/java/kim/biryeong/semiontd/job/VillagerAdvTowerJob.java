@@ -25,7 +25,7 @@ public final class VillagerAdvTowerJob extends SemionJob {
     public List<Component> description() {
         String reputationMax = number(TowerBalanceRuntime.villagerAdv().resolvedReputationMax());
         return List.of(
-                SemionText.mini("<gray>주민타워 리워크 테스트를 위한 빌더입니다.</gray>"),
+                SemionText.mini("<gray>경험치로 개별 타워를 성장시키고 평판으로 전체 주민을 강화하는 빌더입니다.</gray>"),
                 Component.empty(),
                 SemionText.mini("<green>경험치</green> : <gray>주민타워는 고유한 자원인 경험치를 가지고 있습니다. 경험치는 매 라운드 시작 시 각 타워 수와 타워들의 티어에 비례해 증가합니다. </gray><red><bold>주민들은 강화하기 위해 경험치를 소모하며, 가진 경험치에 따라 추가 보너스를 획득합니다. </bold></red>"),
                 Component.empty(),

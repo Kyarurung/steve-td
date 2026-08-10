@@ -72,7 +72,7 @@ public final class VillagerTowers {
             10,
             VillagerVisual.builder().profession(VillagerProfession.CLERIC).build(),
             List.of(
-                    "<gray> 초중반용 스플래시 타워입니다. </green>",
+                    "<gray> 초중반용 스플래시 타워입니다. </gray>",
                     "<green> + 생존한 라운드마다 피해, 공격 속도가 7.5% 씩 증가합니다. 최대 45%",
                     "<green> + 스플래시가 존재합니다. 1.75블록, 75% 피해 </green>",
                     "<green> + 3번 공격 시 1번 추가로 공격을 가합니다.</green>"
@@ -363,7 +363,7 @@ public final class VillagerTowers {
                 advLine("공격 속도", "rangedAttackSpeedPerExperience")
         ));
         registerAdvTemplate(ADV_T3_CLERIC_TOWER, List.of(
-                "<gray> 초중반용 스플래시 타워입니다. </green>",
+                "<gray> 초중반용 스플래시 타워입니다. </gray>",
                 "<green> + 생존한 라운드마다 피해, 공격 속도가 {ability.bonusPerSurvivedRound:percent} 씩 증가합니다. 최대 {ability.bonusPerSurvivedRound*ability.maxSurvivalStacks:percent}",
                 "<green> + 스플래시가 존재합니다. {ability.splashRadius:blocks}, {ability.splashDamageRatio:percent} 피해 </green>",
                 "<green> + {ability.extraAttackEvery:integer}번 공격 시 1번 추가로 공격을 가합니다.</green>"
