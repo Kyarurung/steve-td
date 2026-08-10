@@ -193,37 +193,52 @@ final class EndTransferController {
     }
 
     double permanentHealthBonus() {
-        return logScale(state.permanentHealthBonus(), config.value(HEALTH_LOG_SCALE));
+        return healthSoftCap(state.permanentHealthBonus());
     }
 
     double permanentDamageBonus() {
-        return logScale(state.permanentDamageBonus(), config.value(DAMAGE_LOG_SCALE));
+        return damageSoftCap(state.permanentDamageBonus());
     }
 
     double roundHealthBonus() {
         double permanent = state.permanentHealthBonus();
         double total = permanent + state.roundHealthContribution();
-        double scale = config.value(HEALTH_LOG_SCALE);
-        return Math.max(0.0, logScale(total, scale) - logScale(permanent, scale)
-        );
+        return Math.max(0.0, healthSoftCap(total) - healthSoftCap(permanent));
     }
 
     double roundDamageBonus() {
         double permanent = state.permanentDamageBonus();
         double total = permanent + state.roundDamageContribution();
-        double scale = config.value(DAMAGE_LOG_SCALE);
-        return Math.max(0.0, logScale(total, scale) - logScale(permanent, scale)
+        return Math.max(0.0, damageSoftCap(total) - damageSoftCap(permanent));
+    }
+
+    private double damageSoftCap(double raw) {
+        return softCap(
+                raw,
+                config.value(DAMAGE_THRESHOLD),
+                config.value(DAMAGE_SCALE)
         );
     }
 
-    private static double logScale(double raw, double scale) {
+    private double healthSoftCap(double raw) {
+        return softCap(
+                raw,
+                config.value(HEALTH_THRESHOLD),
+                config.value(HEALTH_SCALE)
+        );
+    }
+
+    private static double softCap(double raw, double threshold, double scale) {
         if (raw <= 0.0) {
             return 0.0;
         }
-        if (scale <= 0.0) {
+        if (threshold <= 0.0 || scale <= 0.0) {
             return raw;
         }
-        return scale * Math.log1p(raw / scale);
+        if (raw <= threshold) {
+            return raw;
+        }
+        return threshold + scale * Math.log1p((raw - threshold) / scale);
     }
 
     static double progress(Tower tower) {

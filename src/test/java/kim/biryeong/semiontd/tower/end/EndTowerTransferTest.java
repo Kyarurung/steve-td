@@ -72,11 +72,10 @@ class EndTowerTransferTest {
         lane.addTower(enderman);
         enderman.onWaveStarted(lane, 1);
         tick(dragon, lane, 3);
-        double damageLogScale = EndConfig.RUNTIME.value(DAMAGE_LOG_SCALE);
-        double partialRawPermanentDamage = 0.375;
+        double partialRawPermanentDamage = 0.3;
         double partialRawRoundDamage = 4.95;
-        double expectedPartialPermanentDamage = damageLogScale * Math.log1p(partialRawPermanentDamage / damageLogScale);
-        double expectedPartialTotalDamage = damageLogScale * Math.log1p((partialRawPermanentDamage + partialRawRoundDamage) / damageLogScale);
+        double expectedPartialPermanentDamage = expectedDamageBonus(partialRawPermanentDamage);
+        double expectedPartialTotalDamage = expectedDamageBonus(partialRawPermanentDamage + partialRawRoundDamage);
         double expectedPartialRoundDamage = expectedPartialTotalDamage - expectedPartialPermanentDamage;
         assertEquals(0, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
@@ -86,10 +85,10 @@ class EndTowerTransferTest {
         assertEquals(0.0, dragon.healthBonus(), 0.0001);
         assertEquals(0.75, enderman.transferProgress(), 0.0001);
         tick(dragon, lane, 1);
-        double completedRawPermanentDamage = 0.5;
+        double completedRawPermanentDamage = 0.4;
         double completedRawRoundDamage = 6.6;
-        double expectedCompletedPermanentDamage = damageLogScale * Math.log1p(completedRawPermanentDamage / damageLogScale);
-        double expectedCompletedTotalDamage = damageLogScale * Math.log1p((completedRawPermanentDamage + completedRawRoundDamage) / damageLogScale);
+        double expectedCompletedPermanentDamage = expectedDamageBonus(completedRawPermanentDamage);
+        double expectedCompletedTotalDamage = expectedDamageBonus(completedRawPermanentDamage + completedRawRoundDamage);
         double expectedCompletedRoundDamage = expectedCompletedTotalDamage - expectedCompletedPermanentDamage;
         assertEquals(1, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
@@ -104,7 +103,7 @@ class EndTowerTransferTest {
         String crystalHeavyDetails = plainRuntimeDetails(dragon);
         assertTrue(crystalHeavyDetails.contains("셜커 계열, 엔드 수정 계열 스택: 0 | 1"));
         assertTrue(crystalHeavyDetails.contains("공격 속도: -1틱 (30)"));
-        assertTrue(crystalHeavyDetails.contains("영구 피해: +0.5"));
+        assertTrue(crystalHeavyDetails.contains("영구 피해: +0.4"));
         tick(dragon, lane, 4);
         assertEquals(1, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
@@ -135,7 +134,7 @@ class EndTowerTransferTest {
     void interruptedTransferAlsoRollsBackDragonEvolutionState() {
         applyEndAbilities(Map.of(
                 "transferTicks", 4.0,
-                "dragonEvolution", 220.0,
+                "dragonEvolution", 200.05,
                 "roundHealthRatio", 0.50,
                 "permanentHealthRatio", 0.0
         ));
@@ -147,8 +146,7 @@ class EndTowerTransferTest {
         dragon.tick(lane);
         lane.addTower(shulker);
         tick(dragon, lane, 2);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
-        double expectedTransferredHealth = healthLogScale * Math.log1p(25.0 / healthLogScale);
+        double expectedTransferredHealth = expectedHealthBonus(25.0);
         assertEquals(EndTowerState.DRAGON, dragon.state());
         assertEquals(200.0 + expectedTransferredHealth, dragon.currentMaxHealth(), 0.0001);
         lane.removeTower(shulker);
@@ -175,8 +173,7 @@ class EndTowerTransferTest {
         dragon.syncHealth(100.0);
         lane.addTower(firstShulker);
         tick(dragon, lane, 2);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
-        double expectedTransferredHealth = healthLogScale * Math.log1p(25.0 / healthLogScale);
+        double expectedTransferredHealth = expectedHealthBonus(25.0);
         assertEquals(200.0 + expectedTransferredHealth, dragon.currentMaxHealth(), 0.0001);
         assertEquals(100.0, dragon.health(), 0.0001);
         lane.removeTower(firstShulker);
@@ -203,12 +200,11 @@ class EndTowerTransferTest {
         dragon.tick(lane);
         lane.addTower(shulker);
         dragon.tick(lane);
-        dragon.syncHealth(250.0);
+        dragon.syncHealth(200.2);
         dragon.refreshType(dragon.type(), lane);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
-        double expectedMaxHealth = 200.0 + healthLogScale * Math.log1p(55.0 / healthLogScale);
+        double expectedMaxHealth = 200.0 + expectedHealthBonus(54.0);
         assertEquals(expectedMaxHealth, dragon.currentMaxHealth(), 0.0001);
-        assertEquals(250.0, dragon.health(), 0.0001);
+        assertEquals(200.2, dragon.health(), 0.0001);
     }
 
     @Test
@@ -216,8 +212,7 @@ class EndTowerTransferTest {
         applyEndAbilities(Map.of(
                 "transferTicks", 4.0,
                 "roundHealthRatio", 0.50,
-                "permanentHealthRatio", 0.0,
-                "healthLogScale", 2500.0
+                "permanentHealthRatio", 0.0
         ));
         PlayerLane lane = lane();
         EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
@@ -227,19 +222,17 @@ class EndTowerTransferTest {
         dragon.onWaveStarted(lane, 1);
         tick(dragon, lane, 2);
         assertEquals(0.50, shulker.transferProgress(), 0.0001);
-        assertEquals(2500.0 * Math.log1p(25.0 / 2500.0), dragon.roundHealthBonus(), 0.0001
-        );
+        assertEquals(expectedHealthBonus(25.0), dragon.roundHealthBonus(), 0.0001);
         applyEndAbilities(Map.of(
                 "transferTicks", 1.0,
                 "roundHealthRatio", 0.20,
-                "permanentHealthRatio", 0.0,
-                "healthLogScale", 2500.0
+                "permanentHealthRatio", 0.0
         ));
         dragon.refreshType(dragon.type(), lane);
         assertEquals(0.0, shulker.transferProgress(), 0.0001);
         assertEquals(0.0, dragon.roundHealthBonus(), 0.0001);
         dragon.tick(lane);
-        assertEquals(2500.0 * Math.log1p(20.0 / 2500.0), dragon.roundHealthBonus(), 0.0001);
+        assertEquals(expectedHealthBonus(20.0), dragon.roundHealthBonus(), 0.0001);
         assertEquals(0.0, shulker.health(), 0.0001);
     }
 
@@ -338,11 +331,10 @@ class EndTowerTransferTest {
         dragon.syncHealth(10.0);
         lane.addTower(shulker);
         dragon.tick(lane);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
-        double rawPermanentHealth = 5.0;
+        double rawPermanentHealth = 4.0;
         double rawRoundHealth = 50.0;
-        double expectedPermanentHealth = healthLogScale * Math.log1p(rawPermanentHealth / healthLogScale);
-        double expectedTotalHealth = healthLogScale * Math.log1p((rawPermanentHealth + rawRoundHealth) / healthLogScale);
+        double expectedPermanentHealth = expectedHealthBonus(rawPermanentHealth);
+        double expectedTotalHealth = expectedHealthBonus(rawPermanentHealth + rawRoundHealth);
         double expectedRoundHealth = expectedTotalHealth - expectedPermanentHealth;
         assertEquals(expectedRoundHealth, dragon.roundHealthBonus(), 0.0001);
         assertEquals(expectedPermanentHealth, dragon.permanentHealthBonus(), 0.0001);
@@ -459,11 +451,10 @@ class EndTowerTransferTest {
         lane.addTower(source);
         original.onWaveStarted(lane, 1);
         tick(original, lane, 2);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
         double rawPermanentHealth = 2.5;
         double rawRoundHealth = 25.0;
-        double expectedPermanentHealth = healthLogScale * Math.log1p(rawPermanentHealth / healthLogScale);
-        double expectedTotalHealth = healthLogScale * Math.log1p((rawPermanentHealth + rawRoundHealth) / healthLogScale);
+        double expectedPermanentHealth = expectedHealthBonus(rawPermanentHealth);
+        double expectedTotalHealth = expectedHealthBonus(rawPermanentHealth + rawRoundHealth);
         double expectedRoundHealth = expectedTotalHealth - expectedPermanentHealth;
         assertEquals(expectedRoundHealth, original.roundHealthBonus(), 0.0001);
         assertEquals(expectedPermanentHealth, original.permanentHealthBonus(), 0.0001);
@@ -487,9 +478,8 @@ class EndTowerTransferTest {
         core.tick(lane);
         lane.addTower(shulker);
         core.tick(lane);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
-        double expectedPermanentHealth = healthLogScale * Math.log1p(5.0 / healthLogScale);
-        double expectedRoundTotalHealth = healthLogScale * Math.log1p(55.0 / healthLogScale);
+        double expectedPermanentHealth = expectedHealthBonus(4.0);
+        double expectedRoundTotalHealth = expectedHealthBonus(54.0);
         assertEquals(expectedPermanentHealth, core.permanentHealthBonus(), 0.0001);
         assertEquals(200.0 + expectedRoundTotalHealth, core.currentMaxHealth(), 0.0001);
         core.resetForRound(null);
@@ -499,7 +489,7 @@ class EndTowerTransferTest {
         assertEquals(0.0, core.splashRadius(), 0.0001);
         String eggDetails = plainRuntimeDetails(core);
         assertTrue(eggDetails.contains("셜커 계열, 엔드 수정 계열 스택: 1 | 0"));
-        assertTrue(eggDetails.contains("영구 체력: +5"));
+        assertTrue(eggDetails.contains("영구 체력: +4"));
         assertTrue(eggDetails.contains("재생: +0 HP/s (10)"));
         assertTrue(eggDetails.contains("생명력 흡수: +0% (30)"));
         assertTrue(eggDetails.contains("피해 감소: +0% (15)"));
@@ -533,19 +523,17 @@ class EndTowerTransferTest {
             lane.addTower(tower(EndTowers.T1_SHULKER_TOWER, index + 21));
         }
         tick(dragon, lane, 1);
-        double healthLogScale = EndConfig.RUNTIME.value(HEALTH_LOG_SCALE);
-        double damageLogScale = EndConfig.RUNTIME.value(DAMAGE_LOG_SCALE);
-        double rawPermanentHealth = 100.0;
+        double rawPermanentHealth = 80.0;
         double rawRoundHealth = 1000.0;
         double rawTotalHealth = rawPermanentHealth + rawRoundHealth;
-        double expectedPermanentHealth = healthLogScale * Math.log1p(rawPermanentHealth / healthLogScale);
-        double expectedTotalHealth = healthLogScale * Math.log1p(rawTotalHealth / healthLogScale);
+        double expectedPermanentHealth = expectedHealthBonus(rawPermanentHealth);
+        double expectedTotalHealth = expectedHealthBonus(rawTotalHealth);
         double expectedRoundHealth = expectedTotalHealth - expectedPermanentHealth;
-        double rawPermanentDamage = 10.0;
+        double rawPermanentDamage = 8.0;
         double rawRoundDamage = 132.0;
         double rawTotalDamage = rawPermanentDamage + rawRoundDamage;
-        double expectedPermanentDamage = damageLogScale * Math.log1p(rawPermanentDamage / damageLogScale);
-        double expectedTotalDamage = damageLogScale * Math.log1p(rawTotalDamage / damageLogScale);
+        double expectedPermanentDamage = expectedDamageBonus(rawPermanentDamage);
+        double expectedTotalDamage = expectedDamageBonus(rawTotalDamage);
         double expectedRoundDamage = expectedTotalDamage - expectedPermanentDamage;
         assertEquals(20, dragon.endCrystalCount());
         assertEquals(20, dragon.shulkerCount());
@@ -637,8 +625,7 @@ class EndTowerTransferTest {
         dragon.tick(lane);
         lane.addTower(tower(EndTowers.T3_END_CRYSTAL_TOWER, 1));
         dragon.tick(lane);
-        double damageLogScale = EndConfig.RUNTIME.value(DAMAGE_LOG_SCALE);
-        double expectedTransferredDamage = damageLogScale * Math.log1p(20.0 / damageLogScale);
+        double expectedTransferredDamage = expectedDamageBonus(20.0);
         double expectedAttackDamage = 10.0 + expectedTransferredDamage;
         assertEquals(expectedTransferredDamage, dragon.roundDamageBonus(), 0.0001);
         assertEquals(expectedAttackDamage, dragon.previewHatchedAttackDamage(), 0.0001);
@@ -900,6 +887,32 @@ class EndTowerTransferTest {
         assertEquals(90.0, tower(EndTowers.T1_SHULKER_TOWER, 0).modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(70.0, tower(EndTowers.T2_SHULKER_TOWER, 0).modifyIncomingDamage(null, null, 100.0), 0.0001);
         assertEquals(50.0, tower(EndTowers.T3_SHULKER_TOWER, 0).modifyIncomingDamage(null, null, 100.0), 0.0001);
+    }
+
+    private static double expectedDamageBonus(double raw) {
+        return expectedSoftCap(
+                raw,
+                EndConfig.RUNTIME.value(DAMAGE_THRESHOLD),
+                EndConfig.RUNTIME.value(DAMAGE_SCALE)
+        );
+    }
+
+    private static double expectedHealthBonus(double raw) {
+        return expectedSoftCap(
+                raw,
+                EndConfig.RUNTIME.value(HEALTH_THRESHOLD),
+                EndConfig.RUNTIME.value(HEALTH_SCALE)
+        );
+    }
+
+    private static double expectedSoftCap(double raw, double threshold, double scale) {
+        if (raw <= 0.0) {
+            return 0.0;
+        }
+        if (raw <= threshold) {
+            return raw;
+        }
+        return threshold + scale * Math.log1p((raw - threshold) / scale);
     }
 
     private static void applyTransferDuration(int durationTicks) {

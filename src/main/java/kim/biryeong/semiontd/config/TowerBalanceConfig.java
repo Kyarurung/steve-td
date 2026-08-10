@@ -936,7 +936,11 @@ public record TowerBalanceConfig(
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
                 DAMAGE_REDUCTION_STACKS,
-                PHANTOM_SCALE_HEALTH
+                PHANTOM_SCALE_HEALTH,
+                HEALTH_THRESHOLD,
+                HEALTH_SCALE,
+                DAMAGE_THRESHOLD,
+                DAMAGE_SCALE
         );
         requireRatio(end,
                 ROUND_HEALTH_RATIO,
@@ -1469,11 +1473,13 @@ public record TowerBalanceConfig(
         values.put(TRANSFER_HEAL.key(), 30.0);
         values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
         values.put(ROUND_HEALTH_RATIO.key(), 0.50);
-        values.put(PERMANENT_HEALTH_RATIO.key(), 0.05);
-        values.put(HEALTH_LOG_SCALE.key(), 5000.0);
+        values.put(PERMANENT_HEALTH_RATIO.key(), 0.04);
+        values.put(HEALTH_THRESHOLD.key(), 3000.0);
+        values.put(HEALTH_SCALE.key(), 500.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
-        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.05);
-        values.put(DAMAGE_LOG_SCALE.key(), 250.0);
+        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
+        values.put(DAMAGE_THRESHOLD.key(), 150.0);
+        values.put(DAMAGE_SCALE.key(), 22.5);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);

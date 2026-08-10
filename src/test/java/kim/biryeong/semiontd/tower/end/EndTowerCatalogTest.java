@@ -66,11 +66,13 @@ class EndTowerCatalogTest {
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "transferHeal", -1.0), 0.0001);
         assertEquals(0.05, config.ability(EndTower.CONFIG_ID, "transferHealRatio", -1.0), 0.0001);
         assertEquals(0.50, config.ability(EndTower.CONFIG_ID, "roundHealthRatio", -1.0), 0.0001);
-        assertEquals(0.05, config.ability(EndTower.CONFIG_ID, "permanentHealthRatio", -1.0), 0.0001);
-        assertEquals(5000.0, config.ability(EndTower.CONFIG_ID, "healthLogScale", -1.0), 0.0001);
+        assertEquals(0.04, config.ability(EndTower.CONFIG_ID, "permanentHealthRatio", -1.0), 0.0001);
+        assertEquals(3000.0, config.ability(EndTower.CONFIG_ID, "healthThreshold", -1.0), 0.0001);
+        assertEquals(500.0, config.ability(EndTower.CONFIG_ID, "healthScale", -1.0), 0.0001);
         assertEquals(0.66, config.ability(EndTower.CONFIG_ID, "roundDamageRatio", -1.0), 0.0001);
-        assertEquals(0.05, config.ability(EndTower.CONFIG_ID, "permanentDamageRatio", -1.0), 0.0001);
-        assertEquals(250.0, config.ability(EndTower.CONFIG_ID, "damageLogScale", -1.0), 0.0001);
+        assertEquals(0.04, config.ability(EndTower.CONFIG_ID, "permanentDamageRatio", -1.0), 0.0001);
+        assertEquals(150.0, config.ability(EndTower.CONFIG_ID, "damageThreshold", -1.0), 0.0001);
+        assertEquals(22.5, config.ability(EndTower.CONFIG_ID, "damageScale", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "lifeStealStacks", -1.0), 0.0001);
         assertEquals(0.01, config.ability(EndTower.CONFIG_ID, "lifeStealStep", -1.0), 0.0001);
         assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "lifeStealCap", -1.0), 0.0001);
@@ -166,8 +168,8 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("엔더 드래곤으로 진화하면 추가 능력을 획득합니다."));
         assertTrue(plainDescription.contains("힘 전달 10초 후 타워 사망, 체력 30을 회복합니다."));
         assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력의 5%를 초당 회복합니다."));
-        assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득, 5% 영구 누적"));
-        assertTrue(plainDescription.contains("타워 피해의 66%를 임시 획득, 5% 영구 누적"));
+        assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득, 4% 영구 누적"));
+        assertTrue(plainDescription.contains("타워 피해의 66%를 임시 획득, 4% 영구 누적"));
         assertFalse(description.contains("{ability."));
         assertTrue(description.contains("<#cc00fa>아기 드래곤</#cc00fa>"));
         assertTrue(description.contains("<#cc00fa>엔더 드래곤</#cc00fa>"));
@@ -183,7 +185,7 @@ class EndTowerCatalogTest {
                 .reduce("", (left, right) -> left + "\n" + right);
         assertTrue(description.contains("아군 타워의 체력과 피해를"));
         assertTrue(description.contains("체력 50%, 피해 66%를"));
-        assertTrue(description.contains("체력 5%, 피해 5%를 영구 누적합니다."));
+        assertTrue(description.contains("체력 4%, 피해 4%를 영구 누적합니다."));
         assertTrue(description.contains("엔더 드래곤으로 진화하면"));
         assertTrue(description.contains("추가 고유 능력을 획득합니다."));
     }
