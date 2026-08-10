@@ -1,0 +1,4 @@
+interface:
+  display_name: "SemionTD Builder & Tower Development"
+  short_description: "SemionTD 빌더·타워를 현행 구조대로 구현·검증"
+  default_prompt: "Use $semiontd-builder-tower-dev to implement or review a SemionTD builder and production tower family against the current source and active balance configuration."
