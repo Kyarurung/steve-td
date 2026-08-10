@@ -296,6 +296,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 return;
             }
             MoobloomEntity visual = visuals.getFirst();
+            if (visual.shouldBeSaved()) {
+                context.fail(Component.literal("Runtime Moobloom overlays must not be written into chunks."));
+                return;
+            }
             if (!assertClose(context, 0.75, towerEntity.getScale(), "Moobloom tower should use a shorter server collision box.")) {
                 return;
             }
@@ -11966,7 +11970,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, EntityType.ARMOR_STAND, entity.getPolymerEntityType(null), "Ender Dragon EGG state should use an attribute-compatible living proxy.")) {
             return;
         }
-        if (!assertTrue(context, entity.isInvisible(), "The living EGG proxy should stay hidden behind its Dragon Egg block display.")) {
+        if (!assertTrue(context, !entity.isInvisible(), "The EGG server hitbox should remain visible to server-side raycasts.")) {
+            return;
+        }
+        List<SynchedEntityData.DataValue<?>> eggProxyData = new ArrayList<>();
+        entity.modifyRawTrackedData(eggProxyData, null, true);
+        if (!assertTrue(context, eggProxyData.stream().anyMatch(data -> data.value() instanceof Byte flags && (flags & 0x20) != 0),
+                "The client EGG armor-stand proxy should stay hidden behind its Dragon Egg block display.")) {
             return;
         }
         tower.onWaveStarted(null, 1);

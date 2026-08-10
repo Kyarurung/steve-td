@@ -17,6 +17,7 @@ import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 
 public final class SemionEntityTypes {
+    public static final String RUNTIME_NO_SAVE_TAG = "semiontd.runtime_no_save";
     public static final EntityType<SemionMonsterEntity> MONSTER = register(
             "monster",
             EntityType.Builder.of(SemionMonsterEntity::new, MobCategory.MONSTER)
