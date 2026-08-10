@@ -71,6 +71,17 @@ class NetherTowerCatalogTest {
         String magmaCube = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T1_MAGMA_CUBE).description());
         String blaze = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T2_BLAZE).description());
         String ghast = String.join("\n", TowerBalanceRuntime.resolve(NetherTowers.T3_GHAST).description());
+        String job = new NetherTowerJob().description().stream()
+                .map(component -> component.getString())
+                .reduce("", (left, right) -> left + "\n" + right);
+        NetherTower finalDefenseTower = new NetherTower(
+                NetherTowers.T1_STRIDER,
+                UUID.nameUUIDFromBytes("nether-final-description".getBytes()),
+                TeamId.RED,
+                1,
+                new GridPosition(0, 64, 0)
+        );
+        finalDefenseTower.moveToFinalDefense(null, new GridPosition(1, 64, 0));
 
         assertTrue(brute.contains("추가 16% 흡혈"));
         assertTrue(brute.contains("[좀비]"));
@@ -79,6 +90,8 @@ class NetherTowerCatalogTest {
         assertTrue(magmaCube.contains("마법 피해"));
         assertTrue(blaze.contains("마법 피해"));
         assertTrue(ghast.contains("마법 피해"));
+        assertTrue(job.contains("최종 방어선") && job.contains("체력 감소가 중단"));
+        assertTrue(finalDefenseTower.runtimeDetailLines().contains("체력 감소 최종 방어선에서 중단"));
         assertFalse(brute.contains("[계승]"));
         assertFalse(brute.contains("[해금]"));
         assertFalse(ghast.contains("[계승]"));

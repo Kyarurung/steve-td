@@ -1337,7 +1337,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                 && candidate.runtimeTower != null
                 && candidate.runtimeTower.health() > 0.0
                 && candidate.teamId == teamId
-                && candidate.laneId == laneId;
+                && (candidate.laneId == laneId || finalDefense || candidate.finalDefense);
     }
 
     private void clampToFinalDefenseAreaIfNeeded() {

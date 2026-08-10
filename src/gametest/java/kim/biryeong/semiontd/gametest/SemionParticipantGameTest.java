@@ -6324,11 +6324,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, tower.entityId().isPresent(), "Tower entity should exist before reset validation.")) {
             return;
         }
-        if (!assertTrue(
-                context,
-                lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity,
-                "Tower entity should be available before reset validation."
-        )) {
+        if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
+            context.fail(Component.literal("Tower entity should be available before reset validation."));
             return;
         }
         int originalEntityId = tower.entityId().getAsInt();
@@ -6336,6 +6333,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, tower.deployedAtFinalDefense(), "Tower should enter final defense before reset validation.")) {
             return;
         }
+        towerEntity.getMoveControl().setWantedPosition(towerEntity.getX() + 4.0, towerEntity.getY(), towerEntity.getZ(), 1.0);
 
         game.teams().get(TeamId.RED).resetForRound();
 
@@ -6372,7 +6370,22 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
-        context.succeed();
+        SemionTowerEntity resetEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(tower.entityId().getAsInt());
+        context.runAfterDelay(1, () -> {
+            if (!assertClose(context, originalPosition.getX() + 0.5, resetEntity.getX(),
+                    "Round reset should clear stale movement and keep the tower hitbox on its visual X anchor.")) {
+                return;
+            }
+            if (!assertClose(context, originalPosition.getY() + 1.0, resetEntity.getY(),
+                    "Round reset should keep the tower hitbox on its visual Y anchor.")) {
+                return;
+            }
+            if (!assertClose(context, originalPosition.getZ() + 0.5, resetEntity.getZ(),
+                    "Round reset should clear stale movement and keep the tower hitbox on its visual Z anchor.")) {
+                return;
+            }
+            context.succeed();
+        });
     }
 
     @GameTest
@@ -11886,6 +11899,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
+        endTower.moveToFinalDefense(null, GridPosition.from(BlockPos.containing(babyPosition)));
 
         SemionTowerEntity endEntity = new SemionTowerEntity(
                 SemionEntityTypes.TOWER,
@@ -11897,7 +11911,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         spawnTowerEntity(
                 context,
                 TeamId.RED,
-                1,
+                2,
                 babyPosition.add(1.0, -1.0, 0.0),
                 TestTowerTypes.TEST_DIRECT
         );
@@ -11909,7 +11923,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 context,
                 blockedX,
                 endEntity.getX(),
-                "Baby dragon should stop when a friendly tower occupies its next position."
+                "A final-defense baby dragon should stop before a friendly tower from another lane."
         )) {
             return;
         }

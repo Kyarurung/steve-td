@@ -10,6 +10,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity.RemovalReason;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Tower runtime backed by a {@link SemionTowerEntity}; this does not imply that the tower attacks.
@@ -97,6 +98,16 @@ public abstract class EntityBackedTower extends Tower {
         super.resetForRound(lane);
         if (shouldRespawn) {
             onPlaced(lane);
+        } else if (lane != null && lane.arenaWorld() != null) {
+            entityId().ifPresent(id -> {
+                if (lane.arenaWorld().getEntity(id) instanceof SemionTowerEntity towerEntity) {
+                    towerEntity.getNavigation().stop();
+                    towerEntity.getMoveControl().setWantedPosition(anchorX(), anchorY(), anchorZ(), 0.0);
+                    towerEntity.setDeltaMovement(Vec3.ZERO);
+                    towerEntity.recordCurrentAttackTarget(null);
+                    towerEntity.teleportTo(anchorX(), anchorY(), anchorZ());
+                }
+            });
         }
     }
 

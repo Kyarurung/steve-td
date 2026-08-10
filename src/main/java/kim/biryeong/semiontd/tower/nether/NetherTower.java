@@ -234,7 +234,9 @@ public class NetherTower extends EntityBackedTower {
     public List<String> runtimeDetailLines() {
         ArrayList<String> lines = new ArrayList<>();
         lines.add("상태 " + (state() == NetherTowerState.NETHER ? "네더" : "좀비"));
-        lines.add("체력 감소 초당 " + percent(decayRatioPerSecond()));
+        lines.add(deployedAtFinalDefense()
+                ? "체력 감소 최종 방어선에서 중단"
+                : "체력 감소 초당 " + percent(decayRatioPerSecond()));
         double damageBonus = lowHealthDamageBonus();
         if (damageBonus > 0.0) {
             lines.add("저체력 피해 +" + percent(damageBonus));
@@ -314,7 +316,10 @@ public class NetherTower extends EntityBackedTower {
     }
 
     private boolean shouldDecay(PlayerLane lane) {
-        return lane != null && !lane.activeMonsters().isEmpty() && health() > 0.0;
+        return lane != null
+                && !deployedAtFinalDefense()
+                && !lane.activeMonsters().isEmpty()
+                && health() > 0.0;
     }
 
     private void refreshDynamicTimedEffects(SemionTowerEntity entity) {
