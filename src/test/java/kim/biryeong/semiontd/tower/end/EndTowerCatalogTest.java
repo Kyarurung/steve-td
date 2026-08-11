@@ -132,7 +132,7 @@ class EndTowerCatalogTest {
         assertEquals(150L, EndTowers.T3_SHULKER_TOWER.mineralCost());
 
         assertStarter(EndTowers.BASE_END_TOWER.id(), "엔더 드래곤");
-        assertStarter(EndTowers.T1_ENDERMITE_TOWER.id(), "엔더 마이트");
+        assertStarter(EndTowers.T1_ENDERMITE_TOWER.id(), "엔더마이트");
         assertStarter(EndTowers.T1_SHULKER_TOWER.id(), "셜커");
         assertUpgrade(EndTowers.T1_ENDERMITE_TOWER.id(), EndTowers.T2_ENDERMAN_TOWER.id(), "엔더맨", 100);
         assertUpgrade(EndTowers.T2_ENDERMAN_TOWER.id(), EndTowers.T3_END_CRYSTAL_TOWER.id(), "엔드 수정", 150);
@@ -176,7 +176,7 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("최대 체력 2000 이상이면 엔더 드래곤으로 진화합니다."));
         assertTrue(plainDescription.contains("엔더 드래곤으로 진화하면 추가 능력을 획득합니다."));
         assertTrue(plainDescription.contains("힘 전달 10초 후 타워 사망, 체력 30을 회복합니다."));
-        assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 회복합니다."));
+        assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력의 5%를 초당 회복합니다."));
         assertTrue(plainDescription.contains("타워 피해의 66%를 임시 획득, 4% 영구 누적"));
         assertTrue(plainDescription.contains("추가 체력은 3000, 피해는 150까지 그대로 적용"));
         assertTrue(plainDescription.contains("기준을 넘긴 누적 능력치는 완만하게 적용"));
@@ -186,7 +186,7 @@ class EndTowerCatalogTest {
         assertTrue(description.contains("<#cc00fa>엔더 드래곤</#cc00fa>"));
         assertTrue(description.contains("<#ec8d34>피해</#ec8d34>"));
         assertTrue(description.contains("<#fc5454>체력</#fc5454>"));
-        assertTrue(description.contains("<#fc5454>최대 체력 5%</#fc5454>"));
+        assertTrue(description.contains("<#fc5454>최대 체력</#fc5454>의 <#fc5454>5%</#fc5454>"));
     }
 
     @Test

@@ -2,28 +2,19 @@ package kim.biryeong.semiontd.tower.end;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.splashProgress;
-import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.stackProgress;
-import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.styledEndStat;
+
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
 import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndFormatting.endText;
 
 final class EndStatsView {
     private EndStatsView() {
     }
 
-    private static final String DAMAGE_COLOR = "#ec8d34";
-    private static final String ATTACK_SPEED_COLOR = "#ffe78d";
-    private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
-    private static final String HEALTH_COLOR = "#fc5454";
-    private static final String REGENERATION_COLOR = "#20985d";
-    private static final String LIFE_STEAL_COLOR = "#e32042";
-    private static final String DAMAGE_REDUCTION_COLOR = "#f3ba59";
-
     static List<String> feeder(double damageReduction) {
         ArrayList<String> lines = new ArrayList<>();
         if (damageReduction > 0.0) {
-            lines.add(styledEndStat(DAMAGE_REDUCTION_COLOR, "\uD83D\uDEE1", "피해 감소", "+" + Math.round(damageReduction * 100.0), "%", ""));
+            lines.add(formatDamageReduction(damageReduction, ""));
         }
         return lines;
     }
@@ -43,54 +34,40 @@ final class EndStatsView {
         int splash4 = EndConfig.RUNTIME.integer(SPLASH_4);
         int splash5 = EndConfig.RUNTIME.integer(SPLASH_5);
         ArrayList<String> lines = new ArrayList<>();
-        lines.add(switch (stats.state()) {
-            case EGG -> "<white>상태: <#cc00fa>드래곤 알</#cc00fa></white>";
-            case PHANTOM -> "<white>상태: <#cc00fa>아기 드래곤</#cc00fa></white>";
-            case DRAGON -> "<white>상태: <#cc00fa>엔더 드래곤</#cc00fa></white>";
-        });
-        lines.add("<white><#fc5454>셜커</#fc5454> 계열, <#ec8d34>엔드 수정</#ec8d34> 계열 누적 수: <#fc5454>" + stats.shulkerStacks() + "</#fc5454> <dark_gray>|</dark_gray> <#ec8d34>" + stats.endCrystalStacks() + "</#ec8d34></white>");
-        lines.add(styledEndStat(
-                HEALTH_COLOR,
-                "\u2764",
-                "현재 추가 체력",
-                "+" + oneDecimal(defense.effectiveAdditionalHealth()),
-                "",
-                scalingProgress(defense.rawAdditionalHealth(), defense.effectiveAdditionalHealth())
-        ));
-        lines.add(styledEndStat(REGENERATION_COLOR, "➕", "재생", "+" + compactOneDecimal(defense.currentRegeneration()), " HP/s", stackProgress(stats.shulkerStacks(), regenerationStacks, defense.currentRegeneration(), defense.maximumRegeneration())));
-        lines.add(styledEndStat(LIFE_STEAL_COLOR, "\uD83E\uDE78", "생명력 흡수", "+" + Math.round(defense.currentLifeSteal() * 100.0), "%", stackProgress(stats.shulkerStacks(), lifeStealStacks, defense.currentLifeSteal(), defense.maximumLifeSteal())));
-        lines.add(styledEndStat(DAMAGE_REDUCTION_COLOR, "\uD83D\uDEE1", "피해 감소", "+" + Math.round(defense.currentDamageReduction() * 100.0), "%", stackProgress(stats.shulkerStacks(), damageReductionStacks, defense.currentDamageReduction(), defense.maximumDamageReduction())));
-        lines.add(styledEndStat(
-                DAMAGE_COLOR,
-                "\uD83E\uDE93",
-                "현재 추가 피해",
-                "+" + oneDecimal(combat.effectiveAttackDamage()),
-                "",
-                scalingProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())
-        ));
-        lines.add(styledEndStat(ATTACK_SPEED_COLOR, "\u26A1", "공격 속도", "-" + combat.attackIntervalReductionTicks(), "틱", stackProgress(stats.endCrystalStacks(), attackSpeedStacks, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
-        lines.add(styledEndStat(ATTACK_SPEED_COLOR, "⭕", "공격 범위", "+" + compactOneDecimal(combat.currentSplashRadius()), " 블록", splashProgress(stats.endCrystalStacks(), splash1, splash2, splash3, splash4, splash5)));
-        lines.add(styledEndStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "사거리", oneDecimal(combat.currentAttackRange()), " 블록", stackProgress(stats.endCrystalStacks(), attackRangeStacks, combat.currentAttackRange(), combat.maximumAttackRange())));
+        lines.add(stateLine(stats.state()));
+        lines.add(stackLine(stats.shulkerStacks(), stats.endCrystalStacks()));
+        lines.add(formatAdditionalHealth(defense.effectiveAdditionalHealth(), scalingProgress(defense.rawAdditionalHealth(), defense.effectiveAdditionalHealth())));
+        lines.add(formatRegeneration(defense.currentRegeneration(), stackProgress(stats.shulkerStacks(), regenerationStacks, defense.currentRegeneration(), defense.maximumRegeneration())));
+        lines.add(formatLifeSteal(defense.currentLifeSteal(), stackProgress(stats.shulkerStacks(), lifeStealStacks, defense.currentLifeSteal(), defense.maximumLifeSteal())));
+        lines.add(formatDamageReduction(defense.currentDamageReduction(), stackProgress(stats.shulkerStacks(), damageReductionStacks, defense.currentDamageReduction(), defense.maximumDamageReduction())));
+        lines.add(formatAdditionalDamage(combat.effectiveAttackDamage(), scalingProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())));
+        lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), stackProgress(stats.endCrystalStacks(), attackSpeedStacks, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
+        lines.add(formatSplashRange(combat.currentSplashRadius(), splashProgress(stats.endCrystalStacks(), splash1, splash2, splash3, splash4, splash5)));
+        lines.add(formatAttackRange(combat.currentAttackRange(), stackProgress(stats.endCrystalStacks(), attackRangeStacks, combat.currentAttackRange(), combat.maximumAttackRange())));
         if (evolution.showBonuses()) {
-            lines.add(styledEndStat(DAMAGE_COLOR, "\u2694", "최종 피해", "+" + Math.round(evolution.finalDamageBonus() * 100.0), "%", ""));
-            lines.add(styledEndStat(ATTACK_RANGE_COLOR, "\uD83C\uDFF9", "추가 사거리", "+" + oneDecimal(evolution.dragonRangeBonus()), " 블록", ""));
+            lines.add(formatFinalDamage(evolution.finalDamageBonus(), ""));
+            lines.add(formatBonusRange(evolution.dragonRangeBonus(), ""));
         }
 
         return lines;
     }
 
-    private static String oneDecimal(double value) {
-        return String.format(Locale.ROOT, "%.1f", value);
+    private static String stateLine(EndTowerState state) {
+        String stateName = switch (state) {
+            case EGG -> "드래곤 알";
+            case PHANTOM -> "아기 드래곤";
+            case DRAGON -> "엔더 드래곤";
+        };
+        return "<white>상태: " + endText(stateName) + "</white>";
     }
 
-    private static String compactOneDecimal(double value) {
-        String formatted = oneDecimal(value);
-        return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
+    private static String stackLine(int shulkerStacks, int endCrystalStacks) {
+        return "<white>" + healthText("셜커") + " 계열, " + attackDamageText("엔드 수정") + " 계열 스택: " + healthText(Integer.toString(shulkerStacks)) + " <dark_gray>|</dark_gray> " + attackDamageText(Integer.toString(endCrystalStacks)) + "</white>";
     }
 
     private static String scalingProgress(double rawValue, double effectiveValue) {
         return rawValue > effectiveValue + 0.0001
-                ? "(누적 " + oneDecimal(rawValue) + ")"
+                ? "(누적 " + formatNumber(rawValue) + ")"
                 : "";
     }
 

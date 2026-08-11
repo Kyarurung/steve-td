@@ -261,13 +261,13 @@ class WarlockTowerBalanceTest {
         assertTrue(details.contains("이번 라운드에 흡수한 타워: 0기"));
         assertFalse(details.contains("각성 상태:"));
         assertFalse(details.contains("피해량 상한"));
-        assertTrue(details.contains("현재 추가 피해: +0.0"));
-        assertTrue(details.contains("영구 체력: +0.0"));
+        assertTrue(details.contains("현재 추가 피해: +0"));
+        assertTrue(details.contains("영구 체력: +0"));
         assertTrue(details.contains("공격 속도: -0틱"));
         assertTrue(details.contains("공격 범위: +0 블록 (1)"));
         assertFalse(details.contains("재생:"));
-        assertTrue(details.contains("생명력 흡수: +0.0% (5)"));
-        assertTrue(details.contains("피해 감소: +0.0% (4)"));
+        assertTrue(details.contains("생명력 흡수: +0% (5)"));
+        assertTrue(details.contains("피해 감소: +0% (4)"));
         assertFalse(details.contains("제한 없음"));
         assertFalse(details.contains("스플래시 범위:"));
         assertFalse(details.contains("최종 피해 제외"));
@@ -285,12 +285,12 @@ class WarlockTowerBalanceTest {
         assertTrue(meleeDetails.contains("흡수한 타워: 0기"));
         assertTrue(meleeDetails.contains("이번 라운드에 흡수한 타워: 0기"));
         assertFalse(meleeDetails.contains("각성 상태:"));
-        assertTrue(meleeDetails.contains("현재 추가 피해: +0.0"));
-        assertTrue(meleeDetails.contains("영구 체력: +0.0"));
+        assertTrue(meleeDetails.contains("현재 추가 피해: +0"));
+        assertTrue(meleeDetails.contains("영구 체력: +0"));
         assertTrue(meleeDetails.contains("공격 속도: -0틱 (1)"));
         assertTrue(meleeDetails.contains("공격 범위: +0 블록 (1)"));
-        assertTrue(meleeDetails.contains("생명력 흡수: +0.0% (1)"));
-        assertTrue(meleeDetails.contains("피해 감소: +0.0% (5)"));
+        assertTrue(meleeDetails.contains("생명력 흡수: +0% (1)"));
+        assertTrue(meleeDetails.contains("피해 감소: +0% (5)"));
         assertFalse(meleeDetails.contains("피해량 상한"));
         assertFalse(meleeDetails.contains("재생:"));
         assertFalse(meleeDetails.contains("제한 없음"));
@@ -334,13 +334,13 @@ class WarlockTowerBalanceTest {
         assertTrue(details.contains("각성 상태: 각성"));
         assertFalse(details.contains("피해량 상한"));
         assertTrue(details.contains("현재 추가 피해: +42.5"));
-        assertTrue(details.contains("영구 체력: +75.0"));
+        assertTrue(details.contains("영구 체력: +75"));
         assertTrue(details.contains("공격 속도: -4틱"));
         assertTrue(details.contains("공격 범위: +1.5 블록 (13)"));
         assertTrue(details.contains("재생: +40 HP/s"));
         assertFalse(details.contains("재생: +40 HP/s (MAX)"));
         assertTrue(details.contains("생명력 흡수: +8.5% (MAX)"));
-        assertTrue(details.contains("피해 감소: +10.0% (MAX)"));
+        assertTrue(details.contains("피해 감소: +10% (MAX)"));
         assertFalse(details.contains("제한 없음"));
         assertFalse(details.contains("스플래시 범위:"));
         assertFalse(details.contains("받는 피해 감소:"));
@@ -366,6 +366,6 @@ class WarlockTowerBalanceTest {
                 )
         );
         assertTrue(String.join("\n", compressedLines).replaceAll("<[^>]+>", "")
-                .contains("현재 추가 피해: +396.7 (누적 600.0)"));
+                .contains("현재 추가 피해: +396.72 (누적 600)"));
     }
 }
