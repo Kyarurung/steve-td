@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.tower.LogarithmicScaling;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
@@ -193,39 +194,28 @@ final class EndTransferController {
     }
 
     double permanentHealthBonus() {
-        return healthSoftCap(state.permanentHealthBonus());
+        return scaleHealthBonus(state.permanentHealthBonus());
     }
 
     double permanentDamageBonus() {
-        return damageSoftCap(state.permanentDamageBonus());
+        return scaleDamageBonus(state.permanentDamageBonus());
     }
 
     double roundHealthBonus() {
         double permanent = state.permanentHealthBonus();
         double total = permanent + state.roundHealthContribution();
-        return Math.max(0.0, healthSoftCap(total) - healthSoftCap(permanent));
+        return Math.max(0.0, scaleHealthBonus(total) - scaleHealthBonus(permanent));
     }
 
     double roundDamageBonus() {
         double permanent = state.permanentDamageBonus();
         double total = permanent + state.roundDamageContribution();
-        return Math.max(0.0, damageSoftCap(total) - damageSoftCap(permanent));
+        return Math.max(0.0, scaleDamageBonus(total) - scaleDamageBonus(permanent));
     }
 
-    private double damageSoftCap(double raw) {
-        return softCap(raw, config.value(DAMAGE_THRESHOLD), config.value(DAMAGE_SCALE));
-    }
+    private double scaleDamageBonus(double raw) {return LogarithmicScaling.logarithmicBonus(raw, config.value(DAMAGE_THRESHOLD), config.value(DAMAGE_SCALE));}
 
-    private double healthSoftCap(double raw) {
-        return softCap(raw, config.value(HEALTH_THRESHOLD), config.value(HEALTH_SCALE));
-    }
-
-    private static double softCap(double raw, double threshold, double scale) {
-        if (raw <= 0.0) {return 0.0;}
-        if (threshold <= 0.0 || scale <= 0.0) {return raw;}
-        if (raw <= threshold) {return raw;}
-        return threshold + scale * Math.log1p((raw - threshold) / scale);
-    }
+    private double scaleHealthBonus(double raw) {return LogarithmicScaling.logarithmicBonus(raw, config.value(HEALTH_THRESHOLD), config.value(HEALTH_SCALE));}
 
     static double progress(Tower tower) {
         return Math.clamp(tower.getDataOrDefault(PROGRESS, 0.0), 0.0, 1.0);
