@@ -1,10 +1,5 @@
 package kim.biryeong.semiontd.tower.end;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
-import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
-import static kim.biryeong.semiontd.tower.end.EndFormatting.endText;
-import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
-
 import java.util.List;
 import java.util.Set;
 import kim.biryeong.semiontd.entity.visual.BlockDisplayVisual;
@@ -13,9 +8,15 @@ import kim.biryeong.semiontd.entity.visual.ShulkerVisual;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
+import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Blocks;
+
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
+import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndFormatting.endText;
+import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
 
 public final class EndTowers {
     public static final String CONFIG_ID = "end_global";
@@ -141,9 +142,7 @@ public final class EndTowers {
                 "<gray>전달 중인 셜커 타워의 " + healthText("최대 체력") + "의 " + healthText(ability(TRANSFER_HEAL_RATIO, "percent")) + "를 초당 회복합니다.</gray>",
                 "<gray>타워 " + healthText("체력") + "의 " + healthText(ability(ROUND_HEALTH_RATIO, "percent")) + "를 임시 획득, " + healthText(ability(PERMANENT_HEALTH_RATIO, "percent")) + " 영구 누적</gray>",
                 "<gray>타워 " + attackDamageText("피해") + "의 " + attackDamageText(ability(ROUND_DAMAGE_RATIO, "percent")) + "를 임시 획득, " + attackDamageText(ability(PERMANENT_DAMAGE_RATIO, "percent")) + " 영구 누적</gray>",
-                "<gray>흡수로 얻는 추가 " + healthText("체력은 " + ability(HEALTH_THRESHOLD, "number")) + ", " + attackDamageText("피해는 " + ability(DAMAGE_THRESHOLD, "number")) + "까지 그대로 적용됩니다.</gray>",
-                "<gray>기준을 넘긴 누적 능력치는 완만하게 적용됩니다.</gray>",
-                "<gray>누적 원본은 보존되며 실제 적용 능력치만 완화됩니다.</gray>"
+                "<gray>능력치는 높아질수록 증가 효율이 감소합니다.</gray>"
         );
     }
 
@@ -189,9 +188,6 @@ public final class EndTowers {
     }
 
     public static int transferTier(TowerType type) {
-        return ProductionTowerCatalog.entry(type)
-                .map(ProductionTowerCatalog.CatalogEntry::tier)
-                .orElse(0);
+        return ProductionTowerCatalog.entry(type).map(ProductionTowerCatalog.CatalogEntry::tier).orElse(0);
     }
-
 }

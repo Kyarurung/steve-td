@@ -33,7 +33,10 @@ final class WarlockStatsView {
             lines.add(formatLifeSteal(defense.lifeSteal(), stackProgress(ranged ? stats.totalSacrifices() : stats.roundSacrifices(), lifeStealEvery, defense.lifeSteal(), defense.maximumLifeSteal())));
             lines.add(formatDamageReduction(defense.damageReduction(), stackProgress(ranged ? stats.roundSacrifices() : stats.totalSacrifices(), damageReductionEvery, defense.damageReduction(), defense.maximumDamageReduction())));
         }
-        lines.add(formatAdditionalDamage(combat.effectiveAttackDamage(), damageProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())));
+        lines.add(formatPermanentDamage(
+                combat.effectiveAttackDamage(),
+                damageProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())
+        ));
         if (melee) {
             lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), stackProgress(stats.roundSacrifices(), 1, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
         } else {

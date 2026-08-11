@@ -930,10 +930,6 @@ public record TowerBalanceConfig(
 
         requirePositive(end,
                 DRAGON_EVOLUTION,
-                HEALTH_THRESHOLD,
-                HEALTH_SCALE,
-                DAMAGE_THRESHOLD,
-                DAMAGE_SCALE,
                 TRANSFER_TICKS,
                 TRANSFER_ATTACK_SPEED_STACKS,
                 ATTACK_SPEED_STACKS,
@@ -946,9 +942,12 @@ public record TowerBalanceConfig(
                 SPLASH_5,
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
-                REGENERATION_TICKS,
                 DAMAGE_REDUCTION_STACKS,
-                PHANTOM_SCALE_HEALTH
+                PHANTOM_SCALE_HEALTH,
+                HEALTH_THRESHOLD,
+                HEALTH_SCALE,
+                DAMAGE_THRESHOLD,
+                DAMAGE_SCALE
         );
         requireRatio(end,
                 ROUND_HEALTH_RATIO,
@@ -987,7 +986,6 @@ public record TowerBalanceConfig(
                 SPLASH_5,
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
-                REGENERATION_TICKS,
                 DAMAGE_REDUCTION_STACKS
         );
         validateMinimumAttackInterval(end);
@@ -1598,14 +1596,23 @@ public record TowerBalanceConfig(
         values.put(TRANSFER_TICKS.key(), 200.0);
         values.put(TRANSFER_HEAL.key(), 30.0);
         values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
-        values.put(HEALTH_THRESHOLD.key(), 3000.0);
-        values.put(HEALTH_SCALE.key(), 500.0);
-        values.put(DAMAGE_THRESHOLD.key(), 150.0);
-        values.put(DAMAGE_SCALE.key(), 25.0);
-        values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
-        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
         values.put(ROUND_HEALTH_RATIO.key(), 0.50);
         values.put(PERMANENT_HEALTH_RATIO.key(), 0.04);
+        values.put(HEALTH_THRESHOLD.key(), 3000.0);
+        values.put(HEALTH_SCALE.key(), 500.0);
+        values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
+        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
+        values.put(DAMAGE_THRESHOLD.key(), 150.0);
+        values.put(DAMAGE_SCALE.key(), 25.0);
+        values.put(LIFE_STEAL_STACKS.key(), 30.0);
+        values.put(LIFE_STEAL_STEP.key(), 0.01);
+        values.put(LIFE_STEAL_CAP.key(), 0.10);
+        values.put(DAMAGE_REDUCTION_STACKS.key(), 15.0);
+        values.put(DAMAGE_REDUCTION_STEP.key(), 0.01);
+        values.put(DAMAGE_REDUCTION_CAP.key(), 0.20);
+        values.put(REGENERATION_STACKS.key(), 10.0);
+        values.put(REGENERATION_STEP.key(), 1.0);
+        values.put(REGENERATION_CAP.key(), 30.0);
         values.put(SPLASH_1.key(), 10.0);
         values.put(SPLASH_2.key(), 35.0);
         values.put(SPLASH_3.key(), 75.0);
@@ -1623,16 +1630,6 @@ public record TowerBalanceConfig(
         values.put(ATTACK_RANGE_STACKS.key(), 50.0);
         values.put(ATTACK_RANGE_STEP.key(), 0.5);
         values.put(ATTACK_RANGE_CAP.key(), 3.0);
-        values.put(LIFE_STEAL_STACKS.key(), 30.0);
-        values.put(LIFE_STEAL_STEP.key(), 0.01);
-        values.put(LIFE_STEAL_CAP.key(), 0.10);
-        values.put(DAMAGE_REDUCTION_STACKS.key(), 15.0);
-        values.put(DAMAGE_REDUCTION_STEP.key(), 0.01);
-        values.put(DAMAGE_REDUCTION_CAP.key(), 0.20);
-        values.put(REGENERATION_STACKS.key(), 10.0);
-        values.put(REGENERATION_STEP.key(), 1.0);
-        values.put(REGENERATION_CAP.key(), 30.0);
-        values.put(REGENERATION_TICKS.key(), 20.0);
         values.put(DRAGON_FINAL_DAMAGE.key(), 0.10);
         values.put(DRAGON_RANGE_BONUS.key(), 2.0);
         return Collections.unmodifiableMap(values);

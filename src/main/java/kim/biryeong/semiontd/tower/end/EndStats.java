@@ -21,24 +21,22 @@ final class EndStats {
                 tower.shulkerCount(),
                 tower.endCrystalCount(),
                 new EndStatsView.DefenseStats(
-                        tower.healthBonus(),
-                        tower.effectiveHealthBonus(),
-                        combat.regenerationPerSecond(),
-                        combat.maximumRegeneration(),
+                        tower.permanentHealthBonus(),
                         combat.lifeStealRatio(),
                         combat.maximumLifeSteal(),
                         combat.damageReduction(),
-                        combat.maximumDamageReduction()
+                        combat.maximumDamageReduction(),
+                        combat.regenerationPerSecond(),
+                        combat.maximumRegeneration()
                 ),
                 new EndStatsView.CombatStats(
-                        tower.damageBonus(),
-                        tower.effectiveDamageBonus(),
-                        tower.previewHatchedAttackRange(),
-                        combat.maximumAttackRange(tower.type(), tower.isDragon()),
+                        tower.permanentDamageBonus(),
+                        combat.splashRadius(true),
+                        combat.maximumSplashRadius(),
                         intervalReduction,
                         combat.maximumAttackIntervalReduction(tower.type()),
-                        combat.splashRadius(true),
-                        combat.maximumSplashRadius()
+                        tower.previewHatchedAttackRange(),
+                        combat.maximumAttackRange(tower.type(), tower.isDragon())
                 ),
                 new EndStatsView.EvolutionStats(
                         (tower.isEgg() || tower.isDragon()) && maxHealth >= combat.dragonEvolutionHealth(),

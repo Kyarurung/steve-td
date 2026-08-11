@@ -611,7 +611,7 @@ public final class SemionDialogService {
         body.append(formatAttackSpeed(currentAttacksPerSecond, currentAttackIntervalTicks, "")).append(formatIncrease(baseAttacksPerSecond, currentAttacksPerSecond)).append('\n');
         body.append(formatAttackRange(currentRange, "")).append(formatIncrease(tower.type().range(), currentRange)).append(" <dark_gray>|</dark_gray> ").append(formatAggroPriority(tower.type().aggroPriority(), "")).append('\n');
         body.append("<divider>\n");
-        towerEntity.ifPresent(entity -> {int beforeLength = body.length();appendTowerTimedEffects(body, entity);if (body.length() > beforeLength) {body.append("<divider>\n");}});
+        towerEntity.ifPresent(entity -> {int beforeLength = body.length(); appendTowerTimedEffects(body, entity); if (body.length() > beforeLength) {body.append("<divider>\n");}});
         int beforeRuntimeLength = body.length();
         appendTowerRuntimeDetails(body, tower);
         if (body.length() > beforeRuntimeLength) {body.append("<divider>\n");}
@@ -1298,54 +1298,28 @@ public final class SemionDialogService {
                         .withBold(true));
     }
 
-    private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable) {
-        return towerTooltip(entry, mineralCost, affordable, false);
-    }
-
     private static Component towerTooltip(ProductionTowerCatalog.CatalogEntry entry, long mineralCost, boolean affordable, boolean recommended) {
         var type = entry.type();
         double attacksPerSecond = 20.0 / Math.max(1, type.attackIntervalTicks());
         MutableComponent tooltip = mutableMiniMessage("<white><bold>" + type.displayName() + "</bold></white>\n" + (recommended ? "<blue>빌드 추천</blue>\n" : "") + DIAMOND_GRADIENT + "\uD83D\uDC8E " + mineralCost + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n");
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n"
-                + formatAttackDamage(type.damage(), "") + "\n"
-                + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n"
-                + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
+        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.damage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
         tooltip.append(dividerComponent(160));
         appendTowerDescription(tooltip, type.description());
         return tooltip;
     }
 
-    private static Component upgradeTooltip(TowerUpgradeOption option) {
-        return upgradeTooltip(option, true, false, null);
-    }
-
-    private static Component upgradeTooltip(TowerUpgradeOption option, boolean affordable, boolean recommended) {
-        return upgradeTooltip(option, affordable, recommended, null);
-    }
-
     private static Component upgradeTooltip(TowerUpgradeOption option, boolean affordable, boolean recommended, Tower currentTower) {
         Optional<ProductionTowerCatalog.CatalogEntry> target = ProductionTowerCatalog.entry(option.targetType());
         if (target.isEmpty()) {
-            return Component.literal(
-                    "대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아"
-            );
+            return Component.literal("대상 타워를 찾을 수 없습니다.\n비용 " + option.mineralCost() + " 다이아");
         }
         var entry = target.get();
         var type = entry.type();
         double attacksPerSecond = 20.0 / Math.max(1, type.attackIntervalTicks());
-        MutableComponent tooltip = mutableMiniMessage(
-                "<yellow><bold>" + option.displayName() + "</bold></yellow>\n"
-                        + (recommended ? "<blue>빌드 추천</blue>\n" : "")
-                        + "<gray>대상</gray> <white>" + type.displayName() + "</white>\n"
-                        + DIAMOND_GRADIENT + "\uD83D\uDC8E " + option.mineralCost() + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n"
-                        + advExperienceRequirementLine(currentTower, option)
-        );
+        MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + option.displayName() + "</bold></yellow>\n" + (recommended ? "<blue>빌드 추천</blue>\n" : "") + "<gray>대상</gray> <white>" + type.displayName() + "</white>\n" + DIAMOND_GRADIENT + "\uD83D\uDC8E " + option.mineralCost() + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n" + advExperienceRequirementLine(currentTower, option));
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n"
-                + formatAttackDamage(type.damage(), "") + "\n"
-                + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n"
-                + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
+        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.damage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
         tooltip.append(dividerComponent(160));
         appendTowerDescription(tooltip, type.description());
         return tooltip;
@@ -1467,27 +1441,14 @@ public final class SemionDialogService {
 
     private static Component summonTooltip(SummonMonsterType type, boolean affordable) {
         double attacksPerSecond = 20.0 / 13.0;
-        MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + type.displayName() + "</bold></yellow> <dark_gray>|</dark_gray> <gray>" + roleList(type) + "</gray>\n"
-        );
+        MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + type.displayName() + "</bold></yellow> <dark_gray>|</dark_gray> <gray>" + roleList(type) + "</gray>\n");
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatEmerald(type.gasCost(), affordable, "") + "\n"
-                + formatKillReward(type.mineralReward(), "") + "\n"
-                + formatIncome(type.incomeGain(), type.incomeRatio(), "") + "\n"));
+        tooltip.append(mutableMiniMessage(formatEmerald(type.gasCost(), affordable, "") + "\n" + formatKillReward(type.mineralReward(), "") + "\n" + formatIncome(type.incomeGain(), type.incomeRatio(), "") + "\n"));
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(
-                formatHealth(type.maxHealth(), "") + "\n"
-                        + formatAttackDamage(type.attackDamage(), "") + "\n"
-                        + formatAttackSpeed(attacksPerSecond, 13, "") + "\n"
-                        + formatDefense(type.armor(), "") + " <dark_gray>|</dark_gray> " + formatResistance(type.resistance(), "") + "\n"
-                        + formatAggroPriority(type.targetRolePriority(), "") + "\n"
-        ));
+        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.attackDamage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, 13, "") + "\n" + formatDefense(type.armor(), "") + " <dark_gray>|</dark_gray> " + formatResistance(type.resistance(), "") + "\n" + formatAggroPriority(type.targetRolePriority(), "") + "\n"));
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatDamageType(damageTypeLabel(type.damageType()), "")
-                + " <dark_gray>|</dark_gray> " + formatAttackKind(attackKindIcon(type.attackKind()), attackKindLabel(type.attackKind()), "") + "\n"
-                + formatSize(type.dimensions().width(), type.dimensions().height(), "")
-                + " <dark_gray>|</dark_gray> " + formatAbility(abilityActivationList(type), "") + "\n"));
+        tooltip.append(mutableMiniMessage(formatDamageType(damageTypeLabel(type.damageType()), "") + " <dark_gray>|</dark_gray> " + formatAttackKind(attackKindIcon(type.attackKind()), attackKindLabel(type.attackKind()), "") + "\n" + formatSize(type.dimensions().width(), type.dimensions().height(), "") + " <dark_gray>|</dark_gray> " + formatAbility(abilityActivationList(type), "") + "\n"));
         appendSummonDescription(tooltip, type.description());
-
         return tooltip;
     }
 

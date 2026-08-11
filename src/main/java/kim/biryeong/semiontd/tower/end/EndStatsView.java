@@ -13,12 +13,8 @@ final class EndStatsView {
 
     static List<String> feeder(boolean waveActive, double transferProgress, double damageReduction) {
         ArrayList<String> lines = new ArrayList<>();
-        lines.add(waveActive
-                ? "<white>힘 전달 진행률: " + endText(format(transferProgress, "percent")) + "</white>"
-                : "<gray>엔더 드래곤에게 힘 전달 대기 중</gray>");
-        if (damageReduction > 0.0) {
-            lines.add(formatDamageReduction(damageReduction, ""));
-        }
+        lines.add(waveActive ? "<white>힘 전달 진행률: " + endText(format(transferProgress, "percent")) + "</white>" : "<gray>" + endText("엔더 드래곤") + "에게 힘 전달 대기 중</gray>");
+        if (damageReduction > 0.0) {lines.add(formatDamageReduction(damageReduction, ""));}
         return lines;
     }
 
@@ -26,24 +22,24 @@ final class EndStatsView {
         CombatStats combat = stats.combat();
         DefenseStats defense = stats.defense();
         EvolutionStats evolution = stats.evolution();
-        int attackSpeedStacks = Math.max(1, EndConfig.RUNTIME.integer(ATTACK_SPEED_STACKS));
-        int attackRangeStacks = Math.max(1, EndConfig.RUNTIME.integer(ATTACK_RANGE_STACKS));
         int regenerationStacks = Math.max(1, EndConfig.RUNTIME.integer(REGENERATION_STACKS));
         int lifeStealStacks = Math.max(1, EndConfig.RUNTIME.integer(LIFE_STEAL_STACKS));
         int damageReductionStacks = Math.max(1, EndConfig.RUNTIME.integer(DAMAGE_REDUCTION_STACKS));
+        int attackSpeedStacks = Math.max(1, EndConfig.RUNTIME.integer(ATTACK_SPEED_STACKS));
         int splash1 = EndConfig.RUNTIME.integer(SPLASH_1);
         int splash2 = EndConfig.RUNTIME.integer(SPLASH_2);
         int splash3 = EndConfig.RUNTIME.integer(SPLASH_3);
         int splash4 = EndConfig.RUNTIME.integer(SPLASH_4);
         int splash5 = EndConfig.RUNTIME.integer(SPLASH_5);
+        int attackRangeStacks = Math.max(1, EndConfig.RUNTIME.integer(ATTACK_RANGE_STACKS));
         ArrayList<String> lines = new ArrayList<>();
         lines.add(stateLine(stats.state()));
         lines.add(stackLine(stats.shulkerStacks(), stats.endCrystalStacks()));
-        lines.add(formatAdditionalHealth(defense.effectiveAdditionalHealth(), scalingProgress(defense.rawAdditionalHealth(), defense.effectiveAdditionalHealth())));
+        lines.add(formatPermanentHealth(defense.additionalHealth(), ""));
         lines.add(formatRegeneration(defense.currentRegeneration(), stackProgress(stats.shulkerStacks(), regenerationStacks, defense.currentRegeneration(), defense.maximumRegeneration())));
         lines.add(formatLifeSteal(defense.currentLifeSteal(), stackProgress(stats.shulkerStacks(), lifeStealStacks, defense.currentLifeSteal(), defense.maximumLifeSteal())));
         lines.add(formatDamageReduction(defense.currentDamageReduction(), stackProgress(stats.shulkerStacks(), damageReductionStacks, defense.currentDamageReduction(), defense.maximumDamageReduction())));
-        lines.add(formatAdditionalDamage(combat.effectiveAttackDamage(), scalingProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())));
+        lines.add(formatPermanentDamage(combat.additionalAttackDamage(), ""));
         lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), stackProgress(stats.endCrystalStacks(), attackSpeedStacks, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
         lines.add(formatSplashRange(combat.currentSplashRadius(), splashProgress(stats.endCrystalStacks(), splash1, splash2, splash3, splash4, splash5)));
         lines.add(formatAttackRange(combat.currentAttackRange(), stackProgress(stats.endCrystalStacks(), attackRangeStacks, combat.currentAttackRange(), combat.maximumAttackRange())));
@@ -51,7 +47,6 @@ final class EndStatsView {
             lines.add(formatFinalDamage(evolution.finalDamageBonus(), ""));
             lines.add(formatBonusRange(evolution.dragonRangeBonus(), ""));
         }
-
         return lines;
     }
 
@@ -68,19 +63,13 @@ final class EndStatsView {
         return "<white>" + healthText("셜커") + " 계열, " + attackDamageText("엔드 수정") + " 계열 스택: " + healthText(Integer.toString(shulkerStacks)) + " <dark_gray>|</dark_gray> " + attackDamageText(Integer.toString(endCrystalStacks)) + "</white>";
     }
 
-    private static String scalingProgress(double rawValue, double effectiveValue) {
-        return rawValue > effectiveValue + 0.0001
-                ? "(누적 " + formatNumber(rawValue) + ")"
-                : "";
-    }
-
     record CoreStats(EndTowerState state, int shulkerStacks, int endCrystalStacks, DefenseStats defense, CombatStats combat, EvolutionStats evolution) {
     }
 
-    record DefenseStats(double rawAdditionalHealth, double effectiveAdditionalHealth, double currentRegeneration, double maximumRegeneration, double currentLifeSteal, double maximumLifeSteal, double currentDamageReduction, double maximumDamageReduction) {
+    record DefenseStats(double additionalHealth, double currentLifeSteal, double maximumLifeSteal, double currentDamageReduction, double maximumDamageReduction, double currentRegeneration, double maximumRegeneration) {
     }
 
-    record CombatStats(double rawAttackDamage, double effectiveAttackDamage, double currentAttackRange, double maximumAttackRange, int attackIntervalReductionTicks, int maximumAttackIntervalReductionTicks, double currentSplashRadius, double maximumSplashRadius) {
+    record CombatStats(double additionalAttackDamage, double currentSplashRadius, double maximumSplashRadius, int attackIntervalReductionTicks, int maximumAttackIntervalReductionTicks, double currentAttackRange, double maximumAttackRange) {
     }
 
     record EvolutionStats(boolean showBonuses, double finalDamageBonus, double dragonRangeBonus) {

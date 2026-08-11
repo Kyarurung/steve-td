@@ -14,15 +14,15 @@ public final class TowerDescriptionTemplate {
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^{}]+)}");
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(Locale.ROOT));
     private static final DecimalFormat PRECISE_NUMBER_FORMAT = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.ROOT));
-    private static final String ATTACK_DAMAGE_COLOR = "#ec8d34";
     private static final String HEALTH_COLOR = "#fc5454";
     private static final String REGENERATION_COLOR = "#20985d";
     private static final String LIFE_STEAL_COLOR = "#e32042";
     private static final String DAMAGE_REDUCTION_COLOR = "#f3ba59";
-    private static final String AGGRO_PRIORITY_COLOR = "#a80000";
-    private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
+    private static final String ATTACK_DAMAGE_COLOR = "#ec8d34";
     private static final String ATTACK_SPEED_COLOR = "#ffe78d";
+    private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
     private static final String RESISTANCE_COLOR = "#53DFFF";
+    private static final String AGGRO_PRIORITY_COLOR = "#a80000";
     private static final String DIAMOND_GRADIENT = "<gradient:#ffffff:#d5fff6:#a1fbe8:#4aedd9:#20c5b5:#1aaaa7:#11727a:#145e53>";
     private static final String GRADIENT_CLOSE = "</gradient>";
 
@@ -168,7 +168,7 @@ public final class TowerDescriptionTemplate {
     }
 
     private static String styledProgressStat(String color, String icon, String label, String value, String progress) {
-        return "<" + color + ">" + icon + " " + label + "</" + color + "><white>: </white><" + color + ">" + value + "</" + color + ">" + progressSuffix(progress);
+        return "<" + color + ">" + icon + " " + label + "</" + color + "><white>: </white><" + color + ">" + value + "</" + color + ">" + (progress.isEmpty() ? "" : "<white> " + progress + "</white>");
     }
 
     public static String stackProgress(int currentStacks, int stacksPerStep, double currentValue, double maximumValue) {
@@ -195,6 +195,12 @@ public final class TowerDescriptionTemplate {
     public static String formatNumber(double value) {
         synchronized (NUMBER_FORMAT) {
             return NUMBER_FORMAT.format(value);
+        }
+    }
+
+    private static String formatPreciseNumber(double value) {
+        synchronized (PRECISE_NUMBER_FORMAT) {
+            return PRECISE_NUMBER_FORMAT.format(value);
         }
     }
 
@@ -230,10 +236,6 @@ public final class TowerDescriptionTemplate {
         return styledProgressStat(HEALTH_COLOR, "\u2764", "영구 체력", "+" + formatNumber(value), progress);
     }
 
-    public static String formatAdditionalHealth(double value, String progress) {
-        return styledProgressStat(HEALTH_COLOR, "\u2764", "현재 추가 체력", "+" + formatNumber(value), progress);
-    }
-
     public static String formatRegeneration(double value, String progress) {
         return styledProgressStat(REGENERATION_COLOR, "➕", "재생", "+" + formatNumber(value) + " HP/s", progress);
     }
@@ -252,10 +254,6 @@ public final class TowerDescriptionTemplate {
 
     public static String formatPermanentDamage(double value, String progress) {
         return styledProgressStat(ATTACK_DAMAGE_COLOR, "\uD83E\uDE93", "영구 피해", "+" + formatNumber(value), progress);
-    }
-
-    public static String formatAdditionalDamage(double value, String progress) {
-        return styledProgressStat(ATTACK_DAMAGE_COLOR, "\uD83E\uDE93", "현재 추가 피해", "+" + formatNumber(value), progress);
     }
 
     public static String formatAttackSpeed(double value, String progress) {
@@ -326,13 +324,7 @@ public final class TowerDescriptionTemplate {
         return "<yellow>⭐ 능력</yellow><white>: </white><yellow>" + value + "</yellow>" + progressSuffix(progress);
     }
 
-    private static String formatPreciseNumber(double value) {
-        synchronized (PRECISE_NUMBER_FORMAT) {
-            return PRECISE_NUMBER_FORMAT.format(value);
-        }
-    }
-
     public static String formatSellPrice(double value, String progress) {
-        return DIAMOND_GRADIENT + "\uD83D\uDC8E 판매가<white>: </white>" + Math.round(value) + " 다이아" + GRADIENT_CLOSE + progressSuffix(progress);
+        return DIAMOND_GRADIENT + "\uD83D\uDC8E 판매가<white>: </white>" + Math.round(value) + " 다이아" + GRADIENT_CLOSE + (progress.isEmpty() ? "" : "<white> " + progress + "</white>");
     }
 }
