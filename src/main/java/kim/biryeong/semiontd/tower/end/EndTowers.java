@@ -188,8 +188,6 @@ public final class EndTowers {
     }
 
     public static int transferTier(TowerType type) {
-        return ProductionTowerCatalog.entry(type)
-                .map(ProductionTowerCatalog.CatalogEntry::tier)
-                .orElse(0);
+        return ProductionTowerCatalog.entry(type).map(ProductionTowerCatalog.CatalogEntry::tier).orElse(0);
     }
 }

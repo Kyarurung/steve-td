@@ -32,30 +32,16 @@ public final class EndTowerCatalogs {
     }
 
     private static void registerTower(TowerType type, int tier) {
-        if (ProductionTowerCatalog.find(type.id()).isPresent()) {
-            return;
-        }
+        if (ProductionTowerCatalog.find(type.id()).isPresent()) {return;}
         TowerType resolvedType = TowerBalanceRuntime.resolve(type);
-        if (tier == 1) {
-            ProductionTowerCatalog.registerStarter(resolvedType, EndTower::new);
-            return;
-        }
+        if (tier == 1) {ProductionTowerCatalog.registerStarter(resolvedType, EndTower::new);return;}
         ProductionTowerCatalog.register(resolvedType, EndTower::new, tier);
     }
 
     private static void link(TowerType from, TowerType to, String displayName) {
-        if (ProductionTowerCatalog.upgrade(from, to.id()).isPresent()) {
-            return;
-        }
-        TowerType targetType = ProductionTowerCatalog.find(to.id())
-                .map(ProductionTowerCatalog.CatalogEntry::type)
-                .orElse(to);
-        ProductionTowerCatalog.linkUpgrade(
-                from,
-                to.id(),
-                displayName,
-                targetType,
-                TowerBalanceRuntime.upgradeCost(from, to.id())
+        if (ProductionTowerCatalog.upgrade(from, to.id()).isPresent()) {return;}
+        TowerType targetType = ProductionTowerCatalog.find(to.id()).map(ProductionTowerCatalog.CatalogEntry::type).orElse(to);
+        ProductionTowerCatalog.linkUpgrade(from, to.id(), displayName, targetType, TowerBalanceRuntime.upgradeCost(from, to.id())
         );
     }
 }

@@ -301,11 +301,8 @@ public final class EndTower extends EntityBackedTower {
 
     private void refreshTransferStats(PlayerLane lane) {
         Optional<SemionTowerEntity> entity = towerEntity(lane);
-        if (entity.isPresent()) {
-            entity.get().refreshMaxHealthEffects(false);
-        } else {
-            syncMaxHealth(effectBaseMaxHealth(), false);
-        }
+        if (entity.isPresent()) {entity.get().refreshMaxHealthEffects(false);}
+        else {syncMaxHealth(effectBaseMaxHealth(), false);}
     }
 
     double transferProgress() {
@@ -313,48 +310,27 @@ public final class EndTower extends EntityBackedTower {
     }
 
     private void healTransferredHealth(PlayerLane lane, double amount) {
-        if (amount <= 0.0) {
-            return;
-        }
+        if (amount <= 0.0) {return;}
         Optional<SemionTowerEntity> entity = towerEntity(lane);
-        if (entity.isPresent()) {
-            entity.get().receiveHealing(amount);
-        } else {
-            syncHealth(health() + amount);
-        }
+        if (entity.isPresent()) {entity.get().receiveHealing(amount);}
+        else {syncHealth(health() + amount);}
     }
 
     private void switchToPhantom(PlayerLane lane) {
-        if (!isEgg()) {
-            return;
-        }
+        if (!isEgg()) {return;}
         setData(STATE, EndTowerState.PHANTOM);
         Optional<SemionTowerEntity> entity = towerEntity(lane);
-        if (entity.isPresent()) {
-            entity.get().refreshMaxHealthEffects();
-        } else {
-            syncMaxHealth(effectBaseMaxHealth(), true);
-        }
-        if (lane != null) {
-            onStateChanged(lane);
-        }
+        if (entity.isPresent()) {entity.get().refreshMaxHealthEffects();}
+        else {syncMaxHealth(effectBaseMaxHealth(), true);}
+        if (lane != null) {onStateChanged(lane);}
     }
 
     private void reconcileEvolutionState(PlayerLane lane) {
-        if (!isHatched()) {
-            return;
-        }
-        EndTowerState nextState = EndTowerState.evolvedState(
-                currentMaxHealth(),
-                dragonEvolution()
-        );
-        if (state() == nextState) {
-            return;
-        }
+        if (!isHatched()) {return;}
+        EndTowerState nextState = EndTowerState.evolvedState(currentMaxHealth(), dragonEvolution());
+        if (state() == nextState) {return;}
         setData(STATE, nextState);
-        if (lane != null) {
-            onStateChanged(lane);
-        }
+        if (lane != null) {onStateChanged(lane);}
     }
 
     public double splashRadius() {
@@ -375,26 +351,17 @@ public final class EndTower extends EntityBackedTower {
 
     private void tickPeriodicHealing(PlayerLane lane, double transferHealingPerSecond) {
         double totalHealing = regenerationPerSecond() + Math.max(0.0, transferHealingPerSecond);
-        if (totalHealing <= 0.0) {
-            periodicHealingTicks = 0;
-            return;
-        }
+        if (totalHealing <= 0.0) {periodicHealingTicks = 0;return;}
         int intervalTicks = combat.regenerationTicks();
         periodicHealingTicks++;
-        if (periodicHealingTicks < intervalTicks) {
-            return;
-        }
+        if (periodicHealingTicks < intervalTicks) {return;}
         periodicHealingTicks %= intervalTicks;
         healTransferredHealth(lane, totalHealing);
     }
 
     private Optional<SemionTowerEntity> towerEntity(PlayerLane lane) {
-        if (lane == null || lane.arenaWorld() == null || entityId().isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(lane.arenaWorld().getEntity(entityId().getAsInt()))
-                .filter(SemionTowerEntity.class::isInstance)
-                .map(SemionTowerEntity.class::cast);
+        if (lane == null || lane.arenaWorld() == null || entityId().isEmpty()) {return Optional.empty();}
+        return Optional.ofNullable(lane.arenaWorld().getEntity(entityId().getAsInt())).filter(SemionTowerEntity.class::isInstance).map(SemionTowerEntity.class::cast);
     }
 
     boolean isDragon() {
@@ -406,9 +373,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     boolean isHatched() {
-        if (!isCoreTower()) {
-            return false;
-        }
+        if (!isCoreTower()) {return false;}
         return state().hatched();
     }
 
@@ -426,9 +391,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     private void initializeState() {
-        if (isCoreTower()) {
-            setData(STATE, EndTowerState.EGG);
-        }
+        if (isCoreTower()) {setData(STATE, EndTowerState.EGG);}
     }
 
     public double phantomScaleForMaxHealth(double maxHealth) {

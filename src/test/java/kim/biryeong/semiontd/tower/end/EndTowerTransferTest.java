@@ -260,6 +260,39 @@ class EndTowerTransferTest {
         assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("transferTicks", 1.5))));
         assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("phantomScaleBase", 2.0, "phantomScaleCap", 1.0))));
         assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("attackSpeedMinimumTicks", 16.0))));
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("damageScale", 0.0))));
+    }
+
+    @Test
+    void legacyEndConfigReceivesTheNewScalingDefaultsWithoutOverwritingExistingValues() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
+        end.remove("healthThreshold");
+        end.remove("healthScale");
+        end.remove("damageThreshold");
+        end.remove("damageScale");
+        end.put("roundDamageRatio", 0.5);
+        abilities.put(EndTower.CONFIG_ID, end);
+
+        TowerBalanceConfig merged = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                abilities
+        ).withMissingDefaults(defaults);
+
+        assertEquals(3000.0, merged.ability(EndTower.CONFIG_ID, "healthThreshold", -1.0), 0.0001);
+        assertEquals(500.0, merged.ability(EndTower.CONFIG_ID, "healthScale", -1.0), 0.0001);
+        assertEquals(150.0, merged.ability(EndTower.CONFIG_ID, "damageThreshold", -1.0), 0.0001);
+        assertEquals(25.0, merged.ability(EndTower.CONFIG_ID, "damageScale", -1.0), 0.0001);
+        assertEquals(0.5, merged.ability(EndTower.CONFIG_ID, "roundDamageRatio", -1.0), 0.0001);
+
+        TowerBalanceRuntime.apply(merged);
+        assertEquals(3000.0, EndConfig.RUNTIME.value(HEALTH_THRESHOLD), 0.0001);
+        assertEquals(500.0, EndConfig.RUNTIME.value(HEALTH_SCALE), 0.0001);
+        assertEquals(150.0, EndConfig.RUNTIME.value(DAMAGE_THRESHOLD), 0.0001);
+        assertEquals(25.0, EndConfig.RUNTIME.value(DAMAGE_SCALE), 0.0001);
+        assertEquals(0.5, EndConfig.RUNTIME.value(ROUND_DAMAGE_RATIO), 0.0001);
     }
 
     @Test
@@ -642,6 +675,34 @@ class EndTowerTransferTest {
         assertEquals(30.0, dragon.modifyResolvedOutgoingDamage(null, null, 30.0), 0.0001);
         assertEquals(20.0, dragon.modifyResolvedOutgoingDamage(null, null, 20.0), 0.0001);
         assertEquals(-10.0, dragon.modifyResolvedOutgoingDamage(null, null, -10.0), 0.0001);
+    }
+
+    @Test
+    void configuredDamageThresholdAndScaleApplyToTransferredEndTowerDamage() {
+        applyEndAbilities(Map.ofEntries(
+                Map.entry("transferTicks", 1.0),
+                Map.entry("roundDamageRatio", 1.0),
+                Map.entry("permanentDamageRatio", 0.0),
+                Map.entry("damageThreshold", 10.0),
+                Map.entry("damageScale", 10.0)
+        ));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        lane.addTower(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.tick(lane);
+        for (int index = 0; index < 3; index++) {
+            lane.addTower(tower(EndTowers.T3_END_CRYSTAL_TOWER, index + 1));
+        }
+
+        dragon.tick(lane);
+
+        double expectedDamageBonus = 10.0 + 10.0 * Math.log1p(5.0);
+        assertEquals(27.9176, expectedDamageBonus, 0.0001);
+        assertEquals(expectedDamageBonus, dragon.roundDamageBonus(), 0.0001);
+        assertEquals(expectedDamageBonus, dragon.damageBonus(), 0.0001);
+        assertEquals(10.0 + expectedDamageBonus, dragon.previewHatchedAttackDamage(), 0.0001);
+        assertEquals(10.0 + expectedDamageBonus, dragon.modifyAttackDamage(null, null, 10.0), 0.0001);
     }
 
     @Test

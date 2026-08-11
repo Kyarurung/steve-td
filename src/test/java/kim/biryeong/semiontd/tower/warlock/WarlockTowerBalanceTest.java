@@ -2,9 +2,12 @@ package kim.biryeong.semiontd.tower.warlock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -71,7 +74,8 @@ class WarlockTowerBalanceTest {
                 -1
         ));
 
-        assertEquals(350.0, config.ability(WarlockTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
+        assertEquals(180.0, config.ability(WarlockTower.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
+        assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
         assertEquals(0.085, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
         assertEquals(0.16, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "splashStep", -1.0), 0.0001);
@@ -118,6 +122,39 @@ class WarlockTowerBalanceTest {
         assertEquals(2.0, combat.meleeSplashRadiusForCount(100), 0.0001);
         assertEquals(175.0, combat.resolvedSplashDamage(WarlockTowers.RANGED_WARLOCK_TOWER, 350.0), 0.0001);
         assertEquals(262.5, combat.resolvedSplashDamage(WarlockTowers.MELEE_WARLOCK_TOWER, 350.0), 0.0001);
+    }
+
+    @Test
+    void liveDamageCurvePreservesNormalAbsorptionsAndLimitsExtremeGrowth() {
+        assertEquals(108.0, WarlockTower.scaledDamageBonus(108.0), 0.0001);
+        assertEquals(150.0, WarlockTower.scaledDamageBonus(150.0), 0.0001);
+        assertEquals(271.9486, WarlockTower.scaledDamageBonus(300.0), 0.0001);
+        assertEquals(396.7151, WarlockTower.scaledDamageBonus(600.0), 0.0001);
+    }
+
+    @Test
+    void damageScalingConfigRejectsInvalidRangesAndMergesLegacyFiles() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> invalidAbilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> invalidWarlock = new LinkedHashMap<>(invalidAbilities.get(WarlockTowers.CONFIG_ID));
+        invalidWarlock.put("damageSoftCap", 0.0);
+        invalidAbilities.put(WarlockTowers.CONFIG_ID, invalidWarlock);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalid));
+
+        Map<String, Map<String, Double>> legacyAbilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> legacyWarlock = new LinkedHashMap<>(legacyAbilities.get(WarlockTowers.CONFIG_ID));
+        legacyWarlock.remove("damageSoftCap");
+        legacyWarlock.put("damageCap", 340.0);
+        legacyAbilities.put(WarlockTowers.CONFIG_ID, legacyWarlock);
+        TowerBalanceConfig merged = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                legacyAbilities
+        ).withMissingDefaults(defaults);
+        assertEquals(180.0, merged.ability(WarlockTowers.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
+        TowerBalanceRuntime.apply(merged);
+        assertEquals(396.7151, WarlockTower.scaledDamageBonus(600.0), 0.0001);
     }
 
     @Test
@@ -252,6 +289,7 @@ class WarlockTowerBalanceTest {
                         false,
                         new WarlockStatsView.CombatStats(
                                 42.5,
+                                42.5,
                                 4,
                                 15,
                                 1.5,
@@ -285,5 +323,28 @@ class WarlockTowerBalanceTest {
         assertFalse(details.contains("제한 없음"));
         assertFalse(details.contains("스플래시 범위:"));
         assertFalse(details.contains("받는 피해 감소:"));
+
+        List<String> compressedLines = WarlockStatsView.core(
+                new WarlockStatsView.CoreStats(
+                        100,
+                        20,
+                        false,
+                        false,
+                        true,
+                        false,
+                        new WarlockStatsView.CombatStats(
+                                600.0,
+                                396.7151,
+                                15,
+                                15,
+                                8.0,
+                                8.0,
+                                true
+                        ),
+                        new WarlockStatsView.DefenseStats(0.0, 0.0, 0.0, 0.0, 0.085, 0.0, 0.10)
+                )
+        );
+        assertTrue(String.join("\n", compressedLines).replaceAll("<[^>]+>", "")
+                .contains("영구 피해: +396.72 (누적 600)"));
     }
 }

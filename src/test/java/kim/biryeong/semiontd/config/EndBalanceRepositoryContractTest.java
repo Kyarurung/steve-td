@@ -9,6 +9,7 @@ import com.google.gson.JsonParser;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -44,5 +45,23 @@ class EndBalanceRepositoryContractTest {
         assertNotNull(root.get("schemaVersion"), "tower_balance.json must contain schemaVersion.");
         assertEquals(TowerBalanceConfig.CURRENT_SCHEMA_VERSION, root.get("schemaVersion").getAsInt());
         assertEquals(codeKeys, externalKeys, "End ability keys and their display order must match.");
+    }
+
+    @Test
+    void siblingBalanceRepositoryContainsOnlyKnownTowerAbilityKeys() throws Exception {
+        Path balancePath = Path.of(System.getenv(BALANCE_REPOSITORY_ENV))
+                .toAbsolutePath()
+                .resolve("tower_balance.json");
+        JsonObject root = JsonParser.parseString(Files.readString(balancePath)).getAsJsonObject();
+        Map<String, Map<String, Double>> defaults = TowerBalanceConfig.defaultConfig().abilities();
+
+        for (Map.Entry<String, com.google.gson.JsonElement> entry
+                : root.getAsJsonObject("abilities").entrySet()) {
+            assertTrue(defaults.containsKey(entry.getKey()), "Unknown ability owner: " + entry.getKey());
+            for (String key : entry.getValue().getAsJsonObject().keySet()) {
+                assertTrue(defaults.get(entry.getKey()).containsKey(key),
+                        "Unknown ability key: " + entry.getKey() + "." + key);
+            }
+        }
     }
 }
