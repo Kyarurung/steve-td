@@ -263,12 +263,12 @@ public final class EndTower extends EntityBackedTower {
         periodicHealingTicks = endTower.periodicHealingTicks;
     }
 
-    public int shulkerCount() {
-        return transfers.shulkerCount();
-    }
-
     public int endCrystalCount() {
         return transfers.endCrystalCount();
+    }
+
+    public int shulkerCount() {
+        return transfers.shulkerCount();
     }
 
     public int roundCompletedTransferCount() {
@@ -442,4 +442,5 @@ public final class EndTower extends EntityBackedTower {
     private double dragonEvolution() {
         return combat.dragonEvolutionHealth();
     }
+
 }

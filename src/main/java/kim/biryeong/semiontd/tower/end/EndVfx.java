@@ -17,7 +17,9 @@ final class EndVfx {
     private EndVfx() {
     }
 
-    static AreaVfxSpec attack(boolean dragon, boolean splash) {if (dragon) {return DRAGON_BREATH;}return splash ? SPLASH : null;}
+    static AreaVfxSpec attack(boolean dragon) {
+        return dragon ? DRAGON_BREATH : SPLASH;
+    }
 
     static void transfer(PlayerLane lane, Tower target, Tower source) {
         ServerLevel level = lane.arenaWorld();

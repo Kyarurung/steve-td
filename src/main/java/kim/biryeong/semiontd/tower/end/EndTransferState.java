@@ -11,10 +11,10 @@ final class EndTransferState {
     private final Map<Tower, Progress> progressByTower = new IdentityHashMap<>();
     private final Set<Tower> presentTowerSnapshot =
             Collections.newSetFromMap(new IdentityHashMap<>());
-    private double roundHealthContribution;
     private double permanentHealthBonus;
-    private double roundDamageContribution;
     private double permanentDamageBonus;
+    private double roundHealthContribution;
+    private double roundDamageContribution;
 
     void beginSnapshot() {
         presentTowerSnapshot.clear();
@@ -53,8 +53,8 @@ final class EndTransferState {
         }
         progress.appliedRatio = ratio;
         roundHealthContribution += progress.roundHealthBonus * delta;
-        permanentHealthBonus += progress.permanentHealthBonus * delta;
         roundDamageContribution += progress.roundDamageBonus * delta;
+        permanentHealthBonus += progress.permanentHealthBonus * delta;
         permanentDamageBonus += progress.permanentDamageBonus * delta;
         return true;
     }
@@ -63,35 +63,47 @@ final class EndTransferState {
         if (progress == null || progress.appliedRatio <= 0.0) {
             return false;
         }
-        roundHealthContribution = subtract(roundHealthContribution, progress.roundHealthBonus * progress.appliedRatio);
-        permanentHealthBonus = subtract(permanentHealthBonus, progress.permanentHealthBonus * progress.appliedRatio);
-        roundDamageContribution = subtract(roundDamageContribution, progress.roundDamageBonus * progress.appliedRatio);
-        permanentDamageBonus = subtract(permanentDamageBonus, progress.permanentDamageBonus * progress.appliedRatio);
+        roundHealthContribution = subtract(
+                roundHealthContribution,
+                progress.roundHealthBonus * progress.appliedRatio
+        );
+        roundDamageContribution = subtract(
+                roundDamageContribution,
+                progress.roundDamageBonus * progress.appliedRatio
+        );
+        permanentHealthBonus = subtract(
+                permanentHealthBonus,
+                progress.permanentHealthBonus * progress.appliedRatio
+        );
+        permanentDamageBonus = subtract(
+                permanentDamageBonus,
+                progress.permanentDamageBonus * progress.appliedRatio
+        );
         progress.appliedRatio = 0.0;
         return true;
     }
 
     void copyBonusesFrom(EndTransferState source) {
-        roundHealthContribution = source.roundHealthContribution;
         permanentHealthBonus = source.permanentHealthBonus;
-        roundDamageContribution = source.roundDamageContribution;
         permanentDamageBonus = source.permanentDamageBonus;
-    }
-
-    double roundHealthContribution() {
-        return roundHealthContribution;
+        roundHealthContribution = source.roundHealthContribution;
+        roundDamageContribution = source.roundDamageContribution;
     }
 
     double permanentHealthBonus() {
         return permanentHealthBonus;
     }
 
-    double roundDamageContribution() {
-        return roundDamageContribution;
-    }
-
     double permanentDamageBonus() {
         return permanentDamageBonus;
+    }
+
+    double roundHealthContribution() {
+        return roundHealthContribution;
+    }
+
+    double roundDamageContribution() {
+        return roundDamageContribution;
     }
 
     private static double subtract(double value, double amount) {
@@ -101,8 +113,8 @@ final class EndTransferState {
     static final class Progress {
         final int durationTicks;
         final double roundHealthBonus;
-        final double permanentHealthBonus;
         final double roundDamageBonus;
+        final double permanentHealthBonus;
         final double permanentDamageBonus;
         final double completionHealing;
         final double periodicHealingPerSecond;
@@ -112,16 +124,16 @@ final class EndTransferState {
         Progress(
                 int durationTicks,
                 double roundHealthBonus,
-                double permanentHealthBonus,
                 double roundDamageBonus,
+                double permanentHealthBonus,
                 double permanentDamageBonus,
                 double completionHealing,
                 double periodicHealingPerSecond
         ) {
             this.durationTicks = durationTicks;
             this.roundHealthBonus = roundHealthBonus;
-            this.permanentHealthBonus = permanentHealthBonus;
             this.roundDamageBonus = roundDamageBonus;
+            this.permanentHealthBonus = permanentHealthBonus;
             this.permanentDamageBonus = permanentDamageBonus;
             this.completionHealing = completionHealing;
             this.periodicHealingPerSecond = periodicHealingPerSecond;

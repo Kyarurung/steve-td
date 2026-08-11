@@ -1,5 +1,7 @@
 package kim.biryeong.semiontd.tower.end;
 
+import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -14,8 +16,6 @@ import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.resources.ResourceLocation;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
-
 final class EndTransferController {
     private static final TowerDataKey<Double> PROGRESS = TowerDataKey.of(
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_transfer_progress"),
@@ -24,8 +24,8 @@ final class EndTransferController {
 
     private final EndTransferState state = new EndTransferState();
     private final EndConfig config;
-    private int shulkerCount;
     private int endCrystalCount;
+    private int shulkerCount;
     private int roundCompletedCount;
 
     EndTransferController(EndConfig config) {
@@ -131,17 +131,17 @@ final class EndTransferController {
     }
 
     private EndTransferState.Progress newProgress(Tower tower) {
-        int durationTicks = Math.max(1, config.transferTicks());
-        boolean shulkerLine = EndTowers.isShulkerLine(tower.type());
+        int durationTicks = Math.max(1, config.ticks(TRANSFER_TICKS));
         boolean endCrystalLine = EndTowers.isEndCrystalLine(tower.type());
+        boolean shulkerLine = EndTowers.isShulkerLine(tower.type());
         double maxHealth = tower.type().maxHealth();
         double damage = tower.type().damage();
         tower.setData(PROGRESS, 0.0);
         return new EndTransferState.Progress(
                 durationTicks,
                 shulkerLine ? maxHealth * nonNegative(config.value(ROUND_HEALTH_RATIO)) : 0.0,
-                shulkerLine ? maxHealth * nonNegative(config.value(PERMANENT_HEALTH_RATIO)) : 0.0,
                 endCrystalLine ? damage * nonNegative(config.value(ROUND_DAMAGE_RATIO)) : 0.0,
+                shulkerLine ? maxHealth * nonNegative(config.value(PERMANENT_HEALTH_RATIO)) : 0.0,
                 endCrystalLine ? damage * nonNegative(config.value(PERMANENT_DAMAGE_RATIO)) : 0.0,
                 nonNegative(config.value(TRANSFER_HEAL)),
                 shulkerLine ? maxHealth * nonNegative(config.value(TRANSFER_HEAL_RATIO)) : 0.0
@@ -151,10 +151,10 @@ final class EndTransferController {
     private void registerCompleted(TowerType sourceType) {
         int tier = EndTowers.transferTier(sourceType);
         roundCompletedCount = saturatedAdd(roundCompletedCount, 1);
-        if (EndTowers.isShulkerLine(sourceType)) {
-            shulkerCount = saturatedAdd(shulkerCount, tier);
-        } else {
+        if (EndTowers.isEndCrystalLine(sourceType)) {
             endCrystalCount = saturatedAdd(endCrystalCount, tier);
+        } else {
+            shulkerCount = saturatedAdd(shulkerCount, tier);
         }
     }
 
@@ -175,17 +175,17 @@ final class EndTransferController {
 
     void copyFrom(EndTransferController source) {
         state.copyBonusesFrom(source.state);
-        shulkerCount = source.shulkerCount;
         endCrystalCount = source.endCrystalCount;
+        shulkerCount = source.shulkerCount;
         roundCompletedCount = source.roundCompletedCount;
-    }
-
-    int shulkerCount() {
-        return shulkerCount;
     }
 
     int endCrystalCount() {
         return endCrystalCount;
+    }
+
+    int shulkerCount() {
+        return shulkerCount;
     }
 
     int roundCompletedCount() {
@@ -193,44 +193,19 @@ final class EndTransferController {
     }
 
     double permanentHealthBonus() {
-        return healthSoftCap(state.permanentHealthBonus());
+        return state.permanentHealthBonus();
     }
 
     double permanentDamageBonus() {
-        return damageSoftCap(state.permanentDamageBonus());
+        return state.permanentDamageBonus();
     }
 
     double roundHealthBonus() {
-        double permanent = state.permanentHealthBonus();
-        double total = permanent + state.roundHealthContribution();
-        return Math.max(0.0, healthSoftCap(total) - healthSoftCap(permanent));
+        return state.roundHealthContribution();
     }
 
     double roundDamageBonus() {
-        double permanent = state.permanentDamageBonus();
-        double total = permanent + state.roundDamageContribution();
-        return Math.max(0.0, damageSoftCap(total) - damageSoftCap(permanent));
-    }
-
-    private double damageSoftCap(double raw) {
-        return softCap(raw, config.value(DAMAGE_THRESHOLD), config.value(DAMAGE_SCALE));
-    }
-
-    private double healthSoftCap(double raw) {
-        return softCap(raw, config.value(HEALTH_THRESHOLD), config.value(HEALTH_SCALE));
-    }
-
-    private static double softCap(double raw, double threshold, double scale) {
-        if (raw <= 0.0) {
-            return 0.0;
-        }
-        if (threshold <= 0.0 || scale <= 0.0) {
-            return raw;
-        }
-        if (raw <= threshold) {
-            return raw;
-        }
-        return threshold + scale * Math.log1p((raw - threshold) / scale);
+        return state.roundDamageContribution();
     }
 
     static double progress(Tower tower) {
