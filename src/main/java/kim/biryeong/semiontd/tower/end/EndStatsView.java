@@ -11,8 +11,11 @@ final class EndStatsView {
     private EndStatsView() {
     }
 
-    static List<String> feeder(double damageReduction) {
+    static List<String> feeder(boolean waveActive, double transferProgress, double damageReduction) {
         ArrayList<String> lines = new ArrayList<>();
+        lines.add(waveActive
+                ? "<white>힘 전달 진행률: " + endText(format(transferProgress, "percent")) + "</white>"
+                : "<gray>엔더 드래곤에게 힘 전달 대기 중</gray>");
         if (damageReduction > 0.0) {
             lines.add(formatDamageReduction(damageReduction, ""));
         }

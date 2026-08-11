@@ -70,7 +70,11 @@ class EndTowerTransferTest {
         dragon.onWaveStarted(lane, 1);
         dragon.tick(lane);
         lane.addTower(enderman);
+        assertTrue(plainRuntimeDetails(enderman).contains("엔더 드래곤에게 힘 전달 대기 중"));
+        assertFalse(plainRuntimeDetails(enderman).contains("힘 전달 진행률"));
         enderman.onWaveStarted(lane, 1);
+        assertTrue(plainRuntimeDetails(enderman).contains("힘 전달 진행률: 0%"));
+        assertFalse(plainRuntimeDetails(enderman).contains("엔더 드래곤에게 힘 전달 대기 중"));
         tick(dragon, lane, 3);
         assertEquals(0, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
@@ -79,6 +83,7 @@ class EndTowerTransferTest {
         assertEquals(5.25, dragon.damageBonus(), 0.0001);
         assertEquals(0.0, dragon.healthBonus(), 0.0001);
         assertEquals(0.75, enderman.transferProgress(), 0.0001);
+        assertTrue(plainRuntimeDetails(enderman).contains("힘 전달 진행률: 75%"));
         tick(dragon, lane, 1);
         assertEquals(1, dragon.endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
