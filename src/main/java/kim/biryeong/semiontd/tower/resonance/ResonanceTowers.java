@@ -248,7 +248,7 @@ public final class ResonanceTowers {
     private static void registerDescription(TowerType type) {
         java.util.ArrayList<String> template = new java.util.ArrayList<>(type.description());
         template.add(LINK_DESCRIPTION);
-        template.add("<green>자신과 다른 종류의 주변 무블룸 {ability.level1RequiredLinks:integer}/{ability.level2RequiredLinks:integer}/{ability.level3RequiredLinks:integer}종과 연결되면 공명 1/2/3단계 효과를 얻습니다. 같은 종류가 여러 기 있어도 1링크만 계산합니다.</green>");
+        template.add("<green>자신과 다른 계열의 주변 무블룸 {ability.level1RequiredLinks:integer}/{ability.level2RequiredLinks:integer}/{ability.level3RequiredLinks:integer}기와 연결되면 공명 1/2/3단계 효과를 얻습니다. 같은 다른 계열 타워도 설치한 수만큼 링크됩니다.</green>");
         template.add("<green>현재 해금: 공명 {ability.maxResonanceLevel:integer}단계 까지 활성화 가능합니다.</green>");
         switch (aspectOf(type)) {
             case FOCUS -> addFocusDescription(template);

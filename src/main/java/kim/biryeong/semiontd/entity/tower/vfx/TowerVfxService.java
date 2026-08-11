@@ -34,6 +34,7 @@ import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -455,6 +456,9 @@ public final class TowerVfxService {
         }
         if (OceanTowers.isOceanTower(type)) {
             return BuilderPalette.OCEAN;
+        }
+        if (AncientCityTowers.isAncientCityTower(type)) {
+            return BuilderPalette.ANCIENT_CITY;
         }
         return BuilderPalette.DEFAULT;
     }

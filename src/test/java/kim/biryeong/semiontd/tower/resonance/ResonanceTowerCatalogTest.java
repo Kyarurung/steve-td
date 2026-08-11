@@ -272,7 +272,7 @@ class ResonanceTowerCatalogTest {
         var description = TowerBalanceRuntime.resolve(ResonanceTowers.FOCUS_CORE).description();
 
         assertTrue(description.stream().anyMatch(line -> line.contains("7칸")));
-        assertTrue(description.stream().anyMatch(line -> line.contains("2/4/6종")));
+        assertTrue(description.stream().anyMatch(line -> line.contains("2/4/6기") && line.contains("설치한 수만큼")));
         assertTrue(description.stream().anyMatch(line -> line.contains("11%")));
         assertTrue(description.stream().anyMatch(line -> line.contains("22%") && line.contains("13%")));
         assertTrue(description.stream().anyMatch(line -> line.contains("33%") && line.contains("17%")));

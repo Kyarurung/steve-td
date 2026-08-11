@@ -49,6 +49,7 @@ public final class TeamLaneGroup {
 
     public void addLane(PlayerLane lane) {
         lanes.add(lane);
+        lane.attachTeamLaneGroup(this);
         finalDefenseSlotAllocator = FinalDefenseSlotAllocator.fromLanes(lanes);
         lanes.forEach(existingLane -> existingLane.setFinalDefenseSlotAllocator(finalDefenseSlotAllocator));
         AreaEffectLaneIndex.register(lane);

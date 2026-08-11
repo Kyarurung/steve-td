@@ -292,6 +292,34 @@ final class SQLiteJobStatisticsStoreTest {
     }
 
     @Test
+    void storesCatalogVersionOnParticipantFacts() throws Exception {
+        MatchResult base = singlePlayerResult(26L, MatchMode.NORMAL, VILLAGER);
+        String version = "a".repeat(64);
+        MatchResult versioned = new MatchResult(
+                base.matchId(),
+                base.startedAtEpochMillis(),
+                base.endedAtEpochMillis(),
+                base.participants(),
+                base.spectatorIds(),
+                base.winningTeams(),
+                base.teamResults(),
+                base.finalRound(),
+                base.matchMode(),
+                version
+        );
+        Path database = tempDir.resolve("catalog-version-statistics.db");
+
+        new SQLiteJobStatisticsStore(database).ingest(versioned);
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement();
+             var result = statement.executeQuery("SELECT catalog_version FROM job_stat_participant_facts")) {
+            assertTrue(result.next());
+            assertEquals(version, result.getString(1));
+        }
+    }
+
+    @Test
     void oldJsonWithoutJobAndModeLoadsButDoesNotEnterStatistics() {
         MatchResult current = singlePlayerResult(30L, MatchMode.NORMAL, VILLAGER);
         Gson gson = new Gson();

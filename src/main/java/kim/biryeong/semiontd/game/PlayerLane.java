@@ -67,6 +67,7 @@ public final class PlayerLane {
     private int waveMonsterSpawnIntervalTicks = 1;
     private int waveMonsterSpawnCooldownTicks;
     private FinalDefenseSlotAllocator finalDefenseSlotAllocator;
+    private TeamLaneGroup teamLaneGroup;
     private TraitLoadout traitLoadout = TraitLoadout.none();
     private boolean transcendenceTriggeredThisRound;
 
@@ -680,6 +681,10 @@ public final class PlayerLane {
                 : finalDefenseSlotAllocator;
     }
 
+    void attachTeamLaneGroup(TeamLaneGroup teamLaneGroup) {
+        this.teamLaneGroup = teamLaneGroup;
+    }
+
     private GridPosition finalDefenseTowerPosition(GridPosition slot) {
         BlockPos slotPos = new BlockPos(slot.x(), slot.y(), slot.z());
         BlockPos below = slotPos.below();
@@ -718,9 +723,11 @@ public final class PlayerLane {
     }
 
     private void notifyNearbyMonsterDeath(Monster monster, Vec3 deathPosition) {
-        for (Tower tower : List.copyOf(towers)) {
-            if (towers.contains(tower)) {
-                tower.onNearbyMonsterDeath(this, monster, deathPosition);
+        for (PlayerLane recipientLane : notificationLanes()) {
+            for (Tower tower : List.copyOf(recipientLane.towers)) {
+                if (recipientLane.towerMembership.contains(tower)) {
+                    tower.onNearbyMonsterDeath(recipientLane, monster, deathPosition);
+                }
             }
         }
     }
@@ -731,14 +738,23 @@ public final class PlayerLane {
 
     private void notifyNearbyTowerDeath(Tower destroyedTower, List<Tower> notificationTargets) {
         IllagerRaidStates.onTowerDeath(this, destroyedTower);
-        for (Tower tower : notificationTargets) {
-            if (tower != destroyedTower && towerMembership.contains(tower)) {
-                tower.onNearbyTowerDeath(this, destroyedTower);
+        for (PlayerLane recipientLane : notificationLanes()) {
+            List<Tower> targets = recipientLane == this
+                    ? notificationTargets
+                    : List.copyOf(recipientLane.towers);
+            for (Tower tower : targets) {
+                if (tower != destroyedTower && recipientLane.towerMembership.contains(tower)) {
+                    tower.onNearbyTowerDeath(recipientLane, destroyedTower);
+                }
             }
         }
     }
 
-    private Vec3 monsterDeathPosition(Monster monster) {
+    private List<PlayerLane> notificationLanes() {
+        return teamLaneGroup == null ? List.of(this) : List.copyOf(teamLaneGroup.lanes());
+    }
+
+    public Vec3 monsterDeathPosition(Monster monster) {
         if (monster == null) {
             return null;
         }

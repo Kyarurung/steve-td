@@ -5,7 +5,10 @@ import de.tomalbrc.bil.api.AnimatedEntityHolder;
 import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.effect.TimedEffectSet;
@@ -21,6 +24,7 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.summon.SummonRegistry;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.legion.BeeStingPolicy;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitVfx;
@@ -61,6 +65,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     private final List<Goal> summonAbilityGoals = new ArrayList<>();
     private final TimedEffectSet timedEffects = new TimedEffectSet();
     private IgniteState ignite;
+    private final Map<Tower, BeePoisonState> beePoisons = new IdentityHashMap<>();
     private LivingEntityHolder<SemionMonsterEntity> holder;
     private EntityAttachment holderAttachment;
 
@@ -150,6 +155,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     public void aiStep() {
         super.aiStep();
         tickIgnite();
+        tickBeePoisons();
         timedEffects.tick();
 
         if (getTarget() instanceof LaneDefenseEntity defenseEntity && runtimeMonster != null) {
@@ -417,6 +423,34 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         TraitVfx.showIgniteApplied(this);
     }
 
+    public void applyBeePoison(
+            UUID sourcePlayer,
+            Tower sourceTower,
+            double damagePerStack,
+            int maxStacks,
+            int durationTicks,
+            int tickIntervalTicks
+    ) {
+        if (sourcePlayer == null || sourceTower == null || damagePerStack <= 0.0
+                || durationTicks <= 0 || tickIntervalTicks <= 0 || !isAlive()) {
+            return;
+        }
+        BeePoisonState previous = beePoisons.get(sourceTower);
+        BeeStingPolicy.State sting = BeeStingPolicy.applySting(
+                previous == null ? null : previous.sting(),
+                maxStacks,
+                durationTicks,
+                tickIntervalTicks
+        );
+        beePoisons.put(sourceTower, new BeePoisonState(
+                sourcePlayer,
+                sourceTower,
+                Math.max(0.0, damagePerStack),
+                Math.max(1, tickIntervalTicks),
+                sting
+        ));
+    }
+
     public boolean hasTimedEffectSource(TimedEffectType type, ResourceLocation sourceId) {
         return timedEffects.hasSource(type, sourceId);
     }
@@ -493,6 +527,54 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         }
     }
 
+    private void tickBeePoisons() {
+        if (beePoisons.isEmpty()) {
+            return;
+        }
+        if (runtimeMonster == null || isRemoved() || !isAlive()) {
+            beePoisons.clear();
+            return;
+        }
+        Iterator<Map.Entry<Tower, BeePoisonState>> iterator = beePoisons.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Tower, BeePoisonState> entry = iterator.next();
+            BeePoisonState poison = entry.getValue();
+            BeeStingPolicy.TickResult result = BeeStingPolicy.tick(
+                    poison.sting(),
+                    poison.damagePerStack(),
+                    poison.tickIntervalTicks()
+            );
+            if (result.damage() > 0.0) {
+                applyBeePoisonDamage(poison, result.damage());
+            }
+            if (result.state().isEmpty() || isRemoved() || !isAlive()) {
+                iterator.remove();
+            } else {
+                entry.setValue(new BeePoisonState(
+                        poison.sourcePlayer(),
+                        poison.sourceTower(),
+                        poison.damagePerStack(),
+                        poison.tickIntervalTicks(),
+                        result.state().orElseThrow()
+                ));
+            }
+        }
+    }
+
+    private void applyBeePoisonDamage(BeePoisonState poison, double outgoingDamage) {
+        double damageAmount = towerDamageTaken(outgoingDamage);
+        if (damageAmount <= 0.0) {
+            return;
+        }
+        double previousHealth = runtimeMonster.health();
+        applyRuntimeDamage(damageSources().onFire(), damageAmount, DamageType.MAGIC);
+        double dealtDamage = Math.max(0.0, previousHealth - runtimeMonster.health());
+        if (dealtDamage > 0.0) {
+            poison.sourceTower().recordDamageDealt(dealtDamage, DamageType.MAGIC);
+            runtimeMonster.recordLastHit(poison.sourcePlayer(), KillSourceKind.TOWER);
+        }
+    }
+
     private double followRangeFor(Monster monster) {
         return Math.max(DEFAULT_FOLLOW_RANGE, monster.attackRange() + 2.0);
     }
@@ -514,6 +596,15 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
             remainingTicks = Math.max(0, remainingTicks);
             ticksUntilDamage = Math.max(1, ticksUntilDamage);
         }
+    }
+
+    private record BeePoisonState(
+            UUID sourcePlayer,
+            Tower sourceTower,
+            double damagePerStack,
+            int tickIntervalTicks,
+            BeeStingPolicy.State sting
+    ) {
     }
 
     @Override

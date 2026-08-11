@@ -49,6 +49,7 @@ public final class JobRegistry {
         registerIfAbsent(new NetherTowerJob());
         registerIfAbsent(new EndTowerJob());
         registerIfAbsent(new OceanTowerJob());
+        registerIfAbsent(new AncientCityTowerJob());
     }
 
     public static synchronized Optional<SemionJob> find(ResourceLocation id) {

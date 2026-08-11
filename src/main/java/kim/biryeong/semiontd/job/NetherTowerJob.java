@@ -32,6 +32,7 @@ public final class NetherTowerJob extends SemionJob {
                 SemionText.mini("<gray>웨이브에 몬스터가 남아 있으면 네더 상태 타워는 초당 최대 체력의 "
                         + percent("netherDecayMaxHealthRatioPerSecond") + "를 잃고 기본 "
                         + percent("netherLifeStealRatio") + " 흡혈을 가집니다.</gray>"),
+                SemionText.mini("<yellow>최종 방어선에 도착하면 상태로 인한 체력 감소가 중단됩니다.</yellow>"),
                 SemionText.mini("<red>[좀비] 처음 체력이 0이 되면 최대 체력의 "
                         + percent("zombieReviveHealthRatio") + "로 회복하고 좀비 상태가 됩니다. 초당 최대 체력의 "
                         + percent("zombieDecayMaxHealthRatioPerSecond") + "를 잃으며 기본 흡혈은 "

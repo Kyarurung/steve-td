@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitLoadout;
@@ -443,7 +444,18 @@ public final class SemionCommands {
                         .then(literal("ocean_supply")
                                 .executes(context -> debugOceanSupplyVfx(context.getSource())))
                         .then(literal("ocean_dehydrated")
-                                .executes(context -> debugOceanDehydratedVfx(context.getSource()))))
+                                .executes(context -> debugOceanDehydratedVfx(context.getSource())))
+                        .then(literal("ancient_city")
+                                .then(literal("growth")
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.GROWTH)))
+                                .then(literal("catalyst")
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.CATALYST)))
+                                .then(literal("sensor")
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.SENSOR)))
+                                .then(literal("shriek")
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.SHRIEK)))
+                                .then(literal("warden")
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.WARDEN)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -544,6 +556,15 @@ public final class SemionCommands {
     private static int debugOceanDehydratedVfx(CommandSourceStack source) throws CommandSyntaxException {
         OceanVfx.showDehydratedDebug(source.getPlayerOrException());
         success(source, "물 고갈 VFX를 재생했습니다.");
+        return 1;
+    }
+
+    private static int debugAncientCityVfx(
+            CommandSourceStack source,
+            AncientCityVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        AncientCityVfx.showDebug(source.getPlayerOrException(), kind);
+        success(source, "고대 도시 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
         return 1;
     }
 

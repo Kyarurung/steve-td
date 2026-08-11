@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower.end;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.tower.DamageScaling;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
@@ -34,7 +35,14 @@ final class EndCombat {
 
     double modifyAttackDamage(TowerType type, double transferredDamageBonus, double damageAmount) {
         if (type.damage() <= 0.0) {return damageAmount;}
-        return damageAmount * (1.0 + transferredDamageBonus / type.damage());
+        return damageAmount * (1.0 + effectiveDamageBonus(transferredDamageBonus) / type.damage());
+    }
+
+    double effectiveDamageBonus(double transferredDamageBonus) {
+        return DamageScaling.logarithmicBonus(
+                transferredDamageBonus,
+                config.value(DAMAGE_SOFT_CAP)
+        );
     }
 
     double dragonEvolutionHealth() {return Math.max(0.0, config.value(DRAGON_EVOLUTION));}

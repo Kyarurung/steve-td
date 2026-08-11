@@ -284,9 +284,9 @@ public class LegionTowers {
             1557,
             byId(EntityType.ILLUSIONER),
             List.of(
-                    "<red><bold> 이 유닛은 최대 1기만 설치할 수 있습니다. </red></bold>",
+                    "<red><bold> 이 유닛은 최대 1기만 설치할 수 있습니다. </bold></red>",
                     "<green> 이 타워가 사망할 때, 플레이어의 모든 타워가 자신의 체력, 공격력을 65% 스텟을 가진 분신 1체를 소환합니다. </green>",
-                    "<red><bold> 이 타워는 최 우선적으로 공격받습니다. </red></bold>"
+                    "<red><bold> 이 타워는 최 우선적으로 공격받습니다. </bold></red>"
             )
     );
 

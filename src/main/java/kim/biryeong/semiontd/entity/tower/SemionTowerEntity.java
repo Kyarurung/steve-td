@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.effect.TimedEffectSet;
 import kim.biryeong.semiontd.effect.TimedEffectType;
+import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.defender.LaneDefenseEntity;
 import kim.biryeong.semiontd.entity.healing.HealingTarget;
 import kim.biryeong.semiontd.entity.model.SemionBilModelCache;
@@ -166,7 +167,6 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
         setHealth((float) tower.health());
         installBilModel(blockbenchModelId);
-        syncBlockDisplayProxyVisibility();
         playAnimation(SemionAnimationState.IDLE);
         markMoobloomVisualSyncDirty();
     }
@@ -796,7 +796,6 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         blockbenchModelId = updatedModelId;
         syncEndCoreFlightPhysics();
         setPolymerEntityType(visual.entityTypeId());
-        syncBlockDisplayProxyVisibility();
         applyVisualScale(visual);
         targetAcquireRange = Math.max(attackRange + 4.0, DEFAULT_TARGET_ACQUIRE_RANGE);
         String displayName = tower.type().displayName();
@@ -986,10 +985,6 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         return blockbenchModelId == null && BlockDisplayVisual.matches(visual);
     }
 
-    private void syncBlockDisplayProxyVisibility() {
-        setInvisible(usesBlockDisplayOverlayVisual());
-    }
-
     private boolean usesOneBlockEndCoreHitbox() {
         return runtimeTower instanceof EndTower endTower
                 && EndTowers.isBaseEndTower(runtimeTower.type())
@@ -1073,7 +1068,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         }
         if (blockDisplayHolder == null || blockDisplayElement == null) {
             blockDisplayElement = new BlockDisplayElement(blockState);
-            blockDisplayElement.setTranslation(new Vector3f(-0.5F, 0.0F, -0.5F));
+            blockDisplayElement.setTeleportDuration(3);
             blockDisplayElement.setShadowRadius(0.5F);
             blockDisplayElement.setShadowStrength(1.0F);
             blockDisplayHolder = new ElementHolder();
@@ -1083,6 +1078,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             blockDisplayElement.setBlockState(blockState);
         }
         float scale = (float) visual.scale();
+        blockDisplayElement.setTranslation(new Vector3f(-scale / 2.0F, 0.0F, -scale / 2.0F));
         blockDisplayElement.setScale(new Vector3f(scale, scale, scale));
     }
 
@@ -1112,6 +1108,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             moobloomVisualEntity.setSilent(true);
             moobloomVisualEntity.setInvulnerable(true);
             moobloomVisualEntity.setPersistenceRequired();
+            moobloomVisualEntity.addTag(SemionEntityTypes.RUNTIME_NO_SAVE_TAG);
             moobloomVisualEntity.setPos(getX(), getY(), getZ());
             serverLevel.addFreshEntity(moobloomVisualEntity);
             created = true;
@@ -1279,6 +1276,10 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         if (usesOneBlockEndCoreHitbox()) {
             return EntityDimensions.fixed(END_CORE_HITBOX_WIDTH, END_CORE_HITBOX_HEIGHT);
         }
+        if (usesBlockDisplayOverlayVisual()) {
+            float scale = (float) visual.scale();
+            return EntityDimensions.fixed(scale, scale);
+        }
         return super.getDefaultDimensions(pose);
     }
 
@@ -1337,7 +1338,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
                 && candidate.runtimeTower != null
                 && candidate.runtimeTower.health() > 0.0
                 && candidate.teamId == teamId
-                && candidate.laneId == laneId;
+                && (candidate.laneId == laneId || finalDefense || candidate.finalDefense);
     }
 
     private void clampToFinalDefenseAreaIfNeeded() {

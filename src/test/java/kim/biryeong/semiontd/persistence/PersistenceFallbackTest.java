@@ -212,6 +212,39 @@ final class PersistenceFallbackTest {
         }
     }
 
+    @Test
+    void sqliteMatchResultSchemaReplacesLegacyDuplicatesWithUniqueIndex() throws Exception {
+        Path database = tempDir.resolve("legacy-match-results.db");
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE TABLE match_results (match_id INTEGER, payload TEXT)");
+            statement.executeUpdate("CREATE INDEX idx_match_results_match_id ON match_results (match_id)");
+            statement.executeUpdate("INSERT INTO match_results VALUES (1, '{}')");
+            statement.executeUpdate("INSERT INTO match_results VALUES (1, '{}')");
+        }
+
+        new SQLiteMatchResultRepository(database);
+
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement();
+             ResultSet count = statement.executeQuery("SELECT COUNT(*) FROM match_results WHERE match_id = 1")) {
+            assertTrue(count.next());
+            assertEquals(1, count.getInt(1));
+        }
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + database.toAbsolutePath());
+             var statement = connection.createStatement();
+             ResultSet indexes = statement.executeQuery("PRAGMA index_list('match_results')")) {
+            boolean foundUnique = false;
+            while (indexes.next()) {
+                if ("idx_match_results_match_id".equals(indexes.getString("name"))) {
+                    assertEquals(1, indexes.getInt("unique"));
+                    foundUnique = true;
+                }
+            }
+            assertTrue(foundUnique);
+        }
+    }
+
     private static void assertThrowsPersistenceFailure(Runnable runnable) {
         try {
             runnable.run();

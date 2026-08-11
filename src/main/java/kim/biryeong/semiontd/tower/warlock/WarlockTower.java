@@ -11,6 +11,7 @@ import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.tower.DamageScaling;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
@@ -72,7 +73,7 @@ public class WarlockTower extends EntityBackedTower {
 
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        return (damageAmount + state.permanentDamageBonus() + state.roundDamageBonus() + awakeningDamageBonus()) * (1.0 + passiveDamageBonus());
+        return (damageAmount + effectiveDamageBonus() + awakeningDamageBonus()) * (1.0 + passiveDamageBonus());
     }
 
     @Override
@@ -439,8 +440,19 @@ public class WarlockTower extends EntityBackedTower {
         return state.roundSacrificeCount();
     }
 
-    double additionalAttackDamage() {
-        return Math.max(0.0, modifyAttackDamage(null, null, type().damage()) - type().damage());
+    double rawDamageBonus() {
+        return state.permanentDamageBonus() + state.roundDamageBonus();
+    }
+
+    double effectiveDamageBonus() {
+        return scaledDamageBonus(rawDamageBonus());
+    }
+
+    static double scaledDamageBonus(double rawDamageBonus) {
+        return DamageScaling.logarithmicBonus(
+                rawDamageBonus,
+                WarlockConfig.RUNTIME.value(DAMAGE_SOFT_CAP)
+        );
     }
 
     double additionalHealth() {

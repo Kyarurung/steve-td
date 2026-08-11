@@ -26,9 +26,12 @@ import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.test.tower.TestTower;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.tower.TowerCategory;
+import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowers;
+import kim.biryeong.semiontd.tower.nether.NetherTower;
+import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -239,6 +242,87 @@ public final class SemionWaveGameTest {
         double rangedDistance = bossPosition.distanceTo(new Vec3(ranged.position().x() + 0.5, ranged.position().y(), ranged.position().z() + 0.5));
         if (meleeDistance <= rangedDistance) {
             throw new AssertionError("Melee towers should deploy farther from the boss than ranged towers.");
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void teamLanesShareNearbyDeathEventsExactlyOnce(GameTestHelper context) {
+        GameArena arena = SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO));
+        PlayerLane sourceLane = lane(context, arena, "team-death-source", 1);
+        PlayerLane recipientLane = lane(context, arena, "team-death-recipient", 2);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(sourceLane);
+        group.addLane(recipientLane);
+
+        RecordingTower recipient = new RecordingTower(
+                recipientLane.ownerPlayer(),
+                2,
+                GridPosition.from(context.absolutePos(new BlockPos(2, 1, 2)))
+        );
+        TestTower destroyed = new TestTower(
+                sourceLane.ownerPlayer(),
+                TeamId.RED,
+                1,
+                GridPosition.from(context.absolutePos(new BlockPos(1, 1, 2)))
+        );
+        recipientLane.addTower(recipient);
+        sourceLane.addTower(destroyed);
+        sourceLane.enqueueWave(List.of(entry("team-death", AttackKind.MELEE, 1, 0.0, 1.0, 2.5, 20)), WaveSpawnMode.SEQUENTIAL, 1);
+
+        group.tick(context.getLevel().getServer());
+        sourceLane.activeMonsters().getFirst().damage(1_000.0);
+        group.tick(context.getLevel().getServer());
+        sourceLane.killTower(destroyed);
+
+        if (recipient.monsterDeaths != 1 || recipient.towerDeaths != 1) {
+            throw new AssertionError("A teammate tower should receive each nearby death event exactly once.");
+        }
+        if (recipient.monsterDeathLane != recipientLane || recipient.towerDeathLane != recipientLane) {
+            throw new AssertionError("Cross-lane death callbacks must receive the recipient tower's lane context.");
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void finalDefenseNetherTowerStopsDecayWhileTeammateLaneFights(GameTestHelper context) {
+        GameArena arena = SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO));
+        PlayerLane clearedLane = lane(context, arena, "nether-final-cleared", 1);
+        PlayerLane fightingLane = lane(context, arena, "nether-final-fighting", 2);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(clearedLane);
+        group.addLane(fightingLane);
+
+        NetherTower netherTower = new NetherTower(
+                NetherTowers.T1_STRIDER,
+                clearedLane.ownerPlayer(),
+                TeamId.RED,
+                1,
+                GridPosition.from(context.absolutePos(new BlockPos(1, 1, 2)))
+        );
+        clearedLane.addTower(netherTower);
+        NetherTower fightingTower = new NetherTower(
+                NetherTowers.T1_STRIDER,
+                fightingLane.ownerPlayer(),
+                TeamId.RED,
+                2,
+                GridPosition.from(context.absolutePos(new BlockPos(2, 1, 2)))
+        );
+        fightingLane.addTower(fightingTower);
+        fightingLane.enqueueWave(List.of(entry("nether-final-target", AttackKind.MELEE, 1, 0.0, 1.0, 2.5, 20)), WaveSpawnMode.SEQUENTIAL, 1);
+
+        group.tick(context.getLevel().getServer());
+        if (!netherTower.deployedAtFinalDefense() || fightingLane.activeMonsters().isEmpty()) {
+            throw new AssertionError("The first lane should be at final defense while the teammate lane is still fighting.");
+        }
+        double previousHealth = netherTower.health();
+        double fightingPreviousHealth = fightingTower.health();
+        group.tick(context.getLevel().getServer());
+        if (netherTower.health() != previousHealth) {
+            throw new AssertionError("A final-defense Nether tower must not decay while waiting for leaked enemies.");
+        }
+        if (fightingTower.health() >= fightingPreviousHealth) {
+            throw new AssertionError("A Nether tower still fighting in its own lane must keep its normal decay.");
         }
         context.succeed();
     }
@@ -736,6 +820,29 @@ public final class SemionWaveGameTest {
     private static void assertClose(double expected, double actual, String label) {
         if (Math.abs(expected - actual) > 0.0001) {
             throw new AssertionError("Expected " + label + " " + expected + ", got " + actual);
+        }
+    }
+
+    private static final class RecordingTower extends TestTower {
+        private int monsterDeaths;
+        private int towerDeaths;
+        private PlayerLane monsterDeathLane;
+        private PlayerLane towerDeathLane;
+
+        private RecordingTower(UUID ownerPlayer, int laneId, GridPosition position) {
+            super(ownerPlayer, TeamId.RED, laneId, position);
+        }
+
+        @Override
+        public void onNearbyMonsterDeath(PlayerLane lane, Monster monster, Vec3 deathPosition) {
+            monsterDeaths++;
+            monsterDeathLane = lane;
+        }
+
+        @Override
+        public void onNearbyTowerDeath(PlayerLane lane, Tower destroyedTower) {
+            towerDeaths++;
+            towerDeathLane = lane;
         }
     }
 }
