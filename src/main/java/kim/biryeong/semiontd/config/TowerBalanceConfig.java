@@ -6,8 +6,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.end.EndConfig.Ability;
@@ -178,7 +176,6 @@ public record TowerBalanceConfig(
         addNetherTowers(towers);
         addEndTowers(towers);
         addOceanTowers(towers);
-        addAncientCityTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -249,7 +246,6 @@ public record TowerBalanceConfig(
         putNetherUpgrades(upgradeCosts);
         putEndUpgrades(upgradeCosts);
         putOceanUpgrades(upgradeCosts);
-        putAncientCityUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -653,7 +649,7 @@ public record TowerBalanceConfig(
                 "poisonTickIntervalTicks", 20.0
         ));
         putAbilities(abilities, WarlockTowers.CONFIG_ID, Map.ofEntries(
-                Map.entry("damageSoftCap", 180.0),
+                Map.entry("damageCap", 350.0),
                 Map.entry("sacrificeRadius", 25.0),
                 Map.entry("minInterval", 5.0),
                 Map.entry("speedCap", 15.0),
@@ -858,7 +854,6 @@ public record TowerBalanceConfig(
         putNetherAbilities(abilities);
         putEndAbilities(abilities);
         putOceanAbilities(abilities);
-        putAncientCityAbilities(abilities);
 
         return new TowerBalanceConfig(
                 towers,
@@ -915,8 +910,6 @@ public record TowerBalanceConfig(
             }
         });
 
-        validateDamageScaling(WarlockTowers.CONFIG_ID);
-
         Map<String, Double> end = abilities.get(EndTowers.CONFIG_ID);
         if (end == null) {
             return;
@@ -930,10 +923,6 @@ public record TowerBalanceConfig(
 
         requirePositive(end,
                 DRAGON_EVOLUTION,
-                HEALTH_THRESHOLD,
-                HEALTH_SCALE,
-                DAMAGE_THRESHOLD,
-                DAMAGE_SCALE,
                 TRANSFER_TICKS,
                 TRANSFER_ATTACK_SPEED_STACKS,
                 ATTACK_SPEED_STACKS,
@@ -946,9 +935,12 @@ public record TowerBalanceConfig(
                 SPLASH_5,
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
-                REGENERATION_TICKS,
                 DAMAGE_REDUCTION_STACKS,
-                PHANTOM_SCALE_HEALTH
+                PHANTOM_SCALE_HEALTH,
+                HEALTH_THRESHOLD,
+                HEALTH_SCALE,
+                DAMAGE_THRESHOLD,
+                DAMAGE_SCALE
         );
         requireRatio(end,
                 ROUND_HEALTH_RATIO,
@@ -987,7 +979,6 @@ public record TowerBalanceConfig(
                 SPLASH_5,
                 LIFE_STEAL_STACKS,
                 REGENERATION_STACKS,
-                REGENERATION_TICKS,
                 DAMAGE_REDUCTION_STACKS
         );
         validateMinimumAttackInterval(end);
@@ -1002,17 +993,6 @@ public record TowerBalanceConfig(
             if (value != null && value <= 0.0) {
                 throw new IllegalArgumentException("End balance ability must be positive: " + key);
             }
-        }
-    }
-
-    private void validateDamageScaling(String configId) {
-        Map<String, Double> values = abilities.get(configId);
-        if (values == null) {
-            return;
-        }
-        Double softCap = values.get("damageSoftCap");
-        if (softCap != null && (!Double.isFinite(softCap) || softCap <= 0.0)) {
-            throw new IllegalArgumentException(configId + ".damageSoftCap must be finite and positive.");
         }
     }
 
@@ -1301,10 +1281,6 @@ public record TowerBalanceConfig(
         addTower(towers, OceanTowers.T3_GIANT_COD);
     }
 
-    private static void addAncientCityTowers(Map<String, TowerStats> towers) {
-        AncientCityTowers.all().forEach(type -> addTower(towers, type));
-    }
-
     private static void putNetherUpgrades(Map<String, Long> upgrades) {
         putUpgrade(upgrades, NetherTowers.T1_STRIDER, NetherTowers.T2_PIGLIN.id(), 100);
         putUpgrade(upgrades, NetherTowers.T2_PIGLIN, NetherTowers.T3_PIGLIN_BRUTE.id(), 180);
@@ -1336,108 +1312,6 @@ public record TowerBalanceConfig(
         putUpgrade(upgrades, OceanTowers.T2_LARGE_SALMON, OceanTowers.T3_GIANT_SALMON.id(), 200);
         putUpgrade(upgrades, OceanTowers.T1_COD, OceanTowers.T2_LARGE_COD.id(), 100);
         putUpgrade(upgrades, OceanTowers.T2_LARGE_COD, OceanTowers.T3_GIANT_COD.id(), 210);
-    }
-
-    private static void putAncientCityUpgrades(Map<String, Long> upgrades) {
-        putUpgrade(upgrades, AncientCityTowers.CATALYST_T1, AncientCityTowers.CATALYST_T2.id(), 110);
-        putUpgrade(upgrades, AncientCityTowers.CATALYST_T2, AncientCityTowers.CATALYST_T3.id(), 230);
-        putUpgrade(upgrades, AncientCityTowers.SENSOR_T1, AncientCityTowers.SENSOR_T2.id(), 90);
-        putUpgrade(upgrades, AncientCityTowers.SENSOR_T2, AncientCityTowers.SENSOR_T3.id(), 190);
-        putUpgrade(upgrades, AncientCityTowers.SHRIEKER_T1, AncientCityTowers.SHRIEKER_T2.id(), 110);
-        putUpgrade(upgrades, AncientCityTowers.SHRIEKER_T2, AncientCityTowers.SHRIEKER_T3.id(), 220);
-        putUpgrade(upgrades, AncientCityTowers.WARDEN_T1, AncientCityTowers.WARDEN_T2.id(), 160);
-        putUpgrade(upgrades, AncientCityTowers.WARDEN_T2, AncientCityTowers.WARDEN_T3.id(), 300);
-    }
-
-    private static void putAncientCityAbilities(Map<String, Map<String, Double>> abilities) {
-        putAbilities(abilities, AncientCityStates.CONFIG_ID, Map.of(
-                "maxSculk", 96.0,
-                "initialSculk", 5.0,
-                "waveStartSpread", 2.0,
-                "deathSpreadCapPerRound", 4.0,
-                "resonanceDamageCap", 2.00,
-                "maxCombinedDamageBonus", 2.30,
-                "finalDefenseSeedCount", 5.0,
-                "incomeMagicDamageMultiplier", 1.75
-        ));
-        putCatalystAbilities(abilities, AncientCityTowers.CATALYST_T1, 6, 60, 2.0, 0.10);
-        putCatalystAbilities(abilities, AncientCityTowers.CATALYST_T2, 9, 50, 2.5, 0.15);
-        putCatalystAbilities(abilities, AncientCityTowers.CATALYST_T3, 30, 40, 3.0, 0.20);
-        putSensorAbilities(abilities, AncientCityTowers.SENSOR_T1, 5, 40, 0.10, 60);
-        putSensorAbilities(abilities, AncientCityTowers.SENSOR_T2, 8, 36, 0.20, 80);
-        putSensorAbilities(abilities, AncientCityTowers.SENSOR_T3, 26, 30, 0.30, 100);
-        putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T1, 4, 60, 2.0, 0.10, 40);
-        putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T2, 8, 50, 2.5, 0.15, 50);
-        putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T3, 34, 40, 3.0, 0.20, 60);
-        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T1, 10, 60, 2);
-        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T2, 16, 50, 3);
-        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T3, 55, 40, 4);
-    }
-
-    private static void putCatalystAbilities(
-            Map<String, Map<String, Double>> abilities,
-            TowerType type,
-            double damage,
-            double cooldown,
-            double radius,
-            double damageReduction
-    ) {
-        putAbilities(abilities, type.id(), Map.of(
-                "magicDamage", damage,
-                "retaliationCooldownTicks", cooldown,
-                "retaliationRadius", radius,
-                "sculkDamageReduction", damageReduction
-        ));
-    }
-
-    private static void putSensorAbilities(
-            Map<String, Map<String, Double>> abilities,
-            TowerType type,
-            double damage,
-            double cooldown,
-            double markBonus,
-            double markDuration
-    ) {
-        putAbilities(abilities, type.id(), Map.of(
-                "magicDamage", damage,
-                "magicCooldownTicks", cooldown,
-                "markDamageBonus", markBonus,
-                "markDurationTicks", markDuration
-        ));
-    }
-
-    private static void putShriekerAbilities(
-            Map<String, Map<String, Double>> abilities,
-            TowerType type,
-            double damage,
-            double cooldown,
-            double radius,
-            double slow,
-            double slowDuration
-    ) {
-        putAbilities(abilities, type.id(), Map.of(
-                "magicDamage", damage,
-                "magicCooldownTicks", cooldown,
-                "magicRadius", radius,
-                "slowMagnitude", slow,
-                "slowDurationTicks", slowDuration
-        ));
-    }
-
-    private static void putWardenAbilities(
-            Map<String, Map<String, Double>> abilities,
-            TowerType type,
-            double damage,
-            double cooldown,
-            double targets
-    ) {
-        putAbilities(abilities, type.id(), Map.of(
-                "magicDamage", damage,
-                "magicCooldownTicks", cooldown,
-                "targetCount", targets,
-                "sculkExtraTargets", 1.0,
-                "secondaryDamageRatio", 0.25
-        ));
     }
 
     private static void putNetherAbilities(Map<String, Map<String, Double>> abilities) {
@@ -1598,14 +1472,23 @@ public record TowerBalanceConfig(
         values.put(TRANSFER_TICKS.key(), 200.0);
         values.put(TRANSFER_HEAL.key(), 30.0);
         values.put(TRANSFER_HEAL_RATIO.key(), 0.05);
-        values.put(HEALTH_THRESHOLD.key(), 3000.0);
-        values.put(HEALTH_SCALE.key(), 500.0);
-        values.put(DAMAGE_THRESHOLD.key(), 150.0);
-        values.put(DAMAGE_SCALE.key(), 25.0);
-        values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
-        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
         values.put(ROUND_HEALTH_RATIO.key(), 0.50);
         values.put(PERMANENT_HEALTH_RATIO.key(), 0.04);
+        values.put(HEALTH_THRESHOLD.key(), 3000.0);
+        values.put(HEALTH_SCALE.key(), 500.0);
+        values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
+        values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
+        values.put(DAMAGE_THRESHOLD.key(), 150.0);
+        values.put(DAMAGE_SCALE.key(), 25.0);
+        values.put(LIFE_STEAL_STACKS.key(), 30.0);
+        values.put(LIFE_STEAL_STEP.key(), 0.01);
+        values.put(LIFE_STEAL_CAP.key(), 0.10);
+        values.put(DAMAGE_REDUCTION_STACKS.key(), 15.0);
+        values.put(DAMAGE_REDUCTION_STEP.key(), 0.01);
+        values.put(DAMAGE_REDUCTION_CAP.key(), 0.20);
+        values.put(REGENERATION_STACKS.key(), 10.0);
+        values.put(REGENERATION_STEP.key(), 1.0);
+        values.put(REGENERATION_CAP.key(), 30.0);
         values.put(SPLASH_1.key(), 10.0);
         values.put(SPLASH_2.key(), 35.0);
         values.put(SPLASH_3.key(), 75.0);
@@ -1623,16 +1506,6 @@ public record TowerBalanceConfig(
         values.put(ATTACK_RANGE_STACKS.key(), 50.0);
         values.put(ATTACK_RANGE_STEP.key(), 0.5);
         values.put(ATTACK_RANGE_CAP.key(), 3.0);
-        values.put(LIFE_STEAL_STACKS.key(), 30.0);
-        values.put(LIFE_STEAL_STEP.key(), 0.01);
-        values.put(LIFE_STEAL_CAP.key(), 0.10);
-        values.put(DAMAGE_REDUCTION_STACKS.key(), 15.0);
-        values.put(DAMAGE_REDUCTION_STEP.key(), 0.01);
-        values.put(DAMAGE_REDUCTION_CAP.key(), 0.20);
-        values.put(REGENERATION_STACKS.key(), 10.0);
-        values.put(REGENERATION_STEP.key(), 1.0);
-        values.put(REGENERATION_CAP.key(), 30.0);
-        values.put(REGENERATION_TICKS.key(), 20.0);
         values.put(DRAGON_FINAL_DAMAGE.key(), 0.10);
         values.put(DRAGON_RANGE_BONUS.key(), 2.0);
         return Collections.unmodifiableMap(values);

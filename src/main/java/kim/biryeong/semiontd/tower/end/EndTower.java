@@ -167,11 +167,11 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedMaxHealth() {
-        return type().maxHealth() + effectiveHealthBonus();
+        return type().maxHealth() + transfers.permanentHealthBonus() + transfers.roundHealthBonus();
     }
 
     public double previewHatchedAttackDamage() {
-        return type().damage() + effectiveDamageBonus();
+        return type().damage() + transfers.permanentDamageBonus() + transfers.roundDamageBonus();
     }
 
     public int previewHatchedAttackIntervalTicks() {
@@ -243,7 +243,7 @@ public final class EndTower extends EntityBackedTower {
 
     @Override
     public List<String> runtimeDetailLines() {
-        return stats.create(this);
+        return stats.create(this, waveActive);
     }
 
     @Override
@@ -263,12 +263,12 @@ public final class EndTower extends EntityBackedTower {
         periodicHealingTicks = endTower.periodicHealingTicks;
     }
 
-    public int endCrystalCount() {
-        return transfers.endCrystalCount();
-    }
-
     public int shulkerCount() {
         return transfers.shulkerCount();
+    }
+
+    public int endCrystalCount() {
+        return transfers.endCrystalCount();
     }
 
     public int roundCompletedTransferCount() {
@@ -281,14 +281,6 @@ public final class EndTower extends EntityBackedTower {
 
     public double damageBonus() {
         return transfers.permanentDamageBonus() + transfers.roundDamageBonus();
-    }
-
-    public double effectiveDamageBonus() {
-        return combat.effectiveDamageBonus(damageBonus());
-    }
-
-    public double effectiveHealthBonus() {
-        return combat.effectiveHealthBonus(healthBonus());
     }
 
     public double permanentHealthBonus() {
@@ -446,5 +438,4 @@ public final class EndTower extends EntityBackedTower {
     private double dragonEvolution() {
         return combat.dragonEvolutionHealth();
     }
-
 }
