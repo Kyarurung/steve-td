@@ -40,7 +40,16 @@ final class EndCombat {
     double effectiveDamageBonus(double transferredDamageBonus) {
         return DamageScaling.logarithmicBonus(
                 transferredDamageBonus,
-                config.value(DAMAGE_SOFT_CAP)
+                config.value(DAMAGE_THRESHOLD),
+                config.value(DAMAGE_SCALE)
+        );
+    }
+
+    double effectiveHealthBonus(double transferredHealthBonus) {
+        return DamageScaling.logarithmicBonus(
+                transferredHealthBonus,
+                config.value(HEALTH_THRESHOLD),
+                config.value(HEALTH_SCALE)
         );
     }
 
@@ -53,12 +62,14 @@ final class EndCombat {
     double maximumDamageReduction() {return Math.max(0.0, config.value(DAMAGE_REDUCTION_CAP));}
 
     double splashRadius(boolean hatchedOrPreview) {
-        int unlockedSteps = hatchedOrPreview ? 1 : 0;
+        if (!hatchedOrPreview) {return 0.0;}
+        int unlockedSteps = 0;
         int stacks = transfers.endCrystalCount();
         if (stacks >= positiveThreshold(SPLASH_1)) {unlockedSteps++;}
         if (stacks >= positiveThreshold(SPLASH_2)) {unlockedSteps++;}
         if (stacks >= positiveThreshold(SPLASH_3)) {unlockedSteps++;}
         if (stacks >= positiveThreshold(SPLASH_4)) {unlockedSteps++;}
+        if (stacks >= positiveThreshold(SPLASH_5)) {unlockedSteps++;}
         return splashRadiusForSteps(unlockedSteps);
     }
 

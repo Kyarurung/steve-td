@@ -5,12 +5,17 @@ public final class DamageScaling {
     }
 
     public static double logarithmicBonus(double rawBonus, double softCap) {
+        return logarithmicBonus(rawBonus, softCap, softCap);
+    }
+
+    public static double logarithmicBonus(double rawBonus, double threshold, double scale) {
         if (!Double.isFinite(rawBonus) || rawBonus <= 0.0
-                || !Double.isFinite(softCap) || softCap <= 0.0) {
+                || !Double.isFinite(threshold) || threshold <= 0.0
+                || !Double.isFinite(scale) || scale <= 0.0) {
             return 0.0;
         }
-        return rawBonus <= softCap
+        return rawBonus <= threshold
                 ? rawBonus
-                : softCap + softCap * Math.log1p((rawBonus - softCap) / softCap);
+                : threshold + scale * Math.log1p((rawBonus - threshold) / scale);
     }
 }

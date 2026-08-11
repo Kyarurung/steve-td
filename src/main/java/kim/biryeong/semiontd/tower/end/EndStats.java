@@ -21,7 +21,8 @@ final class EndStats {
                 tower.shulkerCount(),
                 tower.endCrystalCount(),
                 new EndStatsView.DefenseStats(
-                        tower.permanentHealthBonus(),
+                        tower.healthBonus(),
+                        tower.effectiveHealthBonus(),
                         combat.regenerationPerSecond(),
                         combat.maximumRegeneration(),
                         combat.lifeStealRatio(),

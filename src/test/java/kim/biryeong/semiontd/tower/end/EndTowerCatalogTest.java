@@ -47,19 +47,23 @@ class EndTowerCatalogTest {
         assertTrue(config.towers().containsKey(EndTowers.T3_SHULKER_TOWER.id()));
         assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "hatchDelayTicks", -1.0), 0.0001);
         assertEquals(2000.0, config.ability(EndTower.CONFIG_ID, "dragonEvolution", -1.0), 0.0001);
-        assertEquals(120.0, config.ability(EndTower.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
+        assertEquals(3000.0, config.ability(EndTower.CONFIG_ID, "healthThreshold", -1.0), 0.0001);
+        assertEquals(500.0, config.ability(EndTower.CONFIG_ID, "healthScale", -1.0), 0.0001);
+        assertEquals(150.0, config.ability(EndTower.CONFIG_ID, "damageThreshold", -1.0), 0.0001);
+        assertEquals(25.0, config.ability(EndTower.CONFIG_ID, "damageScale", -1.0), 0.0001);
+        assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
         assertEquals(200.0, config.ability(EndTower.CONFIG_ID, "transferTicks", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "transferHeal", -1.0), 0.0001);
         assertEquals(0.05, config.ability(EndTower.CONFIG_ID, "transferHealRatio", -1.0), 0.0001);
         assertEquals(0.50, config.ability(EndTower.CONFIG_ID, "roundHealthRatio", -1.0), 0.0001);
-        assertEquals(0.75, config.ability(EndTower.CONFIG_ID, "roundDamageRatio", -1.0), 0.0001);
+        assertEquals(0.66, config.ability(EndTower.CONFIG_ID, "roundDamageRatio", -1.0), 0.0001);
         assertEquals(0.04, config.ability(EndTower.CONFIG_ID, "permanentHealthRatio", -1.0), 0.0001);
-        assertEquals(0.06, config.ability(EndTower.CONFIG_ID, "permanentDamageRatio", -1.0), 0.0001);
+        assertEquals(0.04, config.ability(EndTower.CONFIG_ID, "permanentDamageRatio", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "transferAttackSpeedStacks", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "transferAttackSpeedStep", -1.0), 0.0001);
         assertEquals(2.0, config.ability(EndTower.CONFIG_ID, "dragonRangeBonus", -1.0), 0.0001);
-        assertEquals(0.20, config.ability(EndTower.CONFIG_ID, "dragonFinalDamage", -1.0), 0.0001);
+        assertEquals(0.10, config.ability(EndTower.CONFIG_ID, "dragonFinalDamage", -1.0), 0.0001);
         assertEquals(30.0, config.ability(EndTower.CONFIG_ID, "attackSpeedStacks", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "attackSpeedStep", -1.0), 0.0001);
         assertEquals(10.0, config.ability(EndTower.CONFIG_ID, "attackSpeedCap", -1.0), 0.0001);
@@ -67,10 +71,11 @@ class EndTowerCatalogTest {
         assertEquals(50.0, config.ability(EndTower.CONFIG_ID, "attackRangeStacks", -1.0), 0.0001);
         assertEquals(0.5, config.ability(EndTower.CONFIG_ID, "attackRangeStep", -1.0), 0.0001);
         assertEquals(3.0, config.ability(EndTower.CONFIG_ID, "attackRangeCap", -1.0), 0.0001);
-        assertEquals(15.0, config.ability(EndTower.CONFIG_ID, "splash1", -1.0), 0.0001);
-        assertEquals(60.0, config.ability(EndTower.CONFIG_ID, "splash2", -1.0), 0.0001);
-        assertEquals(150.0, config.ability(EndTower.CONFIG_ID, "splash3", -1.0), 0.0001);
-        assertEquals(300.0, config.ability(EndTower.CONFIG_ID, "splash4", -1.0), 0.0001);
+        assertEquals(10.0, config.ability(EndTower.CONFIG_ID, "splash1", -1.0), 0.0001);
+        assertEquals(35.0, config.ability(EndTower.CONFIG_ID, "splash2", -1.0), 0.0001);
+        assertEquals(75.0, config.ability(EndTower.CONFIG_ID, "splash3", -1.0), 0.0001);
+        assertEquals(150.0, config.ability(EndTower.CONFIG_ID, "splash4", -1.0), 0.0001);
+        assertEquals(300.0, config.ability(EndTower.CONFIG_ID, "splash5", -1.0), 0.0001);
         assertEquals(1.0, config.ability(EndTower.CONFIG_ID, "splashStep", -1.0), 0.0001);
         assertEquals(5.0, config.ability(EndTower.CONFIG_ID, "splashCap", -1.0), 0.0001);
         assertEquals(0.66, config.ability(EndTower.CONFIG_ID, "splashDamageRatio", -1.0), 0.0001);
@@ -172,9 +177,9 @@ class EndTowerCatalogTest {
         assertTrue(plainDescription.contains("엔더 드래곤으로 진화하면 추가 능력을 획득합니다."));
         assertTrue(plainDescription.contains("힘 전달 10초 후 타워 사망, 체력 30을 회복합니다."));
         assertTrue(plainDescription.contains("전달 중인 셜커 타워의 최대 체력 5%만큼 회복합니다."));
-        assertTrue(plainDescription.contains("타워 피해의 75%를 임시 획득, 6% 영구 누적"));
-        assertTrue(plainDescription.contains("추가 피해는 120까지 그대로 적용"));
-        assertFalse(plainDescription.contains("추가 피해는 최대"));
+        assertTrue(plainDescription.contains("타워 피해의 66%를 임시 획득, 4% 영구 누적"));
+        assertTrue(plainDescription.contains("추가 체력은 3000, 피해는 150까지 그대로 적용"));
+        assertTrue(plainDescription.contains("기준을 넘긴 누적 능력치는 완만하게 적용"));
         assertTrue(plainDescription.contains("타워 체력의 50%를 임시 획득, 4% 영구 누적"));
         assertFalse(description.contains("{ability."));
         assertTrue(description.contains("<#cc00fa>아기 드래곤</#cc00fa>"));
@@ -193,10 +198,10 @@ class EndTowerCatalogTest {
                 .reduce("", (left, right) -> left + "\n" + right);
 
         assertTrue(description.contains("10초에 걸쳐"));
-        assertTrue(description.contains("체력 50%, 피해 75%"));
-        assertTrue(description.contains("체력 4%, 피해 6%"));
-        assertTrue(description.contains("추가 피해는 120까지 그대로 적용"));
-        assertFalse(description.contains("추가 피해는 최대"));
+        assertTrue(description.contains("체력 50%, 피해 66%"));
+        assertTrue(description.contains("체력 4%, 피해 4%"));
+        assertTrue(description.contains("추가 체력은 3000, 피해는 150까지 그대로 적용"));
+        assertTrue(description.contains("기준을 넘긴 누적 능력치는 완만하게 적용"));
     }
 
     @Test
