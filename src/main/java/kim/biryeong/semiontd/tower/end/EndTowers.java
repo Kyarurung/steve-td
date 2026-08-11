@@ -165,7 +165,8 @@ public final class EndTowers {
                 "<gray>힘 전달 " + ability(TRANSFER_TICKS, "seconds") + " 후 타워 사망, <#fc5454>체력 " + ability(TRANSFER_HEAL, "integer") + "</#fc5454>을 회복합니다.</gray>",
                 "<gray>전달 중인 셜커 타워의 <#fc5454>최대 체력 " + ability(TRANSFER_HEAL_RATIO, "percent_integer") + "</#fc5454>만큼 회복합니다.</gray>",
                 "<gray>타워 <#ec8d34>피해</#ec8d34>의 <#ec8d34>" + ability(ROUND_DAMAGE_RATIO, "percent_integer") + "</#ec8d34>를 임시 획득, <#ec8d34>" + ability(PERMANENT_DAMAGE_RATIO, "percent_integer") + "</#ec8d34> 영구 누적</gray>",
-                "<gray>흡수로 얻는 추가 피해는 <#ec8d34>" + ability(DAMAGE_SOFT_CAP, "number") + "</#ec8d34>까지 그대로 적용되며, 이후 완만하게 증가합니다.</gray>",
+                "<gray>흡수로 얻는 추가 <#fc5454>체력은 " + ability(HEALTH_THRESHOLD, "number") + "</#fc5454>, <#ec8d34>피해는 " + ability(DAMAGE_THRESHOLD, "number") + "</#ec8d34>까지 그대로 적용됩니다.</gray>",
+                "<gray>기준을 넘긴 누적 능력치는 완만하게 적용됩니다.</gray>",
                 "<gray>타워 <#fc5454>체력</#fc5454>의 <#fc5454>" + ability(ROUND_HEALTH_RATIO, "percent_integer") + "</#fc5454>를 임시 획득, <#fc5454>" + ability(PERMANENT_HEALTH_RATIO, "percent_integer") + "</#fc5454> 영구 누적</gray>"
         );
     }

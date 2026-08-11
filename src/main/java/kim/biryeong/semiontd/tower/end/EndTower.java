@@ -167,7 +167,7 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedMaxHealth() {
-        return type().maxHealth() + transfers.permanentHealthBonus() + transfers.roundHealthBonus();
+        return type().maxHealth() + effectiveHealthBonus();
     }
 
     public double previewHatchedAttackDamage() {
@@ -285,6 +285,10 @@ public final class EndTower extends EntityBackedTower {
 
     public double effectiveDamageBonus() {
         return combat.effectiveDamageBonus(damageBonus());
+    }
+
+    public double effectiveHealthBonus() {
+        return combat.effectiveHealthBonus(healthBonus());
     }
 
     public double permanentHealthBonus() {
