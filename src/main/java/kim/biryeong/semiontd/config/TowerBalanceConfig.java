@@ -1349,12 +1349,13 @@ public record TowerBalanceConfig(
 
     private static void putAncientCityAbilities(Map<String, Map<String, Double>> abilities) {
         putAbilities(abilities, AncientCityStates.CONFIG_ID, Map.of(
-                "maxSculk", 96.0,
-                "initialSculk", 5.0,
-                "waveStartSpread", 2.0,
-                "deathSpreadCapPerRound", 4.0,
-                "resonanceDamageCap", 2.00,
-                "maxCombinedDamageBonus", 2.30,
+                "maxSculk", 256.0,
+                "resonanceFullAt", 224.0,
+                "initialSculk", 9.0,
+                "waveStartSpread", 4.0,
+                "deathSpreadCapPerRound", 6.0,
+                "resonanceDamageCap", 2.25,
+                "maxCombinedDamageBonus", 2.55,
                 "finalDefenseSeedCount", 5.0,
                 "incomeMagicDamageMultiplier", 1.75
         ));
