@@ -1263,7 +1263,7 @@ public final class SemionDialogService {
             tooltip.append(Component.literal("\n현재 선택된 직업입니다.").withStyle(ChatFormatting.GREEN));
         }
         for (Component line : job.description()) {
-            tooltip.append(Component.literal("\n").append(line.copy().withStyle(ChatFormatting.GRAY)));
+            tooltip.append(Component.literal("\n").withStyle(ChatFormatting.GRAY).append(line.copy()));
         }
         return tooltip;
     }

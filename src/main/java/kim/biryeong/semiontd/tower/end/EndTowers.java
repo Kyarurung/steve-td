@@ -139,7 +139,7 @@ public final class EndTowers {
                 "<gray>" + healthText("최대 체력 " + ability(DRAGON_EVOLUTION, "integer")) + " 이상이면 " + endText("엔더 드래곤") + "으로 진화합니다.</gray>",
                 "<gray>" + endText("엔더 드래곤") + "으로 진화하면 추가 능력을 획득합니다.</gray>",
                 "<gray>힘 전달 " + ability(TRANSFER_TICKS, "seconds") + " 후 타워 사망, " + healthText("체력 " + ability(TRANSFER_HEAL, "integer")) + "을 회복합니다.</gray>",
-                "<gray>전달 중인 셜커 타워의 " + healthText("최대 체력의 " + ability(TRANSFER_HEAL_RATIO, "percent")) + "를 초당 회복합니다.</gray>",
+                "<gray>전달 중인 셜커 타워의 " + healthText("최대 체력") + "의 " + healthText(ability(TRANSFER_HEAL_RATIO, "percent")) + "를 초당 회복합니다.</gray>",
                 "<gray>타워 " + healthText("체력") + "의 " + healthText(ability(ROUND_HEALTH_RATIO, "percent")) + "를 임시 획득, " + healthText(ability(PERMANENT_HEALTH_RATIO, "percent")) + " 영구 누적</gray>",
                 "<gray>타워 " + attackDamageText("피해") + "의 " + attackDamageText(ability(ROUND_DAMAGE_RATIO, "percent")) + "를 임시 획득, " + attackDamageText(ability(PERMANENT_DAMAGE_RATIO, "percent")) + " 영구 누적</gray>",
                 "<gray>능력치는 높아질수록 증가 효율이 감소합니다.</gray>"
@@ -192,5 +192,4 @@ public final class EndTowers {
                 .map(ProductionTowerCatalog.CatalogEntry::tier)
                 .orElse(0);
     }
-
 }

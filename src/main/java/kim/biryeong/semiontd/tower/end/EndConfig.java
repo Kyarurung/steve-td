@@ -61,11 +61,9 @@ public final class EndConfig {
         DRAGON_RANGE_BONUS("dragonRangeBonus");
 
         private final String key;
-
         Ability(String key) {
             this.key = key;
         }
-
         public String key() {return key;}
     }
 }

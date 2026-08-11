@@ -438,5 +438,4 @@ public final class EndTower extends EntityBackedTower {
     private double dragonEvolution() {
         return combat.dragonEvolutionHealth();
     }
-
 }

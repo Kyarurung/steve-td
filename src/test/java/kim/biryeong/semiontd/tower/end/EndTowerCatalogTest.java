@@ -20,6 +20,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
 import net.minecraft.SharedConstants;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.DyeColor;
@@ -173,6 +174,7 @@ class EndTowerCatalogTest {
         assertFalse(description.contains("{ability."));
         assertTrue(description.contains("<#cc00fa>아기 드래곤</#cc00fa>"));
         assertTrue(description.contains("<#cc00fa>엔더 드래곤</#cc00fa>"));
+        assertTrue(description.contains("전달 중인 셜커 타워의 <#fc5454>최대 체력</#fc5454>의 <#fc5454>5%</#fc5454>를 초당 회복합니다."));
         assertTrue(description.contains("<#fc5454>체력"));
         assertTrue(description.contains("<#ec8d34>피해"));
     }
@@ -180,7 +182,8 @@ class EndTowerCatalogTest {
     @Test
     void endJobDescriptionUsesCurrentEndDescription() {
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
-        String description = new EndTowerJob().description().stream()
+        List<Component> lines = new EndTowerJob().description();
+        String description = lines.stream()
                 .map(Component::getString)
                 .reduce("", (left, right) -> left + "\n" + right);
         assertTrue(description.contains("아군 타워의 체력과 피해를"));
@@ -188,6 +191,10 @@ class EndTowerCatalogTest {
         assertTrue(description.contains("체력 4%, 피해 4%를 영구 누적합니다."));
         assertTrue(description.contains("엔더 드래곤으로 진화하면"));
         assertTrue(description.contains("추가 고유 능력을 획득합니다."));
+        assertEquals(
+                Component.literal("").withStyle(ChatFormatting.DARK_RED).getStyle().getColor(),
+                lines.getLast().getStyle().getColor()
+        );
     }
 
     @Test

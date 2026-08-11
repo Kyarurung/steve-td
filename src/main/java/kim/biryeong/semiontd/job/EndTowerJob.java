@@ -16,6 +16,7 @@ import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.f
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.healthText;
 import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
 import static kim.biryeong.semiontd.tower.end.EndFormatting.endText;
+import static kim.biryeong.semiontd.tower.end.EndFormatting.warningText;
 
 public final class EndTowerJob extends SemionJob {
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(
@@ -50,7 +51,7 @@ public final class EndTowerJob extends SemionJob {
                 SemionText.mini("<gray>" + endText("엔더 드래곤") + "으로 진화하면</gray>"),
                 SemionText.mini("<gray>추가 <yellow>고유 능력</yellow>을 획득합니다.</gray>"),
                 Component.empty(),
-                SemionText.mini("<dark_red>초보자에게 추천하지 않습니다.</dark_red>")
+                SemionText.mini(warningText("초보자에게 추천하지 않습니다."))
         );
     }
 
