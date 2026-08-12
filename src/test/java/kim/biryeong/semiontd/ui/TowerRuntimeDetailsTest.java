@@ -1,5 +1,7 @@
 package kim.biryeong.semiontd.ui;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
@@ -23,7 +25,10 @@ import kim.biryeong.semiontd.tower.villager.VillagerSplashTower;
 import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import net.minecraft.SharedConstants;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.server.dialog.body.DialogBody;
+import net.minecraft.server.dialog.body.PlainMessage;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -112,6 +117,20 @@ class TowerRuntimeDetailsTest {
         assertContains(lines, "체력 +");
     }
 
+    @Test
+    void towerDetailsConvertDividerTokensWithoutActionButtons() {
+        List<DialogBody> bodies = SemionDialogService.actionDialogBodies(
+                "\nStats\n<divider>\nOther owner's tower",
+                () -> Component.literal("----------").withStyle(style -> style.withStrikethrough(true))
+        );
+
+        PlainMessage message = assertInstanceOf(PlainMessage.class, bodies.getFirst());
+        assertFalse(message.contents().getString().contains("<divider>"));
+        assertTrue(message.contents().getString().contains("Stats"));
+        assertTrue(message.contents().getString().contains("Other owner's tower"));
+        assertTrue(containsStrikethrough(message.contents()));
+    }
+
     private static ResonanceTower resonance(kim.biryeong.semiontd.tower.TowerType type, GridPosition position) {
         return new ResonanceTower(type, OWNER, TeamId.RED, 1, position, position);
     }
@@ -119,6 +138,11 @@ class TowerRuntimeDetailsTest {
     private static void assertContains(List<String> lines, String expected) {
         assertTrue(lines.stream().anyMatch(line -> line.contains(expected)),
                 () -> "Expected a runtime detail line containing '" + expected + "' but got " + lines);
+    }
+
+    private static boolean containsStrikethrough(Component component) {
+        return component.getStyle().isStrikethrough()
+                || component.getSiblings().stream().anyMatch(TowerRuntimeDetailsTest::containsStrikethrough);
     }
 
     private static void setFieldFromHierarchy(Tower tower, String name, Object value) throws Exception {

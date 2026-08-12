@@ -18,6 +18,7 @@ import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kim.biryeong.semiontd.buildguide.BuildGuide;
 import kim.biryeong.semiontd.buildguide.BuildGuideService;
@@ -653,7 +654,7 @@ public final class SemionDialogService {
                     BUTTON_WIDTH
             ));
         }
-        showActions(player, "세미온 TD 타워 상세", body.toString(), actions, 2);
+        showActions(player, "세미온 TD 타워 상세", actionDialogBodies(body.toString()), actions, 2);
     }
 
     public void showDebugTowerControl(ServerPlayer player) {
@@ -1140,6 +1141,10 @@ public final class SemionDialogService {
     }
 
     private static List<DialogBody> actionDialogBodies(String body) {
+        return actionDialogBodies(body, () -> dividerComponent(BODY_WIDTH));
+    }
+
+    static List<DialogBody> actionDialogBodies(String body, Supplier<Component> dividerFactory) {
         if (body == null || body.isBlank()) {
             return List.of();
         }
@@ -1165,7 +1170,7 @@ public final class SemionDialogService {
             }
             if (i < sections.length - 1) {
                 contentComponent.append("\n");
-                contentComponent.append(dividerComponent(BODY_WIDTH));
+                contentComponent.append(dividerFactory.get());
             }
         }
         if (!contentComponent.getSiblings().isEmpty()) {
