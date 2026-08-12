@@ -147,6 +147,8 @@ public final class AdversaryRivalGameTest {
             SemionMonsterEntity proxyEntity = (SemionMonsterEntity) context.getLevel()
                     .getEntity(proxy.minecraftEntityId());
             proxyEntity.setNoAi(true);
+            fox.syncHealth(100.0);
+            foxEntity.setHealth(100.0F);
 
             fox.damageTargetResult(foxEntity, proxyEntity, 1.0);
             requireClose(0.0, fox.roundPhysicalDamageDealt(),
@@ -166,6 +168,8 @@ public final class AdversaryRivalGameTest {
 
             require(rival.contributedScore() == 1,
                     "An ignite last hit from the fox must credit the rival's evolution score.");
+            requireClose(142.0, fox.health(),
+                    "A base rival kill must heal twelve percent of the fox's maximum health.");
             requireClose(0.0, fox.roundMagicDamageDealt(),
                     "Ignite damage to an owned rival must not inflate magic damage statistics.");
 

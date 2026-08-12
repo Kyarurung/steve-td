@@ -289,7 +289,95 @@ public final class AdversaryIntegrationGameTest {
     }
 
     @GameTest
-    public void maceSweepsTwoNearbyTargetsAndSculkRecoilStopsAtTwentyPercent(GameTestHelper context) {
+    public void breezeChainUsesMagicDamageStatistics(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        UUID owner = stableUuid("adversary-breeze-magic");
+        PlayerLane lane = testLane(context, owner, 1, 0);
+
+        try {
+            TowerBalanceRuntime.apply(defaults);
+            AdversaryFoxTower fox = fox(owner, 1, position(context, 3, 2, 3));
+            lane.addTower(fox);
+            SemionTowerEntity source = towerEntity(context, fox);
+            source.setNoAi(true);
+            fox.setForm(FoxForm.BREEZE, lane);
+
+            Vec3 center = source.position().add(3.0, 0.0, 0.0);
+            SemionMonsterEntity primary = spawnMonster(context, lane, "breeze-primary", center);
+            SemionMonsterEntity chained = spawnMonster(context, lane, "breeze-chained", center.add(0.0, 0.0, 0.5));
+            primary.setNoAi(true);
+            chained.setNoAi(true);
+
+            fox.onAttackResolved(source, primary, 30.0, 30.0, 30.0, false);
+
+            requireClose(982.0, chained.runtimeMonster().health(),
+                    "Breeze must deal sixty percent magic chain damage.");
+            requireClose(18.0, fox.roundMagicDamageDealt(),
+                    "Breeze chain damage must be recorded as magic.");
+            requireClose(0.0, fox.roundPhysicalDamageDealt(),
+                    "The manually resolved Breeze chain must not enter physical statistics.");
+            context.succeed();
+        } catch (RuntimeException | Error failure) {
+            failure.printStackTrace();
+            context.fail(Component.literal("Adversary Breeze magic chain failed: " + failure.getMessage()));
+        } finally {
+            lane.clearTowers();
+            AdversaryProgressStates.clear(owner);
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    @GameTest
+    public void evolvedSplashAndFocusFireMitigationUseLiveTargets(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        UUID owner = stableUuid("adversary-evolved-sustain");
+        PlayerLane lane = testLane(context, owner, 1, 0);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(lane);
+
+        try {
+            TowerBalanceRuntime.apply(defaults);
+            AdversaryFoxTower fox = fox(owner, 1, position(context, 3, 2, 3));
+            lane.addTower(fox);
+            SemionTowerEntity source = towerEntity(context, fox);
+            source.setNoAi(true);
+            fox.setForm(FoxForm.BEACON_KEEPER, lane);
+
+            Vec3 center = source.position().add(3.0, 0.0, 0.0);
+            SemionMonsterEntity primary = spawnMonster(context, lane, "evolved-primary", center);
+            SemionMonsterEntity first = spawnMonster(context, lane, "evolved-first", center.add(0.0, 0.0, 0.4));
+            SemionMonsterEntity second = spawnMonster(context, lane, "evolved-second", center.add(0.0, 0.0, -0.4));
+            SemionMonsterEntity third = spawnMonster(context, lane, "evolved-third", center.add(0.0, 0.0, 0.8));
+            for (SemionMonsterEntity monster : List.of(primary, first, second, third)) {
+                monster.setNoAi(true);
+                monster.setTarget(source);
+            }
+
+            fox.onAttackResolved(source, primary, 90.0, 90.0, 90.0, false);
+
+            List<SemionMonsterEntity> secondaries = List.of(first, second, third);
+            require(secondaries.stream().filter(monster -> monster.runtimeMonster().health() < 1_000.0).count() == 2,
+                    "Evolved splash must keep the base two-target cap.");
+            requireClose(36.0, secondaries.stream()
+                            .mapToDouble(monster -> 1_000.0 - monster.runtimeMonster().health())
+                            .sum(),
+                    "An evolved single-target form must retain twenty percent splash.");
+            fox.setForm(FoxForm.BASE, lane);
+            requireClose(88.0, fox.modifyIncomingDamage(source, null, 100.0),
+                    "Four attackers targeting the fox must reduce incoming damage by twelve percent.");
+            context.succeed();
+        } catch (RuntimeException | Error failure) {
+            failure.printStackTrace();
+            context.fail(Component.literal("Adversary sustain combat failed: " + failure.getMessage()));
+        } finally {
+            group.closeRuntime();
+            AdversaryProgressStates.clear(owner);
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    @GameTest
+    public void maceSweepsTwoNearbyTargetsAndSculkRecoilStopsAtFortyPercent(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         UUID owner = stableUuid("adversary-high-ceiling-combat");
         PlayerLane lane = testLane(context, owner, 1, 0);
@@ -329,8 +417,8 @@ public final class AdversaryIntegrationGameTest {
                     "Mace sweep must stop after two secondary targets.");
 
             fox.setForm(FoxForm.SCULK_CORE, lane);
-            fox.syncHealth(275.0);
-            source.setHealth(275.0F);
+            fox.syncHealth(495.0);
+            source.setHealth(495.0F);
             SemionMonsterEntity firstSculkTarget = spawnMonster(
                     context,
                     lane,
@@ -342,8 +430,8 @@ public final class AdversaryIntegrationGameTest {
             for (int tick = 0; tick < AdversaryBalance.SCULK_DETONATION_DELAY_TICKS; tick++) {
                 fox.tick(lane);
             }
-            requireClose(220.0, fox.health(),
-                    "Sculk recoil must stop exactly at twenty percent health.");
+            requireClose(440.0, fox.health(),
+                    "Sculk recoil must stop exactly at forty percent health.");
 
             SemionMonsterEntity secondSculkTarget = spawnMonster(
                     context,
@@ -356,7 +444,7 @@ public final class AdversaryIntegrationGameTest {
             for (int tick = 0; tick < AdversaryBalance.SCULK_DETONATION_DELAY_TICKS; tick++) {
                 fox.tick(lane);
             }
-            requireClose(220.0, fox.health(),
+            requireClose(440.0, fox.health(),
                     "Further Sculk blasts must not consume health below the floor.");
             context.succeed();
         } catch (RuntimeException | Error failure) {

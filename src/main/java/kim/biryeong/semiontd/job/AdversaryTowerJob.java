@@ -32,6 +32,7 @@ public final class AdversaryTowerJob extends SemionJob {
                 SemionText.mini("<gold>여우는 한 마리만 설치할 수 있습니다.</gold>"),
                 SemionText.mini("<gray>숙적은 타워 슬롯을 차지하며, 웨이브가 시작되면 설치한 자리에서 적으로 변합니다.</gray>"),
                 SemionText.mini("<gray>숙적을 여우가 직접 처치하면 종류에 맞는 <yellow>전직 점수</yellow>를 얻습니다. 강화 숙적은 2점을 줍니다.</gray>"),
+                SemionText.mini("<gray>숙적을 처치하면 체력을 회복하며, 여러 적에게 집중 공격받을수록 받는 피해가 줄어듭니다.</gray>"),
                 SemionText.mini("<gray>점수를 채우면 <green>다음 준비 단계</green>에 한 단계 전직합니다. 인컴 적은 점수를 주지 않습니다.</gray>"),
                 SemionText.mini("<aqua>첫 전직은 질풍 여우, 종지기 여우, 추적자 여우, 메아리 여우 중 하나이며 각 계열에서 최종 형태 2종으로 갈립니다.</aqua>"),
                 SemionText.mini("<red>숙적을 판매하면 그 숙적에게서 얻은 점수가 사라집니다. 점수가 부족하면 여우는 강등되지만 전직 계열은 유지됩니다.</red>"),

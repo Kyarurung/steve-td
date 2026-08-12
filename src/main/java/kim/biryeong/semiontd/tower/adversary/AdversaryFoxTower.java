@@ -41,6 +41,7 @@ public final class AdversaryFoxTower extends EntityBackedTower {
     private boolean normalEntityHealthSyncPending;
     private boolean unscaledEntityDamagePending;
     private double unscaledEntityDamageLogicalHealth;
+    private double rivalHealingThisWave;
 
     private UUID goldenTargetId;
     private int goldenTargetHits;
@@ -178,6 +179,7 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         }
         tickSculkBlasts(entity);
         AdversaryTeamEffects.tick(this, entity);
+        AdversaryVfx.showSupportPulse(entity, form);
     }
 
     @Override
@@ -284,16 +286,26 @@ public final class AdversaryFoxTower extends EntityBackedTower {
             return;
         }
         if (form == FoxForm.MACE_EXECUTIONER) {
-            beginOrMaintainMaceChannel(target);
+            beginOrMaintainMaceChannel(towerEntity, target);
             return;
         }
         if (form == FoxForm.SCULK_CORE) {
-            scheduleSculkBlast(target.position());
+            scheduleSculkBlast(towerEntity, target.position());
             return;
         }
         // Chained hits and streaks represent successful attacks, not blocked or invalid rays.
         if (dealtDamage <= 0.0) {
             return;
+        }
+        if (usesEvolvedSplash(form)) {
+            applyNearbySecondaries(
+                    towerEntity,
+                    target,
+                    attemptedDamage,
+                    global("baseSplashRadius", AdversaryBalance.BASE_SPLASH_RADIUS),
+                    globalInt("baseSplashExtraTargets", AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
+                    global("evolvedSplashDamageRatio", AdversaryBalance.EVOLVED_SPLASH_DAMAGE_RATIO)
+            );
         }
         switch (form) {
             case BASE -> applyNearbySecondaries(
@@ -347,17 +359,13 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         if (target == null || target.runtimeMonster() == null) {
             return;
         }
-        AdversaryProgressStates.recordFoxKill(
-                ownerPlayer(),
-                target.runtimeMonster(),
-                currentLane
-        );
+        recordRivalKill(target.runtimeMonster());
     }
 
     @Override
     public void onIgniteKill(SemionMonsterEntity target) {
         if (target != null && target.runtimeMonster() != null) {
-            AdversaryProgressStates.recordFoxKill(ownerPlayer(), target.runtimeMonster(), currentLane);
+            recordRivalKill(target.runtimeMonster());
         }
     }
 
@@ -374,7 +382,10 @@ public final class AdversaryFoxTower extends EntityBackedTower {
             DamageSource damageSource,
             double damageAmount
     ) {
-        double remainingDamage = damageAmount * Math.max(0.0, 1.0 - form.damageReduction());
+        double focusFireReduction = focusFireDamageReduction(focusFireAttackerCount(towerEntity, damageSource));
+        double remainingDamage = damageAmount
+                * Math.max(0.0, 1.0 - form.damageReduction())
+                * Math.max(0.0, 1.0 - focusFireReduction);
         if (remainingDamage <= 0.0) {
             normalEntityHealthSyncPending = false;
             return 0.0;
@@ -542,6 +553,27 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                 + " / 크리퍼 " + progress.score(RivalKind.CREEPER)
                 + " / 팬텀 " + progress.score(RivalKind.PHANTOM)
                 + " / 북극곰 " + progress.score(RivalKind.POLAR_BEAR));
+        lines.add("<green>숙적 처치 회복</green>: 일반 "
+                + percent(global("baseRivalKillHealRatio", AdversaryBalance.BASE_RIVAL_KILL_HEAL_RATIO))
+                + " / 강화 "
+                + percent(global("enhancedRivalKillHealRatio", AdversaryBalance.ENHANCED_RIVAL_KILL_HEAL_RATIO))
+                + " — 이번 웨이브 " + number(rivalHealingThisWave) + "/"
+                + number(currentMaxHealth() * global(
+                "rivalKillHealCapRatioPerWave",
+                AdversaryBalance.RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE
+        )));
+        int focusFireAttackers = focusFireAttackerCount(towerEntity(currentLane), null);
+        lines.add("<aqua>집중포화 방어</aqua>: " + focusFireAttackers + "기 / 피해 감소 "
+                + percent(focusFireDamageReduction(focusFireAttackers)) + " (최대 "
+                + percent(global(
+                "focusFireDamageReductionCap",
+                AdversaryBalance.FOCUS_FIRE_DAMAGE_REDUCTION_CAP
+        )) + ")");
+        if (usesEvolvedSplash(form)) {
+            lines.add("기본 공격이 주변 적에게 공격력의 "
+                    + percent(global("evolvedSplashDamageRatio", AdversaryBalance.EVOLVED_SPLASH_DAMAGE_RATIO))
+                    + "만큼 피해를 줍니다.");
+        }
         Optional<FoxForm> pending = progress.pendingForm();
         if (pending.isPresent()) {
             lines.add("<green>전직 대기</green>: " + pending.get().displayName()
@@ -580,7 +612,7 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                     + percent(global(
                     "breezeExtraTargetDamageRatio",
                     AdversaryBalance.BREEZE_EXTRA_TARGET_DAMAGE_RATIO
-            )) + "만큼 연쇄 피해를 줍니다.");
+            )) + "만큼 연쇄 마법 피해를 줍니다.");
             case GOLDEN_FANG -> {
                 int every = globalInt(
                         "goldenExtraAttackEvery",
@@ -651,7 +683,7 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                 lines.add("직선상의 적 최대 "
                         + globalInt("fireworkMaxTargets", AdversaryBalance.FIREWORK_MAX_TARGETS)
                         + "기를 관통하며 " + percentList(AdversaryBalance.fireworkTargetDamageRatios())
-                        + "의 피해를 줍니다.");
+                        + "의 물리 피해를 줍니다.");
             }
             case BIG_GAME_TRACKER -> {
                 int stages = AdversaryBalance.bigGameStreakMultipliers().length;
@@ -683,7 +715,7 @@ public final class AdversaryFoxTower extends EntityBackedTower {
             }
             case MACE_EXECUTIONER -> {
                 lines.add(globalInt("maceFocusTicks", AdversaryBalance.MACE_FOCUS_TICKS)
-                        + "틱 동안 집중한 뒤 " + number(form.damage()) + "의 피해를 줍니다.");
+                        + "틱 동안 집중한 뒤 " + number(form.damage()) + "의 물리 피해를 줍니다.");
                 lines.add("연속 적중 시 피해가 "
                         + multiplierList(AdversaryBalance.maceStreakMultipliers())
                         + "로 증가합니다.");
@@ -972,9 +1004,9 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                         source,
                         target,
                         attemptedDamage * ratio,
-                        DamageType.PHYSICAL,
+                        DamageType.MAGIC,
                         false,
-                        true
+                        false
                 ));
     }
 
@@ -1113,26 +1145,30 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                 .toList();
     }
 
-    private void beginOrMaintainMaceChannel(SemionMonsterEntity target) {
-        if (target == null) {
+    private void beginOrMaintainMaceChannel(SemionTowerEntity source, SemionMonsterEntity target) {
+        if (source == null || target == null) {
             return;
         }
+        int focusTicks = globalInt("maceFocusTicks", AdversaryBalance.MACE_FOCUS_TICKS);
         if (maceTargetId == null) {
             maceTargetId = target.getUUID();
-            maceTicksUntilStrike = globalInt("maceFocusTicks", AdversaryBalance.MACE_FOCUS_TICKS);
+            maceTicksUntilStrike = focusTicks;
             maceSuccessfulStrikes = 0;
             maceFocusDamageTaken = 0.0;
+            AdversaryVfx.showMaceFocus(source, target, focusTicks, focusTicks);
             return;
         }
         if (!maceTargetId.equals(target.getUUID())) {
             resetMace();
             maceTargetId = target.getUUID();
-            maceTicksUntilStrike = globalInt("maceFocusTicks", AdversaryBalance.MACE_FOCUS_TICKS);
+            maceTicksUntilStrike = focusTicks;
             maceFocusDamageTaken = 0.0;
+            AdversaryVfx.showMaceFocus(source, target, focusTicks, focusTicks);
         } else if (maceTicksUntilStrike < 0) {
             // The ordinary zero-damage attack ray is the clock for every focus.
-            maceTicksUntilStrike = globalInt("maceFocusTicks", AdversaryBalance.MACE_FOCUS_TICKS);
+            maceTicksUntilStrike = focusTicks;
             maceFocusDamageTaken = 0.0;
+            AdversaryVfx.showMaceFocus(source, target, focusTicks, focusTicks);
         }
     }
 
@@ -1153,6 +1189,14 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         }
         if (maceTicksUntilStrike > 1) {
             maceTicksUntilStrike--;
+            if (maceTicksUntilStrike % 10 == 0) {
+                AdversaryVfx.showMaceFocus(
+                        source,
+                        target,
+                        maceTicksUntilStrike,
+                        globalInt("maceFocusTicks", AdversaryBalance.MACE_FOCUS_TICKS)
+                );
+            }
             return;
         }
 
@@ -1236,14 +1280,23 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         maceFocusDamageTaken = 0.0;
     }
 
-    private void scheduleSculkBlast(Vec3 center) {
-        if (center == null || !pendingSculkBlasts.isEmpty()) {
+    private void scheduleSculkBlast(SemionTowerEntity source, Vec3 center) {
+        if (source == null || center == null || !pendingSculkBlasts.isEmpty()
+                || !(source.level() instanceof ServerLevel level)) {
             return;
         }
+        int delayTicks = globalInt("sculkDelayTicks", AdversaryBalance.SCULK_DETONATION_DELAY_TICKS);
         pendingSculkBlasts.add(new PendingSculkBlast(
                 center,
-                globalInt("sculkDelayTicks", AdversaryBalance.SCULK_DETONATION_DELAY_TICKS)
+                delayTicks
         ));
+        AdversaryVfx.showSculkWarning(
+                level,
+                center,
+                global("sculkRadius", AdversaryBalance.SCULK_DETONATION_RADIUS),
+                delayTicks,
+                delayTicks
+        );
     }
 
     private void tickSculkBlasts(SemionTowerEntity source) {
@@ -1257,7 +1310,17 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         for (int index = pendingSculkBlasts.size() - 1; index >= 0; index--) {
             PendingSculkBlast blast = pendingSculkBlasts.get(index);
             if (blast.remainingTicks() > 1) {
-                pendingSculkBlasts.set(index, blast.tick());
+                PendingSculkBlast next = blast.tick();
+                pendingSculkBlasts.set(index, next);
+                if (next.remainingTicks() % 10 == 0 && source.level() instanceof ServerLevel level) {
+                    AdversaryVfx.showSculkWarning(
+                            level,
+                            next.center(),
+                            global("sculkRadius", AdversaryBalance.SCULK_DETONATION_RADIUS),
+                            next.remainingTicks(),
+                            globalInt("sculkDelayTicks", AdversaryBalance.SCULK_DETONATION_DELAY_TICKS)
+                    );
+                }
                 continue;
             }
             detonateSculk(source, blast.center());
@@ -1268,6 +1331,9 @@ public final class AdversaryFoxTower extends EntityBackedTower {
     private void detonateSculk(SemionTowerEntity source, Vec3 center) {
         double radius = global("sculkRadius", AdversaryBalance.SCULK_DETONATION_RADIUS);
         int maxTargets = globalInt("sculkMaxTargets", AdversaryBalance.SCULK_MAX_TARGETS);
+        if (source.level() instanceof ServerLevel level) {
+            AdversaryVfx.showSculkDetonation(level, center, radius);
+        }
         if (radius > 0.0 && maxTargets > 0) {
             Set<UUID> selected = attackableMonsters(
                     source,
@@ -1288,7 +1354,7 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                     radius,
                     Set.of(),
                     target -> selected.contains(target.getUUID()),
-                    AreaVfxSpec.onTrigger(AreaVfxStyles.PULSE)
+                    AreaVfxSpec.none()
             );
             TowerAreaDamage.apply(
                     this,
@@ -1324,6 +1390,37 @@ public final class AdversaryFoxTower extends EntityBackedTower {
                 AdversaryBalance.SCULK_SELF_DAMAGE_MAX_HEALTH_RATIO
         );
         return Math.max(0.0, Math.min(normalRecoil, currentHealth - floorHealth));
+    }
+
+    static double rivalKillHealingAmount(
+            double currentHealth,
+            double maximumHealth,
+            double healedThisWave,
+            boolean enhanced
+    ) {
+        double safeMaximum = Math.max(0.0, maximumHealth);
+        double ratio = enhanced
+                ? global("enhancedRivalKillHealRatio", AdversaryBalance.ENHANCED_RIVAL_KILL_HEAL_RATIO)
+                : global("baseRivalKillHealRatio", AdversaryBalance.BASE_RIVAL_KILL_HEAL_RATIO);
+        double remainingWaveCap = safeMaximum * global(
+                "rivalKillHealCapRatioPerWave",
+                AdversaryBalance.RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE
+        ) - Math.max(0.0, healedThisWave);
+        return Math.max(0.0, Math.min(
+                safeMaximum * ratio,
+                Math.min(safeMaximum - Math.max(0.0, currentHealth), remainingWaveCap)
+        ));
+    }
+
+    static double focusFireDamageReduction(int attackerCount) {
+        int extraAttackers = Math.max(0, attackerCount - 1);
+        return Math.min(
+                global("focusFireDamageReductionCap", AdversaryBalance.FOCUS_FIRE_DAMAGE_REDUCTION_CAP),
+                extraAttackers * global(
+                        "focusFireDamageReductionPerExtraAttacker",
+                        AdversaryBalance.FOCUS_FIRE_DAMAGE_REDUCTION_PER_EXTRA_ATTACKER
+                )
+        );
     }
 
     /**
@@ -1369,7 +1466,11 @@ public final class AdversaryFoxTower extends EntityBackedTower {
             result = damageTargetResult(source, target, damage, damageType);
         }
         if (result.dealtDamage() > 0.0) {
-            TowerVfxService.showSecondaryAttack(source, target);
+            switch (form) {
+                case BREEZE, GOLDEN_FANG, SHIELD_BEARER, FIREWORK_PIERCER, MACE_EXECUTIONER ->
+                        AdversaryVfx.showSecondaryAttack(form, source, target);
+                default -> TowerVfxService.showSecondaryAttack(source, target);
+            }
         }
         if (result.killed()) {
             onKill(source, target, damage);
@@ -1377,10 +1478,74 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         return result;
     }
 
+    private void recordRivalKill(Monster monster) {
+        if (!AdversaryProgressStates.recordFoxKill(ownerPlayer(), monster, currentLane)) {
+            return;
+        }
+        double amount = rivalKillHealingAmount(
+                health(),
+                currentMaxHealth(),
+                rivalHealingThisWave,
+                AdversaryRivalTower.isEnhancedProxy(monster)
+        );
+        if (amount <= 0.0) {
+            return;
+        }
+        double before = health();
+        SemionTowerEntity entity = towerEntity(currentLane);
+        if (entity != null) {
+            entity.receiveHealing(amount);
+        } else {
+            syncHealth(before + amount);
+        }
+        rivalHealingThisWave += Math.max(0.0, health() - before);
+    }
+
+    private int focusFireAttackerCount(SemionTowerEntity towerEntity, DamageSource damageSource) {
+        if (towerEntity == null || currentLane == null || currentLane.arenaWorld() != towerEntity.level()) {
+            return 0;
+        }
+        // ponytail: one fox exists per lane; cache target counts only if profiling shows this hit-time scan is hot.
+        int count = 0;
+        boolean sourceCounted = false;
+        Object damageSourceEntity = damageSource == null ? null : damageSource.getEntity();
+        for (Monster monster : List.copyOf(currentLane.activeMonsters())) {
+            if (!monster.hasMinecraftEntity()) {
+                continue;
+            }
+            if (!(currentLane.arenaWorld().getEntity(monster.minecraftEntityId())
+                    instanceof SemionMonsterEntity attacker)
+                    || !attacker.isAlive()
+                    || attacker.isRemoved()
+                    || attacker.getTarget() != towerEntity) {
+                continue;
+            }
+            count++;
+            sourceCounted |= attacker == damageSourceEntity;
+        }
+        if (!sourceCounted
+                && damageSourceEntity instanceof SemionMonsterEntity attacker
+                && attacker.isAlive()
+                && !attacker.isRemoved()
+                && attacker.getTarget() == towerEntity) {
+            count++;
+        }
+        return count;
+    }
+
+    private static boolean usesEvolvedSplash(FoxForm form) {
+        return switch (form) {
+            case GOLDEN_FANG, SHIELD_BEARER, BELL_KEEPER, BEACON_KEEPER,
+                    OMINOUS_HEXER, TRACKER, BIG_GAME_TRACKER, ECHO_FOX -> true;
+            default -> false;
+        };
+    }
+
     private void resetTransientCombatState() {
         normalEntityHealthSyncPending = false;
         unscaledEntityDamagePending = false;
         unscaledEntityDamageLogicalHealth = 0.0;
+        rivalHealingThisWave = 0.0;
         goldenTargetId = null;
         goldenTargetHits = 0;
         shieldCounterCooldownTicks = 0;

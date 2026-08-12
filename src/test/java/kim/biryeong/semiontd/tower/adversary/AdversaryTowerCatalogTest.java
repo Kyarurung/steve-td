@@ -314,7 +314,13 @@ class AdversaryTowerCatalogTest {
         assertEquals(2.0, global.get("maceSweepExtraTargets"), 0.0001);
         assertEquals(0.25, global.get("maceSweepDamageRatio"), 0.0001);
         assertEquals(5.0, global.get("sculkMaxTargets"), 0.0001);
-        assertEquals(0.20, global.get("sculkSelfDamageFloorRatio"), 0.0001);
+        assertEquals(0.20, global.get("evolvedSplashDamageRatio"), 0.0001);
+        assertEquals(0.12, global.get("baseRivalKillHealRatio"), 0.0001);
+        assertEquals(0.18, global.get("enhancedRivalKillHealRatio"), 0.0001);
+        assertEquals(0.40, global.get("rivalKillHealCapRatioPerWave"), 0.0001);
+        assertEquals(0.04, global.get("focusFireDamageReductionPerExtraAttacker"), 0.0001);
+        assertEquals(0.40, global.get("focusFireDamageReductionCap"), 0.0001);
+        assertEquals(0.40, global.get("sculkSelfDamageFloorRatio"), 0.0001);
         assertFalse(global.containsKey("maceStrikeDamage"));
         assertFalse(global.containsKey("maceStrikeIntervalTicks"));
         assertFalse(global.containsKey("sculkDamage"));
@@ -343,6 +349,8 @@ class AdversaryTowerCatalogTest {
         assertEquals(123L, merged.upgradeCosts().get(breezeUpgrade).longValue());
         assertEquals(2.75, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashRadius", 0.0), 0.0001);
         assertEquals(2.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashExtraTargets", 0.0), 0.0001);
+        assertEquals(0.12, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseRivalKillHealRatio", 0.0), 0.0001);
+        assertEquals(0.40, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "focusFireDamageReductionCap", 0.0), 0.0001);
         assertEquals(650.0, merged.ability(
                 AdversaryBalance.formConfigId(FoxForm.MACE_EXECUTIONER),
                 "damage",
@@ -414,6 +422,11 @@ class AdversaryTowerCatalogTest {
         assertTrue(foxDescription.contains("1.25블록"));
         assertTrue(foxDescription.contains("2기"));
         assertTrue(foxDescription.contains("전직 점수"));
+        assertTrue(foxDescription.contains("최대 체력의 12%") && foxDescription.contains("강화 숙적은 18%"));
+        assertTrue(foxDescription.contains("1기를 넘을 때마다 받는 피해가 4% 감소"));
+        assertTrue(foxDescription.contains("전직 형태는 주변 적에게 공격력의 20%"));
+        assertTrue(foxDescription.contains("질풍의 연쇄 공격과 스컬크 폭발은 마법 피해"));
+        assertTrue(foxDescription.contains("나머지 공격은 물리 피해"));
         assertFalse(foxDescription.contains("진화"));
 
         String enhancedDescription = String.join(" ", ProductionTowerCatalog

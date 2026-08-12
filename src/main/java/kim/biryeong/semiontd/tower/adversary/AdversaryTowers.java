@@ -26,6 +26,10 @@ public final class AdversaryTowers {
                     "<gray>한 마리만 설치할 수 있습니다.</gray>",
                     "<green>기본 공격이 반경 {ability.adversary_global.baseSplashRadius:blocks} 안의 다른 적 최대 {ability.adversary_global.baseSplashExtraTargets:integer}기에게 공격력의 {ability.adversary_global.baseSplashDamageRatio:percent}만큼 피해를 줍니다.</green>",
                     "<green>숙적을 직접 처치해 전직 점수를 모으면 다음 준비 단계에 전직합니다.</green>",
+                    "<green>숙적 처치 시 최대 체력의 {ability.adversary_global.baseRivalKillHealRatio:percent}, 강화 숙적은 {ability.adversary_global.enhancedRivalKillHealRatio:percent}를 회복합니다. 웨이브당 최대 {ability.adversary_global.rivalKillHealCapRatioPerWave:percent}입니다.</green>",
+                    "<aqua>여우를 노리는 적이 1기를 넘을 때마다 받는 피해가 {ability.adversary_global.focusFireDamageReductionPerExtraAttacker:percent} 감소합니다. 최대 {ability.adversary_global.focusFireDamageReductionCap:percent}입니다.</aqua>",
+                    "<green>고유 다중 공격이 없는 전직 형태는 주변 적에게 공격력의 {ability.adversary_global.evolvedSplashDamageRatio:percent}만큼 피해를 줍니다.</green>",
+                    "<aqua>질풍의 연쇄 공격과 스컬크 폭발은 마법 피해이며, 나머지 공격은 물리 피해입니다.</aqua>",
                     "<yellow>입에 든 아이템으로 현재 형태를 확인할 수 있습니다.</yellow>"
             ))
             .build();

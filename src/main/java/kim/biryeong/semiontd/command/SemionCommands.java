@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
+import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
 import kim.biryeong.semiontd.trait.SemionTrait;
@@ -455,7 +456,22 @@ public final class SemionCommands {
                                 .then(literal("shriek")
                                         .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.SHRIEK)))
                                 .then(literal("warden")
-                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.WARDEN)))))
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.WARDEN))))
+                        .then(literal("adversary")
+                                .then(literal("breeze")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.BREEZE)))
+                                .then(literal("golden")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.GOLDEN)))
+                                .then(literal("shield")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SHIELD)))
+                                .then(literal("support")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SUPPORT)))
+                                .then(literal("firework")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.FIREWORK)))
+                                .then(literal("mace")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.MACE)))
+                                .then(literal("sculk")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SCULK)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -544,6 +560,15 @@ public final class SemionCommands {
     private static int debugMagicHitVfx(CommandSourceStack source) throws CommandSyntaxException {
         TowerVfxService.showMagicHitDebug(source.getPlayerOrException());
         success(source, "마법 피해 적중 VFX를 재생했습니다.");
+        return 1;
+    }
+
+    private static int debugAdversaryVfx(
+            CommandSourceStack source,
+            AdversaryVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        AdversaryVfx.showDebug(source.getPlayerOrException(), kind);
+        success(source, "대적자 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
         return 1;
     }
 

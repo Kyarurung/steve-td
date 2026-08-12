@@ -32,6 +32,13 @@ public final class AdversaryBalance {
     public static final double BASE_SPLASH_RADIUS = 1.25;
     public static final int BASE_SPLASH_EXTRA_TARGETS = 2;
     public static final double BASE_SPLASH_DAMAGE_RATIO = 0.30;
+    public static final double EVOLVED_SPLASH_DAMAGE_RATIO = 0.20;
+
+    public static final double BASE_RIVAL_KILL_HEAL_RATIO = 0.12;
+    public static final double ENHANCED_RIVAL_KILL_HEAL_RATIO = 0.18;
+    public static final double RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE = 0.40;
+    public static final double FOCUS_FIRE_DAMAGE_REDUCTION_PER_EXTRA_ATTACKER = 0.04;
+    public static final double FOCUS_FIRE_DAMAGE_REDUCTION_CAP = 0.40;
 
     public static final int BREEZE_EXTRA_TARGETS = 1;
     public static final double BREEZE_EXTRA_TARGET_DAMAGE_RATIO = 0.60;
@@ -79,7 +86,7 @@ public final class AdversaryBalance {
     public static final double SCULK_DETONATION_RADIUS = 4.0;
     public static final int SCULK_MAX_TARGETS = 5;
     public static final double SCULK_SELF_DAMAGE_MAX_HEALTH_RATIO = 0.10;
-    public static final double SCULK_SELF_DAMAGE_HEALTH_FLOOR_RATIO = 0.20;
+    public static final double SCULK_SELF_DAMAGE_HEALTH_FLOOR_RATIO = 0.40;
 
     private AdversaryBalance() {
     }
