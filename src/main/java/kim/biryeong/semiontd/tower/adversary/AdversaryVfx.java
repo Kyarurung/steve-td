@@ -119,6 +119,17 @@ public final class AdversaryVfx {
         }
     }
 
+    static void showFoxHealing(SemionTowerEntity source, SemionTowerEntity target) {
+        if (source == null || target == null || !(source.level() instanceof ServerLevel level)) {
+            return;
+        }
+        Vec3 start = towerCenter(source);
+        Vec3 end = towerCenter(target);
+        beam(level, start, end, FOX_GOLD, ParticleTypes.END_ROD, 14);
+        level.sendParticles(ParticleTypes.HEART, end.x, end.y + 0.2, end.z,
+                3, 0.18, 0.16, 0.18, 0.0);
+    }
+
     public static void showDebug(ServerPlayer player, DebugKind kind) {
         if (player == null || kind == null || !(player.level() instanceof ServerLevel level)) {
             return;

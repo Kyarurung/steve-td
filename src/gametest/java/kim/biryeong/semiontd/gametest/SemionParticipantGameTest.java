@@ -161,6 +161,14 @@ import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTower;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
+import kim.biryeong.semiontd.tower.adversary.AdversaryFoxTower;
+import kim.biryeong.semiontd.tower.adversary.AdversaryProgressState;
+import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
+import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
+import kim.biryeong.semiontd.tower.adversary.FoxForm;
+import kim.biryeong.semiontd.tower.adversary.FoxRoute;
+import kim.biryeong.semiontd.tower.adversary.RivalContribution;
+import kim.biryeong.semiontd.tower.adversary.RivalKind;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.animal.FoxTower;
@@ -2724,6 +2732,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, waterTowerEntity.isNoAi(), "Water tower entity should disable floating AI.")) {
+            return;
+        }
+        if (!assertTrue(context, waterTowerEntity.canBreatheUnderwater(), "Water tower entity must not drown in its water block.")) {
             return;
         }
         Vec3 entityPosition = waterTowerEntity.position();
@@ -11116,6 +11127,147 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 Set.of(AnimalTowers.T2_RABBIT_TOWER.id()),
                 upgradeIds,
                 "Animal rabbit starter should connect only to the rabbit upgrade."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void adversaryFoxesUseSharedScoreForManualEvolutionAndReleaseItOnSale(GameTestHelper context) {
+        UUID playerId = stableUuid("adversary-multi-fox-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AdversaryTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+        game.players().get(playerId).economy().addMineral(2_000);
+
+        List<BlockPos> foxPositions = List.of(
+                base,
+                base.offset(1, 0, 0),
+                base.offset(2, 0, 0),
+                base.offset(3, 0, 0)
+        );
+        for (BlockPos position : foxPositions) {
+            if (!assertEquals(
+                    context,
+                    TowerPlacementResult.SUCCESS,
+                    ProductionTowerService.placeTower(game, playerId, position, AdversaryTowers.FOX.id()),
+                    "The first four adversary foxes should be placeable."
+            )) {
+                return;
+            }
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.TOWER_NOT_ALLOWED,
+                ProductionTowerService.placeTower(
+                        game,
+                        playerId,
+                        base.offset(4, 0, 0),
+                        AdversaryTowers.FOX.id()
+                ),
+                "The fifth adversary fox should be rejected by the builder limit."
+        )) {
+            return;
+        }
+
+        GridPosition firstPosition = GridPosition.from(foxPositions.getFirst());
+        AdversaryFoxTower first = (AdversaryFoxTower) lane.towerAt(firstPosition);
+        UUID logicalFoxId = first.foxId();
+        first.syncHealth(first.currentMaxHealth() * 0.5);
+        AdversaryProgressStates.state(playerId).reconcileRivals(List.of(new RivalContribution(
+                stableUuid("adversary-multi-fox-breeze-score"),
+                RivalKind.BREEZE,
+                50
+        )));
+
+        long mineralBeforeEvolution = game.players().get(playerId).economy().mineral();
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(
+                        game,
+                        playerId,
+                        firstPosition,
+                        AdversaryTowers.typeFor(FoxForm.BREEZE).id()
+                ),
+                "A scored base fox should manually evolve into Breeze for free."
+        )) {
+            return;
+        }
+        AdversaryFoxTower breeze = (AdversaryFoxTower) lane.towerAt(firstPosition);
+        if (!assertTrue(context, breeze.foxId().equals(logicalFoxId), "Evolution should preserve the logical fox id.")) {
+            return;
+        }
+        if (!assertClose(context, 0.5, breeze.health() / breeze.currentMaxHealth(), "Evolution should preserve health ratio.")) {
+            return;
+        }
+        if (!assertEquals(context, mineralBeforeEvolution, game.players().get(playerId).economy().mineral(), "Fox evolution should cost no mineral.")) {
+            return;
+        }
+        if (!assertTrue(context, ProductionTowerService.availableUpgrades(game, playerId, firstPosition).isEmpty(), "Final evolution should require one completed intermediate wave.")) {
+            return;
+        }
+
+        GridPosition secondPosition = GridPosition.from(foxPositions.get(1));
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
+                ProductionTowerService.upgradeTower(
+                        game,
+                        playerId,
+                        secondPosition,
+                        AdversaryTowers.typeFor(FoxForm.BREEZE).id()
+                ),
+                "Another fox should not claim the already occupied Rapid route."
+        )) {
+            return;
+        }
+
+        new AdversaryTowerJob().onRoundEnded(
+                new JobContext(game, game.players().get(playerId)),
+                game.currentRound()
+        );
+        if (!assertEquals(
+                context,
+                Set.of(AdversaryTowers.typeFor(FoxForm.GOLDEN_FANG).id()),
+                ProductionTowerService.availableUpgrades(game, playerId, firstPosition).stream()
+                        .map(option -> option.targetType().id())
+                        .collect(Collectors.toSet()),
+                "One completed Breeze wave should unlock its affordable final form."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(
+                        game,
+                        playerId,
+                        firstPosition,
+                        AdversaryTowers.typeFor(FoxForm.GOLDEN_FANG).id()
+                ),
+                "The selected final form should replace the intermediate fox."
+        )) {
+            return;
+        }
+
+        ProductionTowerService.SaleResult sale = ProductionTowerService.sellTower(game, playerId, firstPosition);
+        if (!assertEquals(context, TowerSellResult.SUCCESS, sale.result(), "Selling the final fox should succeed.")) {
+            return;
+        }
+        AdversaryProgressState progress = AdversaryProgressStates.state(playerId);
+        if (!assertEquals(context, 0, progress.spentScore(RivalKind.BREEZE), "Selling a fox should refund all of its committed score.")) {
+            return;
+        }
+        if (!assertTrue(context, progress.routeOwner(FoxRoute.RAPID).isEmpty(), "Selling a fox should release its route claim.")) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                ProductionTowerService.placeTower(game, playerId, foxPositions.getFirst(), AdversaryTowers.FOX.id()),
+                "A replacement fourth fox should be placeable after the sale."
         )) {
             return;
         }

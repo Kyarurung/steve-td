@@ -106,6 +106,7 @@ public final class ProductionTowerService {
             return SaleResult.failure(TowerSellResult.NO_TOWER_AT_POSITION);
         }
         laneContext.player.economy().addMineral(refund);
+        tower.onSold(laneContext.lane);
         game.recordTowerSale(playerId, tower.type().id(), position, refund);
         return SaleResult.success(refund);
     }
@@ -218,6 +219,7 @@ public final class ProductionTowerService {
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
         VillagerAdvStates.refreshTowerEffects(laneContext.player, laneContext.lane, upgradedTower);
+        upgradedTower.onUpgradeCompleted(laneContext.lane, tower, upgrade);
         game.recordTowerUpgrade(playerId, upgradeId, position, mineralCost);
         return TowerUpgradeResult.SUCCESS;
     }

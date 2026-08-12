@@ -15,7 +15,9 @@ public final class AdversaryTowerCatalogs {
     }
 
     private static void registerAll() {
-        registerFox();
+        for (FoxForm form : FoxForm.values()) {
+            registerFox(form);
+        }
         for (RivalKind kind : RivalKind.values()) {
             registerRival(AdversaryTowers.baseRival(kind), 1);
             registerRival(AdversaryTowers.enhancedRival(kind), 2);
@@ -23,13 +25,46 @@ public final class AdversaryTowerCatalogs {
         for (RivalKind kind : RivalKind.values()) {
             linkEnhancement(kind);
         }
+        for (FoxRoute route : FoxRoute.values()) {
+            FoxForm intermediate = FoxForm.intermediateFor(route);
+            linkFoxEvolution(FoxForm.BASE, intermediate);
+            for (FoxForm finalForm : FoxForm.finalsFor(route)) {
+                linkFoxEvolution(intermediate, finalForm);
+            }
+        }
     }
 
-    private static void registerFox() {
-        TowerType type = AdversaryTowers.FOX;
+    private static void registerFox(FoxForm form) {
+        TowerType type = AdversaryTowers.resolvedTypeFor(form);
         if (ProductionTowerCatalog.find(type.id()).isEmpty()) {
-            ProductionTowerCatalog.registerStarter(TowerBalanceRuntime.resolve(type), AdversaryFoxTower::new);
+            TowerType resolved = form == FoxForm.BASE ? TowerBalanceRuntime.resolve(type) : type;
+            if (form == FoxForm.BASE) {
+                ProductionTowerCatalog.registerStarter(resolved, AdversaryFoxTower::new);
+            } else {
+                ProductionTowerCatalog.register(resolved, AdversaryFoxTower::new, form.stage() + 1);
+            }
         }
+    }
+
+    private static void linkFoxEvolution(FoxForm fromForm, FoxForm toForm) {
+        TowerType from = registeredFoxType(fromForm);
+        TowerType to = registeredFoxType(toForm);
+        if (ProductionTowerCatalog.upgrade(from, to.id()).isPresent()) {
+            return;
+        }
+        ProductionTowerCatalog.linkUpgrade(
+                from,
+                to.id(),
+                toForm.displayName() + " 전직",
+                to,
+                TowerBalanceRuntime.upgradeCost(from, to.id())
+        );
+    }
+
+    private static TowerType registeredFoxType(FoxForm form) {
+        return ProductionTowerCatalog.find(AdversaryTowers.typeFor(form).id())
+                .map(ProductionTowerCatalog.CatalogEntry::type)
+                .orElseThrow();
     }
 
     private static void registerRival(TowerType type, int tier) {

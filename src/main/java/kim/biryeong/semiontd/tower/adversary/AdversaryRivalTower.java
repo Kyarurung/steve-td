@@ -106,6 +106,11 @@ public final class AdversaryRivalTower extends EntityBackedTower implements Riva
     }
 
     @Override
+    public boolean receivesTraitEffects() {
+        return false;
+    }
+
+    @Override
     public long sellRefundAmount() {
         return 0L;
     }
@@ -116,6 +121,7 @@ public final class AdversaryRivalTower extends EntityBackedTower implements Riva
                 "<red>" + kind.displayName() + " 숙적</red>" + (enhanced() ? " <gold>(강화)</gold>" : ""),
                 "<yellow>처치 점수</yellow> " + kind.scorePerKill(enhanced())
                         + "점 / 누적 기여 " + contributedScore() + "점",
+                "<gray>플레이어 특성 효과를 받지 않습니다.</gray>",
                 "<red>판매하면 이 숙적이 쌓은 점수가 사라지며 환불은 없습니다.</red>"
         );
     }
@@ -180,7 +186,6 @@ public final class AdversaryRivalTower extends EntityBackedTower implements Riva
         int next = Math.addExact(contributedScore(), kind.scorePerKill(enhanced()));
         monster.setData(PROXY_SCORE_CREDITED, true);
         setData(CONTRIBUTED_SCORE, next);
-        AdversaryProgressStates.noteScoringKind(ownerPlayer(), kind);
         if (lane != null) {
             AdversaryProgressStates.reconcileLane(ownerPlayer(), lane);
         }

@@ -329,7 +329,7 @@ final class SemionConfigLoaderTest {
     }
 
     @Test
-    void loadRetainsEntireLastKnownGoodTowerBalanceWhenBalanceIsInvalid() throws Exception {
+    void loadRepairsOnlyInvalidAbilityAndKeepsOtherOverrides() throws Exception {
         Files.createDirectories(tempDir);
         Files.writeString(tempDir.resolve("tower_balance.json"), """
             {
@@ -340,7 +340,8 @@ final class SemionConfigLoaderTest {
               },
               "abilities": {
                 "end_global": {
-                  "transferTicks": 0.0
+                  "transferTicks": -1.0,
+                  "roundDamageRatio": 1.75
                 }
               }
             }
@@ -376,12 +377,20 @@ final class SemionConfigLoaderTest {
                 lastKnownGood
         ).towerBalance();
 
-        assertEquals(lastKnownGood, balance);
-        assertTrue(Files.readString(tempDir.resolve("tower_balance.json")).contains("\"transferTicks\": 0.0"));
+        assertEquals(99L, balance.towers().get(LegionTowers.T1_GOAT_TOWER.id()).mineralCost());
+        assertEquals(
+                lastKnownGood.ability("end_global", "transferTicks", -1.0),
+                balance.ability("end_global", "transferTicks", -1.0),
+                0.0001
+        );
+        assertEquals(1.75, balance.ability("end_global", "roundDamageRatio", -1.0), 0.0001);
+        String repaired = Files.readString(tempDir.resolve("tower_balance.json"));
+        assertFalse(repaired.contains("\"transferTicks\": -1.0"));
+        assertTrue(repaired.contains("\"roundDamageRatio\": 1.75"));
     }
 
     @Test
-    void loadDoesNotRewriteInvalidEndUpgradeCost() throws Exception {
+    void loadRepairsOnlyInvalidUpgradeCostAndKeepsOtherOverrides() throws Exception {
         Files.createDirectories(tempDir);
         String endUpgradeKey = TowerBalanceConfig.upgradeKey(
                 EndTowers.T1_ENDERMITE_TOWER.id(),
@@ -407,8 +416,9 @@ final class SemionConfigLoaderTest {
                 LoggerFactory.getLogger("test")
         ).towerBalance();
 
-        assertEquals(defaults, balance);
-        assertTrue(Files.readString(tempDir.resolve("tower_balance.json")).contains("-50"));
+        assertEquals(99L, balance.towers().get(LegionTowers.T1_GOAT_TOWER.id()).mineralCost());
+        assertEquals(defaults.upgradeCosts().get(endUpgradeKey), balance.upgradeCosts().get(endUpgradeKey));
+        assertFalse(Files.readString(tempDir.resolve("tower_balance.json")).contains("-50"));
     }
 
     @Test

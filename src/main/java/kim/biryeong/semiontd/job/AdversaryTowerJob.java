@@ -4,7 +4,8 @@ import java.util.List;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.adversary.AdversaryProgressState;
+import kim.biryeong.semiontd.tower.adversary.AdversaryBalance;
+import kim.biryeong.semiontd.tower.adversary.AdversaryFoxTower;
 import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
@@ -20,8 +21,8 @@ public final class AdversaryTowerJob extends SemionJob {
                 ID,
                 Component.literal("대적자 빌더"),
                 List.of(
-                        SemionText.mini("<gray><gold>여우 한 마리</gold>와 <red>숙적</red>을 함께 운용합니다.</gray>"),
-                        SemionText.mini("<gray>웨이브마다 적으로 변한 숙적을 여우가 처치하면 <aqua>새로운 형태</aqua>로 전직합니다.</gray>")
+                        SemionText.mini("<gray><gold>여우 최대 4기</gold>와 <red>숙적</red>을 함께 운용합니다.</gray>"),
+                        SemionText.mini("<gray>숙적 점수를 공유하고, 각 여우의 전직을 직접 선택합니다.</gray>")
                 )
         );
     }
@@ -29,14 +30,18 @@ public final class AdversaryTowerJob extends SemionJob {
     @Override
     public List<Component> description() {
         return List.of(
-                SemionText.mini("<gold>여우는 한 마리만 설치할 수 있습니다.</gold>"),
+                SemionText.mini("<gold>여우는 플레이어당 최대 4기까지 설치할 수 있습니다.</gold>"),
                 SemionText.mini("<gray>숙적은 타워 슬롯을 차지하며, 웨이브가 시작되면 설치한 자리에서 적으로 변합니다.</gray>"),
+                SemionText.mini("<gray>숙적은 플레이어 특성 효과를 받지 않습니다.</gray>"),
                 SemionText.mini("<gray>숙적을 여우가 직접 처치하면 종류에 맞는 <yellow>전직 점수</yellow>를 얻습니다. 강화 숙적은 2점을 줍니다.</gray>"),
+                SemionText.mini("<gray>전직 점수는 모든 여우가 공유하지만, 전직할 때 필요한 점수를 사용합니다.</gray>"),
+                SemionText.mini("<gray>같은 전직 계열은 한 여우만 선택할 수 있고, 중간 형태로 웨이브를 한 번 완료해야 최종 전직할 수 있습니다.</gray>"),
+                SemionText.mini("<gray>최종 전직 후 남은 점수는 모든 최종 여우의 피해를 올립니다.</gray>"),
                 SemionText.mini("<gray>숙적을 처치하면 체력을 회복하며, 여러 적에게 집중 공격받을수록 받는 피해가 줄어듭니다.</gray>"),
-                SemionText.mini("<gray>점수를 채우면 <green>다음 준비 단계</green>에 한 단계 전직합니다. 인컴 적은 점수를 주지 않습니다.</gray>"),
+                SemionText.mini("<gray>준비 단계의 업그레이드 메뉴에서 전직을 무료로 직접 선택합니다. 인컴 적은 점수를 주지 않습니다.</gray>"),
                 SemionText.mini("<aqua>첫 전직은 질풍 여우, 종지기 여우, 추적자 여우, 메아리 여우 중 하나이며 각 계열에서 최종 형태 2종으로 갈립니다.</aqua>"),
-                SemionText.mini("<red>숙적을 판매하면 그 숙적에게서 얻은 점수가 사라집니다. 점수가 부족하면 여우는 강등되지만 전직 계열은 유지됩니다.</red>"),
-                SemionText.mini("<yellow>여우를 판매해도 전직 상태와 점수는 유지됩니다.</yellow>")
+                SemionText.mini("<red>숙적을 판매해 점수가 부족해지면 최근에 전직한 여우부터 강등됩니다.</red>"),
+                SemionText.mini("<yellow>여우를 판매하면 사용 중이던 점수와 전직 계열을 반환합니다.</yellow>")
         );
     }
 
@@ -45,13 +50,17 @@ public final class AdversaryTowerJob extends SemionJob {
         if (!AdversaryTowers.isAdversaryTower(towerType)) {
             return false;
         }
-        if (!AdversaryTowers.isFox(towerType) || context == null) {
+        if (!AdversaryTowers.isFox(towerType)
+                || !AdversaryTowers.matches(towerType, AdversaryTowers.FOX)
+                || context == null) {
             return true;
         }
+        int maximum = AdversaryBalance.globalInt("maxFoxTowers", AdversaryBalance.MAX_FOX_TOWERS);
         return context.game().playerLane(context.player().uuid())
                 .map(lane -> lane.towers().stream()
                         .map(Tower::type)
-                        .noneMatch(AdversaryTowers::isFox))
+                        .filter(AdversaryTowers::isFox)
+                        .count() < maximum)
                 .orElse(true);
     }
 
@@ -73,17 +82,17 @@ public final class AdversaryTowerJob extends SemionJob {
     public void onRoundStarted(JobContext context, int round) {
         context.game().playerLane(context.player().uuid())
                 .ifPresent(lane -> AdversaryProgressStates.reconcileLane(context.player().uuid(), lane));
-        AdversaryProgressStates.state(context.player().uuid()).applyPreparationTransition();
     }
 
     @Override
     public void onRoundEnded(JobContext context, int round) {
-        AdversaryProgressState state = AdversaryProgressStates.state(context.player().uuid());
         context.game().playerLane(context.player().uuid())
-                .filter(lane -> lane.towers().stream()
-                        .map(Tower::type)
-                        .anyMatch(AdversaryTowers::isFox))
-                .ifPresent(lane -> state.recordCompletedWave());
+                .ifPresent(lane -> lane.towers().stream()
+                        .filter(AdversaryFoxTower.class::isInstance)
+                        .map(AdversaryFoxTower.class::cast)
+                        .filter(tower -> context.player().uuid().equals(tower.ownerPlayer()))
+                        .forEach(tower -> AdversaryProgressStates.state(context.player().uuid())
+                                .recordCompletedWave(tower.foxId(), tower.form())));
     }
 
     @Override

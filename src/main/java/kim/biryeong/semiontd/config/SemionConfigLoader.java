@@ -418,6 +418,16 @@ public final class SemionConfigLoader {
                         "Unsupported tower balance schema version: " + merged.schemaVersion()
                 );
             }
+            TowerBalanceConfig fallback = (lastKnownGood == null ? defaults : lastKnownGood)
+                    .withMissingDefaults(defaults);
+            TowerBalanceConfig repaired = merged.withInvalidNumericValuesFrom(fallback);
+            if (!repaired.equals(merged)) {
+                logger.warn(
+                        "Ignored invalid negative or non-finite values in {}; using last-known-good values for those fields.",
+                        path
+                );
+                merged = repaired;
+            }
             merged.validateForRuntime();
             boolean schemaVersionMissing = !hasObjectProperty(json, "schemaVersion");
             boolean illusionCloneQueueMissing = !hasObjectProperty(migratedJson, "illusionCloneQueue");

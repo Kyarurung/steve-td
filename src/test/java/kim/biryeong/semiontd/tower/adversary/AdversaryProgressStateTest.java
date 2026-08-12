@@ -15,7 +15,7 @@ class AdversaryProgressStateTest {
     @Test
     void enhancedRivalKillsCountTwoWithoutChangingPastScore() {
         AdversaryProgressState state = new AdversaryProgressState();
-        UUID rival = UUID.nameUUIDFromBytes("enhanced-breeze".getBytes());
+        UUID rival = id("enhanced-breeze");
 
         state.registerRival(rival, RivalKind.BREEZE);
         state.recordRivalKill(rival, RivalKind.BREEZE, false);
@@ -26,194 +26,132 @@ class AdversaryProgressStateTest {
     }
 
     @Test
-    void evolutionAppliesOnlyOneStageAndRequiresAnIntermediateWave() {
+    void evolutionConsumesSharedScoreAndFinalStageOnlyPaysTheRecipeDelta() {
         AdversaryProgressState state = new AdversaryProgressState();
-        UUID rival = UUID.nameUUIDFromBytes("rapid-route".getBytes());
+        UUID fox = id("rapid-fox");
+        state.registerFox(fox, FoxForm.BASE);
+        state.reconcileRivals(contributions(Map.of(
+                RivalKind.BREEZE, 50,
+                RivalKind.POLAR_BEAR, 20
+        )));
 
-        state.reconcileRivals(List.of(new RivalContribution(rival, RivalKind.BREEZE, 50)));
+        assertTrue(state.canEvolve(fox, FoxForm.BASE, FoxForm.BREEZE));
+        assertTrue(state.commitEvolution(fox, FoxForm.BASE, FoxForm.BREEZE));
+        assertEquals(12, state.spentScore(RivalKind.BREEZE));
+        assertEquals(38, state.availableScore(RivalKind.BREEZE));
+        assertFalse(state.canEvolve(fox, FoxForm.BREEZE, FoxForm.SHIELD_BEARER));
 
-        assertEquals(FoxForm.BREEZE, state.pendingForm().orElseThrow());
-        assertEquals(FoxForm.BREEZE, state.applyPreparationTransition().orElseThrow().current());
-        assertEquals(FoxForm.BREEZE, state.currentForm());
-        assertTrue(state.applyPreparationTransition().isEmpty());
-
-        state.recordCompletedWave();
-        assertEquals(FoxForm.GOLDEN_FANG, state.pendingForm().orElseThrow());
-        assertEquals(FoxForm.GOLDEN_FANG, state.applyPreparationTransition().orElseThrow().current());
+        state.recordCompletedWave(fox, FoxForm.BREEZE);
+        assertTrue(state.canEvolve(fox, FoxForm.BREEZE, FoxForm.SHIELD_BEARER));
+        assertTrue(state.commitEvolution(fox, FoxForm.BREEZE, FoxForm.SHIELD_BEARER));
+        assertEquals(30, state.spentScore(RivalKind.BREEZE));
+        assertEquals(20, state.spentScore(RivalKind.POLAR_BEAR));
+        assertEquals(Map.of(RivalKind.BREEZE, 18, RivalKind.POLAR_BEAR, 20),
+                state.evolutionCost(FoxForm.BREEZE, FoxForm.SHIELD_BEARER));
     }
 
     @Test
-    void sellingContributorsDemotesButKeepsRouteAndFinalLocks() {
+    void routeClaimIsPerPlayerAndFoxSaleRefundsScoreAndReleasesIt() {
         AdversaryProgressState state = new AdversaryProgressState();
-        UUID foundation = UUID.nameUUIDFromBytes("breeze-foundation".getBytes());
-        UUID excess = UUID.nameUUIDFromBytes("breeze-excess".getBytes());
+        UUID first = id("first-fox");
+        UUID second = id("second-fox");
+        state.registerFox(first, FoxForm.BASE);
+        state.registerFox(second, FoxForm.BASE);
+        state.reconcileRivals(contributions(Map.of(RivalKind.BREEZE, 24)));
 
-        state.reconcileRivals(List.of(
-                new RivalContribution(foundation, RivalKind.BREEZE, 12),
-                new RivalContribution(excess, RivalKind.BREEZE, 38)
-        ));
-        state.applyPreparationTransition();
-        state.recordCompletedWave();
-        state.applyPreparationTransition();
-        assertEquals(FoxForm.GOLDEN_FANG, state.currentForm());
+        assertTrue(state.commitEvolution(first, FoxForm.BASE, FoxForm.BREEZE));
+        assertFalse(state.canEvolve(second, FoxForm.BASE, FoxForm.BREEZE));
+        assertEquals(first, state.routeOwner(FoxRoute.RAPID).orElseThrow());
 
-        state.reconcileRivals(List.of(new RivalContribution(foundation, RivalKind.BREEZE, 12)));
-        assertEquals(FoxForm.BREEZE, state.currentForm());
-        assertEquals(FoxRoute.RAPID, state.lockedRoute().orElseThrow());
-        assertEquals(FoxForm.GOLDEN_FANG, state.lockedFinalForm().orElseThrow());
+        state.unregisterFox(first);
 
-        state.reconcileRivals(List.of());
-        assertEquals(FoxForm.BASE, state.currentForm());
-        assertEquals(FoxRoute.RAPID, state.lockedRoute().orElseThrow());
-        assertEquals(FoxForm.GOLDEN_FANG, state.lockedFinalForm().orElseThrow());
-
-        state.reconcileRivals(List.of(
-                new RivalContribution(foundation, RivalKind.BREEZE, 12),
-                new RivalContribution(excess, RivalKind.BREEZE, 38)
-        ));
-        assertEquals(FoxForm.BREEZE, state.pendingForm().orElseThrow());
-        state.applyPreparationTransition();
-        state.reconcileRivals(List.of(
-                new RivalContribution(foundation, RivalKind.BREEZE, 12),
-                new RivalContribution(excess, RivalKind.BREEZE, 38)
-        ));
-        assertEquals(FoxForm.GOLDEN_FANG, state.pendingForm().orElseThrow());
+        assertEquals(0, state.spentScore(RivalKind.BREEZE));
+        assertTrue(state.routeOwner(FoxRoute.RAPID).isEmpty());
+        assertTrue(state.canEvolve(second, FoxForm.BASE, FoxForm.BREEZE));
     }
 
     @Test
-    void lastScoringKindBreaksACompletedFinalTie() {
+    void demotionUsesNewestAffectedStepAndKeepsRouteAndFinalLocks() {
         AdversaryProgressState state = new AdversaryProgressState();
-        state.setCurrentForm(FoxForm.BREEZE);
-        state.recordCompletedWave();
-        state.noteScoringKind(RivalKind.POLAR_BEAR);
+        UUID rapid = id("rapid");
+        UUID control = id("control");
+        state.registerFox(rapid, FoxForm.BASE);
+        state.registerFox(control, FoxForm.BASE);
+        state.reconcileRivals(contributions(Map.of(
+                RivalKind.BREEZE, 50,
+                RivalKind.PHANTOM, 14
+        )));
+        assertTrue(state.commitEvolution(rapid, FoxForm.BASE, FoxForm.BREEZE));
+        state.recordCompletedWave(rapid, FoxForm.BREEZE);
+        assertTrue(state.commitEvolution(rapid, FoxForm.BREEZE, FoxForm.GOLDEN_FANG));
+        assertTrue(state.commitEvolution(control, FoxForm.BASE, FoxForm.BELL_KEEPER));
 
-        state.reconcileRivals(List.of(
-                new RivalContribution(UUID.randomUUID(), RivalKind.BREEZE, 50),
-                new RivalContribution(UUID.randomUUID(), RivalKind.POLAR_BEAR, 20)
-        ));
+        List<AdversaryProgressState.FoxDemotion> demotions = state.reconcileRivals(List.of());
 
-        assertEquals(FoxForm.SHIELD_BEARER, state.pendingForm().orElseThrow());
+        assertEquals(List.of(control, rapid, rapid), demotions.stream()
+                .map(AdversaryProgressState.FoxDemotion::foxId)
+                .toList());
+        var rapidProgress = state.foxProgress(rapid).orElseThrow();
+        assertEquals(FoxForm.BASE, rapidProgress.currentForm());
+        assertEquals(FoxRoute.RAPID, rapidProgress.lockedRoute().orElseThrow());
+        assertEquals(FoxForm.GOLDEN_FANG, rapidProgress.lockedFinalForm().orElseThrow());
+
+        state.reconcileRivals(contributions(Map.of(RivalKind.BREEZE, 50)));
+        assertTrue(state.commitEvolution(rapid, FoxForm.BASE, FoxForm.BREEZE));
+        assertTrue(state.canEvolve(rapid, FoxForm.BREEZE, FoxForm.GOLDEN_FANG));
+        assertFalse(state.canEvolve(rapid, FoxForm.BREEZE, FoxForm.SHIELD_BEARER));
+    }
+
+    @Test
+    void allFinalFoxesShareTheSameUnusedScorePool() {
+        AdversaryProgressState state = new AdversaryProgressState();
+        UUID fox = id("final-fox");
+        state.registerFox(fox, FoxForm.BASE);
+        state.reconcileRivals(contributions(Map.of(
+                RivalKind.BREEZE, 60,
+                RivalKind.CREEPER, 7,
+                RivalKind.PHANTOM, 3
+        )));
+        assertTrue(state.commitEvolution(fox, FoxForm.BASE, FoxForm.BREEZE));
+        state.recordCompletedWave(fox, FoxForm.BREEZE);
+        assertTrue(state.commitEvolution(fox, FoxForm.BREEZE, FoxForm.GOLDEN_FANG));
+
+        assertEquals(20, state.postEvolutionBonusScore());
     }
 
     @Test
     void allPublishedRecipesExactlyMatchTheApprovedRequirements() {
-        assertRecipe(FoxForm.BREEZE, false, Map.of(RivalKind.BREEZE, 12));
-        assertRecipe(FoxForm.BELL_KEEPER, false, Map.of(RivalKind.PHANTOM, 14));
-        assertRecipe(FoxForm.TRACKER, false, Map.of(RivalKind.CREEPER, 16));
-        assertRecipe(FoxForm.ECHO_FOX, false, Map.of(RivalKind.POLAR_BEAR, 18));
-        assertRecipe(FoxForm.GOLDEN_FANG, false, Map.of(RivalKind.BREEZE, 50));
-        assertRecipe(FoxForm.SHIELD_BEARER, false, Map.of(
-                RivalKind.BREEZE, 30,
-                RivalKind.POLAR_BEAR, 20
-        ));
-        assertRecipe(FoxForm.BEACON_KEEPER, false, Map.of(
-                RivalKind.PHANTOM, 50,
-                RivalKind.POLAR_BEAR, 25
-        ));
-        assertRecipe(FoxForm.OMINOUS_HEXER, false, Map.of(
-                RivalKind.PHANTOM, 50,
-                RivalKind.CREEPER, 30
-        ));
-        assertRecipe(FoxForm.FIREWORK_PIERCER, false, Map.of(
-                RivalKind.CREEPER, 60,
-                RivalKind.BREEZE, 30
-        ));
-        assertRecipe(FoxForm.BIG_GAME_TRACKER, false, Map.of(
-                RivalKind.CREEPER, 60,
-                RivalKind.POLAR_BEAR, 30
-        ));
-        assertRecipe(FoxForm.MACE_EXECUTIONER, false, Map.of(
-                RivalKind.POLAR_BEAR, 80,
-                RivalKind.BREEZE, 40
-        ));
-        assertRecipe(FoxForm.SCULK_CORE, false, Map.of(
+        assertRecipe(FoxForm.BREEZE, Map.of(RivalKind.BREEZE, 12));
+        assertRecipe(FoxForm.BELL_KEEPER, Map.of(RivalKind.PHANTOM, 14));
+        assertRecipe(FoxForm.TRACKER, Map.of(RivalKind.CREEPER, 16));
+        assertRecipe(FoxForm.ECHO_FOX, Map.of(RivalKind.POLAR_BEAR, 18));
+        assertRecipe(FoxForm.GOLDEN_FANG, Map.of(RivalKind.BREEZE, 50));
+        assertRecipe(FoxForm.SHIELD_BEARER, Map.of(RivalKind.BREEZE, 30, RivalKind.POLAR_BEAR, 20));
+        assertRecipe(FoxForm.BEACON_KEEPER, Map.of(RivalKind.PHANTOM, 50, RivalKind.POLAR_BEAR, 25));
+        assertRecipe(FoxForm.OMINOUS_HEXER, Map.of(RivalKind.PHANTOM, 50, RivalKind.CREEPER, 30));
+        assertRecipe(FoxForm.FIREWORK_PIERCER, Map.of(RivalKind.CREEPER, 60, RivalKind.BREEZE, 30));
+        assertRecipe(FoxForm.BIG_GAME_TRACKER, Map.of(RivalKind.CREEPER, 60, RivalKind.POLAR_BEAR, 30));
+        assertRecipe(FoxForm.MACE_EXECUTIONER, Map.of(RivalKind.POLAR_BEAR, 80, RivalKind.BREEZE, 40));
+        assertRecipe(FoxForm.SCULK_CORE, Map.of(
                 RivalKind.POLAR_BEAR, 100,
                 RivalKind.PHANTOM, 50,
                 RivalKind.CREEPER, 40
         ));
     }
 
-    @Test
-    void finalTieBreakUsesTheLastUniquelyConnectedRivalAcrossAllRoutes() {
-        assertFinalChoice(
-                FoxForm.BREEZE,
-                RivalKind.POLAR_BEAR,
-                Map.of(RivalKind.BREEZE, 50, RivalKind.POLAR_BEAR, 20),
-                FoxForm.SHIELD_BEARER
-        );
-        assertFinalChoice(
-                FoxForm.BELL_KEEPER,
-                RivalKind.CREEPER,
-                Map.of(RivalKind.PHANTOM, 50, RivalKind.POLAR_BEAR, 25, RivalKind.CREEPER, 30),
-                FoxForm.OMINOUS_HEXER
-        );
-        assertFinalChoice(
-                FoxForm.TRACKER,
-                RivalKind.POLAR_BEAR,
-                Map.of(RivalKind.CREEPER, 60, RivalKind.BREEZE, 30, RivalKind.POLAR_BEAR, 30),
-                FoxForm.BIG_GAME_TRACKER
-        );
-        assertFinalChoice(
-                FoxForm.ECHO_FOX,
-                RivalKind.PHANTOM,
-                Map.of(
-                        RivalKind.POLAR_BEAR, 100,
-                        RivalKind.BREEZE, 40,
-                        RivalKind.PHANTOM, 50,
-                        RivalKind.CREEPER, 40
-                ),
-                FoxForm.SCULK_CORE
-        );
-    }
-
-    @Test
-    void sellingBeforePreparationCancelsAQueuedScoreEvolution() {
-        AdversaryProgressState state = new AdversaryProgressState();
-        UUID rival = UUID.nameUUIDFromBytes("queued-sale".getBytes());
-
-        state.reconcileRivals(List.of(new RivalContribution(rival, RivalKind.BREEZE, 12)));
-        assertEquals(FoxForm.BREEZE, state.pendingForm().orElseThrow());
-
-        state.reconcileRivals(List.of());
-        assertTrue(state.pendingForm().isEmpty());
-        assertEquals(FoxForm.BASE, state.currentForm());
-    }
-
-    private static void assertRecipe(
-            FoxForm form,
-            boolean hidden,
-            Map<RivalKind, Integer> expected
-    ) {
-        EvolutionRecipe recipe = form.recipe().orElseThrow();
-        assertEquals(expected, recipe.requirements());
-        assertEquals(hidden, recipe.hidden());
-    }
-
-    private static void assertFinalChoice(
-            FoxForm intermediate,
-            RivalKind lastKind,
-            Map<RivalKind, Integer> scores,
-            FoxForm expected
-    ) {
-        AdversaryProgressState state = new AdversaryProgressState();
-        state.setCurrentForm(intermediate);
-        state.recordCompletedWave();
-        state.noteScoringKind(lastKind);
-        state.reconcileRivals(contributions(scores));
-
-        assertEquals(expected, state.pendingForm().orElseThrow());
+    private static void assertRecipe(FoxForm form, Map<RivalKind, Integer> expected) {
+        assertEquals(expected, form.recipe().orElseThrow().requirements());
     }
 
     private static List<RivalContribution> contributions(Map<RivalKind, Integer> scores) {
         EnumMap<RivalKind, Integer> ordered = new EnumMap<>(RivalKind.class);
         ordered.putAll(scores);
-        List<RivalContribution> contributions = new ArrayList<>();
-        ordered.forEach((kind, score) -> contributions.add(new RivalContribution(
-                UUID.nameUUIDFromBytes((kind.name() + score).getBytes()),
-                kind,
-                score
-        )));
-        return contributions;
+        List<RivalContribution> result = new ArrayList<>();
+        ordered.forEach((kind, score) -> result.add(new RivalContribution(id(kind.name()), kind, score)));
+        return result;
     }
 
+    private static UUID id(String value) {
+        return UUID.nameUUIDFromBytes(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
 }

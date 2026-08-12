@@ -333,7 +333,13 @@ public abstract class Tower {
     }
 
     public void attachToLane(PlayerLane lane, TraitLoadout traitLoadout) {
-        this.traitLoadout = traitLoadout == null ? TraitLoadout.none() : traitLoadout;
+        this.traitLoadout = receivesTraitEffects() && traitLoadout != null
+                ? traitLoadout
+                : TraitLoadout.none();
+    }
+
+    public boolean receivesTraitEffects() {
+        return true;
     }
 
     public TraitLoadout traitLoadout() {
@@ -369,6 +375,12 @@ public abstract class Tower {
 
     public boolean meetsUpgradeRequirements(PlayerLane lane, TowerUpgradeOption option) {
         return true;
+    }
+
+    public void onUpgradeCompleted(PlayerLane lane, Tower previousTower, TowerUpgradeOption option) {
+    }
+
+    public void onSold(PlayerLane lane) {
     }
 
     public Optional<SemionMonsterEntity> selectAttackTarget(SemionTowerEntity towerEntity, List<SemionMonsterEntity> candidates) {

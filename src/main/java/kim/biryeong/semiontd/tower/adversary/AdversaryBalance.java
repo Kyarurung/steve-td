@@ -17,26 +17,29 @@ public final class AdversaryBalance {
     public static final String FOX_TOWER_ID = "adversary_fox";
 
     public static final long FOX_COST = 100L;
+    public static final int MAX_FOX_TOWERS = 4;
 
-    public static final double RIVAL_ROUND_HEALTH_GROWTH = 0.18;
-    public static final double RIVAL_ROUND_DAMAGE_GROWTH = 0.05;
+    public static final double RIVAL_ROUND_HEALTH_GROWTH = 0.07;
+    public static final double RIVAL_ROUND_DAMAGE_GROWTH = 0.03;
     public static final int RIVAL_ARMOR_ROUND_INTERVAL = 5;
-    public static final double ENHANCED_RIVAL_HEALTH_MULTIPLIER = 2.25;
+    public static final double ENHANCED_RIVAL_HEALTH_MULTIPLIER = 2.40;
     public static final double ENHANCED_RIVAL_DAMAGE_MULTIPLIER = 1.70;
     public static final double ENHANCED_RIVAL_ARMOR_BONUS = 4.0;
     public static final double ENHANCED_RIVAL_ATTACK_INTERVAL_MULTIPLIER = 0.80;
     public static final double ENHANCED_RIVAL_RANGE_BONUS = 0.50;
     public static final int BASE_RIVAL_SCORE_PER_KILL = 1;
     public static final int ENHANCED_RIVAL_SCORE_PER_KILL = 2;
+    public static final double POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE = 0.005;
+    public static final double POST_EVOLUTION_DAMAGE_BONUS_CAP = 2.00;
 
     public static final double BASE_SPLASH_RADIUS = 1.25;
-    public static final int BASE_SPLASH_EXTRA_TARGETS = 2;
-    public static final double BASE_SPLASH_DAMAGE_RATIO = 0.30;
-    public static final double EVOLVED_SPLASH_DAMAGE_RATIO = 0.20;
+    public static final int BASE_SPLASH_EXTRA_TARGETS = 4;
+    public static final double BASE_SPLASH_DAMAGE_RATIO = 0.40;
+    public static final double EVOLVED_SPLASH_DAMAGE_RATIO = 0.50;
 
     public static final double BASE_RIVAL_KILL_HEAL_RATIO = 0.12;
     public static final double ENHANCED_RIVAL_KILL_HEAL_RATIO = 0.18;
-    public static final double RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE = 0.40;
+    public static final double RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE = 0.70;
     public static final double FOCUS_FIRE_DAMAGE_REDUCTION_PER_EXTRA_ATTACKER = 0.04;
     public static final double FOCUS_FIRE_DAMAGE_REDUCTION_CAP = 0.40;
 
@@ -49,10 +52,14 @@ public final class AdversaryBalance {
     public static final double SHIELD_COUNTER_DAMAGE = 75.0;
     public static final int SHIELD_COUNTER_COOLDOWN_TICKS = 40;
 
-    public static final double BELL_TEAM_DAMAGE_BONUS = 0.02;
-    public static final double BEACON_TEAM_DAMAGE_BONUS = 0.04;
-    public static final double BEACON_TEAM_ATTACK_SPEED_BONUS = 0.10;
-    public static final double BEACON_TEAM_MAX_HEALTH_BONUS = 0.05;
+    public static final int BELL_HEAL_INTERVAL_TICKS = 80;
+    public static final double BELL_HEAL_RADIUS = 8.0;
+    public static final int BELL_HEAL_TARGET_COUNT = 1;
+    public static final double BELL_HEAL_MAX_HEALTH_RATIO = 0.05;
+    public static final int BEACON_HEAL_INTERVAL_TICKS = 60;
+    public static final double BEACON_HEAL_RADIUS = 10.0;
+    public static final int BEACON_HEAL_TARGET_COUNT = 2;
+    public static final double BEACON_HEAL_MAX_HEALTH_RATIO = 0.06;
     public static final double OMINOUS_MONSTER_DAMAGE_REDUCTION = 0.08;
     public static final double OMINOUS_MONSTER_ATTACK_SPEED_REDUCTION = 0.05;
     public static final double OMINOUS_MONSTER_TOWER_DAMAGE_TAKEN_BONUS = 0.04;
@@ -73,7 +80,7 @@ public final class AdversaryBalance {
 
     public static final int MACE_FOCUS_TICKS = 30;
     public static final int MACE_STRIKE_INTERVAL_TICKS = 50;
-    public static final double MACE_STRIKE_DAMAGE = 500.0;
+    public static final double MACE_STRIKE_DAMAGE = 400.0;
     public static final double MACE_FOCUS_BREAK_MAX_HEALTH_RATIO = 0.20;
     public static final double[] MACE_STREAK_MULTIPLIERS = {1.00, 1.50, 2.00, 2.50, 3.00};
     public static final double MACE_SWEEP_RADIUS = 1.50;
@@ -82,7 +89,7 @@ public final class AdversaryBalance {
 
     public static final int SCULK_DETONATION_DELAY_TICKS = 40;
     public static final int SCULK_ATTACK_INTERVAL_TICKS = 100;
-    public static final double SCULK_DETONATION_DAMAGE = 1_000.0;
+    public static final double SCULK_DETONATION_DAMAGE = 800.0;
     public static final double SCULK_DETONATION_RADIUS = 4.0;
     public static final int SCULK_MAX_TARGETS = 5;
     public static final double SCULK_SELF_DAMAGE_MAX_HEALTH_RATIO = 0.10;
@@ -158,10 +165,10 @@ public final class AdversaryBalance {
 
     public static double defaultRivalBaseHealth(RivalKind kind) {
         return switch (kind) {
-            case BREEZE -> 45.0;
-            case CREEPER -> 80.0;
-            case PHANTOM -> 100.0;
-            case POLAR_BEAR -> 180.0;
+            case BREEZE -> 40.0;
+            case CREEPER -> 65.0;
+            case PHANTOM -> 75.0;
+            case POLAR_BEAR -> 100.0;
         };
     }
 
@@ -341,19 +348,19 @@ public final class AdversaryBalance {
 
     private static FormDefaults defaultForm(FoxForm form) {
         return switch (form) {
-            case BASE -> new FormDefaults(350.0, 3.0, 18.0, 10, 0.0);
-            case BREEZE -> new FormDefaults(800.0, 7.0, 30.0, 4, 0.0);
-            case GOLDEN_FANG -> new FormDefaults(1_100.0, 5.0, 36.0, 3, 0.0);
-            case SHIELD_BEARER -> new FormDefaults(1_400.0, 3.5, 75.0, 7, 0.20);
-            case BELL_KEEPER -> new FormDefaults(1_250.0, 5.0, 70.0, 7, 0.0);
-            case BEACON_KEEPER -> new FormDefaults(1_600.0, 4.0, 90.0, 6, 0.30);
-            case OMINOUS_HEXER -> new FormDefaults(1_100.0, 8.0, 90.0, 6, 0.12);
-            case TRACKER -> new FormDefaults(900.0, 8.0, 60.0, 7, 0.0);
-            case FIREWORK_PIERCER -> new FormDefaults(1_100.0, 10.0, 60.0, 8, 0.0);
-            case BIG_GAME_TRACKER -> new FormDefaults(1_250.0, 11.0, 120.0, 16, 0.0);
-            case ECHO_FOX -> new FormDefaults(1_200.0, 7.0, 90.0, 8, 0.0);
-            case MACE_EXECUTIONER -> new FormDefaults(1_400.0, 4.5, MACE_STRIKE_DAMAGE, MACE_STRIKE_INTERVAL_TICKS, 0.0);
-            case SCULK_CORE -> new FormDefaults(1_100.0, 8.0, SCULK_DETONATION_DAMAGE, SCULK_ATTACK_INTERVAL_TICKS, 0.0);
+            case BASE -> new FormDefaults(300.0, 3.0, 16.0, 10, 0.0);
+            case BREEZE -> new FormDefaults(550.0, 7.0, 26.0, 4, 0.0);
+            case GOLDEN_FANG -> new FormDefaults(750.0, 5.0, 30.0, 3, 0.0);
+            case SHIELD_BEARER -> new FormDefaults(950.0, 3.5, 60.0, 7, 0.20);
+            case BELL_KEEPER -> new FormDefaults(650.0, 5.0, 60.0, 7, 0.0);
+            case BEACON_KEEPER -> new FormDefaults(850.0, 4.0, 72.0, 6, 0.30);
+            case OMINOUS_HEXER -> new FormDefaults(700.0, 8.0, 72.0, 6, 0.12);
+            case TRACKER -> new FormDefaults(550.0, 8.0, 52.0, 7, 0.0);
+            case FIREWORK_PIERCER -> new FormDefaults(650.0, 10.0, 48.0, 8, 0.0);
+            case BIG_GAME_TRACKER -> new FormDefaults(750.0, 11.0, 96.0, 16, 0.0);
+            case ECHO_FOX -> new FormDefaults(700.0, 7.0, 76.0, 8, 0.0);
+            case MACE_EXECUTIONER -> new FormDefaults(900.0, 4.5, MACE_STRIKE_DAMAGE, MACE_STRIKE_INTERVAL_TICKS, 0.0);
+            case SCULK_CORE -> new FormDefaults(800.0, 8.0, SCULK_DETONATION_DAMAGE, SCULK_ATTACK_INTERVAL_TICKS, 0.0);
         };
     }
 

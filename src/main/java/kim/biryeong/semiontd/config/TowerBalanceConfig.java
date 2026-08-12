@@ -11,10 +11,10 @@ import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.adversary.AdversaryBalance;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.adversary.FoxForm;
+import kim.biryeong.semiontd.tower.adversary.FoxRoute;
 import kim.biryeong.semiontd.tower.adversary.RivalKind;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
-import kim.biryeong.semiontd.tower.end.EndConfig.Ability;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -921,372 +921,13 @@ public record TowerBalanceConfig(
                 );
             }
         });
-
-        validateDamageScaling(WarlockTowers.CONFIG_ID);
-        validateAdversaryBalance();
-
-        Map<String, Double> end = abilities.get(EndTowers.CONFIG_ID);
-        if (end == null) {
-            return;
-        }
-
-        end.forEach((key, value) -> {
-            if (value == null || !Double.isFinite(value) || value < 0.0) {
-                throw new IllegalArgumentException("End balance ability must be finite and non-negative: " + key);
-            }
-        });
-
-        requirePositive(end,
-                DRAGON_EVOLUTION,
-                TRANSFER_TICKS,
-                TRANSFER_ATTACK_SPEED_STACKS,
-                ATTACK_SPEED_STACKS,
-                ATTACK_SPEED_MINIMUM_TICKS,
-                ATTACK_RANGE_STACKS,
-                SPLASH_1,
-                SPLASH_2,
-                SPLASH_3,
-                SPLASH_4,
-                SPLASH_5,
-                LIFE_STEAL_STACKS,
-                REGENERATION_STACKS,
-                DAMAGE_REDUCTION_STACKS,
-                PHANTOM_SCALE_HEALTH,
-                HEALTH_THRESHOLD,
-                HEALTH_SCALE,
-                DAMAGE_THRESHOLD,
-                DAMAGE_SCALE
-        );
-        requireRatio(end,
-                ROUND_HEALTH_RATIO,
-                ROUND_DAMAGE_RATIO,
-                PERMANENT_HEALTH_RATIO,
-                PERMANENT_DAMAGE_RATIO,
-                TRANSFER_HEAL_RATIO,
-                SPLASH_DAMAGE_RATIO,
-                LIFE_STEAL_STEP,
-                LIFE_STEAL_CAP,
-                DAMAGE_REDUCTION_STEP,
-                DAMAGE_REDUCTION_CAP
-        );
-        requirePositive(end, PHANTOM_SCALE_BASE, PHANTOM_SCALE_CAP);
-        validateAtLeast(end, PHANTOM_SCALE_CAP, PHANTOM_SCALE_BASE);
-        validateStrictlyIncreasing(end,
-                SPLASH_1,
-                SPLASH_2,
-                SPLASH_3,
-                SPLASH_4,
-                SPLASH_5
-        );
-        requireIntegralIntRange(end,
-                TRANSFER_TICKS,
-                TRANSFER_ATTACK_SPEED_STACKS,
-                TRANSFER_ATTACK_SPEED_STEP,
-                ATTACK_SPEED_STACKS,
-                ATTACK_SPEED_STEP,
-                ATTACK_SPEED_CAP,
-                ATTACK_SPEED_MINIMUM_TICKS,
-                ATTACK_RANGE_STACKS,
-                SPLASH_1,
-                SPLASH_2,
-                SPLASH_3,
-                SPLASH_4,
-                SPLASH_5,
-                LIFE_STEAL_STACKS,
-                REGENERATION_STACKS,
-                DAMAGE_REDUCTION_STACKS
-        );
-        validateMinimumAttackInterval(end);
-        validateTowerRatio(EndTowers.T1_SHULKER_TOWER.id(), "damageReduction");
-        validateTowerRatio(EndTowers.T2_SHULKER_TOWER.id(), "damageReduction");
-        validateTowerRatio(EndTowers.T3_SHULKER_TOWER.id(), "damageReduction");
-    }
-
-    private void validateAdversaryBalance() {
-        Map<String, Double> global = abilities.get(AdversaryBalance.GLOBAL_CONFIG_ID);
-        if (global != null) {
-            validateAdversaryValues(AdversaryBalance.GLOBAL_CONFIG_ID, global);
-            requireAdversaryPositive(global,
-                    "rivalArmorRoundInterval",
-                    "baseSplashRadius",
-                    "goldenExtraAttackEvery",
-                    "shieldCounterDamage",
-                    "shieldCounterCooldownTicks",
-                    "teamEffectScanIntervalTicks",
-                    "teamEffectDurationTicks",
-                    "fireworkWaveDamageMultiplier",
-                    "fireworkIncomeDamageMultiplier",
-                    "fireworkMaxTargets",
-                    "bigGameWaveDamageMultiplier",
-                    "bigGameIncomeDamageMultiplier",
-                    "maceFocusTicks",
-                    "maceSweepRadius",
-                    "sculkDelayTicks",
-                    "sculkRadius",
-                    "sculkMaxTargets"
-            );
-            requireAdversaryRatio(global,
-                    "rivalRoundHealthGrowth",
-                    "rivalRoundDamageGrowth",
-                    "baseSplashDamageRatio",
-                    "evolvedSplashDamageRatio",
-                    "baseRivalKillHealRatio",
-                    "enhancedRivalKillHealRatio",
-                    "rivalKillHealCapRatioPerWave",
-                    "focusFireDamageReductionPerExtraAttacker",
-                    "focusFireDamageReductionCap",
-                    "breezeExtraTargetDamageRatio",
-                    "goldenExtraDamageRatio",
-                    "bellTeamDamageBonus",
-                    "beaconTeamDamageBonus",
-                    "beaconTeamAttackSpeedBonus",
-                    "beaconTeamMaxHealthBonus",
-                    "ominousMonsterDamageReduction",
-                    "ominousMonsterAttackSpeedReduction",
-                    "ominousMonsterTowerDamageTakenBonus",
-                    "fireworkSecondary2Ratio",
-                    "fireworkSecondary3Ratio",
-                    "fireworkSecondary4Ratio",
-                    "fireworkSecondary5Ratio",
-                    "echoBonusPerHit",
-                    "maceBreakHealthRatio",
-                    "maceSweepDamageRatio",
-                    "sculkSelfDamageRatio",
-                    "sculkSelfDamageFloorRatio"
-            );
-            requireAdversaryIntegral(global,
-                    "rivalArmorRoundInterval",
-                    "baseSplashExtraTargets",
-                    "breezeExtraTargets",
-                    "goldenExtraAttackEvery",
-                    "shieldCounterCooldownTicks",
-                    "teamEffectScanIntervalTicks",
-                    "teamEffectDurationTicks",
-                    "fireworkMaxTargets",
-                    "echoMaxBonusStacks",
-                    "maceFocusTicks",
-                    "maceSweepExtraTargets",
-                    "sculkDelayTicks",
-                    "sculkMaxTargets"
-            );
-            validateAdversaryNonIncreasing(global,
-                    "fireworkSecondary2Ratio",
-                    "fireworkSecondary3Ratio",
-                    "fireworkSecondary4Ratio",
-                    "fireworkSecondary5Ratio"
-            );
-            validateAdversaryNonDecreasing(global, "bigGameStreak2", "bigGameStreak3");
-            validateAdversaryNonDecreasing(global, "maceStreak2", "maceStreak3", "maceStreak4", "maceStreak5");
-        }
-
-        for (FoxForm form : FoxForm.values()) {
-            String configId = AdversaryBalance.formConfigId(form);
-            Map<String, Double> values = abilities.get(configId);
-            if (values == null) {
-                continue;
-            }
-            validateAdversaryValues(configId, values);
-            requireAdversaryPositive(values, "maxHealth", "range", "damage", "attackIntervalTicks");
-            requireAdversaryRatio(values, "damageReduction");
-            requireAdversaryIntegral(values, "attackIntervalTicks");
-            for (RivalKind kind : RivalKind.values()) {
-                String requirementKey = AdversaryBalance.requirementKey(kind);
-                requireAdversaryPositive(values, requirementKey);
-                requireAdversaryIntegral(values, requirementKey);
-            }
-        }
-
-        for (RivalKind kind : RivalKind.values()) {
-            validateAdversaryRivalAbilities(kind, false);
-            validateAdversaryRivalAbilities(kind, true);
-        }
-    }
-
-    private void validateAdversaryRivalAbilities(RivalKind kind, boolean enhanced) {
-        String configId = AdversaryBalance.rivalTowerId(kind, enhanced);
-        Map<String, Double> values = abilities.get(configId);
-        if (values == null) {
-            return;
-        }
-        validateAdversaryValues(configId, values);
-        requireAdversaryPositive(values, "scorePerKill");
-        requireAdversaryIntegral(values, "scorePerKill");
-    }
-
-    private static void validateAdversaryValues(String configId, Map<String, Double> values) {
-        values.forEach((key, value) -> {
+        abilities.forEach((configId, values) -> values.forEach((key, value) -> {
             if (value == null || !Double.isFinite(value) || value < 0.0) {
                 throw new IllegalArgumentException(
-                        "Adversary balance value must be finite and non-negative: " + configId + "." + key
+                        "Tower balance ability must be finite and non-negative: " + configId + "." + key
                 );
             }
-        });
-    }
-
-    private static void requireAdversaryPositive(Map<String, Double> values, String... keys) {
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value != null && value <= 0.0) {
-                throw new IllegalArgumentException("Adversary balance value must be positive: " + key);
-            }
-        }
-    }
-
-    private static void requireAdversaryRatio(Map<String, Double> values, String... keys) {
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value != null && value > 1.0) {
-                throw new IllegalArgumentException("Adversary balance ratio must be between 0 and 1: " + key);
-            }
-        }
-    }
-
-    private static void requireAdversaryIntegral(Map<String, Double> values, String... keys) {
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value != null && (value > Integer.MAX_VALUE || value != Math.rint(value))) {
-                throw new IllegalArgumentException("Adversary balance integer must not be fractional or oversized: " + key);
-            }
-        }
-    }
-
-    private static void validateAdversaryNonDecreasing(Map<String, Double> values, String... keys) {
-        Double previous = 1.0;
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value == null) {
-                return;
-            }
-            if (value < previous) {
-                throw new IllegalArgumentException("Adversary balance streak multipliers must be non-decreasing.");
-            }
-            previous = value;
-        }
-    }
-
-    private static void validateAdversaryNonIncreasing(Map<String, Double> values, String... keys) {
-        Double previous = 1.0;
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value == null) {
-                return;
-            }
-            if (value > previous) {
-                throw new IllegalArgumentException("Adversary secondary damage ratios must be non-increasing.");
-            }
-            previous = value;
-        }
-    }
-
-    private static void requirePositive(Map<String, Double> values, String... keys) {
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value != null && value <= 0.0) {
-                throw new IllegalArgumentException("End balance ability must be positive: " + key);
-            }
-        }
-    }
-
-    private void validateDamageScaling(String configId) {
-        Map<String, Double> values = abilities.get(configId);
-        if (values == null) {
-            return;
-        }
-        Double softCap = values.get("damageSoftCap");
-        if (softCap != null && (!Double.isFinite(softCap) || softCap <= 0.0)) {
-            throw new IllegalArgumentException(configId + ".damageSoftCap must be finite and positive.");
-        }
-    }
-
-    private static void requirePositive(Map<String, Double> values, Ability... abilities) {
-        requirePositive(values, abilityKeys(abilities));
-    }
-
-    private static void requireRatio(Map<String, Double> values, String... keys) {
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value != null && value > 1.0) {
-                throw new IllegalArgumentException("End balance ratio must be between 0 and 1: " + key);
-            }
-        }
-    }
-
-    private static void requireRatio(Map<String, Double> values, Ability... abilities) {
-        requireRatio(values, abilityKeys(abilities));
-    }
-
-    private static void validateStrictlyIncreasing(Map<String, Double> values, String... keys) {
-        Double previous = null;
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value == null) {
-                return;
-            }
-            if (previous != null && value <= previous) {
-                throw new IllegalArgumentException("End balance thresholds must be strictly increasing.");
-            }
-            previous = value;
-        }
-    }
-
-    private static void validateStrictlyIncreasing(Map<String, Double> values, Ability... abilities) {
-        validateStrictlyIncreasing(values, abilityKeys(abilities));
-    }
-
-    private static void validateAtLeast(
-            Map<String, Double> values,
-            String valueKey,
-            String minimumKey
-    ) {
-        Double value = values.get(valueKey);
-        Double minimum = values.get(minimumKey);
-        if (value != null && minimum != null && value < minimum) {
-            throw new IllegalArgumentException(
-                    "End balance " + valueKey + " must be at least " + minimumKey
-            );
-        }
-    }
-
-    private static void validateAtLeast(Map<String, Double> values, Ability value, Ability minimum) {
-        validateAtLeast(values, value.key(), minimum.key());
-    }
-
-    private static void requireIntegralIntRange(Map<String, Double> values, String... keys) {
-        for (String key : keys) {
-            Double value = values.get(key);
-            if (value == null) {
-                continue;
-            }
-            if (value > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("End balance integer is too large: " + key);
-            }
-            if (value != Math.rint(value)) {
-                throw new IllegalArgumentException("End balance integer must not be fractional: " + key);
-            }
-        }
-    }
-
-    private static void requireIntegralIntRange(Map<String, Double> values, Ability... abilities) {
-        requireIntegralIntRange(values, abilityKeys(abilities));
-    }
-
-    private static String[] abilityKeys(Ability[] abilities) {
-        String[] keys = new String[abilities.length];
-        for (int index = 0; index < abilities.length; index++) {keys[index] = abilities[index].key();}
-        return keys;
-    }
-
-    private void validateMinimumAttackInterval(Map<String, Double> end) {
-        Double minimum = end.get(ATTACK_SPEED_MINIMUM_TICKS.key());
-        TowerStats base = towers.get(EndTowers.BASE_END_TOWER.id());
-        if (minimum != null
-                && base != null
-                && base.attackIntervalTicks() != null
-                && minimum > base.attackIntervalTicks()) {
-            throw new IllegalArgumentException(
-                    "End attackSpeedMinimumTicks cannot exceed the base End tower attack interval"
-            );
-        }
+        }));
     }
 
     private static void validateTowerStats(String towerId, TowerStats stats) {
@@ -1328,17 +969,6 @@ public record TowerBalanceConfig(
         return Math.max(0, (int) Math.round(resolved));
     }
 
-    private void validateTowerRatio(String towerId, String key) {
-        Map<String, Double> values = abilities.get(towerId);
-        if (values == null) {
-            return;
-        }
-        Double value = values.get(key);
-        if (value != null && (!Double.isFinite(value) || value < 0.0 || value > 1.0)) {
-            throw new IllegalArgumentException("Tower balance ratio must be between 0 and 1: " + towerId + "." + key);
-        }
-    }
-
     public TowerBalanceConfig withMissingDefaults(TowerBalanceConfig defaults) {
         if (defaults == null) {
             return this;
@@ -1376,6 +1006,52 @@ public record TowerBalanceConfig(
                 mergedVillagerAdv,
                 schemaVersion
         );
+    }
+
+    public TowerBalanceConfig withInvalidNumericValuesFrom(TowerBalanceConfig fallback) {
+        if (fallback == null) {
+            return this;
+        }
+
+        LinkedHashMap<String, TowerStats> repairedTowers = new LinkedHashMap<>();
+        towers.forEach((towerId, stats) -> repairedTowers.put(
+                towerId,
+                stats.withInvalidNumericValuesFrom(fallback.towers.get(towerId))
+        ));
+
+        LinkedHashMap<String, Long> repairedUpgradeCosts = new LinkedHashMap<>();
+        upgradeCosts.forEach((key, value) -> {
+            Long repaired = value >= 0L ? value : fallback.upgradeCosts.get(key);
+            if (repaired != null && repaired >= 0L) {
+                repairedUpgradeCosts.put(key, repaired);
+            }
+        });
+
+        LinkedHashMap<String, Map<String, Double>> repairedAbilities = new LinkedHashMap<>();
+        abilities.forEach((configId, values) -> {
+            Map<String, Double> fallbackValues = fallback.abilities.getOrDefault(configId, Map.of());
+            LinkedHashMap<String, Double> repairedValues = new LinkedHashMap<>();
+            values.forEach((key, value) -> {
+                Double repaired = isNonNegativeFinite(value) ? value : fallbackValues.get(key);
+                if (isNonNegativeFinite(repaired)) {
+                    repairedValues.put(key, repaired);
+                }
+            });
+            repairedAbilities.put(configId, repairedValues);
+        });
+
+        return new TowerBalanceConfig(
+                repairedTowers,
+                repairedUpgradeCosts,
+                repairedAbilities,
+                illusionCloneQueue,
+                villagerAdv,
+                schemaVersion
+        );
+    }
+
+    private static boolean isNonNegativeFinite(Double value) {
+        return value != null && Double.isFinite(value) && value >= 0.0;
     }
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
@@ -1488,7 +1164,7 @@ public record TowerBalanceConfig(
     }
 
     private static void addAdversaryTowers(Map<String, TowerStats> towers) {
-        AdversaryTowers.all().forEach(type -> addTower(towers, type));
+        AdversaryTowers.configurableTowers().forEach(type -> addTower(towers, type));
     }
 
     private static void putNetherUpgrades(Map<String, Long> upgrades) {
@@ -1536,6 +1212,18 @@ public record TowerBalanceConfig(
     }
 
     private static void putAdversaryUpgrades(Map<String, Long> upgrades) {
+        for (FoxRoute route : FoxRoute.values()) {
+            FoxForm intermediate = FoxForm.intermediateFor(route);
+            putUpgrade(upgrades, AdversaryTowers.FOX, AdversaryTowers.typeFor(intermediate).id(), 0L);
+            for (FoxForm finalForm : FoxForm.finalsFor(route)) {
+                putUpgrade(
+                        upgrades,
+                        AdversaryTowers.typeFor(intermediate),
+                        AdversaryTowers.typeFor(finalForm).id(),
+                        0L
+                );
+            }
+        }
         for (RivalKind kind : RivalKind.values()) {
             TowerType base = AdversaryTowers.baseRival(kind);
             TowerType enhanced = AdversaryTowers.enhancedRival(kind);
@@ -1545,6 +1233,7 @@ public record TowerBalanceConfig(
 
     private static void putAdversaryAbilities(Map<String, Map<String, Double>> abilities) {
         putAbilities(abilities, AdversaryBalance.GLOBAL_CONFIG_ID, Map.ofEntries(
+                Map.entry("maxFoxTowers", (double) AdversaryBalance.MAX_FOX_TOWERS),
                 Map.entry("rivalRoundHealthGrowth", AdversaryBalance.RIVAL_ROUND_HEALTH_GROWTH),
                 Map.entry("rivalRoundDamageGrowth", AdversaryBalance.RIVAL_ROUND_DAMAGE_GROWTH),
                 Map.entry("rivalArmorRoundInterval", (double) AdversaryBalance.RIVAL_ARMOR_ROUND_INTERVAL),
@@ -1552,6 +1241,8 @@ public record TowerBalanceConfig(
                 Map.entry("baseSplashExtraTargets", (double) AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
                 Map.entry("baseSplashDamageRatio", AdversaryBalance.BASE_SPLASH_DAMAGE_RATIO),
                 Map.entry("evolvedSplashDamageRatio", AdversaryBalance.EVOLVED_SPLASH_DAMAGE_RATIO),
+                Map.entry("postEvolutionDamageBonusPerScore", AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE),
+                Map.entry("postEvolutionDamageBonusCap", AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_CAP),
                 Map.entry("baseRivalKillHealRatio", AdversaryBalance.BASE_RIVAL_KILL_HEAL_RATIO),
                 Map.entry("enhancedRivalKillHealRatio", AdversaryBalance.ENHANCED_RIVAL_KILL_HEAL_RATIO),
                 Map.entry("rivalKillHealCapRatioPerWave", AdversaryBalance.RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE),
@@ -1563,10 +1254,14 @@ public record TowerBalanceConfig(
                 Map.entry("goldenExtraDamageRatio", AdversaryBalance.GOLDEN_FANG_EXTRA_DAMAGE_RATIO),
                 Map.entry("shieldCounterDamage", AdversaryBalance.SHIELD_COUNTER_DAMAGE),
                 Map.entry("shieldCounterCooldownTicks", (double) AdversaryBalance.SHIELD_COUNTER_COOLDOWN_TICKS),
-                Map.entry("bellTeamDamageBonus", AdversaryBalance.BELL_TEAM_DAMAGE_BONUS),
-                Map.entry("beaconTeamDamageBonus", AdversaryBalance.BEACON_TEAM_DAMAGE_BONUS),
-                Map.entry("beaconTeamAttackSpeedBonus", AdversaryBalance.BEACON_TEAM_ATTACK_SPEED_BONUS),
-                Map.entry("beaconTeamMaxHealthBonus", AdversaryBalance.BEACON_TEAM_MAX_HEALTH_BONUS),
+                Map.entry("bellHealIntervalTicks", (double) AdversaryBalance.BELL_HEAL_INTERVAL_TICKS),
+                Map.entry("bellHealRadius", AdversaryBalance.BELL_HEAL_RADIUS),
+                Map.entry("bellHealTargetCount", (double) AdversaryBalance.BELL_HEAL_TARGET_COUNT),
+                Map.entry("bellHealMaxHealthRatio", AdversaryBalance.BELL_HEAL_MAX_HEALTH_RATIO),
+                Map.entry("beaconHealIntervalTicks", (double) AdversaryBalance.BEACON_HEAL_INTERVAL_TICKS),
+                Map.entry("beaconHealRadius", AdversaryBalance.BEACON_HEAL_RADIUS),
+                Map.entry("beaconHealTargetCount", (double) AdversaryBalance.BEACON_HEAL_TARGET_COUNT),
+                Map.entry("beaconHealMaxHealthRatio", AdversaryBalance.BEACON_HEAL_MAX_HEALTH_RATIO),
                 Map.entry("ominousMonsterDamageReduction", AdversaryBalance.OMINOUS_MONSTER_DAMAGE_REDUCTION),
                 Map.entry("ominousMonsterAttackSpeedReduction", AdversaryBalance.OMINOUS_MONSTER_ATTACK_SPEED_REDUCTION),
                 Map.entry("ominousMonsterTowerDamageTakenBonus", AdversaryBalance.OMINOUS_MONSTER_TOWER_DAMAGE_TAKEN_BONUS),
@@ -2543,6 +2238,31 @@ public record TowerBalanceConfig(
                     attackIntervalTicks == null ? defaults.attackIntervalTicks() : attackIntervalTicks,
                     aggroPriority == null ? defaults.aggroPriority() : aggroPriority
             );
+        }
+
+        private TowerStats withInvalidNumericValuesFrom(TowerStats fallback) {
+            return new TowerStats(
+                    mineralCost != null && mineralCost >= 0L
+                            ? mineralCost
+                            : fallback == null ? null : fallback.mineralCost,
+                    isFiniteAtLeast(maxHealth, 1.0)
+                            ? maxHealth
+                            : fallback == null ? null : fallback.maxHealth,
+                    isFiniteAtLeast(range, 0.0)
+                            ? range
+                            : fallback == null ? null : fallback.range,
+                    isFiniteAtLeast(damage, 0.0)
+                            ? damage
+                            : fallback == null ? null : fallback.damage,
+                    attackIntervalTicks != null && attackIntervalTicks >= 1
+                            ? attackIntervalTicks
+                            : fallback == null ? null : fallback.attackIntervalTicks,
+                    aggroPriority
+            );
+        }
+
+        private static boolean isFiniteAtLeast(Double value, double minimum) {
+            return value != null && Double.isFinite(value) && value >= minimum;
         }
     }
 }

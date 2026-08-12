@@ -9,12 +9,14 @@ import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -23,6 +25,44 @@ import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 public final class AdversaryRivalGameTest {
+    @GameTest
+    public void rivalDoesNotReceiveTowerTraitEffects(GameTestHelper context) {
+        UUID owner = stableUuid("adversary-rival-no-traits");
+        PlayerLane lane = testLane(context, owner);
+        AdversaryRivalTower rival = new AdversaryRivalTower(
+                AdversaryTowers.POLAR_BEAR_RIVAL,
+                owner,
+                TeamId.RED,
+                1,
+                GridPosition.from(context.absolutePos(new BlockPos(3, 2, 3)))
+        );
+
+        try {
+            lane.addTower(rival);
+            lane.assignTraitLoadout(new TraitLoadout(
+                    BuiltInTraits.FORTITUDE_ID,
+                    BuiltInTraits.DOUBLE_EDGED_SWORD_ID
+            ));
+            SemionTowerEntity entity = (SemionTowerEntity) context.getLevel()
+                    .getEntity(rival.entityId().orElseThrow());
+
+            require(!rival.receivesTraitEffects(), "Rivals must opt out of tower traits.");
+            require(TraitLoadout.isNone(rival.traitLoadout().primaryTraitId())
+                            && TraitLoadout.isNone(rival.traitLoadout().secondaryTraitId()),
+                    "Rivals must not retain the owner's trait loadout.");
+            requireClose(rival.type().maxHealth(), rival.currentMaxHealth(),
+                    "Fortitude must not increase rival health.");
+            requireClose(0.0, entity.activeEffectMagnitude(TimedEffectType.TOWER_FINAL_DAMAGE_BONUS),
+                    "Damage traits must not increase rival damage.");
+            requireClose(0.0, entity.activeEffectMagnitude(TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS),
+                    "Double-edged sword must not alter rival incoming damage.");
+            context.succeed();
+        } finally {
+            lane.clearTowers();
+            AdversaryProgressStates.clear(owner);
+        }
+    }
+
     @GameTest
     public void rivalConvertsAtItsSlotAndReturnsWithoutFakeTowerDeath(GameTestHelper context) {
         UUID owner = UUID.nameUUIDFromBytes(
@@ -168,7 +208,7 @@ public final class AdversaryRivalGameTest {
 
             require(rival.contributedScore() == 1,
                     "An ignite last hit from the fox must credit the rival's evolution score.");
-            requireClose(142.0, fox.health(),
+            requireClose(136.0, fox.health(),
                     "A base rival kill must heal twelve percent of the fox's maximum health.");
             requireClose(0.0, fox.roundMagicDamageDealt(),
                     "Ignite damage to an owned rival must not inflate magic damage statistics.");

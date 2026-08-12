@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.warlock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -133,14 +134,14 @@ class WarlockTowerBalanceTest {
     }
 
     @Test
-    void damageScalingConfigRejectsInvalidRangesAndMergesLegacyFiles() {
+    void damageScalingConfigAcceptsZeroAndMergesLegacyFiles() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> invalidAbilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> invalidWarlock = new LinkedHashMap<>(invalidAbilities.get(WarlockTowers.CONFIG_ID));
         invalidWarlock.put("damageSoftCap", 0.0);
         invalidAbilities.put(WarlockTowers.CONFIG_ID, invalidWarlock);
-        TowerBalanceConfig invalid = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalid));
+        TowerBalanceConfig zero = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(zero));
 
         Map<String, Map<String, Double>> legacyAbilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> legacyWarlock = new LinkedHashMap<>(legacyAbilities.get(WarlockTowers.CONFIG_ID));

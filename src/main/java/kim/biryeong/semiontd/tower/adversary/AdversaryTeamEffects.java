@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.adversary;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +10,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
@@ -19,18 +19,13 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TeamLaneGroup;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 
-/** Refreshes the Adversary builder's strongest team-wide support channels. */
+/** Heals owned foxes and refreshes the Adversary builder's team-wide monster debuffs. */
 public final class AdversaryTeamEffects {
     private static final Map<UUID, TeamLaneGroup> REGISTERED_TEAMS = new ConcurrentHashMap<>();
     private static final Map<TeamLaneGroup, Long> LAST_REFRESH_TICKS =
             Collections.synchronizedMap(new WeakHashMap<>());
-
-    private static final ResourceLocation DAMAGE_SOURCE = source("tower_damage");
-    private static final ResourceLocation ATTACK_SPEED_SOURCE = source("tower_attack_speed");
-    private static final ResourceLocation MAX_HEALTH_SOURCE = source("tower_max_health");
 
     private AdversaryTeamEffects() {
     }
@@ -64,11 +59,13 @@ public final class AdversaryTeamEffects {
             return;
         }
 
+        long gameTime = level.getGameTime();
+        healOwnedFoxes(fox, source, laneGroup, gameTime);
+
         int scanInterval = Math.max(1, globalInt(
                 "teamEffectScanIntervalTicks",
                 AdversaryBalance.TEAM_EFFECT_SCAN_INTERVAL_TICKS
         ));
-        long gameTime = level.getGameTime();
         // The offset spreads scans from different teams while remaining deterministic.
         if (Math.floorMod(gameTime + fox.teamId().ordinal(), scanInterval) != 0
                 || !claimTeamRefresh(laneGroup, gameTime)) {
@@ -82,26 +79,6 @@ public final class AdversaryTeamEffects {
                 AdversaryBalance.TEAM_EFFECT_DURATION_TICKS
         ));
 
-        for (SemionTowerEntity tower : targets.towers()) {
-            tower.refreshTimedEffect(
-                    TimedEffectType.TOWER_DAMAGE_BONUS,
-                    DAMAGE_SOURCE,
-                    profile.towerDamageBonus(),
-                    duration
-            );
-            tower.refreshTimedEffect(
-                    TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
-                    ATTACK_SPEED_SOURCE,
-                    profile.towerAttackSpeedBonus(),
-                    duration
-            );
-            tower.refreshTimedEffect(
-                    TimedEffectType.TOWER_MAX_HEALTH_BONUS,
-                    MAX_HEALTH_SOURCE,
-                    profile.towerMaxHealthBonus(),
-                    duration
-            );
-        }
         for (SemionMonsterEntity monster : targets.monsters()) {
             applyStrongest(
                     monster,
@@ -124,8 +101,56 @@ public final class AdversaryTeamEffects {
         }
     }
 
+    private static void healOwnedFoxes(
+            AdversaryFoxTower fox,
+            SemionTowerEntity source,
+            TeamLaneGroup laneGroup,
+            long gameTime
+    ) {
+        HealProfile profile = healingProfile(fox.form());
+        if (profile == null
+                || profile.targetCount() <= 0
+                || profile.maxHealthRatio() <= 0.0
+                || Math.floorMod(gameTime + source.getId(), profile.intervalTicks()) != 0) {
+            return;
+        }
+
+        List<HealCandidate> candidates = new ArrayList<>();
+        double radiusSqr = profile.radius() * profile.radius();
+        for (PlayerLane lane : List.copyOf(laneGroup.lanes())) {
+            if (lane == null || lane.teamId() != fox.teamId() || lane.arenaWorld() != source.level()) {
+                continue;
+            }
+            for (Tower tower : List.copyOf(lane.towers())) {
+                if (!(tower instanceof AdversaryFoxTower targetFox)
+                        || targetFox == fox
+                        || !fox.ownerPlayer().equals(targetFox.ownerPlayer())) {
+                    continue;
+                }
+                SemionTowerEntity target = towerEntity(targetFox, lane.arenaWorld());
+                if (target == null
+                        || target == source
+                        || source.distanceToSqr(target) > radiusSqr
+                        || targetFox.health() >= targetFox.currentMaxHealth()) {
+                    continue;
+                }
+                candidates.add(new HealCandidate(targetFox, target));
+            }
+        }
+        candidates.sort(Comparator
+                .comparingDouble(HealCandidate::healthRatio)
+                .thenComparing(candidate -> candidate.fox().foxId()));
+
+        for (int index = 0; index < Math.min(profile.targetCount(), candidates.size()); index++) {
+            HealCandidate candidate = candidates.get(index);
+            double amount = candidate.fox().currentMaxHealth() * profile.maxHealthRatio();
+            if (candidate.entity().receiveHealing(amount)) {
+                AdversaryVfx.showFoxHealing(source, candidate.entity());
+            }
+        }
+    }
+
     private static TeamTargets collectTargets(TeamLaneGroup laneGroup, TeamId teamId) {
-        Set<SemionTowerEntity> towers = new LinkedHashSet<>();
         Set<SemionMonsterEntity> monsters = new LinkedHashSet<>();
         List<FoxForm> forms = new ArrayList<>();
 
@@ -139,7 +164,6 @@ public final class AdversaryTeamEffects {
                 if (entity == null || entity.teamId() != teamId) {
                     continue;
                 }
-                towers.add(entity);
                 if (tower instanceof AdversaryFoxTower fox) {
                     forms.add(fox.form());
                 }
@@ -153,7 +177,7 @@ public final class AdversaryTeamEffects {
                 }
             }
         }
-        return new TeamTargets(List.copyOf(towers), List.copyOf(monsters), List.copyOf(forms));
+        return new TeamTargets(List.copyOf(monsters), List.copyOf(forms));
     }
 
     private static SemionTowerEntity towerEntity(Tower tower, ServerLevel level) {
@@ -202,9 +226,6 @@ public final class AdversaryTeamEffects {
     }
 
     static TeamProfile strongestProfile(Iterable<FoxForm> forms) {
-        double towerDamage = 0.0;
-        double towerAttackSpeed = 0.0;
-        double towerMaxHealth = 0.0;
         double monsterDamageReduction = 0.0;
         double monsterAttackSpeedReduction = 0.0;
         double monsterVulnerability = 0.0;
@@ -217,24 +238,6 @@ public final class AdversaryTeamEffects {
                 continue;
             }
             switch (form) {
-                case BELL_KEEPER -> towerDamage = Math.max(
-                        towerDamage,
-                        global("bellTeamDamageBonus", AdversaryBalance.BELL_TEAM_DAMAGE_BONUS)
-                );
-                case BEACON_KEEPER -> {
-                    towerDamage = Math.max(
-                            towerDamage,
-                            global("beaconTeamDamageBonus", AdversaryBalance.BEACON_TEAM_DAMAGE_BONUS)
-                    );
-                    towerAttackSpeed = Math.max(
-                            towerAttackSpeed,
-                            global("beaconTeamAttackSpeedBonus", AdversaryBalance.BEACON_TEAM_ATTACK_SPEED_BONUS)
-                    );
-                    towerMaxHealth = Math.max(
-                            towerMaxHealth,
-                            global("beaconTeamMaxHealthBonus", AdversaryBalance.BEACON_TEAM_MAX_HEALTH_BONUS)
-                    );
-                }
                 case OMINOUS_HEXER -> {
                     monsterDamageReduction = Math.max(
                             monsterDamageReduction,
@@ -263,9 +266,6 @@ public final class AdversaryTeamEffects {
             }
         }
         return new TeamProfile(
-                towerDamage,
-                towerAttackSpeed,
-                towerMaxHealth,
                 monsterDamageReduction,
                 monsterAttackSpeedReduction,
                 monsterVulnerability
@@ -285,24 +285,45 @@ public final class AdversaryTeamEffects {
         return AdversaryBalance.globalInt(key, fallback);
     }
 
-    private static ResourceLocation source(String path) {
-        return ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "adversary/team/" + path);
+    static HealProfile healingProfile(FoxForm form) {
+        if (form == FoxForm.BEACON_KEEPER) {
+            return new HealProfile(
+                    Math.max(1, globalInt("beaconHealIntervalTicks", AdversaryBalance.BEACON_HEAL_INTERVAL_TICKS)),
+                    Math.max(0.0, global("beaconHealRadius", AdversaryBalance.BEACON_HEAL_RADIUS)),
+                    Math.max(0, globalInt("beaconHealTargetCount", AdversaryBalance.BEACON_HEAL_TARGET_COUNT)),
+                    Math.max(0.0, global("beaconHealMaxHealthRatio", AdversaryBalance.BEACON_HEAL_MAX_HEALTH_RATIO))
+            );
+        }
+        if (form == FoxForm.BELL_KEEPER || form == FoxForm.OMINOUS_HEXER) {
+            return new HealProfile(
+                    Math.max(1, globalInt("bellHealIntervalTicks", AdversaryBalance.BELL_HEAL_INTERVAL_TICKS)),
+                    Math.max(0.0, global("bellHealRadius", AdversaryBalance.BELL_HEAL_RADIUS)),
+                    Math.max(0, globalInt("bellHealTargetCount", AdversaryBalance.BELL_HEAL_TARGET_COUNT)),
+                    Math.max(0.0, global("bellHealMaxHealthRatio", AdversaryBalance.BELL_HEAL_MAX_HEALTH_RATIO))
+            );
+        }
+        return null;
     }
 
     private record TeamTargets(
-            List<SemionTowerEntity> towers,
             List<SemionMonsterEntity> monsters,
             List<FoxForm> forms
     ) {
     }
 
     record TeamProfile(
-            double towerDamageBonus,
-            double towerAttackSpeedBonus,
-            double towerMaxHealthBonus,
             double monsterDamageReduction,
             double monsterAttackSpeedReduction,
             double monsterTowerDamageTakenBonus
     ) {
+    }
+
+    record HealProfile(int intervalTicks, double radius, int targetCount, double maxHealthRatio) {
+    }
+
+    private record HealCandidate(AdversaryFoxTower fox, SemionTowerEntity entity) {
+        private double healthRatio() {
+            return fox.health() / Math.max(1.0, fox.currentMaxHealth());
+        }
     }
 }

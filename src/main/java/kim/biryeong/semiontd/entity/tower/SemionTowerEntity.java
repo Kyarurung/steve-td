@@ -35,6 +35,7 @@ import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowerState;
 import kim.biryeong.semiontd.tower.end.EndTowers;
+import kim.biryeong.semiontd.tower.ocean.OceanWaterTower;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -919,6 +920,11 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     @Override
     public boolean isPushable() {
         return false;
+    }
+
+    @Override
+    public boolean canBreatheUnderwater() {
+        return runtimeTower instanceof OceanWaterTower || super.canBreatheUnderwater();
     }
 
     @Override

@@ -98,33 +98,42 @@ class AdversaryRivalLedgerTest {
     @Test
     void sellingAContributorSubtractsItsLedgerAndDemotesWithoutUnlockingAnotherRoute() {
         PlayerLane lane = testLane();
+        AdversaryFoxTower fox = new AdversaryFoxTower(
+                AdversaryTowers.FOX,
+                OWNER,
+                TeamId.RED,
+                1,
+                new GridPosition(1, 64, 1)
+        );
         AdversaryRivalTower rival = rival(RivalKind.BREEZE, false);
+        lane.addTower(fox);
         lane.addTower(rival);
         for (int kill = 0; kill < 50; kill++) {
             assertTrue(AdversaryProgressStates.recordFoxKill(OWNER, rival.createProxy(1), lane));
         }
 
         AdversaryProgressState state = AdversaryProgressStates.state(OWNER);
-        assertEquals(FoxForm.BREEZE, state.applyPreparationTransition().orElseThrow().current());
-        state.recordCompletedWave();
-        assertEquals(FoxForm.GOLDEN_FANG, state.applyPreparationTransition().orElseThrow().current());
+        assertTrue(state.commitEvolution(fox.foxId(), FoxForm.BASE, FoxForm.BREEZE));
+        state.recordCompletedWave(fox.foxId(), FoxForm.BREEZE);
+        assertTrue(state.commitEvolution(fox.foxId(), FoxForm.BREEZE, FoxForm.GOLDEN_FANG));
 
         assertTrue(lane.removeTower(rival));
         assertEquals(0, state.score(RivalKind.BREEZE));
-        assertEquals(FoxForm.BASE, state.currentForm());
-        assertEquals(FoxRoute.RAPID, state.lockedRoute().orElseThrow());
-        assertEquals(FoxForm.GOLDEN_FANG, state.lockedFinalForm().orElseThrow());
+        var progress = state.foxProgress(fox.foxId()).orElseThrow();
+        assertEquals(FoxForm.BASE, progress.currentForm());
+        assertEquals(FoxRoute.RAPID, progress.lockedRoute().orElseThrow());
+        assertEquals(FoxForm.GOLDEN_FANG, progress.lockedFinalForm().orElseThrow());
     }
 
     @Test
     void foxKillBoundaryIgnoresAllNonRivalMonstersIncludingIncome() {
         Monster naturalWarden = monster("minecraft:warden", Optional.empty(), Optional.empty());
         assertFalse(AdversaryProgressStates.recordFoxKill(OWNER, naturalWarden, testLane()));
-        assertTrue(AdversaryProgressStates.state(OWNER).pendingForm().isEmpty());
+        assertEquals(0, AdversaryProgressStates.state(OWNER).score(RivalKind.BREEZE));
 
         Monster sentWarden = monster("minecraft:warden", Optional.empty(), Optional.of(TeamId.BLUE));
         assertFalse(AdversaryProgressStates.recordFoxKill(OWNER, sentWarden, testLane()));
-        assertTrue(AdversaryProgressStates.state(OWNER).pendingForm().isEmpty());
+        assertEquals(0, AdversaryProgressStates.state(OWNER).score(RivalKind.BREEZE));
     }
 
     @Test

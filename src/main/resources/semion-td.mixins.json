@@ -24,6 +24,7 @@
     "accessor.ParrotAccessor",
     "accessor.PigAccessor",
     "accessor.RabbitAccessor",
+    "accessor.RangedAttributeAccessor",
     "accessor.SalmonAccessor",
     "accessor.SheepAccessor",
     "accessor.ShulkerAccessor",
