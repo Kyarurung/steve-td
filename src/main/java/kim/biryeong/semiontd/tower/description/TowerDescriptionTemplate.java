@@ -208,6 +208,14 @@ public final class TowerDescriptionTemplate {
         return "<" + HEALTH_COLOR + ">" + text + "</" + HEALTH_COLOR + ">";
     }
 
+    public static String regenerationText(String text) {
+        return "<" + REGENERATION_COLOR + ">" + text + "</" + REGENERATION_COLOR + ">";
+    }
+
+    public static String lifeStealText(String text) {
+        return "<" + LIFE_STEAL_COLOR + ">" + text + "</" + LIFE_STEAL_COLOR + ">";
+    }
+
     public static String attackDamageText(String text) {
         return "<" + ATTACK_DAMAGE_COLOR + ">" + text + "</" + ATTACK_DAMAGE_COLOR + ">";
     }

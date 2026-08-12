@@ -34,6 +34,8 @@ final class WarlockStats {
                         ),
                         new WarlockStatsView.DefenseStats(
                                 tower.additionalHealth(),
+                                tower.rawHealthBonus(),
+                                tower.effectiveHealthBonus(),
                                 tower.regenerationPerSecond(),
                                 tower.maximumRegenerationPerSecond(),
                                 combat.lifeStealRatio(tower),

@@ -5,6 +5,7 @@ import java.util.List;
 
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
 import static kim.biryeong.semiontd.tower.warlock.WarlockConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.warlock.WarlockFormatting.warlockText;
 
 final class WarlockStatsView {
     private WarlockStatsView() {
@@ -18,22 +19,18 @@ final class WarlockStatsView {
         boolean melee = stats.melee();
         int lifeStealEvery = ranged ? Math.max(1, WarlockConfig.RUNTIME.integer(RANGED_LIFE_EVERY)) : 1;
         int damageReductionEvery = ranged ? Math.max(1, WarlockConfig.RUNTIME.integer(RANGED_DEFENSE_THRESHOLD) + 1) : Math.max(1, WarlockConfig.RUNTIME.integer(MELEE_DEFENSE_EVERY));
-        lines.add("<white>흡수한 타워: " + stats.totalSacrifices() + "기</white>");
-        lines.add("<white>이번 라운드에 흡수한 타워: " + stats.roundSacrifices() + "기</white>");
+        lines.add(sacrificeLine("흡수한 타워", stats.totalSacrifices()));
+        lines.add(sacrificeLine("이번 라운드에 흡수한 타워", stats.roundSacrifices()));
         if (stats.showAwakening()) {
-            lines.add(stats.awakened()
-                    ? "<gray>각성 상태</gray><white>: </white><dark_purple>각성</dark_purple>"
-                    : "<gray>각성 상태</gray><white>: </white><gray>미각성</gray>");
+            lines.add(awakeningLine(stats.awakened()));
         }
-        lines.add(formatPermanentHealth(defense.additionalHealth(), ""));
+        lines.add(formatPermanentHealth(defense.additionalHealth(), scalingProgress(defense.rawAbsorbedHealth(), defense.effectiveAbsorbedHealth())));
         if (defense.maximumRegenerationPerSecond() > 0.0) {
             lines.add(formatRegeneration(defense.regenerationPerSecond(), ""));
-        }
-        if (ranged || melee) {
+        } if (ranged || melee) {
             lines.add(formatLifeSteal(defense.lifeSteal(), stackProgress(ranged ? stats.totalSacrifices() : stats.roundSacrifices(), lifeStealEvery, defense.lifeSteal(), defense.maximumLifeSteal())));
             lines.add(formatDamageReduction(defense.damageReduction(), stackProgress(ranged ? stats.roundSacrifices() : stats.totalSacrifices(), damageReductionEvery, defense.damageReduction(), defense.maximumDamageReduction())));
-        }
-        lines.add(formatPermanentDamage(
+        } lines.add(formatPermanentDamage(
                 combat.effectiveAttackDamage(),
                 damageProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())
         ));
@@ -41,11 +38,19 @@ final class WarlockStatsView {
             lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), stackProgress(stats.roundSacrifices(), 1, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
         } else {
             lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), maxOnlyProgress(combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
-        }
-        if (combat.showAttackRange()) {
+        } if (combat.showAttackRange()) {
             lines.add(formatSplashRange(combat.splashRadius(), stackProgress(ranged ? stats.totalSacrifices() : stats.roundSacrifices(), 1, combat.splashRadius(), combat.maximumSplashRadius())));
         }
+        lines.add("<gray>능력치는 높아질 수록 증가 효율이 감소합니다.</gray>");
         return lines;
+    }
+
+    private static String sacrificeLine(String label, int sacrifices) {
+        return "<white>" + label + ": " + warlockText(sacrifices + "기") + "</white>";
+    }
+
+    private static String awakeningLine(boolean awakened) {
+        return "<white>각성 상태: " + (awakened ? warlockText("각성") : "<gray>미각성</gray>") + "</white>";
     }
 
     private static String maxOnlyProgress(double currentValue, double maximumValue) {
@@ -53,8 +58,12 @@ final class WarlockStatsView {
     }
 
     private static String damageProgress(double rawDamage, double effectiveDamage) {
-        return rawDamage > effectiveDamage + 0.0001
-                ? "(누적 " + formatNumber(rawDamage) + ")"
+        return scalingProgress(rawDamage, effectiveDamage);
+    }
+
+    private static String scalingProgress(double rawValue, double effectiveValue) {
+        return rawValue > effectiveValue + 0.0001
+                ? "(누적 " + formatNumber(rawValue) + ")"
                 : "";
     }
 
@@ -83,6 +92,8 @@ final class WarlockStatsView {
 
     record DefenseStats(
             double additionalHealth,
+            double rawAbsorbedHealth,
+            double effectiveAbsorbedHealth,
             double regenerationPerSecond,
             double maximumRegenerationPerSecond,
             double lifeSteal,

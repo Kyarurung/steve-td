@@ -13,8 +13,11 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.Map;
 import kim.biryeong.semiontd.persistence.SemionPersistenceConfig;
 import kim.biryeong.semiontd.rating.RatingConfig;
+import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import org.slf4j.Logger;
 
@@ -426,6 +429,7 @@ public final class SemionConfigLoader {
                     || schemaVersionMissing
                     || illusionCloneQueueMissing
                     || villagerAdvMissing
+                    || warlockAbilityOrderChanged(loaded, merged)
                     || !merged.equals(loaded)) {
                 write(path, merged, logger);
             }
@@ -434,6 +438,27 @@ public final class SemionConfigLoader {
             logger.error("Failed to load config {}; retaining last-known-good tower balance.", path, exception);
             return lastKnownGood;
         }
+    }
+
+    private static boolean warlockAbilityOrderChanged(TowerBalanceConfig loaded, TowerBalanceConfig merged) {
+        return List.of(
+                WarlockTowers.CONFIG_ID,
+                WarlockTowers.BASE_WARLOCK_TOWER.id(),
+                WarlockTowers.RANGED_WARLOCK_TOWER.id(),
+                WarlockTowers.MELEE_WARLOCK_TOWER.id()
+        ).stream().anyMatch(configId -> abilityOrderChanged(loaded, merged, configId));
+    }
+
+    private static boolean abilityOrderChanged(
+            TowerBalanceConfig loaded,
+            TowerBalanceConfig merged,
+            String configId
+    ) {
+        Map<String, Double> loadedValues = loaded.abilities().get(configId);
+        Map<String, Double> mergedValues = merged.abilities().get(configId);
+        return loadedValues != null
+                && mergedValues != null
+                && !List.copyOf(loadedValues.keySet()).equals(List.copyOf(mergedValues.keySet()));
     }
 
     private static TraitBalanceConfig loadOrCreateTraitBalance(

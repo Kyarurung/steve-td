@@ -10081,11 +10081,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 );
         rangedAbilities.put("threshold", 0.25);
         rangedAbilities.put("roundStat", 0.35);
-        Map<String, Double> globalAbilities =
-                new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.CONFIG_ID));
-        globalAbilities.put("damageSoftCap", 125.0);
+        rangedAbilities.put("petHealth", 0.07);
+        rangedAbilities.put("petHealthCap", 0.21);
+        rangedAbilities.put("petDamage", 0.13);
+        rangedAbilities.put("petDamageCap", 0.65);
 
-        abilities.put(WarlockTowers.CONFIG_ID, globalAbilities);
         abilities.put(
                 WarlockTowers.RANGED_WARLOCK_TOWER.id(),
                 rangedAbilities
@@ -10120,9 +10120,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
             if (!assertTrue(
                     context,
-                    description.contains("추가 피해는 125까지 그대로 적용")
-                            && !description.contains("추가 피해는 최대"),
-                    "Warlock description should render the configured logarithmic damage soft cap."
+                    description.contains("능력치는 높아질수록 증가 효율이 감소합니다.")
+                            && !description.contains("로그 스케일"),
+                    "Warlock description should summarize diminishing scaling efficiency."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    description.contains("개구리 계열마다 체력 +7%, 피해 +13%")
+                            && description.contains("최대 체력 +21%, 피해 +65%까지 증가"),
+                    "Warlock description should render configured frog-family bonuses and caps."
             )) {
                 return;
             }
@@ -11437,6 +11445,15 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 100.0, core.modifyIncomingDamage(null, null, 100.0), "Melee warlock should not reduce incoming damage before five absorbed towers.")) {
+            return;
+        }
+        String lifeStealWithSurvivor = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        if (!assertTrue(context, lifeStealWithSurvivor.contains("생명력 흡수: +0%"), "Melee warlock should have no life steal while another tower remains alive.")) {
+            return;
+        }
+        t1Melee.syncHealth(0.0);
+        String lifeStealWhileAlone = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        if (!assertTrue(context, lifeStealWhileAlone.contains("생명력 흡수: +1%"), "Melee warlock should gain one percent life steal per round sacrifice when it is the only living core tower.")) {
             return;
         }
         game.teams().get(TeamId.RED).resetForRound();

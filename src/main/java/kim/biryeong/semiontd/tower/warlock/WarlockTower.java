@@ -68,7 +68,7 @@ public class WarlockTower extends EntityBackedTower {
     @Override
     public double currentMaxHealth() {
         return applyTraitMaxHealth(maxHealth() * (1.0 + passiveHealthBonus())
-                + state.permanentHealthBonus() + state.roundHealthBonus());
+                + effectiveHealthBonus());
     }
 
     @Override
@@ -240,6 +240,10 @@ public class WarlockTower extends EntityBackedTower {
         return lane.towers().stream()
                 .filter(tower -> tower.health() > 0.0)
                 .noneMatch(tower -> tower != this);
+    }
+
+    boolean onlyCoreTowerAlive() {
+        return onlyCoreTowerAlive(currentLane);
     }
 
     static boolean meetsAwakeningConditions(
@@ -451,7 +455,24 @@ public class WarlockTower extends EntityBackedTower {
     static double scaledDamageBonus(double rawDamageBonus) {
         return LogarithmicScaling.logarithmicBonus(
                 rawDamageBonus,
-                WarlockConfig.RUNTIME.value(DAMAGE_SOFT_CAP)
+                WarlockConfig.RUNTIME.value(DAMAGE_THRESHOLD),
+                WarlockConfig.RUNTIME.value(DAMAGE_SCALE)
+        );
+    }
+
+    double rawHealthBonus() {
+        return state.permanentHealthBonus() + state.roundHealthBonus();
+    }
+
+    double effectiveHealthBonus() {
+        return scaledHealthBonus(rawHealthBonus());
+    }
+
+    static double scaledHealthBonus(double rawHealthBonus) {
+        return LogarithmicScaling.logarithmicBonus(
+                rawHealthBonus,
+                WarlockConfig.RUNTIME.value(HEALTH_THRESHOLD),
+                WarlockConfig.RUNTIME.value(HEALTH_SCALE)
         );
     }
 

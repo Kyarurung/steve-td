@@ -60,13 +60,26 @@ final class WarlockCombat {
         return lifeStealRatioForCounts(
                 tower.type(),
                 tower.totalSacrificeCount(),
-                tower.roundSacrificeCount()
+                tower.roundSacrificeCount(),
+                tower.onlyCoreTowerAlive()
         );
     }
 
     double lifeStealRatioForCounts(TowerType type, int totalSacrificeCount, int roundSacrificeCount) {
         int sacrificeCount = isMelee(type) ? roundSacrificeCount : totalSacrificeCount;
         return lifeStealRatioForCount(type, sacrificeCount);
+    }
+
+    double lifeStealRatioForCounts(
+            TowerType type,
+            int totalSacrificeCount,
+            int roundSacrificeCount,
+            boolean onlyCoreTowerAlive
+    ) {
+        if (isMelee(type) && !onlyCoreTowerAlive) {
+            return 0.0;
+        }
+        return lifeStealRatioForCounts(type, totalSacrificeCount, roundSacrificeCount);
     }
 
     double lifeStealRatioForCount(TowerType type, int sacrificeCount) {

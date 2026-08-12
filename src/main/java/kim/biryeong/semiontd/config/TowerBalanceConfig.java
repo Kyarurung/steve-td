@@ -658,62 +658,10 @@ public record TowerBalanceConfig(
                 "poisonDurationTicks", 140.0,
                 "poisonTickIntervalTicks", 20.0
         ));
-        putAbilities(abilities, WarlockTowers.CONFIG_ID, Map.ofEntries(
-                Map.entry("damageSoftCap", 180.0),
-                Map.entry("sacrificeRadius", 25.0),
-                Map.entry("minInterval", 5.0),
-                Map.entry("speedCap", 15.0),
-                Map.entry("awakeningAbsorptions", 20.0),
-                Map.entry("awakeningThreshold", 0.40)
-        ));
-        putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), Map.of(
-                "fatalHeal", 0.35,
-                "sacrificeRadius", 6.0,
-                "permanentHealth", 0.025,
-                "permanentDamage", 0.05
-        ));
-        putAbilities(abilities, WarlockTowers.RANGED_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("threshold", 0.55),
-                Map.entry("roundStat", 0.40),
-                Map.entry("permanentHealth", 0.025),
-                Map.entry("permanentDamage", 0.05),
-                Map.entry("lifeEvery", 5.0),
-                Map.entry("lifeStep", 0.005),
-                Map.entry("lifeCap", 0.085),
-                Map.entry("awakeningHeal", 400.0),
-                Map.entry("awakeningRegeneration", 40.0),
-                Map.entry("awakeningRegenerationTicks", 20.0),
-                Map.entry("splashStep", 0.1),
-                Map.entry("splashCap", 8.0),
-                Map.entry("splashDamage", 0.50),
-                Map.entry("defenseThreshold", 3.0),
-                Map.entry("defense", 0.10),
-                Map.entry("petHealth", 0.05),
-                Map.entry("petHealthCap", 0.25),
-                Map.entry("petDamage", 0.15),
-                Map.entry("petDamageCap", 0.75)
-        ));
-        putAbilities(abilities, WarlockTowers.MELEE_WARLOCK_TOWER.id(), Map.ofEntries(
-                Map.entry("threshold", 0.55),
-                Map.entry("roundStat", 0.60),
-                Map.entry("permanentHealth", 0.05),
-                Map.entry("permanentDamage", 0.025),
-                Map.entry("lifeStep", 0.01),
-                Map.entry("lifeCap", 0.16),
-                Map.entry("speedStep", 1.0),
-                Map.entry("awakeningDamage", 75.0),
-                Map.entry("awakeningMoveSpeed", 0.30),
-                Map.entry("splashStep", 0.25),
-                Map.entry("splashCap", 2.0),
-                Map.entry("splashDamage", 0.75),
-                Map.entry("defenseEvery", 5.0),
-                Map.entry("defenseStep", 0.025),
-                Map.entry("defenseCap", 0.25),
-                Map.entry("petHealth", 0.15),
-                Map.entry("petHealthCap", 0.75),
-                Map.entry("petDamage", 0.05),
-                Map.entry("petDamageCap", 0.25)
-        ));
+        putAbilities(abilities, WarlockTowers.CONFIG_ID, warlockGlobalAbilities());
+        putAbilities(abilities, WarlockTowers.BASE_WARLOCK_TOWER.id(), baseWarlockAbilities());
+        putAbilities(abilities, WarlockTowers.RANGED_WARLOCK_TOWER.id(), rangedWarlockAbilities());
+        putAbilities(abilities, WarlockTowers.MELEE_WARLOCK_TOWER.id(), meleeWarlockAbilities());
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
@@ -1186,9 +1134,11 @@ public record TowerBalanceConfig(
         if (values == null) {
             return;
         }
-        Double softCap = values.get("damageSoftCap");
-        if (softCap != null && (!Double.isFinite(softCap) || softCap <= 0.0)) {
-            throw new IllegalArgumentException(configId + ".damageSoftCap must be finite and positive.");
+        for (String key : new String[]{"damageThreshold", "damageScale", "healthThreshold", "healthScale"}) {
+            Double value = values.get(key);
+            if (value != null && (!Double.isFinite(value) || value <= 0.0)) {
+                throw new IllegalArgumentException(configId + "." + key + " must be finite and positive.");
+            }
         }
     }
 
@@ -1351,9 +1301,18 @@ public record TowerBalanceConfig(
         LinkedHashMap<String, Map<String, Double>> mergedAbilities = new LinkedHashMap<>();
         abilities.forEach((towerId, values) -> {
             LinkedHashMap<String, Double> mergedValues = new LinkedHashMap<>(values);
+            if (WarlockTowers.CONFIG_ID.equals(towerId)) {
+                migrateLegacyWarlockDamageScaling(mergedValues);
+            }
+            migrateLegacyWarlockPassiveCaps(towerId, mergedValues);
             Map<String, Double> defaultValues = defaults.abilities.get(towerId);
             if (defaultValues != null) {
-                defaultValues.forEach(mergedValues::putIfAbsent);
+                for (Map.Entry<String, Double> entry : defaultValues.entrySet()) {
+                    mergedValues.putIfAbsent(entry.getKey(), entry.getValue());
+                }
+            }
+            if (isWarlockAbilityConfig(towerId) && defaultValues != null) {
+                mergedValues = orderConfiguredAbilities(mergedValues, defaultValues);
             }
             mergedAbilities.put(towerId, mergedValues);
         });
@@ -1370,6 +1329,49 @@ public record TowerBalanceConfig(
                 mergedVillagerAdv,
                 schemaVersion
         );
+    }
+
+    private static void migrateLegacyWarlockDamageScaling(Map<String, Double> values) {
+        values.remove("damageSoftCap");
+        values.remove("damageCap");
+    }
+
+    private static void migrateLegacyWarlockPassiveCaps(String configId, Map<String, Double> values) {
+        if (WarlockTowers.RANGED_WARLOCK_TOWER.id().equals(configId)
+                && abilityEquals(values, "petHealth", 0.05)
+                && abilityEquals(values, "petHealthCap", 0.25)
+                && abilityEquals(values, "petDamage", 0.15)
+                && abilityEquals(values, "petDamageCap", 0.75)) {
+            values.put("petHealthCap", 0.15);
+        }
+        if (WarlockTowers.MELEE_WARLOCK_TOWER.id().equals(configId)
+                && abilityEquals(values, "petHealth", 0.15)
+                && abilityEquals(values, "petHealthCap", 0.75)
+                && abilityEquals(values, "petDamage", 0.05)
+                && abilityEquals(values, "petDamageCap", 0.25)) {
+            values.put("petDamageCap", 0.15);
+        }
+    }
+
+    private static boolean abilityEquals(Map<String, Double> values, String key, double expected) {
+        return Double.compare(values.getOrDefault(key, Double.NaN), expected) == 0;
+    }
+
+    private static boolean isWarlockAbilityConfig(String configId) {
+        return WarlockTowers.CONFIG_ID.equals(configId)
+                || WarlockTowers.BASE_WARLOCK_TOWER.id().equals(configId)
+                || WarlockTowers.RANGED_WARLOCK_TOWER.id().equals(configId)
+                || WarlockTowers.MELEE_WARLOCK_TOWER.id().equals(configId);
+    }
+
+    private static LinkedHashMap<String, Double> orderConfiguredAbilities(
+            Map<String, Double> configuredValues,
+            Map<String, Double> orderedDefaults
+    ) {
+        LinkedHashMap<String, Double> ordered = new LinkedHashMap<>();
+        orderedDefaults.keySet().forEach(key -> ordered.put(key, configuredValues.get(key)));
+        configuredValues.forEach(ordered::putIfAbsent);
+        return ordered;
     }
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
@@ -2060,6 +2062,77 @@ public record TowerBalanceConfig(
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("waterDamageCoefficient", coefficient);
         values.put("attackWaterCost", attackCost);
+        return values;
+    }
+
+    private static Map<String, Double> warlockGlobalAbilities() {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("damageThreshold", 175.0);
+        values.put("damageScale", 25.0);
+        values.put("healthThreshold", 3500.0);
+        values.put("healthScale", 500.0);
+        values.put("sacrificeRadius", 25.0);
+        values.put("minInterval", 5.0);
+        values.put("speedCap", 15.0);
+        values.put("awakeningAbsorptions", 20.0);
+        values.put("awakeningThreshold", 0.40);
+        return values;
+    }
+
+    private static Map<String, Double> baseWarlockAbilities() {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("sacrificeRadius", 6.0);
+        values.put("fatalHeal", 0.35);
+        values.put("permanentHealth", 0.025);
+        values.put("permanentDamage", 0.05);
+        return values;
+    }
+
+    private static Map<String, Double> rangedWarlockAbilities() {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("threshold", 0.55);
+        values.put("roundStat", 0.40);
+        values.put("permanentHealth", 0.025);
+        values.put("permanentDamage", 0.05);
+        values.put("lifeEvery", 5.0);
+        values.put("lifeStep", 0.005);
+        values.put("lifeCap", 0.085);
+        values.put("splashStep", 0.1);
+        values.put("splashCap", 8.0);
+        values.put("splashDamage", 0.50);
+        values.put("defenseThreshold", 3.0);
+        values.put("defense", 0.10);
+        values.put("petHealth", 0.05);
+        values.put("petHealthCap", 0.15);
+        values.put("petDamage", 0.15);
+        values.put("petDamageCap", 0.75);
+        values.put("awakeningHeal", 400.0);
+        values.put("awakeningRegeneration", 40.0);
+        values.put("awakeningRegenerationTicks", 20.0);
+        return values;
+    }
+
+    private static Map<String, Double> meleeWarlockAbilities() {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("threshold", 0.55);
+        values.put("roundStat", 0.60);
+        values.put("permanentHealth", 0.05);
+        values.put("permanentDamage", 0.025);
+        values.put("lifeStep", 0.01);
+        values.put("lifeCap", 0.16);
+        values.put("speedStep", 1.0);
+        values.put("splashStep", 0.25);
+        values.put("splashCap", 2.0);
+        values.put("splashDamage", 0.75);
+        values.put("defenseEvery", 5.0);
+        values.put("defenseStep", 0.025);
+        values.put("defenseCap", 0.25);
+        values.put("petHealth", 0.15);
+        values.put("petHealthCap", 0.75);
+        values.put("petDamage", 0.05);
+        values.put("petDamageCap", 0.15);
+        values.put("awakeningDamage", 75.0);
+        values.put("awakeningMoveSpeed", 0.30);
         return values;
     }
 
