@@ -1,0 +1,4 @@
+interface:
+  display_name: "SemionTD Blockbench Import Library"
+  short_description: "Inspect, package, and debug SemionTD BIL models"
+  default_prompt: "Use $semiontd-blockbench-import-library to validate and package this Blockbench model for SemionTD."

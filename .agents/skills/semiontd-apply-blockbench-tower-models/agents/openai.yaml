@@ -1,0 +1,4 @@
+interface:
+  display_name: "Apply Blockbench Models to SemionTD Towers"
+  short_description: "Wire BIL models into SemionTD tower visuals safely"
+  default_prompt: "Use $semiontd-apply-blockbench-tower-models to attach this Blockbench model to a SemionTD tower and verify it."
