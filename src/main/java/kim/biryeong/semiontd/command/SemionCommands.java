@@ -350,6 +350,8 @@ public final class SemionCommands {
                 .executes(context -> ratingTop(context.getSource(), gameManager)));
         dispatcher.register(literal("준비")
                 .executes(context -> ready(context.getSource(), gameManager)));
+        dispatcher.register(literal("미드희망")
+                .executes(context -> requestMidLane(context.getSource(), gameManager)));
         dispatcher.register(literal("피해량보기")
                 .executes(context -> toggleDamageView(context.getSource(), gameManager)));
         dispatcher.register(literal("요청")
@@ -1255,6 +1257,38 @@ public final class SemionCommands {
         boolean enabled = gameManager.sidebarHudService().toggleDamageView(player.getUUID());
         success(source, enabled ? "피해량 사이드바를 켰습니다." : "기본 사이드바로 돌아갑니다.");
         return 1;
+    }
+
+    private static int requestMidLane(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGameManager.MidLanePreferenceResult result = gameManager.requestMidLane(
+                source.getPlayerOrException().getUUID()
+        );
+        return switch (result) {
+            case REQUESTED -> {
+                success(source, "5번 라인(미드) 희망을 등록했습니다.");
+                yield 1;
+            }
+            case ALREADY_REQUESTED -> {
+                success(source, "이미 5번 라인(미드)을 희망했습니다.");
+                yield 1;
+            }
+            case TEAM_ALREADY_REQUESTED -> {
+                failure(source, "같은 팀에서 다른 플레이어가 먼저 5번 라인(미드)을 희망했습니다.");
+                yield 0;
+            }
+            case NO_PENDING_START -> {
+                failure(source, "팀 배정 후 게임 시작 카운트다운 중에 사용할 수 있습니다.");
+                yield 0;
+            }
+            case NOT_PARTICIPANT -> {
+                failure(source, "이번 게임의 참가자가 아닙니다.");
+                yield 0;
+            }
+            case NO_MID_LANE -> {
+                failure(source, "팀원이 5명이 아니기 때문에 5번 라인(미드)이 없습니다.");
+                yield 0;
+            }
+        };
     }
 
     private static int unready(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {

@@ -393,6 +393,63 @@ public final class SemionLifecycleGameTest implements CustomTestMethodInvoker {
     }
 
     @GameTest
+    public void midLanePreferenceAssignsFifthLaneOnlyForFivePlayerTeam(GameTestHelper context) {
+        MinecraftServer server = context.getLevel().getServer();
+        if (!assertEquals(context, 15 * 20, SemionGameManager.START_COUNTDOWN_TICKS, "Start countdown should last 15 seconds.")) {
+            return;
+        }
+        if (!assertTrue(context, server.getCommands().getDispatcher().getRoot().getChild("미드희망") != null, "Expected /미드희망 to be registered.")) {
+            return;
+        }
+
+        List<UUID> redIds = java.util.stream.IntStream.rangeClosed(1, 5)
+                .mapToObj(index -> playerId("mid-red-" + index))
+                .toList();
+        UUID blueId = playerId("mid-blue");
+        SemionGame game = new SemionGame(EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(), SyntheticArenaFactory.create(
+                context.getLevel(),
+                context.absolutePos(BlockPos.ZERO)
+        ));
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+
+        List<AssignedParticipant> participants = new java.util.ArrayList<>();
+        for (int index = 0; index < redIds.size(); index++) {
+            participants.add(new AssignedParticipant(redIds.get(index), "mid-red-" + (index + 1), TeamId.RED, index + 1));
+        }
+        participants.add(new AssignedParticipant(blueId, "mid-blue", TeamId.BLUE, 1));
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(MatchMode.NORMAL, participants, Set.of(), 2);
+
+        if (!assertEquals(context, SemionGameManager.StartCountdownResult.SCHEDULED, manager.scheduleStart(server, plan), "Countdown should start.")) {
+            return;
+        }
+        UUID preferred = redIds.get(1);
+        if (!assertEquals(context, SemionGameManager.MidLanePreferenceResult.REQUESTED, manager.requestMidLane(preferred), "Five-player team member should reserve mid.")) {
+            return;
+        }
+        if (!assertEquals(context, SemionGameManager.MidLanePreferenceResult.ALREADY_REQUESTED, manager.requestMidLane(preferred), "Repeated request should be idempotent.")) {
+            return;
+        }
+        if (!assertEquals(context, SemionGameManager.MidLanePreferenceResult.TEAM_ALREADY_REQUESTED, manager.requestMidLane(redIds.get(2)), "Only the first request in a team should win.")) {
+            return;
+        }
+        if (!assertEquals(context, SemionGameManager.MidLanePreferenceResult.NO_MID_LANE, manager.requestMidLane(blueId), "Non-five-player team should have no mid lane.")) {
+            return;
+        }
+
+        for (int tick = 0; tick < SemionGameManager.START_COUNTDOWN_TICKS; tick++) {
+            manager.tick(server);
+        }
+        if (!assertEquals(context, 5, game.players().get(preferred).laneId(), "Preferred player should receive lane five.")) {
+            return;
+        }
+        if (!assertEquals(context, 2, game.players().get(redIds.get(4)).laneId(), "Previous lane-five player should move to the preferred player's lane.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void gameParticipantsBypassServerPlayerLimit(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();
         UUID redId = playerId("limit-bypass-red");

@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,7 +104,7 @@ import net.minecraft.world.level.GameType;
 
 public final class SemionGameManager {
     private static final int STARTUP_LOBBY_LOAD_DELAY_TICKS = 20;
-    public static final int START_COUNTDOWN_TICKS = 5 * 20;
+    public static final int START_COUNTDOWN_TICKS = 15 * 20;
     public static final int MATCH_RESULT_DELAY_TICKS = 5 * 20;
     public static final int MATCH_RESULT_DIALOG_AFTER_LOBBY_DELAY_TICKS = 2 * 20;
     static final int RATING_RETRY_DELAY_TICKS = 20;
@@ -159,6 +160,7 @@ public final class SemionGameManager {
     private ParticipantSelectionPlan pendingStartPlan;
     private TraitSelectionSnapshot pendingStartTraitSnapshot = TraitSelectionSnapshot.empty();
     private TraitSelectionSession pendingTraitSelection;
+    private final Map<TeamId, UUID> midLanePreferences = new EnumMap<>(TeamId.class);
     private int startCountdownTicks;
     private int nextStartCountdownAnnouncementSecond;
     private boolean startupLobbyLoadPending;
@@ -176,6 +178,15 @@ public final class SemionGameManager {
         NOT_WAITING,
         ALREADY_PENDING,
         PRELOAD_FAILED
+    }
+
+    public enum MidLanePreferenceResult {
+        REQUESTED,
+        ALREADY_REQUESTED,
+        TEAM_ALREADY_REQUESTED,
+        NO_PENDING_START,
+        NOT_PARTICIPANT,
+        NO_MID_LANE
     }
 
     public enum SandboxStartResult {
@@ -1252,6 +1263,34 @@ public final class SemionGameManager {
         return Math.max(1, (startCountdownTicks + 19) / 20);
     }
 
+    public MidLanePreferenceResult requestMidLane(UUID playerId) {
+        ParticipantSelectionPlan plan = pendingStartPlan != null
+                ? pendingStartPlan
+                : pendingTraitSelection == null ? null : pendingTraitSelection.plan();
+        if (plan == null) {
+            return MidLanePreferenceResult.NO_PENDING_START;
+        }
+
+        AssignedParticipant participant = plan.activeParticipants().stream()
+                .filter(candidate -> candidate.uuid().equals(playerId))
+                .findFirst()
+                .orElse(null);
+        if (participant == null) {
+            return MidLanePreferenceResult.NOT_PARTICIPANT;
+        }
+        if (plan.teamSizes().getOrDefault(participant.teamId(), 0) != 5) {
+            return MidLanePreferenceResult.NO_MID_LANE;
+        }
+
+        UUID current = midLanePreferences.putIfAbsent(participant.teamId(), playerId);
+        if (current == null) {
+            return MidLanePreferenceResult.REQUESTED;
+        }
+        return current.equals(playerId)
+                ? MidLanePreferenceResult.ALREADY_REQUESTED
+                : MidLanePreferenceResult.TEAM_ALREADY_REQUESTED;
+    }
+
     private static boolean isSelectedForPendingMatch(ParticipantSelectionPlan plan, UUID playerId) {
         return plan.spectatorIds().contains(playerId)
                 || plan.activeParticipants().stream().anyMatch(participant -> participant.uuid().equals(playerId));
@@ -1271,6 +1310,7 @@ public final class SemionGameManager {
             return StartCountdownResult.PRELOAD_FAILED;
         }
 
+        midLanePreferences.clear();
         closeSandboxesFor(plan);
         if (!traitsEnabled() || !hasSelectableTraits()) {
             pendingStartPlan = plan;
@@ -1787,7 +1827,9 @@ public final class SemionGameManager {
             int secondsRemaining = (startCountdownTicks + 19) / 20;
             if (secondsRemaining > 0 && secondsRemaining < nextStartCountdownAnnouncementSecond) {
                 nextStartCountdownAnnouncementSecond = secondsRemaining;
-                announceStartCountdown(server, secondsRemaining);
+                if (secondsRemaining == 10 || secondsRemaining <= 5) {
+                    announceStartCountdown(server, secondsRemaining);
+                }
             }
             if (startCountdownTicks > 0) {
                 return;
@@ -1795,6 +1837,9 @@ public final class SemionGameManager {
         }
 
         ParticipantSelectionPlan plan = pendingStartPlan;
+        for (UUID playerId : midLanePreferences.values()) {
+            plan = plan.withFifthLanePreference(playerId);
+        }
         TraitSelectionSnapshot traitSnapshot = pendingStartTraitSnapshot;
         clearStartCountdown();
         closeSandboxesFor(plan);
@@ -1817,6 +1862,12 @@ public final class SemionGameManager {
                 SemionText.prefixedMini("<yellow>" + secondsRemaining + "초</yellow> 후 게임을 시작합니다."),
                 false
         );
+        if (secondsRemaining == START_COUNTDOWN_TICKS / 20) {
+            server.getPlayerList().broadcastSystemMessage(
+                    SemionText.prefixedMini("5인 팀에서 <aqua>5번 라인(미드)</aqua>을 원하면 지금 <yellow>/미드희망</yellow>을 입력하세요."),
+                    false
+            );
+        }
         server.getPlayerList().getPlayers().forEach(player -> {
             player.playNotifySound(SoundEvents.STONE_BUTTON_CLICK_ON, SoundSource.MUSIC, 1557f, 1f);
         });
@@ -1825,6 +1876,7 @@ public final class SemionGameManager {
     private void clearStartCountdown() {
         pendingStartPlan = null;
         pendingStartTraitSnapshot = TraitSelectionSnapshot.empty();
+        midLanePreferences.clear();
         startCountdownTicks = 0;
         nextStartCountdownAnnouncementSecond = 0;
     }
