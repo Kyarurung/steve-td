@@ -41,7 +41,6 @@ final class WarlockStatsView {
         } if (combat.showAttackRange()) {
             lines.add(formatSplashRange(combat.splashRadius(), stackProgress(ranged ? stats.totalSacrifices() : stats.roundSacrifices(), 1, combat.splashRadius(), combat.maximumSplashRadius())));
         }
-        lines.add("<gray>능력치는 높아질 수록 증가 효율이 감소합니다.</gray>");
         return lines;
     }
 
