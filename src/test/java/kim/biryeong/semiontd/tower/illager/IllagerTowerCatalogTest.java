@@ -33,16 +33,16 @@ class IllagerTowerCatalogTest {
 
         assertEquals(100.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "gaugeMax", -1), 0.0001);
         assertEquals(3.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "waveKillGauge", -1), 0.0001);
-        assertEquals(8.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "incomeKillGauge", -1), 0.0001);
-        assertEquals(0.02, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "attackSpeedPercentPerTower", -1), 0.0001);
-        assertEquals(0.05, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "damagePercentPerTower", -1), 0.0001);
+        assertEquals(6.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "incomeKillGauge", -1), 0.0001);
+        assertEquals(0.03, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "attackSpeedPercentPerTower", -1), 0.0001);
+        assertEquals(0.08, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "damagePercentPerTower", -1), 0.0001);
         assertEquals(40.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "timedEffectDurationTicks", -1), 0.0001);
-        assertEquals(0.15, config.ability(IllagerTowers.T1_PILLAGER.id(), "raidMarkedDamageBonus", -1), 0.0001);
-        assertEquals(0.25, config.ability(IllagerTowers.T2_PILLAGER_CAPTAIN_SINGLE.id(), "raidIncomeDamageBonus", -1), 0.0001);
-        assertEquals(0.10, config.ability(IllagerTowers.T2_PILLAGER_CAPTAIN_SPLASH.id(), "raidSplashDamageRatioBonus", -1), 0.0001);
+        assertEquals(0.40, config.ability(IllagerTowers.T1_PILLAGER.id(), "raidMarkedDamageBonus", -1), 0.0001);
+        assertEquals(1.25, config.ability(IllagerTowers.T2_PILLAGER_CAPTAIN_SINGLE.id(), "raidIncomeDamageBonus", -1), 0.0001);
+        assertEquals(0.25, config.ability(IllagerTowers.T2_PILLAGER_CAPTAIN_SPLASH.id(), "raidSplashDamageRatioBonus", -1), 0.0001);
         assertEquals(20.0, config.ability(IllagerTowers.T1_VEX.id(), "raidMarkDurationBonusTicks", -1), 0.0001);
-        assertEquals(0.08, config.ability(IllagerTowers.T2_WITCH_LOW.id(), "raidLowHealthMarkDamageTakenBonus", -1), 0.0001);
-        assertEquals(0.12, config.ability(IllagerTowers.T3_ILLUSIONER_HIGH.id(), "raidHighHealthMarkDamageTakenBonus", -1), 0.0001);
+        assertEquals(0.25, config.ability(IllagerTowers.T2_WITCH_LOW.id(), "raidLowHealthMarkDamageTakenBonus", -1), 0.0001);
+        assertEquals(0.40, config.ability(IllagerTowers.T3_ILLUSIONER_HIGH.id(), "raidHighHealthMarkDamageTakenBonus", -1), 0.0001);
         assertTrue(config.towers().containsKey(IllagerTowers.T1_VINDICATOR.id()));
         assertTrue(config.towers().containsKey(IllagerTowers.T1_PILLAGER.id()));
         assertTrue(config.towers().containsKey(IllagerTowers.T1_VEX.id()));
@@ -59,7 +59,7 @@ class IllagerTowerCatalogTest {
         ).withMissingDefaults(defaults);
 
         assertEquals(80.0, custom.ability(IllagerRaidStates.RAID_CONFIG_ID, "gaugeMax", -1), 0.0001);
-        assertEquals(8.0, custom.ability(IllagerRaidStates.RAID_CONFIG_ID, "incomeKillGauge", -1), 0.0001);
+        assertEquals(6.0, custom.ability(IllagerRaidStates.RAID_CONFIG_ID, "incomeKillGauge", -1), 0.0001);
     }
 
     @Test

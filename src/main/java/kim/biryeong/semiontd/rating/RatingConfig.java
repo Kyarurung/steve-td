@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.rating;
 
+import kim.biryeong.semiontd.config.BundledBalanceDefaults;
 
 public record RatingConfig(
         boolean enabled,
@@ -181,7 +182,7 @@ public record RatingConfig(
     }
 
     public static RatingConfig defaultConfig() {
-        return new RatingConfig(
+        RatingConfig fallback = new RatingConfig(
                 true,
                 true,
                 EloRatingCalculator.DEFAULT_K_FACTOR,
@@ -200,5 +201,6 @@ public record RatingConfig(
                 0.15,
                 0.75
         );
+        return BundledBalanceDefaults.load("rating.json", RatingConfig.class, fallback);
     }
 }

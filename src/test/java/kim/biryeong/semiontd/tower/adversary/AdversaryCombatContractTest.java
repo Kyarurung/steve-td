@@ -247,13 +247,13 @@ class AdversaryCombatContractTest {
     @Test
     void publishedAbilityConstantsProduceTheApprovedLongRunDamage() {
         assertAll(
-                () -> assertEquals(4, AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
-                () -> assertEquals(0.40, AdversaryBalance.BASE_SPLASH_DAMAGE_RATIO, 0.0001),
+                () -> assertEquals(6, AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
+                () -> assertEquals(0.50, AdversaryBalance.BASE_SPLASH_DAMAGE_RATIO, 0.0001),
                 () -> assertEquals(0.005, AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE, 0.0001),
                 () -> assertEquals(2.00, AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_CAP, 0.0001),
                 () -> assertEquals(1, AdversaryBalance.BREEZE_EXTRA_TARGETS),
                 () -> assertEquals(0.60, AdversaryBalance.BREEZE_EXTRA_TARGET_DAMAGE_RATIO, 0.0001),
-                () -> assertEquals(5, AdversaryBalance.GOLDEN_FANG_EXTRA_ATTACK_EVERY),
+                () -> assertEquals(7, AdversaryBalance.GOLDEN_FANG_EXTRA_ATTACK_EVERY),
                 () -> assertEquals(0.50, AdversaryBalance.GOLDEN_FANG_EXTRA_DAMAGE_RATIO, 0.0001),
                 () -> assertEquals(208.0, dps(26.0, 4) * 1.60, 0.0001),
                 () -> assertEquals(220.0, dps(30.0, 3) * 1.10, 0.0001),
@@ -269,7 +269,7 @@ class AdversaryCombatContractTest {
                 AdversaryBalance.FIREWORK_TARGET_DAMAGE_RATIOS
         ).sum();
         assertAll(
-                () -> assertEquals(5, AdversaryBalance.FIREWORK_MAX_TARGETS),
+                () -> assertEquals(8, AdversaryBalance.FIREWORK_MAX_TARGETS),
                 () -> assertEquals(216.0, dps(48.0, 8)
                         * AdversaryBalance.FIREWORK_WAVE_DAMAGE_MULTIPLIER, 0.0001),
                 () -> assertEquals(507.6, dps(48.0, 8)
@@ -310,13 +310,13 @@ class AdversaryCombatContractTest {
                         AdversaryBalance.SCULK_DETONATION_DAMAGE,
                         AdversaryBalance.SCULK_ATTACK_INTERVAL_TICKS
                 ), 0.0001),
-                () -> assertEquals(800.0, dps(
+                () -> assertEquals(1_120.0, dps(
                         AdversaryBalance.SCULK_DETONATION_DAMAGE,
                         AdversaryBalance.SCULK_ATTACK_INTERVAL_TICKS
                 ) * AdversaryBalance.SCULK_MAX_TARGETS, 0.0001),
                 () -> assertEquals(0.20, AdversaryBalance.MACE_FOCUS_BREAK_MAX_HEALTH_RATIO, 0.0001),
                 () -> assertEquals(1.5, AdversaryBalance.MACE_SWEEP_RADIUS, 0.0001),
-                () -> assertEquals(2, AdversaryBalance.MACE_SWEEP_EXTRA_TARGETS),
+                () -> assertEquals(5, AdversaryBalance.MACE_SWEEP_EXTRA_TARGETS),
                 () -> assertEquals(0.25, AdversaryBalance.MACE_SWEEP_DAMAGE_RATIO, 0.0001),
                 () -> assertEquals(0.10, AdversaryBalance.SCULK_SELF_DAMAGE_MAX_HEALTH_RATIO, 0.0001),
                 () -> assertEquals(0.40, AdversaryBalance.SCULK_SELF_DAMAGE_HEALTH_FLOOR_RATIO, 0.0001)
@@ -336,11 +336,11 @@ class AdversaryCombatContractTest {
     @Test
     void rivalHealingAndFocusFireMitigationRespectTheirWaveCaps() {
         assertAll(
-                () -> assertEquals(42.0,
+                () -> assertEquals(70.0,
                         AdversaryFoxTower.rivalKillHealingAmount(100.0, 350.0, 0.0, false), 0.0001),
-                () -> assertEquals(63.0,
+                () -> assertEquals(105.0,
                         AdversaryFoxTower.rivalKillHealingAmount(100.0, 350.0, 0.0, true), 0.0001),
-                () -> assertEquals(5.0,
+                () -> assertEquals(105.0,
                         AdversaryFoxTower.rivalKillHealingAmount(100.0, 350.0, 240.0, true), 0.0001),
                 () -> assertEquals(5.0,
                         AdversaryFoxTower.rivalKillHealingAmount(345.0, 350.0, 0.0, true), 0.0001),
@@ -358,7 +358,7 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line -> line.contains("현재 형태</gold>:")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line -> line.contains("점수</yellow>")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("숙적 처치 회복") && line.contains("일반 12%") && line.contains("강화 18%")));
+                line.contains("숙적 처치 회복") && line.contains("일반 20%") && line.contains("강화 30%")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("집중포화 방어") && line.contains("최대 40%")));
         assertTrue(fox.runtimeDetailLines().stream().noneMatch(line -> line.contains("인컴 처치")));
@@ -371,7 +371,7 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("최종 성장") && line.contains("최대 200%")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("주변 적 최대 4기에게 공격력의 50%")));
+                line.contains("주변 적 최대 6기에게 공격력의 50%")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("3초마다")
                         && line.contains("반경 10블록")
@@ -390,7 +390,7 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("웨이브 적에게 1.8배") && line.contains("인컴 적에게 0.6배")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("직선상의 적 최대 5기")
+                line.contains("직선상의 적 최대 8기")
                         && line.contains("100% / 55% / 40% / 25% / 15%")
                         && line.contains("물리 피해")));
 
@@ -398,7 +398,7 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("40틱 뒤 폭발")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("최대 5기") && line.contains("800의 마법 피해")));
+                line.contains("최대 7기") && line.contains("800의 마법 피해")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("방어를 무시") && line.contains("체력은 40% 아래")));
 
@@ -406,7 +406,7 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("집중한 뒤 400의 물리 피해")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("주변 적 최대 2기") && line.contains("25%만큼 피해")));
+                line.contains("주변 적 최대 5기") && line.contains("25%만큼 피해")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("최대 체력의 20%") && line.contains("공격이 취소")));
     }

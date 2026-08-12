@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import kim.biryeong.semiontd.SemionTd;
+import kim.biryeong.semiontd.config.BundledBalanceDefaults;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.RegistryOps;
@@ -37,10 +38,17 @@ public final class CosmeticCatalog {
     }
 
     public synchronized boolean load(RegistryAccess registryAccess) {
-        if (path == null || Files.notExists(path)) {
+        if (path == null) {
             entries.clear();
             available = true;
             return true;
+        }
+
+        try {
+            BundledBalanceDefaults.copyIfMissing("cosmetics.json", path);
+        } catch (IOException exception) {
+            SemionTd.LOGGER.error("Failed to create default cosmetic catalog {}.", path, exception);
+            return false;
         }
 
         try (Reader reader = Files.newBufferedReader(path)) {

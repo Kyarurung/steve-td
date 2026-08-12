@@ -28,25 +28,25 @@ public final class AdversaryBalance {
     public static final double ENHANCED_RIVAL_ATTACK_INTERVAL_MULTIPLIER = 0.80;
     public static final double ENHANCED_RIVAL_RANGE_BONUS = 0.50;
     public static final int BASE_RIVAL_SCORE_PER_KILL = 1;
-    public static final int ENHANCED_RIVAL_SCORE_PER_KILL = 2;
+    public static final int ENHANCED_RIVAL_SCORE_PER_KILL = 3;
     public static final double POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE = 0.005;
     public static final double POST_EVOLUTION_DAMAGE_BONUS_CAP = 2.00;
 
-    public static final double BASE_SPLASH_RADIUS = 1.25;
-    public static final int BASE_SPLASH_EXTRA_TARGETS = 4;
-    public static final double BASE_SPLASH_DAMAGE_RATIO = 0.40;
+    public static final double BASE_SPLASH_RADIUS = 4.0;
+    public static final int BASE_SPLASH_EXTRA_TARGETS = 6;
+    public static final double BASE_SPLASH_DAMAGE_RATIO = 0.50;
     public static final double EVOLVED_SPLASH_DAMAGE_RATIO = 0.50;
 
-    public static final double BASE_RIVAL_KILL_HEAL_RATIO = 0.12;
-    public static final double ENHANCED_RIVAL_KILL_HEAL_RATIO = 0.18;
-    public static final double RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE = 0.70;
+    public static final double BASE_RIVAL_KILL_HEAL_RATIO = 0.20;
+    public static final double ENHANCED_RIVAL_KILL_HEAL_RATIO = 0.30;
+    public static final double RIVAL_KILL_HEAL_CAP_RATIO_PER_WAVE = 1.00;
     public static final double FOCUS_FIRE_DAMAGE_REDUCTION_PER_EXTRA_ATTACKER = 0.04;
     public static final double FOCUS_FIRE_DAMAGE_REDUCTION_CAP = 0.40;
 
     public static final int BREEZE_EXTRA_TARGETS = 1;
     public static final double BREEZE_EXTRA_TARGET_DAMAGE_RATIO = 0.60;
 
-    public static final int GOLDEN_FANG_EXTRA_ATTACK_EVERY = 5;
+    public static final int GOLDEN_FANG_EXTRA_ATTACK_EVERY = 7;
     public static final double GOLDEN_FANG_EXTRA_DAMAGE_RATIO = 0.50;
 
     public static final double SHIELD_COUNTER_DAMAGE = 75.0;
@@ -68,7 +68,7 @@ public final class AdversaryBalance {
 
     public static final double FIREWORK_WAVE_DAMAGE_MULTIPLIER = 1.80;
     public static final double FIREWORK_INCOME_DAMAGE_MULTIPLIER = 0.60;
-    public static final int FIREWORK_MAX_TARGETS = 5;
+    public static final int FIREWORK_MAX_TARGETS = 8;
     public static final double[] FIREWORK_TARGET_DAMAGE_RATIOS = {1.00, 0.55, 0.40, 0.25, 0.15};
 
     public static final double BIG_GAME_WAVE_DAMAGE_MULTIPLIER = 0.80;
@@ -84,14 +84,14 @@ public final class AdversaryBalance {
     public static final double MACE_FOCUS_BREAK_MAX_HEALTH_RATIO = 0.20;
     public static final double[] MACE_STREAK_MULTIPLIERS = {1.00, 1.50, 2.00, 2.50, 3.00};
     public static final double MACE_SWEEP_RADIUS = 1.50;
-    public static final int MACE_SWEEP_EXTRA_TARGETS = 2;
+    public static final int MACE_SWEEP_EXTRA_TARGETS = 5;
     public static final double MACE_SWEEP_DAMAGE_RATIO = 0.25;
 
     public static final int SCULK_DETONATION_DELAY_TICKS = 40;
     public static final int SCULK_ATTACK_INTERVAL_TICKS = 100;
     public static final double SCULK_DETONATION_DAMAGE = 800.0;
     public static final double SCULK_DETONATION_RADIUS = 4.0;
-    public static final int SCULK_MAX_TARGETS = 5;
+    public static final int SCULK_MAX_TARGETS = 7;
     public static final double SCULK_SELF_DAMAGE_MAX_HEALTH_RATIO = 0.10;
     public static final double SCULK_SELF_DAMAGE_HEALTH_FLOOR_RATIO = 0.40;
 

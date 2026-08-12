@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.trait;
 
+import kim.biryeong.semiontd.config.BundledBalanceDefaults;
 
 public record TraitSelectionConfig(boolean enabled, int selectionDurationSeconds) {
     public static final int DEFAULT_SELECTION_DURATION_SECONDS = 45;
@@ -11,7 +12,8 @@ public record TraitSelectionConfig(boolean enabled, int selectionDurationSeconds
     }
 
     public static TraitSelectionConfig defaultConfig() {
-        return new TraitSelectionConfig(true, DEFAULT_SELECTION_DURATION_SECONDS);
+        TraitSelectionConfig fallback = new TraitSelectionConfig(true, DEFAULT_SELECTION_DURATION_SECONDS);
+        return BundledBalanceDefaults.load("traits.json", TraitSelectionConfig.class, fallback);
     }
 
     public int selectionDurationTicks() {

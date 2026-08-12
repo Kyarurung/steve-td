@@ -177,6 +177,7 @@ public final class SemionSandboxGameTest {
             }
 
             long activeIncomeBeforeSandboxSummon = activeGame.players().get(activeRedId).economy().income();
+            sandboxGame.players().get(sandboxOwnerId).economy().addGas(20L, Long.MAX_VALUE);
             SummonResult summon = sandboxGame.summonMonster(sandboxOwnerId, "chicken");
             if (!assertEquals(context, SummonResultType.SUCCESS, summon.type(), "Sandbox income summon should use the sandbox game only.")) {
                 return;

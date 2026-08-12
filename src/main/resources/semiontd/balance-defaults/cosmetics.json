@@ -1,0 +1,1923 @@
+{
+  "entries": [
+    {
+      "id": "small_mushroom_head",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_black",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_head"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_blue",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_blue",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_blue"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_brown",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_brown",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_brown"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_cyan",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_cyan",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_cyan"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_gray",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_gray",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_gray"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_green",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_green",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_green"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_light_blue",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_light_blue",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_light_blue"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_light_gray",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_light_gray",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_light_gray"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_lime",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_lime",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_lime"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_magenta",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_magenta",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_magenta"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_orange",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_orange",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_orange"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_pink",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_pink",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_pink"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_purple",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_purple",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_purple"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_red",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_red",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_red"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_white",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_white",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_white"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_mushroom_yellow",
+      "price": 10,
+      "item": {
+        "id": "nightlights:mushroom_yellow",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_mushroom_yellow"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_black",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_black",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_black"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_blue",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_blue",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_blue"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_brown",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_brown",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_brown"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_cyan",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_cyan",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_cyan"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_gray",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_gray",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_gray"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_green",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_green",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_green"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_light_blue",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_light_blue",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_light_blue"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_light_gray",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_light_gray",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_light_gray"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_lime",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_lime",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_lime"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_magenta",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_magenta",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_magenta"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_orange",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_orange",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_orange"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_pink",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_pink",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_pink"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_purple",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_purple",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_purple"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_red",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_red",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_red"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_white",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_white",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_white"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_octopus_yellow",
+      "price": 20,
+      "item": {
+        "id": "nightlights:octopus_yellow",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_octopus_yellow"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_black",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_black",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_black"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_blue",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_blue",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_blue"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_brown",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_brown",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_brown"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_cyan",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_cyan",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_cyan"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_gray",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_gray",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_gray"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_green",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_green",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_green"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_light_blue",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_light_blue",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_light_blue"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_light_gray",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_light_gray",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_light_gray"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_lime",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_lime",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_lime"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_magenta",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_magenta",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_magenta"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_orange",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_orange",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_orange"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_pink",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_pink",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_pink"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_purple",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_purple",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_purple"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_red",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_red",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_red"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_white",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_white",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_white"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "small_frog_yellow",
+      "price": 20,
+      "item": {
+        "id": "nightlights:frog_yellow",
+        "components": {
+          "minecraft:custom_data": {
+            "semion_td_cosmetic_id": "small_frog_yellow"
+          },
+          "minecraft:attribute_modifiers": [
+            {
+              "type": "minecraft:scale",
+              "id": "minecraft:1784005409238",
+              "amount": -0.27,
+              "operation": "add_value"
+            }
+          ],
+          "minecraft:unbreakable": {
+          }
+        }
+      }
+    },
+    {
+      "id": "hats/uniques/pirate_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/pirate_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/cook_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/cook_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/newbie1_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/newbie1_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/newbie2_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/newbie2_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/newbie3_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/newbie3_hat"
+      }
+    },
+    {
+      "id": "hats/cats/persian",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/persian"
+      }
+    },
+    {
+      "id": "hats/cats/tabby",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/tabby"
+      }
+    },
+    {
+      "id": "hats/cats/tuxedo",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/tuxedo"
+      }
+    },
+    {
+      "id": "hats/cats/red",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/red"
+      }
+    },
+    {
+      "id": "hats/cats/siamese",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/siamese"
+      }
+    },
+    {
+      "id": "hats/cats/british_shorthair",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/british_shorthair"
+      }
+    },
+    {
+      "id": "hats/cats/calico",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/calico"
+      }
+    },
+    {
+      "id": "hats/cats/ocelot",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/ocelot"
+      }
+    },
+    {
+      "id": "hats/cats/ragdoll",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/ragdoll"
+      }
+    },
+    {
+      "id": "hats/cats/white",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/white"
+      }
+    },
+    {
+      "id": "hats/cats/jellie",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/jellie"
+      }
+    },
+    {
+      "id": "hats/cats/black",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/cats/black"
+      }
+    },
+    {
+      "id": "hats/villagers/armorer_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/armorer_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/butcher_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/butcher_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/farmer_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/farmer_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/fisherman_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/fisherman_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/fletcher_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/fletcher_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/shepherd_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/shepherd_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/cartographer_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/cartographer_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/librarian_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/librarian_hat"
+      }
+    },
+    {
+      "id": "hats/villagers/weaponsmith_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/villagers/weaponsmith_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/wool_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/wool_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/red_bini_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/red_bini_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/green_bini_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/green_bini_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/black_bini_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/black_bini_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/red_magic_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/red_magic_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/blue_magic_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/blue_magic_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/miner_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/miner_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/newtro_brown_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/newtro_brown_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/newtro_green_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/newtro_green_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/mask_white_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/mask_white_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/mask_black_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/mask_black_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/classic_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/classic_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/classic_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/classic_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/model_student_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/model_student_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/model_student_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/model_student_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/white_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/white_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/white_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/white_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/white2_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/white2_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/white2_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/white2_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/blue_snorkel_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/blue_snorkel_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/blue_snorkel_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/blue_snorkel_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/yellow_snorkel_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/yellow_snorkel_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/yellow_snorkel_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/yellow_snorkel_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/santa_green_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/santa_green_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/red_rose_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/red_rose_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/blue_rose_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/blue_rose_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/red_baseball_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/red_baseball_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/blue_baseball_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/blue_baseball_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/bread_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/bread_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/full_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/full_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/whitecap_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/whitecap_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/rabbit_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/rabbit_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/brown_beret_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/brown_beret_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/black_beret_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/black_beret_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/rainbow_magic_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/rainbow_magic_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/devil_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/devil_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/crocodile_snap_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/crocodile_snap_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/sansmask_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/sansmask_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/friskmask_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/friskmask_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/brown_ribbon_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/brown_ribbon_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/flower_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/flower_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/sunglasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/sunglasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/sunglasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/sunglasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/a_ing",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/a_ing"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/do_ing",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/do_ing"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/rainbow_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/rainbow_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/rainbow_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/rainbow_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/santa_red_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/santa_red_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/giftbox_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/giftbox_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/super_snow_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/super_snow_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/black_tiger_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/black_tiger_hat"
+      }
+    },
+    {
+      "id": "hats/horses/horse_unicorn",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_unicorn"
+      }
+    },
+    {
+      "id": "hats/horses/horse_black",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_black"
+      }
+    },
+    {
+      "id": "hats/horses/horse_creamy",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_creamy"
+      }
+    },
+    {
+      "id": "hats/horses/horse_zombie",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_zombie"
+      }
+    },
+    {
+      "id": "hats/horses/horse_skeleton",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_skeleton"
+      }
+    },
+    {
+      "id": "hats/horses/horse_brown",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_brown"
+      }
+    },
+    {
+      "id": "hats/horses/horse_white",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_white"
+      }
+    },
+    {
+      "id": "hats/horses/donkey",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/donkey"
+      }
+    },
+    {
+      "id": "hats/horses/horse_skeleton_sans",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/horses/horse_skeleton_sans"
+      }
+    },
+    {
+      "id": "hats/uniques/ikea_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/ikea_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/agent_r_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/agent_r_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/airline_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/airline_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/bandage_eyepatch_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/bandage_eyepatch_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/bloodoath_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/bloodoath_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/creeper_snap_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/creeper_snap_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/duck_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/duck_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/duck_snaphat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/duck_snaphat"
+      }
+    },
+    {
+      "id": "hats/uniques/feedback_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/feedback_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/firespirit_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/firespirit_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/bit_sunglasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/bit_sunglasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/bit_sunglasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/bit_sunglasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/popcorn_sunglasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/popcorn_sunglasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/popcorn_sunglasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/popcorn_sunglasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/square2_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/square2_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/square2_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/square2_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/square_glasses_b",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/square_glasses_b"
+      }
+    },
+    {
+      "id": "hats/uniques/glasses/square_glasses_t",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/glasses/square_glasses_t"
+      }
+    },
+    {
+      "id": "hats/uniques/likey_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/likey_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/mask_creeper_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/mask_creeper_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/melonsoda_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/melonsoda_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/neck_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/neck_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/plaza_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/plaza_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/rainbow_cap_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/rainbow_cap_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/rascal_bear_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/rascal_bear_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/samurai_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/samurai_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/santa_mustache_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/santa_mustache_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/snow_flame_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/snow_flame_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/starfin_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/starfin_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/white_duck_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/white_duck_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/white_duck_snaphat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/white_duck_snaphat"
+      }
+    },
+    {
+      "id": "hats/uniques/winter_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/winter_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/leiheng_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/leiheng_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/melody_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/melody_hat"
+      }
+    },
+    {
+      "id": "hats/uniques/kuromi_hat",
+      "price": 150,
+      "item": {
+        "id": "semion-td:hats/uniques/kuromi_hat"
+      }
+    },
+    {
+      "id": "leiheng_blade",
+      "price": 150,
+      "slot": "offhand",
+      "item": {
+        "id": "semion-td:cosmetics/leiheng_blade"
+      }
+    },
+    {
+      "id": "rabbit_body",
+      "price": 150,
+      "slot": "offhand",
+      "item": {
+        "id": "semion-td:cosmetics/rabbit_body"
+      }
+    }
+  ]
+}

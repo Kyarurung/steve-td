@@ -54,22 +54,22 @@ class WarlockTowerBalanceTest {
         assertEquals(7.0, meleeStats.damage(), 0.0001);
         assertEquals(20, meleeStats.attackIntervalTicks());
         assertEquals(80, meleeStats.aggroPriority());
-        assertEquals(85, config.upgradeCost(
+        assertEquals(70, config.upgradeCost(
                 WarlockTowers.T1_SLAVE.id(),
                 WarlockTowers.T2_SLAVE.id(),
                 -1
         ));
-        assertEquals(135, config.upgradeCost(
+        assertEquals(150, config.upgradeCost(
                 WarlockTowers.T2_SLAVE.id(),
                 WarlockTowers.T3_SLAVE.id(),
                 -1
         ));
-        assertEquals(90, config.upgradeCost(
+        assertEquals(80, config.upgradeCost(
                 WarlockTowers.T1_RANGED_SLAVE.id(),
                 WarlockTowers.T2_RANGED_SLAVE.id(),
                 -1
         ));
-        assertEquals(140, config.upgradeCost(
+        assertEquals(160, config.upgradeCost(
                 WarlockTowers.T2_RANGED_SLAVE.id(),
                 WarlockTowers.T3_RANGED_SLAVE.id(),
                 -1

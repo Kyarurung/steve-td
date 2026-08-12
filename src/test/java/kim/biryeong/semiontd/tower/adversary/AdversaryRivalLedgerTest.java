@@ -91,8 +91,8 @@ class AdversaryRivalLedgerTest {
         assertEquals(logicalId, enhanced.rivalId());
         assertEquals(1, enhanced.contributedScore());
         assertTrue(AdversaryProgressStates.recordFoxKill(OWNER, enhanced.createProxy(1), lane));
-        assertEquals(3, enhanced.contributedScore());
-        assertEquals(3, AdversaryProgressStates.state(OWNER).score(RivalKind.BREEZE));
+        assertEquals(4, enhanced.contributedScore());
+        assertEquals(4, AdversaryProgressStates.state(OWNER).score(RivalKind.BREEZE));
     }
 
     @Test

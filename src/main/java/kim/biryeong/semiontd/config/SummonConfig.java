@@ -62,7 +62,8 @@ public record SummonConfig(Map<String, SummonDefinition> summons) {
         add(summons, def("evoker", "Evoker", "minecraft:evoker", 680, 33, 24, SummonTier.T5, roles(SummonRole.SUPPORT, SummonRole.DISRUPTOR), AttackKind.RANGED, DamageType.MAGIC, 560, 8, 24, 26, 0.6, 1.95, acts(SummonAbilityActivation.COOLDOWN), Map.of("radius", 8.0, "attackMagnitude", 0.25, "damageReductionMagnitude", 0.25, "durationTicks", 80.0, "cooldownTicks", 60.0, "maxTargets", 10.0), "주변 아군 인컴 유닛을 공격과 방어 양쪽으로 강화합니다."));
         add(summons, def("elder_guardian", "Elder Guardian", "minecraft:elder_guardian", 700, 34, 26, SummonTier.T5, roles(SummonRole.TANK, SummonRole.DISRUPTOR), AttackKind.RANGED, DamageType.MAGIC, 760, 22, 28, 32, 1.0, 1.0, acts(SummonAbilityActivation.COOLDOWN), Map.of("radius", 8.0, "attackSpeedMagnitude", 0.30, "rangeMagnitude", 0.20, "durationTicks", 100.0, "cooldownTicks", 80.0, "maxTargets", 3.0), "여러 타워의 공격 속도와 사거리를 동시에 낮춥니다."));
         add(summons, def("warden", "Warden", "minecraft:warden", 800, 40, 30, SummonTier.T5, roles(SummonRole.TANK, SummonRole.SIEGE), AttackKind.MELEE, DamageType.PHYSICAL, 1050, 28, 22, 46, 1.55, 2.6, acts(SummonAbilityActivation.CONDITIONAL), Map.of("progressThreshold", 0.70, "bonusDamage", 50.0, "cooldownTicks", 90.0), "최종 고체력 탱커이자 보스 압박 유닛입니다."));
-        return new SummonConfig(summons);
+        SummonConfig fallback = new SummonConfig(summons);
+        return BundledBalanceDefaults.load("summons.json", SummonConfig.class, fallback);
     }
 
     public SummonConfig withMissingDefaults(SummonConfig defaults) {

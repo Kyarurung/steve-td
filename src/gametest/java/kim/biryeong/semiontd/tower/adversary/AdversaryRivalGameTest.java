@@ -208,8 +208,8 @@ public final class AdversaryRivalGameTest {
 
             require(rival.contributedScore() == 1,
                     "An ignite last hit from the fox must credit the rival's evolution score.");
-            requireClose(136.0, fox.health(),
-                    "A base rival kill must heal twelve percent of the fox's maximum health.");
+            requireClose(160.0, fox.health(),
+                    "A base rival kill must heal twenty percent of the fox's maximum health.");
             requireClose(0.0, fox.roundMagicDamageDealt(),
                     "Ignite damage to an owned rival must not inflate magic damage statistics.");
 

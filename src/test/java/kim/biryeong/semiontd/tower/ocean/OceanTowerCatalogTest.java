@@ -67,7 +67,7 @@ final class OceanTowerCatalogTest {
                 .toList();
 
         assertEquals(6, starters.size());
-        assertStarter(OceanTowers.T1_WATER, "물 타워", 35);
+        assertStarter(OceanTowers.T1_WATER, "물 타워", 25);
         assertStarter(OceanTowers.T1_PUFFERFISH, "복어 타워", 40);
         assertStarter(OceanTowers.T1_TROPICAL_FISH, "열대어 타워", 40);
         assertStarter(OceanTowers.T1_SQUID, "오징어 타워", 50);
@@ -76,16 +76,16 @@ final class OceanTowerCatalogTest {
 
         assertUpgrade(OceanTowers.T1_WATER, OceanTowers.T2_SPRING_WATER, "샘물 타워", 60);
         assertUpgrade(OceanTowers.T2_SPRING_WATER, OceanTowers.T3_CURRENT, "해류 타워", 150);
-        assertUpgrade(OceanTowers.T1_PUFFERFISH, OceanTowers.T2_GUARDIAN, "가디언 타워", 130);
-        assertUpgrade(OceanTowers.T2_GUARDIAN, OceanTowers.T3_ELDER_GUARDIAN, "엘더 가디언 타워", 210);
+        assertUpgrade(OceanTowers.T1_PUFFERFISH, OceanTowers.T2_GUARDIAN, "가디언 타워", 100);
+        assertUpgrade(OceanTowers.T2_GUARDIAN, OceanTowers.T3_ELDER_GUARDIAN, "엘더 가디언 타워", 180);
         assertUpgrade(OceanTowers.T1_TROPICAL_FISH, OceanTowers.T2_LARGE_TROPICAL_FISH, "큰 열대어 타워", 110);
         assertUpgrade(OceanTowers.T2_LARGE_TROPICAL_FISH, OceanTowers.T3_GIANT_TROPICAL_FISH, "거대 열대어 타워", 190);
         assertUpgrade(OceanTowers.T1_SQUID, OceanTowers.T2_GLOW_SQUID, "발광 오징어 타워", 120);
-        assertUpgrade(OceanTowers.T2_GLOW_SQUID, OceanTowers.T3_DOLPHIN, "돌고래 타워", 210);
-        assertUpgrade(OceanTowers.T1_SALMON, OceanTowers.T2_LARGE_SALMON, "큰 연어 타워", 100);
-        assertUpgrade(OceanTowers.T2_LARGE_SALMON, OceanTowers.T3_GIANT_SALMON, "거대 연어 타워", 200);
-        assertUpgrade(OceanTowers.T1_COD, OceanTowers.T2_LARGE_COD, "큰 대구 타워", 100);
-        assertUpgrade(OceanTowers.T2_LARGE_COD, OceanTowers.T3_GIANT_COD, "거대 대구 타워", 210);
+        assertUpgrade(OceanTowers.T2_GLOW_SQUID, OceanTowers.T3_DOLPHIN, "돌고래 타워", 180);
+        assertUpgrade(OceanTowers.T1_SALMON, OceanTowers.T2_LARGE_SALMON, "큰 연어 타워", 90);
+        assertUpgrade(OceanTowers.T2_LARGE_SALMON, OceanTowers.T3_GIANT_SALMON, "거대 연어 타워", 150);
+        assertUpgrade(OceanTowers.T1_COD, OceanTowers.T2_LARGE_COD, "큰 대구 타워", 80);
+        assertUpgrade(OceanTowers.T2_LARGE_COD, OceanTowers.T3_GIANT_COD, "거대 대구 타워", 150);
     }
 
     @Test
@@ -107,16 +107,16 @@ final class OceanTowerCatalogTest {
         GridPosition position = new GridPosition(0, 64, 0);
         OceanTower tierOne = new OceanTower(OceanTowers.T1_COD, owner, TeamId.RED, 1, position);
 
-        assertEquals(50.0, tierOne.water(), EPSILON);
-        assertEquals(1.0 + 0.5 * Math.sqrt(0.5), tierOne.waterDamageMultiplier(), EPSILON);
+        assertEquals(100.0, tierOne.water(), EPSILON);
+        assertEquals(1.0 + 0.75 * Math.sqrt(100.0 / 250.0), tierOne.waterDamageMultiplier(), EPSILON);
         tierOne.addWater(1_000_000.0);
-        assertEquals(1_000_050.0, tierOne.water(), EPSILON);
+        assertEquals(1_000_100.0, tierOne.water(), EPSILON);
 
         OceanTower tierTwo = new OceanTower(OceanTowers.T2_LARGE_COD, owner, TeamId.RED, 1, position);
         tierTwo.copyFrom(tierOne, 100);
         assertEquals(tierOne.water(), tierTwo.water(), EPSILON);
         double effectiveWater = 1_000.0 + 1_000.0 * Math.log1p((tierTwo.water() - 1_000.0) / 1_000.0);
-        assertEquals(1.0 + 0.75 * Math.sqrt(effectiveWater / 100.0), tierTwo.waterDamageMultiplier(), EPSILON);
+        assertEquals(1.0 + 0.9 * Math.sqrt(effectiveWater / 250.0), tierTwo.waterDamageMultiplier(), EPSILON);
 
         assertTrue(tierTwo.spendWater(tierTwo.water()));
         assertEquals(0.0, tierTwo.water(), EPSILON);
@@ -148,17 +148,17 @@ final class OceanTowerCatalogTest {
         double tenThousandEffective = 1_000.0 + 1_000.0 * Math.log1p(9.0);
         double tenThousandRoot = Math.sqrt(tenThousandEffective / 250.0);
         assertEquals(1.0 + 1.4 * tenThousandRoot, tower.waterDamageMultiplier(), EPSILON);
-        assertEquals(1.0 + 1.5 * 1.4 * tenThousandRoot, tower.incomeWaterMultiplier(), EPSILON);
+        assertEquals(1.0 + 2.0 * 1.4 * tenThousandRoot, tower.incomeWaterMultiplier(), EPSILON);
 
         tower.addWater(90_000.0);
         double hundredThousandEffective = 1_000.0 + 1_000.0 * Math.log1p(99.0);
         double hundredThousandRoot = Math.sqrt(hundredThousandEffective / 250.0);
         assertEquals(1.0 + 1.4 * hundredThousandRoot, tower.waterDamageMultiplier(), EPSILON);
-        assertEquals(1.0 + 1.5 * 1.4 * hundredThousandRoot, tower.incomeWaterMultiplier(), EPSILON);
+        assertEquals(1.0 + 2.0 * 1.4 * hundredThousandRoot, tower.incomeWaterMultiplier(), EPSILON);
 
         double sixSourceMultiplier = OceanWaterTower.stackedSupplyMultiplier(6, 0.60);
         assertEquals(2.38336, sixSourceMultiplier * 6.0, EPSILON);
-        assertEquals(2.9792, 1.25 * sixSourceMultiplier * 6.0, EPSILON);
+        assertEquals(3.57504, 1.5 * sixSourceMultiplier * 6.0, EPSILON);
         assertEquals(16.68352, 7.0 * sixSourceMultiplier * 6.0, EPSILON);
     }
 
@@ -169,7 +169,7 @@ final class OceanTowerCatalogTest {
         assertEquals(1_000.0, config.ability(OceanTower.CONFIG_ID, "waterSoftCap", -1.0), EPSILON);
         assertEquals(2_500.0, config.ability(OceanTower.CONFIG_ID, "waterSupplyStopThreshold", -1.0), EPSILON);
         assertEquals(0.60, config.ability(OceanTower.CONFIG_ID, "waterSupplyStackDecay", -1.0), EPSILON);
-        assertEquals(1.50, config.ability(OceanTower.CONFIG_ID, "incomeCoefficientMultiplier", -1.0), EPSILON);
+        assertEquals(2.0, config.ability(OceanTower.CONFIG_ID, "incomeCoefficientMultiplier", -1.0), EPSILON);
     }
 
     @Test
@@ -177,7 +177,7 @@ final class OceanTowerCatalogTest {
         TowerBalanceConfig config = TowerBalanceConfig.defaultConfig();
         double supplyPerSecond = config.ability(OceanTowers.T3_CURRENT.id(), "waterPerSupply", -1.0);
 
-        assertEquals(2.5, supplyPerSecond, EPSILON);
+        assertEquals(3.2, supplyPerSecond, EPSILON);
         assertTrue(supplyPerSecond < waterPerSecond(config, OceanTowers.T3_ELDER_GUARDIAN, "attackWaterCost", 0.0));
         assertTrue(supplyPerSecond < waterPerSecond(config, OceanTowers.T3_GIANT_TROPICAL_FISH, "abilityWaterCost", 0.0));
         assertTrue(supplyPerSecond < waterPerSecond(config, OceanTowers.T3_DOLPHIN, "abilityWaterCost", 0.0));
@@ -186,12 +186,12 @@ final class OceanTowerCatalogTest {
     }
 
     @Test
-    void tankWaterTransferUsesTwoAndAHalfSecondCooldownAndDoubledCaps() {
+    void tankWaterTransferUsesFiveSecondCooldownAndLiveCaps() {
         TowerBalanceConfig config = TowerBalanceConfig.defaultConfig();
 
-        assertEquals(50.0, config.ability(OceanTowers.T1_PUFFERFISH.id(), "transferCooldownTicks", -1.0), EPSILON);
-        assertEquals(50.0, config.ability(OceanTowers.T2_GUARDIAN.id(), "transferCooldownTicks", -1.0), EPSILON);
-        assertEquals(50.0, config.ability(OceanTowers.T3_ELDER_GUARDIAN.id(), "transferCooldownTicks", -1.0), EPSILON);
+        assertEquals(100.0, config.ability(OceanTowers.T1_PUFFERFISH.id(), "transferCooldownTicks", -1.0), EPSILON);
+        assertEquals(100.0, config.ability(OceanTowers.T2_GUARDIAN.id(), "transferCooldownTicks", -1.0), EPSILON);
+        assertEquals(100.0, config.ability(OceanTowers.T3_ELDER_GUARDIAN.id(), "transferCooldownTicks", -1.0), EPSILON);
         assertEquals(24.0, config.ability(OceanTowers.T1_PUFFERFISH.id(), "transferCap", -1.0), EPSILON);
         assertEquals(50.0, config.ability(OceanTowers.T2_GUARDIAN.id(), "transferCap", -1.0), EPSILON);
         assertEquals(90.0, config.ability(OceanTowers.T3_ELDER_GUARDIAN.id(), "transferCap", -1.0), EPSILON);
@@ -216,7 +216,7 @@ final class OceanTowerCatalogTest {
         }
 
         String tankDescription = String.join(" ", TowerBalanceRuntime.resolve(OceanTowers.T1_PUFFERFISH).description());
-        assertTrue(tankDescription.contains("2.5초마다"));
+        assertTrue(tankDescription.contains("5초마다"));
         assertTrue(tankDescription.contains("최대 24"));
 
         for (TowerType type : List.of(OceanTowers.T1_WATER, OceanTowers.T2_SPRING_WATER, OceanTowers.T3_CURRENT)) {

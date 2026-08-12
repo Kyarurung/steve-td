@@ -21,8 +21,8 @@ class AdversaryProgressStateTest {
         state.recordRivalKill(rival, RivalKind.BREEZE, false);
         state.recordRivalKill(rival, RivalKind.BREEZE, true);
 
-        assertEquals(3, state.score(RivalKind.BREEZE));
-        assertEquals(3, state.contribution(rival));
+        assertEquals(4, state.score(RivalKind.BREEZE));
+        assertEquals(4, state.contribution(rival));
     }
 
     @Test

@@ -37,7 +37,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 eventRepository,
                 new FileAppliedMatchRepository(tempDir.resolve("rating-applied-matches.json")),
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID winnerId = UUID.nameUUIDFromBytes("service-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("service-loser".getBytes());
@@ -48,8 +48,8 @@ final class RatingServiceTest {
 
         assertEquals(2, first.adjustments().size());
         assertEquals(first, second);
-        assertEquals(1516, ratingRepository.findProfile(winnerId).orElseThrow().displayElo());
-        assertEquals(1484, ratingRepository.findProfile(loserId).orElseThrow().displayElo());
+        assertEquals(1532, ratingRepository.findProfile(winnerId).orElseThrow().displayElo());
+        assertEquals(1468, ratingRepository.findProfile(loserId).orElseThrow().displayElo());
         assertTrue(eventRepository.findMatchResult(matchResult.matchId()).isPresent());
     }
 
@@ -60,7 +60,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 new FileRatingEventRepository(tempDir.resolve("rating-events.json")),
                 new FileAppliedMatchRepository(tempDir.resolve("rating-applied-matches.json")),
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID winnerId = UUID.nameUUIDFromBytes("spectator-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("spectator-loser".getBytes());
@@ -96,7 +96,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 new FileRatingEventRepository(tempDir.resolve("rating-events.json")),
                 new FileAppliedMatchRepository(tempDir.resolve("rating-applied-matches.json")),
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID firstId = UUID.nameUUIDFromBytes("multi-first".getBytes());
         UUID secondId = UUID.nameUUIDFromBytes("multi-second".getBytes());
@@ -128,14 +128,14 @@ final class RatingServiceTest {
 
         RatingMatchResult result = service.applyMatchResult(null, matchResult);
 
-        assertEquals(List.of(16, 13, 0, -13, -16), result.adjustments().stream()
+        assertEquals(List.of(32, 26, 0, -26, -32), result.adjustments().stream()
                 .map(RatingAdjustment::displayEloDelta)
                 .toList());
-        assertEquals(1516, ratingRepository.findProfile(firstId).orElseThrow().displayElo());
-        assertEquals(1513, ratingRepository.findProfile(secondId).orElseThrow().displayElo());
+        assertEquals(1532, ratingRepository.findProfile(firstId).orElseThrow().displayElo());
+        assertEquals(1526, ratingRepository.findProfile(secondId).orElseThrow().displayElo());
         assertEquals(1500, ratingRepository.findProfile(thirdId).orElseThrow().displayElo());
-        assertEquals(1487, ratingRepository.findProfile(fourthId).orElseThrow().displayElo());
-        assertEquals(1484, ratingRepository.findProfile(fifthId).orElseThrow().displayElo());
+        assertEquals(1474, ratingRepository.findProfile(fourthId).orElseThrow().displayElo());
+        assertEquals(1468, ratingRepository.findProfile(fifthId).orElseThrow().displayElo());
     }
 
     @Test
@@ -145,7 +145,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 new FileRatingEventRepository(tempDir.resolve("rating-events.json")),
                 new FileAppliedMatchRepository(tempDir.resolve("rating-applied-matches.json")),
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID strongerId = UUID.nameUUIDFromBytes("stronger".getBytes());
         UUID moreGamesId = UUID.nameUUIDFromBytes("more-games".getBytes());
@@ -168,7 +168,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 eventRepository,
                 appliedMatchRepository,
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID winnerId = UUID.nameUUIDFromBytes("partial-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("partial-loser".getBytes());
@@ -192,7 +192,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 eventRepository,
                 appliedMatchRepository,
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID winnerId = UUID.nameUUIDFromBytes("recoverable-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("recoverable-loser".getBytes());
@@ -219,7 +219,7 @@ final class RatingServiceTest {
         UUID winnerId = UUID.nameUUIDFromBytes("event-retry-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("event-retry-loser".getBytes());
         MatchResult matchResult = matchResult(new MatchId(15L), winnerId, loserId);
-        RatingMatchResult precomputed = new EloRatingCalculator().calculate(new RatingMatchInput(
+        RatingMatchResult precomputed = new EloRatingCalculator(enabledRatingConfig()).calculate(new RatingMatchInput(
                 matchResult.matchId(),
                 matchResult.endedAtEpochMillis(),
                 List.of(
@@ -232,7 +232,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 eventRepository,
                 appliedMatchRepository,
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
 
         RatingMatchResult result = service.applyMatchResult(null, matchResult);
@@ -251,7 +251,7 @@ final class RatingServiceTest {
         UUID winnerId = UUID.nameUUIDFromBytes("event-retry-newer-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("event-retry-newer-loser".getBytes());
         MatchResult matchResult = matchResult(new MatchId(16L), winnerId, loserId);
-        RatingMatchResult oldEvent = new EloRatingCalculator().calculate(new RatingMatchInput(
+        RatingMatchResult oldEvent = new EloRatingCalculator(enabledRatingConfig()).calculate(new RatingMatchInput(
                 matchResult.matchId(),
                 matchResult.endedAtEpochMillis(),
                 List.of(
@@ -266,7 +266,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 eventRepository,
                 appliedMatchRepository,
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
 
         RatingMatchResult result = service.applyMatchResult(null, matchResult);
@@ -287,7 +287,7 @@ final class RatingServiceTest {
                 ratingRepository,
                 eventRepository,
                 appliedMatchRepository,
-                new EloRatingCalculator()
+                enabledRatingConfig()
         );
         UUID winnerId = UUID.nameUUIDFromBytes("sequential-winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("sequential-loser".getBytes());
@@ -323,6 +323,29 @@ final class RatingServiceTest {
                 elo,
                 new MatchId(99L),
                 1000L + gamesPlayed
+        );
+    }
+
+    private static RatingConfig enabledRatingConfig() {
+        RatingConfig defaults = RatingConfig.defaultConfig();
+        return new RatingConfig(
+                true,
+                defaults.teamEloMatchmakingEnabled(),
+                defaults.eloKFactor(),
+                defaults.initialDisplayElo(),
+                defaults.initialMu(),
+                defaults.initialSigma(),
+                defaults.leaderboardLimit(),
+                defaults.minimumParticipants(),
+                defaults.excludeSpectators(),
+                defaults.contributionWeightingEnabled(),
+                defaults.contributionMultiplierMin(),
+                defaults.contributionMultiplierMax(),
+                defaults.defenseContributionWeight(),
+                defaults.pressureContributionWeight(),
+                defaults.economyContributionWeight(),
+                defaults.assistContributionWeight(),
+                defaults.perfectDefenseLossMultiplier()
         );
     }
 

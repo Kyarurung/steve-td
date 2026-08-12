@@ -867,13 +867,14 @@ public record TowerBalanceConfig(
         putAncientCityAbilities(abilities);
         putAdversaryAbilities(abilities);
 
-        return new TowerBalanceConfig(
+        TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
                 upgradeCosts,
                 abilities,
                 IllusionCloneQueueConfig.defaultConfig(),
                 VillagerAdvConfig.defaultConfig()
         );
+        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, fallback);
     }
 
     public TowerStats statsFor(TowerType defaults) {

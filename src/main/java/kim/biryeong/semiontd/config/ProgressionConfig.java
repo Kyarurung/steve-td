@@ -12,7 +12,8 @@ public record ProgressionConfig(
     }
 
     public static ProgressionConfig defaultConfig() {
-        return new ProgressionConfig(10, 15, 5);
+        ProgressionConfig fallback = new ProgressionConfig(10, 15, 5);
+        return BundledBalanceDefaults.load("progression.json", ProgressionConfig.class, fallback);
     }
 
     public long rewardForWin() {

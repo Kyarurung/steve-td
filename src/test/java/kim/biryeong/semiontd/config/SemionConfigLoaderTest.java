@@ -1,5 +1,10 @@
 package kim.biryeong.semiontd.config;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -22,6 +27,20 @@ import org.slf4j.LoggerFactory;
 import static org.junit.jupiter.api.Assertions.*;
 
 final class SemionConfigLoaderTest {
+    private static final List<String> BUNDLED_BALANCE_FILES = List.of(
+            "economy.json",
+            "income_lane_routing.json",
+            "leader_targeting.json",
+            "monster_scaling.json",
+            "progression.json",
+            "rating.json",
+            "summons.json",
+            "tower_balance.json",
+            "trait_balance.json",
+            "traits.json",
+            "wave.json"
+    );
+
     @TempDir
     Path tempDir;
 
@@ -29,6 +48,26 @@ final class SemionConfigLoaderTest {
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    void bundledBalanceFilesSeedRuntimeDefaults() throws Exception {
+        SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        for (String fileName : BUNDLED_BALANCE_FILES) {
+            try (InputStream input = BundledBalanceDefaults.class.getResourceAsStream(
+                    "/semiontd/balance-defaults/" + fileName
+            )) {
+                assertNotNull(input, fileName);
+                JsonElement bundled = JsonParser.parseReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+                JsonElement written = JsonParser.parseString(Files.readString(tempDir.resolve(fileName)));
+                assertEquals(bundled, written, fileName);
+            }
+        }
+
+        Path cosmetics = tempDir.resolve("cosmetics.json");
+        BundledBalanceDefaults.copyIfMissing("cosmetics.json", cosmetics);
+        assertTrue(Files.size(cosmetics) > 0L);
     }
 
     @Test
@@ -110,7 +149,7 @@ final class SemionConfigLoaderTest {
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 
         assertTrue(Files.exists(tempDir.resolve("trait_balance.json")));
-        assertEquals(0.15, configs.traitBalance().value("opening_salvo", "attackSpeedBonus", -1.0));
+        assertEquals(0.25, configs.traitBalance().value("opening_salvo", "attackSpeedBonus", -1.0));
         assertEquals(15.0, configs.traitBalance().value("opening_salvo", "durationSeconds", -1.0));
     }
 
@@ -131,10 +170,10 @@ final class SemionConfigLoaderTest {
 
         assertEquals(0.12, configs.traitBalance().value("opening_salvo", "attackSpeedBonus", -1.0));
         assertEquals(15.0, configs.traitBalance().value("opening_salvo", "durationSeconds", -1.0));
-        assertEquals(150.0, configs.traitBalance().value("mobilization_grant", "startingDiamond", -1.0));
-        assertEquals(180.0, configs.traitBalance().value("weekly_holiday_pay", "intervalSeconds", -1.0));
-        assertEquals(0.0075, configs.traitBalance().value("ignite", "attackDamageRatioPerRound", -1.0));
-        assertEquals(0.15, configs.traitBalance().value("performance_bonus", "teamIncomeRatio", -1.0));
+        assertEquals(120.0, configs.traitBalance().value("mobilization_grant", "startingDiamond", -1.0));
+        assertEquals(150.0, configs.traitBalance().value("weekly_holiday_pay", "intervalSeconds", -1.0));
+        assertEquals(0.01, configs.traitBalance().value("ignite", "attackDamageRatioPerRound", -1.0));
+        assertEquals(0.16, configs.traitBalance().value("performance_bonus", "teamIncomeRatio", -1.0));
         String written = Files.readString(tempDir.resolve("trait_balance.json"));
         assertTrue(written.contains("durationSeconds"));
         assertTrue(written.contains("mobilization_grant"));
@@ -208,7 +247,7 @@ final class SemionConfigLoaderTest {
 
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 
-        assertEquals(true, configs.rating().teamEloMatchmakingEnabled());
+        assertEquals(false, configs.rating().teamEloMatchmakingEnabled());
         assertEquals(0.75, configs.rating().perfectDefenseLossMultiplier());
         String written = Files.readString(tempDir.resolve("rating.json"));
         assertTrue(written.contains("teamEloMatchmakingEnabled"));
@@ -247,7 +286,7 @@ final class SemionConfigLoaderTest {
                 0
         ));
         assertEquals(2.0, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("maxStacks"));
-        assertEquals(0.065, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("cloneDamageBonus"));
+        assertEquals(0.10, towerBalance.abilities().get(LegionTowers.T3_EXTREME_GOAT_TOWER.id()).get("cloneDamageBonus"));
         assertEquals(1_000.0, towerBalance.ability("ocean_global", "waterSoftCap", -1.0));
         assertEquals(2_500.0, towerBalance.ability("ocean_global", "waterSupplyStopThreshold", -1.0));
         assertEquals(0.60, towerBalance.ability("ocean_global", "waterSupplyStackDecay", -1.0));
@@ -455,13 +494,13 @@ final class SemionConfigLoaderTest {
 
         TowerBalanceConfig towerBalance = configs.towerBalance();
         assertTrue(towerBalance.towers().containsKey(IllagerTowers.T1_VINDICATOR.id()));
-        assertEquals(170, towerBalance.upgradeCost(
+        assertEquals(130, towerBalance.upgradeCost(
                 IllagerTowers.T1_VINDICATOR.id(),
                 IllagerTowers.T2_VINDICATOR_CAPTAIN.id(),
                 0
         ));
         assertEquals(100.0, towerBalance.ability(IllagerRaidStates.RAID_CONFIG_ID, "gaugeMax", -1), 0.0001);
-        assertEquals(0.10, towerBalance.ability(IllagerTowers.T1_VINDICATOR.id(), "raidDamageReduction", -1), 0.0001);
+        assertEquals(0.15, towerBalance.ability(IllagerTowers.T1_VINDICATOR.id(), "raidDamageReduction", -1), 0.0001);
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         assertTrue(written.contains("illager_vindicator_t1"));
         assertTrue(written.contains("illager_vindicator_t1->illager_vindicator_captain_t2"));
@@ -679,8 +718,8 @@ final class SemionConfigLoaderTest {
         LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
 
         assertTrue(Files.exists(tempDir.resolve("leader_targeting.json")));
-        assertEquals(2, configs.leaderTargeting().maxTargetingTeamsPerTarget());
-        assertEquals(2, configs.leaderTargeting().activeTargetRounds());
+        assertEquals(1, configs.leaderTargeting().maxTargetingTeamsPerTarget());
+        assertEquals(1, configs.leaderTargeting().activeTargetRounds());
     }
 
     @Test

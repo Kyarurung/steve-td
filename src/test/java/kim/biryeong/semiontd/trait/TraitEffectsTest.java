@@ -68,15 +68,15 @@ final class TraitEffectsTest {
         )));
 
         SemionTrait goldSpoon = TraitRegistry.find(BuiltInTraits.MOBILIZATION_GRANT_ID).orElseThrow();
-        assertEquals("시작 다이아 +150", goldSpoon.effectSummary(TraitSlot.PRIMARY).getString());
-        assertEquals("시작 다이아 +75", goldSpoon.effectSummary(TraitSlot.SECONDARY).getString());
+        assertEquals("시작 다이아 +120", goldSpoon.effectSummary(TraitSlot.PRIMARY).getString());
+        assertEquals("시작 다이아 +60", goldSpoon.effectSummary(TraitSlot.SECONDARY).getString());
         assertEquals(
-                "180초마다 다이아 +10 + 수입 16%",
+                "150초마다 다이아 +10 + 수입 16%",
                 TraitRegistry.find(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID).orElseThrow()
                         .effectSummary(TraitSlot.PRIMARY).getString()
         );
         assertEquals(
-                "4초간 매초 1 + 공격력×라운드×0.375% 마법 피해 (마법 피해 능력 제외)",
+                "4초간 매초 1 + 공격력×라운드×0.5% 마법 피해 (마법 피해 능력 제외)",
                 TraitRegistry.find(BuiltInTraits.IGNITE_ID).orElseThrow()
                         .effectSummary(TraitSlot.SECONDARY).getString()
         );
@@ -91,10 +91,10 @@ final class TraitEffectsTest {
         TraitLoadout primaryClean = primary(BuiltInTraits.CLEAN_LANE_BONUS_ID);
         TraitLoadout secondaryClean = secondary(BuiltInTraits.CLEAN_LANE_BONUS_ID);
 
-        assertEquals(150L, TraitEffects.startingMineralBonus(primaryGold));
-        assertEquals(75L, TraitEffects.startingMineralBonus(secondaryGold));
-        assertEquals(150L, TraitEffects.cleanLaneBonus(primaryClean, 1_000L));
-        assertEquals(75L, TraitEffects.cleanLaneBonus(secondaryClean, 1_000L));
+        assertEquals(120L, TraitEffects.startingMineralBonus(primaryGold));
+        assertEquals(60L, TraitEffects.startingMineralBonus(secondaryGold));
+        assertEquals(180L, TraitEffects.cleanLaneBonus(primaryClean, 1_000L));
+        assertEquals(90L, TraitEffects.cleanLaneBonus(secondaryClean, 1_000L));
         assertEquals(0L, TraitEffects.cleanLaneBonus(primaryClean, -1L));
         assertEquals(4, TraitEffects.towerLimitBonus(primary(BuiltInTraits.SUPPLY_DEPOT_ID)));
         assertEquals(2, TraitEffects.towerLimitBonus(secondary(BuiltInTraits.SUPPLY_DEPOT_ID)));
@@ -109,16 +109,16 @@ final class TraitEffectsTest {
         assertEquals(25, towerLimit.limitForRound(100)
                 + TraitEffects.towerLimitBonus(secondary(BuiltInTraits.SUPPLY_DEPOT_ID)));
 
-        assertEquals(3_600, TraitEffects.weeklyHolidayPayIntervalTicks());
-        assertFalse(TraitEffects.weeklyHolidayPayDue(3_599));
-        assertTrue(TraitEffects.weeklyHolidayPayDue(3_600));
-        assertTrue(TraitEffects.weeklyHolidayPayDue(7_200));
+        assertEquals(3_000, TraitEffects.weeklyHolidayPayIntervalTicks());
+        assertFalse(TraitEffects.weeklyHolidayPayDue(2_999));
+        assertTrue(TraitEffects.weeklyHolidayPayDue(3_000));
+        assertTrue(TraitEffects.weeklyHolidayPayDue(6_000));
         assertEquals(26L, TraitEffects.weeklyHolidayPay(primary(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID), 100L));
         assertEquals(13L, TraitEffects.weeklyHolidayPay(secondary(BuiltInTraits.WEEKLY_HOLIDAY_PAY_ID), 100L));
         assertEquals(2, TraitEffects.performanceBonusFirstRound());
         assertEquals(0L, TraitEffects.performanceBonus(primary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 1));
-        assertEquals(150L, TraitEffects.performanceBonus(primary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 2));
-        assertEquals(75L, TraitEffects.performanceBonus(secondary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 2));
+        assertEquals(160L, TraitEffects.performanceBonus(primary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 2));
+        assertEquals(80L, TraitEffects.performanceBonus(secondary(BuiltInTraits.PERFORMANCE_BONUS_ID), 1_000L, 2));
     }
 
     @Test
@@ -177,12 +177,12 @@ final class TraitEffectsTest {
     @Test
     void igniteUsesRoundScaledAttackDamageAndHalfSecondaryPower() {
         assertEquals(
-                9.5,
+                12.0,
                 TraitEffects.igniteDamagePerTick(primary(BuiltInTraits.IGNITE_ID), 100.0, 10),
                 0.000_001
         );
         assertEquals(
-                4.75,
+                6.0,
                 TraitEffects.igniteDamagePerTick(secondary(BuiltInTraits.IGNITE_ID), 100.0, 10),
                 0.000_001
         );
@@ -195,19 +195,19 @@ final class TraitEffectsTest {
         TraitLoadout primaryBerserk = primary(BuiltInTraits.BERSERK_SUMMONS_ID);
         TraitLoadout secondaryBerserk = secondary(BuiltInTraits.BERSERK_SUMMONS_ID);
 
-        assertEquals(1.20, TraitEffects.incomeAttackDamageMultiplier(primaryBerserk), 0.000_001);
-        assertEquals(1.10, TraitEffects.incomeAttackSpeedMultiplier(primaryBerserk), 0.000_001);
-        assertEquals(1.10, TraitEffects.incomeAttackDamageMultiplier(secondaryBerserk), 0.000_001);
-        assertEquals(1.05, TraitEffects.incomeAttackSpeedMultiplier(secondaryBerserk), 0.000_001);
+        assertEquals(1.30, TraitEffects.incomeAttackDamageMultiplier(primaryBerserk), 0.000_001);
+        assertEquals(1.20, TraitEffects.incomeAttackSpeedMultiplier(primaryBerserk), 0.000_001);
+        assertEquals(1.15, TraitEffects.incomeAttackDamageMultiplier(secondaryBerserk), 0.000_001);
+        assertEquals(1.10, TraitEffects.incomeAttackSpeedMultiplier(secondaryBerserk), 0.000_001);
 
-        assertEquals(0.90, TraitEffects.sellRefundRate(primary(BuiltInTraits.RAPID_DEPLOYMENT_ID), true), 0.000_001);
-        assertEquals(0.70, TraitEffects.sellRefundRate(secondary(BuiltInTraits.RAPID_DEPLOYMENT_ID), true), 0.000_001);
+        assertEquals(1.00, TraitEffects.sellRefundRate(primary(BuiltInTraits.RAPID_DEPLOYMENT_ID), true), 0.000_001);
+        assertEquals(0.75, TraitEffects.sellRefundRate(secondary(BuiltInTraits.RAPID_DEPLOYMENT_ID), true), 0.000_001);
         assertEquals(1.00, TraitEffects.sellRefundRate(primary(BuiltInTraits.RAPID_DEPLOYMENT_ID), false), 0.000_001);
-        assertEquals(0.15, TraitEffects.openingAttackSpeedBonus(primary(BuiltInTraits.OPENING_SALVO_ID)), 0.000_001);
-        assertEquals(0.075, TraitEffects.openingAttackSpeedBonus(secondary(BuiltInTraits.OPENING_SALVO_ID)), 0.000_001);
-        assertEquals(400, TraitEffects.transcendenceActivationDelayTicks());
-        assertEquals(0.30, TraitEffects.transcendenceDamageBonus(primary(BuiltInTraits.TRANSCENDENCE_ID)), 0.000_001);
-        assertEquals(0.15, TraitEffects.transcendenceDamageBonus(secondary(BuiltInTraits.TRANSCENDENCE_ID)), 0.000_001);
+        assertEquals(0.25, TraitEffects.openingAttackSpeedBonus(primary(BuiltInTraits.OPENING_SALVO_ID)), 0.000_001);
+        assertEquals(0.125, TraitEffects.openingAttackSpeedBonus(secondary(BuiltInTraits.OPENING_SALVO_ID)), 0.000_001);
+        assertEquals(200, TraitEffects.transcendenceActivationDelayTicks());
+        assertEquals(0.35, TraitEffects.transcendenceDamageBonus(primary(BuiltInTraits.TRANSCENDENCE_ID)), 0.000_001);
+        assertEquals(0.175, TraitEffects.transcendenceDamageBonus(secondary(BuiltInTraits.TRANSCENDENCE_ID)), 0.000_001);
     }
 
     @Test
@@ -260,13 +260,13 @@ final class TraitEffectsTest {
         Monster incomeMonster = monster(Optional.of(TeamId.BLUE));
         Monster waveMonster = monster(Optional.empty());
 
-        assertEquals(0.15,
+        assertEquals(0.25,
                 TraitEffects.targetDamageBonus(primary(BuiltInTraits.INTERCEPTION_DOCTRINE_ID), incomeMonster),
                 0.000_001);
         assertEquals(0.0,
                 TraitEffects.targetDamageBonus(primary(BuiltInTraits.INTERCEPTION_DOCTRINE_ID), waveMonster),
                 0.000_001);
-        assertEquals(0.15,
+        assertEquals(0.25,
                 TraitEffects.targetDamageBonus(primary(BuiltInTraits.WAVEBREAKER_DOCTRINE_ID), waveMonster),
                 0.000_001);
         assertEquals(0.25,
@@ -288,7 +288,7 @@ final class TraitEffectsTest {
         TestTower warlockCore = new TestTower(WarlockTowers.BASE_WARLOCK_TOWER, owner, TeamId.RED, 1, position);
         TraitLoadout fortitude = primary(BuiltInTraits.FORTITUDE_ID);
 
-        assertEquals(0.20, TraitEffects.towerMaxHealthBonus(fortitude, normal), 0.000_001);
+        assertEquals(0.30, TraitEffects.towerMaxHealthBonus(fortitude, normal), 0.000_001);
         assertEquals(0.10, TraitEffects.towerMaxHealthBonus(fortitude, warlockCore), 0.000_001);
     }
 

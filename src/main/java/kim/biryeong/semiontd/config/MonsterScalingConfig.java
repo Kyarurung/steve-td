@@ -23,7 +23,7 @@ public record MonsterScalingConfig(
     }
 
     public static MonsterScalingConfig defaultConfig() {
-        return new MonsterScalingConfig(
+        MonsterScalingConfig fallback = new MonsterScalingConfig(
                 true,
                 DEFAULT_DELAY_TICKS,
                 DEFAULT_DELAY_TICKS,
@@ -33,5 +33,6 @@ public record MonsterScalingConfig(
                 true,
                 true
         );
+        return BundledBalanceDefaults.load("monster_scaling.json", MonsterScalingConfig.class, fallback);
     }
 }

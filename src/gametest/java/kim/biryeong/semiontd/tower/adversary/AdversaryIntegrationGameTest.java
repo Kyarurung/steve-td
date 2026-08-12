@@ -372,9 +372,9 @@ public final class AdversaryIntegrationGameTest {
             fox.onAttackResolved(source, primary, 90.0, 90.0, 90.0, false);
 
             List<SemionMonsterEntity> secondaries = List.of(first, second, third, fourth, fifth);
-            require(secondaries.stream().filter(monster -> monster.runtimeMonster().health() < 1_000.0).count() == 4,
-                    "Evolved splash must use the four-target cap.");
-            requireClose(180.0, secondaries.stream()
+            require(secondaries.stream().filter(monster -> monster.runtimeMonster().health() < 1_000.0).count() == 5,
+                    "Evolved splash must reach every nearby target below the six-target cap.");
+            requireClose(225.0, secondaries.stream()
                             .mapToDouble(monster -> 1_000.0 - monster.runtimeMonster().health())
                             .sum(),
                     "An evolved single-target form must deal fifty percent splash.");
@@ -429,8 +429,8 @@ public final class AdversaryIntegrationGameTest {
                     "Mace must sweep the nearest first target for 25% damage.");
             requireClose(900.0, second.runtimeMonster().health(),
                     "Mace must sweep the nearest second target for 25% damage.");
-            requireClose(1_000.0, third.runtimeMonster().health(),
-                    "Mace sweep must stop after two secondary targets.");
+            requireClose(900.0, third.runtimeMonster().health(),
+                    "Mace sweep must include nearby targets below the five-target cap.");
 
             fox.setForm(FoxForm.SCULK_CORE, lane);
             fox.syncHealth(396.0);

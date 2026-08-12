@@ -81,7 +81,8 @@ public record TraitBalanceConfig(Map<String, Map<String, Double>> traits) {
                 "teamIncomeRatio", 0.15,
                 "firstPayoutRound", 2.0
         ));
-        return new TraitBalanceConfig(traits);
+        TraitBalanceConfig fallback = new TraitBalanceConfig(traits);
+        return BundledBalanceDefaults.load("trait_balance.json", TraitBalanceConfig.class, fallback);
     }
 
     public double value(String traitId, String key, double fallback) {

@@ -14,7 +14,8 @@ public record LeaderTargetingConfig(
     }
 
     public static LeaderTargetingConfig defaultConfig() {
-        return new LeaderTargetingConfig(2, 2);
+        LeaderTargetingConfig fallback = new LeaderTargetingConfig(2, 2);
+        return BundledBalanceDefaults.load("leader_targeting.json", LeaderTargetingConfig.class, fallback);
     }
 
     public LeaderTargetingConfig withMaxTargetingTeams(int maxTargetingTeamsPerTarget) {
