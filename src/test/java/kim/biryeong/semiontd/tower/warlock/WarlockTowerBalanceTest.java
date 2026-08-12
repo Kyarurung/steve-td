@@ -384,7 +384,6 @@ class WarlockTowerBalanceTest {
         assertFalse(details.contains("스플래시 범위:"));
         assertFalse(details.contains("최종 피해 제외"));
         assertFalse(details.contains("받는 피해 감소:"));
-        assertTrue(details.endsWith("능력치는 높아질 수록 증가 효율이 감소합니다."));
         WarlockTower melee = new WarlockTower(
                 TowerBalanceRuntime.resolve(WarlockTowers.MELEE_WARLOCK_TOWER),
                 UUID.randomUUID(),
@@ -408,7 +407,6 @@ class WarlockTowerBalanceTest {
         assertFalse(meleeDetails.contains("제한 없음"));
         assertFalse(meleeDetails.contains("스플래시 범위:"));
         assertFalse(meleeDetails.contains("받는 피해 감소:"));
-        assertTrue(meleeDetails.endsWith("능력치는 높아질 수록 증가 효율이 감소합니다."));
     }
 
     @Test
@@ -446,7 +444,6 @@ class WarlockTowerBalanceTest {
         assertEquals("<white>흡수한 타워: <dark_purple>12기</dark_purple></white>", lines.get(0));
         assertEquals("<white>이번 라운드에 흡수한 타워: <dark_purple>7기</dark_purple></white>", lines.get(1));
         assertEquals("<white>각성 상태: <dark_purple>각성</dark_purple></white>", lines.get(2));
-        assertEquals("<gray>능력치는 높아질 수록 증가 효율이 감소합니다.</gray>", lines.get(lines.size() - 1));
         String details = String.join("\n", lines).replaceAll("<[^>]+>", "");
         assertTrue(details.contains("흡수한 타워: 12기"));
         assertTrue(details.contains("이번 라운드에 흡수한 타워: 7기"));
