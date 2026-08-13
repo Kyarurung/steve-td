@@ -47,6 +47,11 @@ public final class AncientCityTower extends EntityBackedTower {
     }
 
     @Override
+    public DamageType primaryDamageType() {
+        return DamageType.MAGIC;
+    }
+
+    @Override
     public void onPlaced(PlayerLane lane) {
         super.onPlaced(lane);
         AncientCityStates.ensureSeeded(this, lane);

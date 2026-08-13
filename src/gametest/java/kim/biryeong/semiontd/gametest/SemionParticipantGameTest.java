@@ -1461,18 +1461,20 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, markup.contains("<aqua>다음</aqua>"), "Damage sidebar should keep a compact upcoming-wave line during preparation.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Damage Type 1</white> <red>물리 650</red> <light_purple>마법 25"),
+        if (!assertTrue(context, markup.contains("Damage Type 1</white> <#ec8d34>🪓 650</#ec8d34> <#796CFF>🔥 25</#796CFF>"),
                 "Same tower types should aggregate and split physical and magic damage.")) {
             return;
         }
-        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <red>물리"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
+        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <#ec8d34>🪓"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
             return;
         }
         int takenHeader = markup.indexOf("받은 피해 TOP 5");
         if (!assertTrue(
                 context,
-                takenHeader >= 0 && markup.indexOf("Damage Type 6", takenHeader) < markup.indexOf("Damage Type 5", takenHeader),
-                "Taken damage should use its own descending top-five order."
+                takenHeader >= 0
+                        && markup.indexOf("Damage Type 6</white> <aqua>🛡 60</aqua>", takenHeader) >= 0
+                        && markup.indexOf("Damage Type 6", takenHeader) < markup.indexOf("Damage Type 5", takenHeader),
+                "Taken damage should use shield icons and its own descending top-five order."
         )) {
             return;
         }
@@ -5528,11 +5530,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         String markup = SemionHudTextService.damageSidebarMarkupFor(playerId, game);
-        if (!assertTrue(context, markup.contains("<red>물리 50</red> <dark_gray>|</dark_gray> <light_purple>마법 6</light_purple>"),
+        if (!assertTrue(context, markup.contains("<#ec8d34>🪓 50</#ec8d34> <dark_gray>|</dark_gray> <#796CFF>🔥 6</#796CFF> <dark_gray>|</dark_gray> <aqua>🛡 0</aqua>"),
                 "Damage sidebar should show physical and magic totals without a separate ignite subtotal.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <red>물리 50</red> <light_purple>마법 6</light_purple>"),
+        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <#ec8d34>🪓 50</#ec8d34> <#796CFF>🔥 6</#796CFF>"),
                 "Tower damage ranking should split physical and magic damage.")) {
             return;
         }
@@ -10135,11 +10137,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 );
         rangedAbilities.put("threshold", 0.25);
         rangedAbilities.put("roundStat", 0.35);
-        Map<String, Double> globalAbilities =
-                new java.util.LinkedHashMap<>(abilities.get(WarlockTowers.CONFIG_ID));
-        globalAbilities.put("damageSoftCap", 125.0);
+        rangedAbilities.put("petHealth", 0.07);
+        rangedAbilities.put("petHealthCap", 0.21);
+        rangedAbilities.put("petDamage", 0.13);
+        rangedAbilities.put("petDamageCap", 0.65);
 
-        abilities.put(WarlockTowers.CONFIG_ID, globalAbilities);
         abilities.put(
                 WarlockTowers.RANGED_WARLOCK_TOWER.id(),
                 rangedAbilities
@@ -10174,9 +10176,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
             if (!assertTrue(
                     context,
-                    description.contains("추가 피해는 125까지 그대로 적용")
-                            && !description.contains("추가 피해는 최대"),
-                    "Warlock description should render the configured logarithmic damage soft cap."
+                    description.contains("능력치는 높아질수록 증가 효율이 감소합니다.")
+                            && !description.contains("로그 스케일"),
+                    "Warlock description should summarize diminishing scaling efficiency."
+            )) {
+                return;
+            }
+            if (!assertTrue(
+                    context,
+                    description.contains("개구리 계열마다 체력 +7%, 피해 +13%")
+                            && description.contains("최대 체력 +21%, 피해 +65%까지 증가"),
+                    "Warlock description should render configured frog-family bonuses and caps."
             )) {
                 return;
             }
@@ -11677,6 +11687,15 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 100.0, core.modifyIncomingDamage(null, null, 100.0), "Melee warlock should not reduce incoming damage before five absorbed towers.")) {
+            return;
+        }
+        String lifeStealWithSurvivor = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        if (!assertTrue(context, lifeStealWithSurvivor.contains("생명력 흡수: +0%"), "Melee warlock should have no life steal while another tower remains alive.")) {
+            return;
+        }
+        t1Melee.syncHealth(0.0);
+        String lifeStealWhileAlone = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        if (!assertTrue(context, lifeStealWhileAlone.contains("생명력 흡수: +1%"), "Melee warlock should gain one percent life steal per round sacrifice when it is the only living core tower.")) {
             return;
         }
         game.teams().get(TeamId.RED).resetForRound();

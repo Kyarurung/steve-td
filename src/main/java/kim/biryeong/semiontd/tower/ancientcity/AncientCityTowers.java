@@ -5,6 +5,7 @@ import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
 
 import java.util.List;
 import java.util.Set;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.visual.BlockDisplayVisual;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.tower.TowerType;
@@ -13,65 +14,65 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Blocks;
 
 public final class AncientCityTowers {
-    public static final TowerType CATALYST_T1 = tower(
+    public static final TowerType CATALYST_T1 = magicTower(
             "ancient_city_catalyst_t1", "스컬크 촉매 타워", 50, 145.0, 2.5, 3.0, 20, 50,
             BlockDisplayVisual.builder(Blocks.SCULK_CATALYST.defaultBlockState()).scale(0.65).build(),
             catalystDescription("기본")
     );
-    public static final TowerType CATALYST_T2 = tower(
+    public static final TowerType CATALYST_T2 = magicTower(
             "ancient_city_catalyst_t2", "강화 스컬크 촉매 타워", 110, 310.0, 3.0, 5.0, 18, 80,
             BlockDisplayVisual.builder(Blocks.SCULK_CATALYST.defaultBlockState()).scale(0.8).build(),
             catalystDescription("중급")
     );
-    public static final TowerType CATALYST_T3 = tower(
+    public static final TowerType CATALYST_T3 = magicTower(
             "ancient_city_catalyst_t3", "고대 스컬크 촉매 타워", 230, 650.0, 3.5, 8.0, 16, 110,
             BlockDisplayVisual.builder(Blocks.SCULK_CATALYST.defaultBlockState()).scale(0.95).build(),
             catalystDescription("최종")
     );
 
-    public static final TowerType SENSOR_T1 = tower(
+    public static final TowerType SENSOR_T1 = magicTower(
             "ancient_city_sensor_t1", "스컬크 감지체 타워", 45, 50.0, 8.0, 2.0, 20, -10,
             BlockDisplayVisual.builder(Blocks.SCULK_SENSOR.defaultBlockState()).scale(0.65).build(),
             sensorDescription("기본")
     );
-    public static final TowerType SENSOR_T2 = tower(
+    public static final TowerType SENSOR_T2 = magicTower(
             "ancient_city_sensor_t2", "정밀 스컬크 감지체 타워", 90, 85.0, 9.0, 4.0, 18, -10,
             BlockDisplayVisual.builder(Blocks.CALIBRATED_SCULK_SENSOR.defaultBlockState()).scale(0.8).build(),
             sensorDescription("중급")
     );
-    public static final TowerType SENSOR_T3 = tower(
+    public static final TowerType SENSOR_T3 = magicTower(
             "ancient_city_sensor_t3", "고대 스컬크 감지체 타워", 190, 130.0, 10.0, 5.0, 16, -10,
             BlockDisplayVisual.builder(Blocks.CALIBRATED_SCULK_SENSOR.defaultBlockState()).scale(0.95).build(),
             sensorDescription("최종")
     );
 
-    public static final TowerType SHRIEKER_T1 = tower(
+    public static final TowerType SHRIEKER_T1 = magicTower(
             "ancient_city_shrieker_t1", "스컬크 비명체 타워", 55, 70.0, 6.0, 2.0, 20, 0,
             BlockDisplayVisual.builder(Blocks.SCULK_SHRIEKER.defaultBlockState()).scale(0.65).build(),
             shriekerDescription("기본")
     );
-    public static final TowerType SHRIEKER_T2 = tower(
+    public static final TowerType SHRIEKER_T2 = magicTower(
             "ancient_city_shrieker_t2", "강화 스컬크 비명체 타워", 110, 120.0, 7.0, 4.0, 18, 0,
             BlockDisplayVisual.builder(Blocks.SCULK_SHRIEKER.defaultBlockState()).scale(0.8).build(),
             shriekerDescription("중급")
     );
-    public static final TowerType SHRIEKER_T3 = tower(
+    public static final TowerType SHRIEKER_T3 = magicTower(
             "ancient_city_shrieker_t3", "고대 스컬크 비명체 타워", 220, 180.0, 8.0, 7.0, 16, 0,
             BlockDisplayVisual.builder(Blocks.SCULK_SHRIEKER.defaultBlockState()).scale(0.95).build(),
             shriekerDescription("최종")
     );
 
-    public static final TowerType WARDEN_T1 = tower(
+    public static final TowerType WARDEN_T1 = magicTower(
             "ancient_city_warden_t1", "워든 타워", 110, 120.0, 6.5, 4.0, 20, 0,
             EntityVisual.builder(byId(EntityType.WARDEN)).scale(0.22).build(),
             wardenDescription("기본")
     );
-    public static final TowerType WARDEN_T2 = tower(
+    public static final TowerType WARDEN_T2 = magicTower(
             "ancient_city_warden_t2", "강화 워든 타워", 160, 220.0, 7.5, 8.0, 18, 0,
             EntityVisual.builder(byId(EntityType.WARDEN)).scale(0.28).build(),
             wardenDescription("중급")
     );
-    public static final TowerType WARDEN_T3 = tower(
+    public static final TowerType WARDEN_T3 = magicTower(
             "ancient_city_warden_t3", "고대 워든 타워", 300, 360.0, 9.0, 12.0, 16, 0,
             EntityVisual.builder(byId(EntityType.WARDEN)).scale(0.33).build(),
             wardenDescription("최종")
@@ -125,6 +126,32 @@ public final class AncientCityTowers {
             return 1;
         }
         return type.id().endsWith("_t3") ? 3 : type.id().endsWith("_t2") ? 2 : 1;
+    }
+
+    private static TowerType magicTower(
+            String id,
+            String displayName,
+            long mineralCost,
+            double maxHealth,
+            double range,
+            double damage,
+            int attackIntervalTicks,
+            int aggroPriority,
+            EntityVisual visual,
+            List<String> description
+    ) {
+        return tower(
+                id,
+                displayName,
+                mineralCost,
+                maxHealth,
+                range,
+                damage,
+                attackIntervalTicks,
+                aggroPriority,
+                visual,
+                description
+        ).withPrimaryDamageType(DamageType.MAGIC);
     }
 
     private static Set<String> ids(TowerType... types) {

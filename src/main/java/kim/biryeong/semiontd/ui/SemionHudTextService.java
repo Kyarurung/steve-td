@@ -4,6 +4,7 @@ import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.a
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.attackRangeText;
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.attackSpeedText;
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.damageReductionText;
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.magicDamageText;
 
 import eu.pb4.placeholders.api.PlaceholderContext;
 import eu.pb4.placeholders.api.PlaceholderResult;
@@ -108,8 +109,8 @@ public final class SemionHudTextService {
                     .append(remainingPrepareSeconds)
                     .append("초</green>");
         }
-        text.append(" <dark_gray>|</dark_gray> <red>물리 ").append(formatDamage(totalPhysical)).append("</red>")
-                .append(" <dark_gray>|</dark_gray> <light_purple>마법 ").append(formatDamage(totalMagic)).append("</light_purple>")
+        text.append(" <dark_gray>|</dark_gray> ").append(attackDamageText("🪓 " + formatDamage(totalPhysical)))
+                .append(" <dark_gray>|</dark_gray> ").append(magicDamageText("🔥 " + formatDamage(totalMagic)))
                 .append(" <dark_gray>|</dark_gray> <aqua>🛡 ").append(formatDamage(totalTaken)).append("</aqua>\n");
         appendCompactNextWavePreview(text, viewerId, game);
         appendDamageTop(text, summaries, true);
@@ -243,10 +244,10 @@ public final class SemionHudTextService {
             text.append("<gray>").append(index + 1).append(".</gray> <white>")
                     .append(summary.displayName()).append("</white> ");
             if (dealt) {
-                text.append("<red>물리 ").append(formatDamage(summary.physical())).append("</red> ")
-                        .append("<light_purple>마법 ").append(formatDamage(summary.magic())).append("</light_purple>\n");
+                text.append(attackDamageText("🪓 " + formatDamage(summary.physical()))).append(' ')
+                        .append(magicDamageText("🔥 " + formatDamage(summary.magic()))).append('\n');
             } else {
-                text.append("<aqua>").append(formatDamage(summary.taken())).append("</aqua>\n");
+                text.append("<aqua>🛡 ").append(formatDamage(summary.taken())).append("</aqua>\n");
             }
         }
     }

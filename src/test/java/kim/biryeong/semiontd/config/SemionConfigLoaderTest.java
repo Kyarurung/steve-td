@@ -16,6 +16,7 @@ import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -295,6 +296,60 @@ final class SemionConfigLoaderTest {
         assertTrue(written.contains("cloneDamageBonus"));
         assertTrue(written.contains("\"schemaVersion\": 2"));
         assertTrue(written.contains("waterSupplyStopThreshold"));
+    }
+
+    @Test
+    void loadBackfillsMissingWarlockAbilitiesWithoutOverwritingConfiguredValues() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+                {
+                  "towers": {},
+                  "upgradeCosts": {},
+                  "abilities": {
+                    "warlock_global": {
+                      "sacrificeRadius": 25.0,
+                      "minInterval": 5.0,
+                      "speedCap": 15.0,
+                      "awakeningAbsorptions": 20.0,
+                      "awakeningThreshold": 0.4,
+                      "damageSoftCap": 180.0
+                    },
+                    "ranged_warlock_tower": {
+                      "petHealth": 0.05,
+                      "petHealthCap": 0.25,
+                      "petDamage": 0.15,
+                      "petDamageCap": 0.75
+                    },
+                    "melee_warlock_tower": {
+                      "petHealth": 0.15,
+                      "petHealthCap": 0.75,
+                      "petDamage": 0.05,
+                      "petDamageCap": 0.25
+                    }
+                  },
+                  "schemaVersion": 2
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        Map<String, Double> global = configs.towerBalance().abilities().get(WarlockTowers.CONFIG_ID);
+        assertEquals(175.0, global.get("damageThreshold"));
+        assertEquals(25.0, global.get("damageScale"));
+        assertEquals(3500.0, global.get("healthThreshold"));
+        assertEquals(500.0, global.get("healthScale"));
+        assertEquals(180.0, global.get("damageSoftCap"));
+        assertEquals(0.25, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0));
+        assertEquals(0.25, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0));
+
+        String written = Files.readString(tempDir.resolve("tower_balance.json"));
+        assertTrue(written.contains("\"damageThreshold\": 175.0"));
+        assertTrue(written.contains("\"damageScale\": 25.0"));
+        assertTrue(written.contains("\"healthThreshold\": 3500.0"));
+        assertTrue(written.contains("\"healthScale\": 500.0"));
+        assertTrue(written.contains("\"damageSoftCap\": 180.0"));
+        assertTrue(written.contains("\"petHealthCap\": 0.25"));
+        assertTrue(written.contains("\"petDamageCap\": 0.25"));
     }
 
     @Test

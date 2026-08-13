@@ -19,6 +19,7 @@ public final class TowerDescriptionTemplate {
     private static final String LIFE_STEAL_COLOR = "#e32042";
     private static final String DAMAGE_REDUCTION_COLOR = "#f3ba59";
     private static final String ATTACK_DAMAGE_COLOR = "#ec8d34";
+    private static final String MAGIC_DAMAGE_COLOR = "#796CFF";
     private static final String ATTACK_SPEED_COLOR = "#ffe78d";
     private static final String ATTACK_RANGE_COLOR = "#f0e6d2";
     private static final String RESISTANCE_COLOR = "#53DFFF";
@@ -208,8 +209,20 @@ public final class TowerDescriptionTemplate {
         return "<" + HEALTH_COLOR + ">" + text + "</" + HEALTH_COLOR + ">";
     }
 
+    public static String regenerationText(String text) {
+        return "<" + REGENERATION_COLOR + ">" + text + "</" + REGENERATION_COLOR + ">";
+    }
+
+    public static String lifeStealText(String text) {
+        return "<" + LIFE_STEAL_COLOR + ">" + text + "</" + LIFE_STEAL_COLOR + ">";
+    }
+
     public static String attackDamageText(String text) {
         return "<" + ATTACK_DAMAGE_COLOR + ">" + text + "</" + ATTACK_DAMAGE_COLOR + ">";
+    }
+
+    public static String magicDamageText(String text) {
+        return "<" + MAGIC_DAMAGE_COLOR + ">" + text + "</" + MAGIC_DAMAGE_COLOR + ">";
     }
 
     public static String damageReductionText(String text) {
@@ -250,6 +263,10 @@ public final class TowerDescriptionTemplate {
 
     public static String formatAttackDamage(double value, String progress) {
         return styledProgressStat(ATTACK_DAMAGE_COLOR, "\uD83E\uDE93", "피해", formatNumber(value), progress);
+    }
+
+    public static String formatMagicDamage(double value, String progress) {
+        return styledProgressStat(MAGIC_DAMAGE_COLOR, "\uD83D\uDD25", "피해", formatNumber(value), progress);
     }
 
     public static String formatPermanentDamage(double value, String progress) {

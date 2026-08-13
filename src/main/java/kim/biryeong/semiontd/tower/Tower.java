@@ -76,6 +76,10 @@ public abstract class Tower {
         return type;
     }
 
+    public DamageType primaryDamageType() {
+        return type.primaryDamageType();
+    }
+
     public EntityVisual visual() {
         return type.visual();
     }

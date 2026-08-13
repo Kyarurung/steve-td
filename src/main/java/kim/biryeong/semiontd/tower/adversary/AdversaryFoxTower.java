@@ -95,6 +95,11 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         return form;
     }
 
+    @Override
+    public DamageType primaryDamageType() {
+        return form == FoxForm.SCULK_CORE ? DamageType.MAGIC : DamageType.PHYSICAL;
+    }
+
     public UUID foxId() {
         return getDataOrDefault(FOX_ID, ownerPlayer());
     }
