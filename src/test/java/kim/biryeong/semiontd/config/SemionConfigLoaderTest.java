@@ -299,7 +299,7 @@ final class SemionConfigLoaderTest {
     }
 
     @Test
-    void loadMigratesAndOrdersWarlockAbilities() throws Exception {
+    void loadBackfillsMissingWarlockAbilitiesWithoutOverwritingConfiguredValues() throws Exception {
         Files.createDirectories(tempDir);
         Files.writeString(tempDir.resolve("tower_balance.json"), """
                 {
@@ -338,21 +338,18 @@ final class SemionConfigLoaderTest {
         assertEquals(25.0, global.get("damageScale"));
         assertEquals(3500.0, global.get("healthThreshold"));
         assertEquals(500.0, global.get("healthScale"));
-        assertFalse(global.containsKey("damageSoftCap"));
-        assertEquals(0.15, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0));
-        assertEquals(0.15, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0));
-        assertEquals(List.of(
-                "damageThreshold", "damageScale", "healthThreshold", "healthScale",
-                "sacrificeRadius", "minInterval", "speedCap", "awakeningAbsorptions", "awakeningThreshold"
-        ), List.copyOf(global.keySet()));
+        assertEquals(180.0, global.get("damageSoftCap"));
+        assertEquals(0.25, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0));
+        assertEquals(0.25, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0));
 
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
-        assertTrue(written.indexOf("\"damageThreshold\"") < written.indexOf("\"damageScale\""));
-        assertTrue(written.indexOf("\"damageScale\"") < written.indexOf("\"healthThreshold\""));
-        assertTrue(written.indexOf("\"healthThreshold\"") < written.indexOf("\"healthScale\""));
-        assertFalse(written.contains("damageSoftCap"));
-        assertTrue(written.contains("\"petHealthCap\": 0.15"));
-        assertTrue(written.contains("\"petDamageCap\": 0.15"));
+        assertTrue(written.contains("\"damageThreshold\": 175.0"));
+        assertTrue(written.contains("\"damageScale\": 25.0"));
+        assertTrue(written.contains("\"healthThreshold\": 3500.0"));
+        assertTrue(written.contains("\"healthScale\": 500.0"));
+        assertTrue(written.contains("\"damageSoftCap\": 180.0"));
+        assertTrue(written.contains("\"petHealthCap\": 0.25"));
+        assertTrue(written.contains("\"petDamageCap\": 0.25"));
     }
 
     @Test

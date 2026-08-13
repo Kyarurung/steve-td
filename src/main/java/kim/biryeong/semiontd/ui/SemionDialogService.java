@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
+import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowerState;
@@ -581,11 +582,10 @@ public final class SemionDialogService {
         Optional<SemionTowerEntity> combatStatsEntity = previewEndTower != null
                 ? Optional.empty()
                 : towerEntity;
+        double baseDamage = towerPrimaryDamage(tower);
         double currentDamage = previewEndTower != null
                 ? previewEndTower.previewHatchedAttackDamage()
-                : combatStatsEntity
-                        .map(entity -> tower.resolveOutgoingDamage(entity, null, entity.attackDamageAmount(null)))
-                        .orElseGet(() -> tower.modifyAttackDamage(null, null, tower.type().damage()));
+                : currentTowerPrimaryDamage(tower, combatStatsEntity.orElse(null));
         double currentRange = previewEndTower != null
                 ? previewEndTower.previewHatchedAttackRange()
                 : combatStatsEntity
@@ -606,7 +606,7 @@ public final class SemionDialogService {
         body.append("<white>팀</white> ").append(teamMarkup(tower.teamId())).append(" <dark_gray>|</dark_gray> ").append("<white>라인</white> <yellow>#").append(tower.laneId()).append("</yellow>\n");
         body.append("<divider>\n");
         body.append(formatHealth(tower.health(), currentMaxHealth, "")).append(formatIncrease(tower.type().maxHealth(), currentMaxHealth)).append('\n');
-        body.append(formatAttackDamage(currentDamage, "")).append(formatIncrease(tower.type().damage(), currentDamage)).append('\n');
+        body.append(formatTowerDamage(tower, currentDamage)).append(formatIncrease(baseDamage, currentDamage)).append('\n');
         double baseAttacksPerSecond = 20.0 / Math.max(1, tower.type().attackIntervalTicks());
         double currentAttacksPerSecond = 20.0 / Math.max(1, currentAttackIntervalTicks);
         body.append(formatAttackSpeed(currentAttacksPerSecond, currentAttackIntervalTicks, "")).append(formatIncrease(baseAttacksPerSecond, currentAttacksPerSecond)).append('\n');
@@ -1013,6 +1013,63 @@ public final class SemionDialogService {
         return lines;
     }
 
+    static String formatTowerDamage(Tower tower, double currentDamage) {
+        if (tower != null && tower.primaryDamageType() == DamageType.MAGIC) {
+            return formatMagicDamage(currentDamage, "");
+        }
+        return formatAttackDamage(currentDamage, "");
+    }
+
+    static String formatTowerTypeDamage(TowerType type, double damage) {
+        if (type != null && type.primaryDamageType() == DamageType.MAGIC) {
+            return formatMagicDamage(damage, "");
+        }
+        return formatAttackDamage(damage, "");
+    }
+
+    static double towerTypePrimaryDamage(TowerType type) {
+        if (type == null) {
+            return 0.0;
+        }
+        return primaryDamage(type, type.primaryDamageType());
+    }
+
+    static String formatTowerTypePrimaryDamage(TowerType type) {
+        return formatTowerTypeDamage(type, towerTypePrimaryDamage(type));
+    }
+
+    static double towerPrimaryDamage(Tower tower) {
+        if (tower == null) {
+            return 0.0;
+        }
+        return primaryDamage(tower.type(), tower.primaryDamageType());
+    }
+
+    static double currentTowerPrimaryDamage(Tower tower, SemionTowerEntity towerEntity) {
+        if (tower == null) {
+            return 0.0;
+        }
+        double baseDamage = towerPrimaryDamage(tower);
+        if (tower.primaryDamageType() == DamageType.MAGIC) {
+            return towerEntity == null
+                    ? baseDamage
+                    : tower.resolveOutgoingDamage(towerEntity, null, baseDamage);
+        }
+        return towerEntity == null
+                ? tower.modifyAttackDamage(null, null, baseDamage)
+                : tower.resolveOutgoingDamage(towerEntity, null, towerEntity.attackDamageAmount(null));
+    }
+
+    private static double primaryDamage(TowerType type, DamageType damageType) {
+        if (damageType == DamageType.MAGIC) {
+            double magicDamage = TowerBalanceRuntime.ability(type.id(), "magicDamage", Double.NaN);
+            if (Double.isFinite(magicDamage)) {
+                return magicDamage;
+            }
+        }
+        return type.damage();
+    }
+
     private static void appendTowerRuntimeDetails(StringBuilder body, Tower tower) {
         List<String> lines = towerRuntimeDetailLines(tower).stream().filter(line -> line != null && !line.isBlank()).toList();
         if (lines.isEmpty()) {
@@ -1086,7 +1143,7 @@ public final class SemionDialogService {
             int columns
     ) {
         if (actions.isEmpty()) {
-            show(player, title, body);
+            showActions(player, title, actionDialogBodies(body), actions, columns);
             return;
         }
         Dialog dialog = new MultiActionDialog(
@@ -1308,7 +1365,7 @@ public final class SemionDialogService {
         double attacksPerSecond = 20.0 / Math.max(1, type.attackIntervalTicks());
         MutableComponent tooltip = mutableMiniMessage("<white><bold>" + type.displayName() + "</bold></white>\n" + (recommended ? "<blue>빌드 추천</blue>\n" : "") + DIAMOND_GRADIENT + "\uD83D\uDC8E " + mineralCost + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n");
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.damage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
+        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatTowerTypePrimaryDamage(type) + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
         tooltip.append(dividerComponent(160));
         appendTowerDescription(tooltip, type.description());
         return tooltip;
@@ -1324,7 +1381,7 @@ public final class SemionDialogService {
         double attacksPerSecond = 20.0 / Math.max(1, type.attackIntervalTicks());
         MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + option.displayName() + "</bold></yellow>\n" + (recommended ? "<blue>빌드 추천</blue>\n" : "") + "<gray>대상</gray> <white>" + type.displayName() + "</white>\n" + DIAMOND_GRADIENT + "\uD83D\uDC8E " + option.mineralCost() + " 다이아" + GRADIENT_CLOSE + (affordable ? " <green>(구매 가능)</green>" : " <red>(부족)</red>") + "\n" + advExperienceRequirementLine(currentTower, option));
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.damage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
+        tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatTowerTypePrimaryDamage(type) + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
         tooltip.append(dividerComponent(160));
         appendTowerDescription(tooltip, type.description());
         return tooltip;

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.entity.visual.FoxVisual;
 import kim.biryeong.semiontd.tower.TowerCategory;
@@ -232,6 +233,7 @@ public final class AdversaryTowers {
                 .aggroPriority(50)
                 .visual(FoxVisual.builder().variant(Fox.Variant.DEFAULT).build())
                 .description(formDescription(form))
+                .primaryDamageType(form == FoxForm.SCULK_CORE ? DamageType.MAGIC : DamageType.PHYSICAL)
                 .build();
     }
 

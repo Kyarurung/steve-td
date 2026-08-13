@@ -167,7 +167,7 @@ class WarlockTowerBalanceTest {
     }
 
     @Test
-    void damageScalingConfigAcceptsZeroAndMergesLegacyFiles() {
+    void damageScalingConfigAcceptsZeroAndBackfillsMissingValues() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> invalidAbilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> invalidWarlock = new LinkedHashMap<>(invalidAbilities.get(WarlockTowers.CONFIG_ID));
@@ -176,30 +176,22 @@ class WarlockTowerBalanceTest {
         TowerBalanceConfig zero = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
         assertDoesNotThrow(() -> TowerBalanceRuntime.apply(zero));
 
-        Map<String, Map<String, Double>> legacyAbilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> legacyWarlock = new LinkedHashMap<>(legacyAbilities.get(WarlockTowers.CONFIG_ID));
-        legacyWarlock.remove("damageThreshold");
-        legacyWarlock.remove("damageScale");
-        legacyWarlock.remove("healthThreshold");
-        legacyWarlock.remove("healthScale");
-        legacyWarlock.put("damageSoftCap", 180.0);
-        legacyWarlock.put("damageCap", 350.0);
-        legacyAbilities.put(WarlockTowers.CONFIG_ID, legacyWarlock);
+        Map<String, Map<String, Double>> partialAbilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> partialWarlock = new LinkedHashMap<>(partialAbilities.get(WarlockTowers.CONFIG_ID));
+        partialWarlock.remove("damageThreshold");
+        partialWarlock.remove("damageScale");
+        partialWarlock.remove("healthThreshold");
+        partialWarlock.remove("healthScale");
+        partialAbilities.put(WarlockTowers.CONFIG_ID, partialWarlock);
         TowerBalanceConfig merged = new TowerBalanceConfig(
                 defaults.towers(),
                 defaults.upgradeCosts(),
-                legacyAbilities
+                partialAbilities
         ).withMissingDefaults(defaults);
         assertEquals(175.0, merged.ability(WarlockTowers.CONFIG_ID, "damageThreshold", -1.0), 0.0001);
         assertEquals(25.0, merged.ability(WarlockTowers.CONFIG_ID, "damageScale", -1.0), 0.0001);
         assertEquals(3500.0, merged.ability(WarlockTowers.CONFIG_ID, "healthThreshold", -1.0), 0.0001);
         assertEquals(500.0, merged.ability(WarlockTowers.CONFIG_ID, "healthScale", -1.0), 0.0001);
-        assertEquals(-1.0, merged.ability(WarlockTowers.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
-        assertEquals(-1.0, merged.ability(WarlockTowers.CONFIG_ID, "damageCap", -1.0), 0.0001);
-        assertEquals(List.of(
-                "damageThreshold", "damageScale", "healthThreshold", "healthScale",
-                "sacrificeRadius", "minInterval", "speedCap", "awakeningAbsorptions", "awakeningThreshold"
-        ), List.copyOf(merged.abilities().get(WarlockTowers.CONFIG_ID).keySet()));
         TowerBalanceRuntime.apply(merged);
         assertEquals(247.2593, WarlockTower.scaledDamageBonus(600.0), 0.0001);
     }
@@ -219,33 +211,24 @@ class WarlockTowerBalanceTest {
     }
 
     @Test
-    void legacyPassiveCapsMigrateWithoutReplacingCustomValues() {
+    void configuredPassiveCapsRemainAuthoritative() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> legacyAbilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> ranged = new LinkedHashMap<>(legacyAbilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
+        Map<String, Map<String, Double>> configuredAbilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> ranged = new LinkedHashMap<>(configuredAbilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
         ranged.put("petHealthCap", 0.25);
-        legacyAbilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), ranged);
-        Map<String, Double> melee = new LinkedHashMap<>(legacyAbilities.get(WarlockTowers.MELEE_WARLOCK_TOWER.id()));
+        configuredAbilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), ranged);
+        Map<String, Double> melee = new LinkedHashMap<>(configuredAbilities.get(WarlockTowers.MELEE_WARLOCK_TOWER.id()));
         melee.put("petDamageCap", 0.25);
-        legacyAbilities.put(WarlockTowers.MELEE_WARLOCK_TOWER.id(), melee);
+        configuredAbilities.put(WarlockTowers.MELEE_WARLOCK_TOWER.id(), melee);
 
-        TowerBalanceConfig migrated = new TowerBalanceConfig(
+        TowerBalanceConfig merged = new TowerBalanceConfig(
                 defaults.towers(),
                 defaults.upgradeCosts(),
-                legacyAbilities
+                configuredAbilities
         ).withMissingDefaults(defaults);
 
-        assertEquals(0.15, migrated.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0), 0.0001);
-        assertEquals(0.15, migrated.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0), 0.0001);
-
-        ranged.put("petHealthCap", 0.30);
-        legacyAbilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), ranged);
-        TowerBalanceConfig customized = new TowerBalanceConfig(
-                defaults.towers(),
-                defaults.upgradeCosts(),
-                legacyAbilities
-        ).withMissingDefaults(defaults);
-        assertEquals(0.30, customized.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0), 0.0001);
+        assertEquals(0.25, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0), 0.0001);
+        assertEquals(0.25, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0), 0.0001);
     }
 
     @Test
@@ -313,7 +296,15 @@ class WarlockTowerBalanceTest {
         assertFalse(meleeDescription.contains("로그 스케일"));
         assertTrue(meleeDescription.contains("생존 중인 양 계열마다 체력 +15%, 피해 +5%"));
         assertTrue(meleeDescription.contains("최대 체력 +75%, 피해 +15%까지 증가"));
-        assertTrue(meleeDescription.contains("핵심 타워 외 다른 타워가 남아 있지 않다면, 이번 라운드에 희생한 타워 1기당 생명력 흡수 +1%를 얻으며, 최대 16%까지 증가합니다."));
+        assertEquals(7, meleeDescriptionLines.size());
+        assertEquals(
+                "핵심 타워 외 다른 타워가 남아 있지 않다면, 이번 라운드에 희생한 타워 1기당 생명력 흡수 +1%를 얻으며,",
+                meleeDescriptionLines.get(4).replaceAll("<[^>]+>", "")
+        );
+        assertEquals(
+                "최대 16%까지 증가합니다.",
+                meleeDescriptionLines.get(5).replaceAll("<[^>]+>", "")
+        );
         assertTrue(meleeMarkup.contains("<#fc5454>양 계열</#fc5454>"));
         assertTrue(meleeMarkup.contains("<#e32042>생명력 흡수 +1%</#e32042>"));
         assertFalse(meleeDescription.contains("스플래시 범위"));

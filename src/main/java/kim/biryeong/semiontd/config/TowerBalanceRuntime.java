@@ -34,7 +34,8 @@ public final class TowerBalanceRuntime {
                 stats.aggroPriority(),
                 defaults.description(),
                 defaults.visual(),
-                defaults.upgradeOptions()
+                defaults.upgradeOptions(),
+                defaults.primaryDamageType()
         );
         return new TowerType(
                 defaults.id(),
@@ -48,7 +49,8 @@ public final class TowerBalanceRuntime {
                 stats.aggroPriority(),
                 TowerDescriptionRegistry.describe(resolved).orElse(defaults.description()),
                 defaults.visual(),
-                defaults.upgradeOptions()
+                defaults.upgradeOptions(),
+                defaults.primaryDamageType()
         );
     }
 

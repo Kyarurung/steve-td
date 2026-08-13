@@ -1461,18 +1461,20 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, markup.contains("<aqua>다음</aqua>"), "Damage sidebar should keep a compact upcoming-wave line during preparation.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Damage Type 1</white> <red>물리 650</red> <light_purple>마법 25"),
+        if (!assertTrue(context, markup.contains("Damage Type 1</white> <#ec8d34>🪓 650</#ec8d34> <#796CFF>🔥 25</#796CFF>"),
                 "Same tower types should aggregate and split physical and magic damage.")) {
             return;
         }
-        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <red>물리"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
+        if (!assertTrue(context, !markup.contains("Damage Type 6</white> <#ec8d34>🪓"), "The sixth dealt-damage type should be excluded from the dealt top five.")) {
             return;
         }
         int takenHeader = markup.indexOf("받은 피해 TOP 5");
         if (!assertTrue(
                 context,
-                takenHeader >= 0 && markup.indexOf("Damage Type 6", takenHeader) < markup.indexOf("Damage Type 5", takenHeader),
-                "Taken damage should use its own descending top-five order."
+                takenHeader >= 0
+                        && markup.indexOf("Damage Type 6</white> <aqua>🛡 60</aqua>", takenHeader) >= 0
+                        && markup.indexOf("Damage Type 6", takenHeader) < markup.indexOf("Damage Type 5", takenHeader),
+                "Taken damage should use shield icons and its own descending top-five order."
         )) {
             return;
         }
@@ -5500,11 +5502,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         String markup = SemionHudTextService.damageSidebarMarkupFor(playerId, game);
-        if (!assertTrue(context, markup.contains("<red>물리 50</red> <dark_gray>|</dark_gray> <light_purple>마법 6</light_purple>"),
+        if (!assertTrue(context, markup.contains("<#ec8d34>🪓 50</#ec8d34> <dark_gray>|</dark_gray> <#796CFF>🔥 6</#796CFF> <dark_gray>|</dark_gray> <aqua>🛡 0</aqua>"),
                 "Damage sidebar should show physical and magic totals without a separate ignite subtotal.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <red>물리 50</red> <light_purple>마법 6</light_purple>"),
+        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <#ec8d34>🪓 50</#ec8d34> <#796CFF>🔥 6</#796CFF>"),
                 "Tower damage ranking should split physical and magic damage.")) {
             return;
         }

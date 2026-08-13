@@ -936,18 +936,11 @@ public record TowerBalanceConfig(
         LinkedHashMap<String, Map<String, Double>> mergedAbilities = new LinkedHashMap<>();
         abilities.forEach((towerId, values) -> {
             LinkedHashMap<String, Double> mergedValues = new LinkedHashMap<>(values);
-            if (WarlockTowers.CONFIG_ID.equals(towerId)) {
-                migrateLegacyWarlockDamageScaling(mergedValues);
-            }
-            migrateLegacyWarlockPassiveCaps(towerId, mergedValues);
             Map<String, Double> defaultValues = defaults.abilities.get(towerId);
             if (defaultValues != null) {
                 for (Map.Entry<String, Double> entry : defaultValues.entrySet()) {
                     mergedValues.putIfAbsent(entry.getKey(), entry.getValue());
                 }
-            }
-            if (isWarlockAbilityConfig(towerId) && defaultValues != null) {
-                mergedValues = orderConfiguredAbilities(mergedValues, defaultValues);
             }
             mergedAbilities.put(towerId, mergedValues);
         });

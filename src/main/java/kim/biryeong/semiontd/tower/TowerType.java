@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower;
 
 import java.util.List;
 import java.util.Optional;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 
 public record TowerType(
@@ -16,10 +17,42 @@ public record TowerType(
         int aggroPriority,
         List<String> description,
         EntityVisual visual,
-        List<TowerUpgradeOption> upgradeOptions
+        List<TowerUpgradeOption> upgradeOptions,
+        DamageType primaryDamageType
 ) {
     public static Builder builder(String id, String displayName) {
         return new Builder(id, displayName);
+    }
+
+    public TowerType(
+            String id,
+            String displayName,
+            TowerCategory category,
+            long mineralCost,
+            double maxHealth,
+            double range,
+            double damage,
+            int attackIntervalTicks,
+            int aggroPriority,
+            List<String> description,
+            EntityVisual visual,
+            List<TowerUpgradeOption> upgradeOptions
+    ) {
+        this(
+                id,
+                displayName,
+                category,
+                mineralCost,
+                maxHealth,
+                range,
+                damage,
+                attackIntervalTicks,
+                aggroPriority,
+                description,
+                visual,
+                upgradeOptions,
+                DamageType.PHYSICAL
+        );
     }
 
     public TowerType(
@@ -262,6 +295,25 @@ public record TowerType(
         visual = visual == null ? EntityVisual.vanilla(EntityVisual.DEFAULT_TOWER_ENTITY_TYPE) : visual;
         description = description == null ? List.of() : List.copyOf(description);
         upgradeOptions = upgradeOptions == null ? List.of() : List.copyOf(upgradeOptions);
+        primaryDamageType = primaryDamageType == null ? DamageType.PHYSICAL : primaryDamageType;
+    }
+
+    public TowerType withPrimaryDamageType(DamageType damageType) {
+        return new TowerType(
+                id,
+                displayName,
+                category,
+                mineralCost,
+                maxHealth,
+                range,
+                damage,
+                attackIntervalTicks,
+                aggroPriority,
+                description,
+                visual,
+                upgradeOptions,
+                damageType
+        );
     }
 
     public Optional<String> blockbenchModel() {
@@ -289,6 +341,7 @@ public record TowerType(
         private List<String> description = List.of();
         private EntityVisual visual;
         private List<TowerUpgradeOption> upgradeOptions = List.of();
+        private DamageType primaryDamageType = DamageType.PHYSICAL;
 
         private Builder(String id, String displayName) {
             this.id = id;
@@ -345,6 +398,11 @@ public record TowerType(
             return this;
         }
 
+        public Builder primaryDamageType(DamageType primaryDamageType) {
+            this.primaryDamageType = primaryDamageType;
+            return this;
+        }
+
         public TowerType build() {
             return new TowerType(
                     id,
@@ -358,7 +416,8 @@ public record TowerType(
                     aggroPriority,
                     description,
                     visual,
-                    upgradeOptions
+                    upgradeOptions,
+                    primaryDamageType
             );
         }
     }

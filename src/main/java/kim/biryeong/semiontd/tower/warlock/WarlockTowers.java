@@ -200,7 +200,8 @@ public final class WarlockTowers {
                 "<gray>흡수한 타워 " + healthText("체력") + "과 " + attackDamageText("피해") + "의 " + ability(MELEE_ROUND_STAT, "percent") + "를 이번 라운드 동안 획득합니다.</gray>",
                 "<gray>흡수한 타워마다 " + healthText("체력 +" + ability(MELEE_PERMANENT_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PERMANENT_DAMAGE, "percent")) + "를 영구 누적합니다.</gray>",
                 "<gray>생존 중인 " + healthText("양 계열") + "마다 " + healthText("체력 +" + ability(MELEE_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE, "percent")) + "를 얻으며, 최대 " + healthText("체력 +" + ability(MELEE_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
-                "<gray>핵심 타워 외 다른 타워가 남아 있지 않다면, 이번 라운드에 희생한 타워 1기당 " + lifeStealText("생명력 흡수 +" + ability(MELEE_LIFE_STEP, "percent")) + "를 얻으며, 최대 " + lifeStealText(ability(MELEE_LIFE_CAP, "percent")) + "까지 증가합니다.</gray>"
+                "<gray>핵심 타워 외 다른 타워가 남아 있지 않다면, 이번 라운드에 희생한 타워 1기당 " + lifeStealText("생명력 흡수 +" + ability(MELEE_LIFE_STEP, "percent")) + "를 얻으며,</gray>",
+                "<gray>최대 " + lifeStealText(ability(MELEE_LIFE_CAP, "percent")) + "까지 증가합니다.</gray>"
         ));
         if (WarlockConfig.AWAKENING_ENABLED) {
             lines.addAll(List.of(

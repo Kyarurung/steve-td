@@ -1,5 +1,8 @@
 package kim.biryeong.semiontd.ui;
 
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.attackDamageText;
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.formatMagicDamage;
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.magicDamageText;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +44,16 @@ final class SemionHudTextServiceTest {
         assertEquals("1.0K", SemionHudTextService.formatDamage(1_000.0));
         assertEquals("12.3M", SemionHudTextService.formatDamage(12_345_678.0));
         assertEquals("1.2B", SemionHudTextService.formatDamage(1_234_567_890.0));
+    }
+
+    @Test
+    void damageTypesUseIconsAndSharedHudColors() {
+        assertEquals("<#ec8d34>🪓 123</#ec8d34>", attackDamageText("🪓 123"));
+        assertEquals("<#796CFF>🔥 456</#796CFF>", magicDamageText("🔥 456"));
+        assertEquals(
+                "<#796CFF>🔥 피해</#796CFF><white>: </white><#796CFF>42</#796CFF>",
+                formatMagicDamage(42.0, "")
+        );
     }
 
     @Test
