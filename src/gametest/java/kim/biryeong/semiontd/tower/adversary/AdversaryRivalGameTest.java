@@ -206,7 +206,7 @@ public final class AdversaryRivalGameTest {
             );
             proxyEntity.aiStep();
 
-            require(rival.contributedScore() == 1,
+            require(rival.contributedScore() == 2,
                     "An ignite last hit from the fox must credit the rival's evolution score.");
             requireClose(160.0, fox.health(),
                     "A base rival kill must heal twenty percent of the fox's maximum health.");

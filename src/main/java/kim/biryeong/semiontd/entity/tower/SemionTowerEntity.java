@@ -968,6 +968,12 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         if (!(level() instanceof ServerLevel serverLevel) || damageAmount <= 0.0) {
             return;
         }
+        if (runtimeTower != null) {
+            damageAmount = runtimeTower.modifyIncomingDamageIgnoringReductions(this, damageSource, damageAmount);
+        }
+        if (damageAmount <= 0.0) {
+            return;
+        }
         applyDamage(serverLevel, damageSource, damageAmount);
     }
 

@@ -51,6 +51,7 @@ import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
@@ -61,6 +62,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -76,7 +78,7 @@ public final class SemionSandboxGameTest {
         if (!assertTrue(context, alias.getCommand() != null, "Expected bare /샌드박스 to start sandbox like /semiontd sandbox.")) {
             return;
         }
-        for (String child : List.of("start", "reset", "leave", "give", "money")) {
+        for (String child : List.of("start", "reset", "leave", "round", "spectate", "give", "money")) {
             if (!assertTrue(context, alias.getChild(child) != null, "Expected /샌드박스 " + child + " subcommand to be registered.")) {
                 return;
             }
@@ -87,6 +89,8 @@ public final class SemionSandboxGameTest {
                 "샌드박스 start",
                 "샌드박스 reset",
                 "샌드박스 leave",
+                "샌드박스 round 12",
+                "샌드박스 spectate @s",
                 "샌드박스 give diamond 10",
                 "샌드박스 give emerald 10",
                 "샌드박스 give income 10",
@@ -554,6 +558,25 @@ public final class SemionSandboxGameTest {
             if (!assertTrue(context, player.getInventory().getItem(1).is(Items.ECHO_SHARD), "Sandbox should grant income summon item.")) {
                 return;
             }
+            if (!assertEquals(
+                    context,
+                    "샌드박스 몹 소환",
+                    player.getInventory().getItem(1).get(DataComponents.CUSTOM_NAME).getString(),
+                    "Sandbox summon item should describe its sandbox-only behavior."
+            )) {
+                return;
+            }
+            if (!assertTrue(context, player.getInventory().getItem(2).is(Items.CLOCK), "Sandbox should replace the leader tool with a round control clock.")) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    "라운드 이동",
+                    player.getInventory().getItem(2).get(DataComponents.CUSTOM_NAME).getString(),
+                    "Sandbox round control clock should have a visible name."
+            )) {
+                return;
+            }
 
             player.setItemInHand(InteractionHand.MAIN_HAND, player.getInventory().getItem(0));
             InteractionResult towerResult = invokeHotbarUse(manager, player, player.level());
@@ -566,9 +589,226 @@ public final class SemionSandboxGameTest {
             if (!assertEquals(context, InteractionResult.SUCCESS, summonResult, "Income item should open the sandbox summon UI.")) {
                 return;
             }
+
+            player.setItemInHand(InteractionHand.MAIN_HAND, player.getInventory().getItem(2));
+            InteractionResult roundResult = invokeHotbarUse(manager, player, player.level());
+            if (!assertEquals(context, InteractionResult.SUCCESS, roundResult, "Round clock should open the sandbox round UI.")) {
+                return;
+            }
             context.succeed();
         } catch (Exception exception) {
             context.fail(Component.literal("Sandbox hotbar UI test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxSummonsAreFreeAndRoundJumpPreservesBuildAndEconomy(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var player = context.makeMockServerPlayerInLevel();
+            UUID ownerId = player.getUUID();
+            if (!assertEquals(
+                    context,
+                    SemionGameManager.SandboxStartResult.STARTED,
+                    manager.startSandbox(
+                            server,
+                            ownerId,
+                            player.getGameProfile().getName(),
+                            SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+                    ),
+                    "Sandbox should start before free summon and round movement checks."
+            )) {
+                return;
+            }
+
+            SemionGame sandbox = manager.sandboxGame(ownerId).orElseThrow();
+            PlayerLane ownerLane = sandbox.playerLane(ownerId).orElseThrow();
+            String towerId = ProductionTowerService.availableTowers(sandbox, ownerId).getFirst().type().id();
+            if (!assertEquals(
+                    context,
+                    TowerPlacementResult.SUCCESS,
+                    ProductionTowerService.placeTower(sandbox, ownerId, ownerLane.laneLayout().laneArea().min(), towerId),
+                    "Sandbox should place a tower before moving rounds."
+            )) {
+                return;
+            }
+
+            var economy = sandbox.players().get(ownerId).economy();
+            economy.spendEmerald(economy.emerald());
+            long incomeBeforeSummon = economy.income();
+            SummonResult summon = sandbox.summonMonster(ownerId, "chicken");
+            if (!assertEquals(context, SummonResultType.SUCCESS, summon.type(), "Sandbox summon should succeed with zero emerald.")) {
+                return;
+            }
+            if (!assertEquals(context, 0L, economy.emerald(), "Free sandbox summon should not spend emerald.")) {
+                return;
+            }
+            if (!assertEquals(context, incomeBeforeSummon, economy.income(), "Free sandbox summon should not increase income.")) {
+                return;
+            }
+            if (!assertEquals(context, 1, ownerLane.queuedSummonCount(), "Free summon should still queue on the owner's lane.")) {
+                return;
+            }
+
+            for (int tick = 0; tick < SemionGame.DEFAULT_PREPARE_TICKS + 2; tick++) {
+                manager.tick(server);
+            }
+            if (!assertEquals(context, RoundPhase.LANE_WAVE, sandbox.phase(), "Sandbox should enter combat before the round jump.")) {
+                return;
+            }
+            if (!assertTrue(context, !ownerLane.activeMonsters().isEmpty(), "Combat setup should have an active monster to clear.")) {
+                return;
+            }
+
+            sandbox.teams().get(TeamId.RED).laneGroup().boss().damage(7.0D);
+            double bossHealthBeforeJump = sandbox.teams().get(TeamId.RED).laneGroup().boss().health();
+            long diamondBeforeJump = economy.diamond();
+            long emeraldBeforeJump = economy.emerald();
+            long incomeBeforeJump = economy.income();
+            if (!assertTrue(context, manager.moveSandboxToRound(server, ownerId, 12), "Sandbox owner should move directly to round 12.")) {
+                return;
+            }
+            if (!assertEquals(context, 12, sandbox.currentRound(), "Round jump should set the requested round.")) {
+                return;
+            }
+            if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, sandbox.phase(), "Round jump should restart in prepare phase.")) {
+                return;
+            }
+            if (!assertTrue(context, ownerLane.activeMonsters().isEmpty(), "Round jump should remove active monsters.")) {
+                return;
+            }
+            if (!assertEquals(context, 0, ownerLane.queuedSummonCount(), "Round jump should remove queued current-round summons.")) {
+                return;
+            }
+            if (!assertEquals(context, 0, ownerLane.pendingNextRoundSummonCount(), "Round jump should remove queued next-round summons.")) {
+                return;
+            }
+            if (!assertEquals(context, 1, sandbox.towerCount(ownerId), "Round jump should preserve placed towers.")) {
+                return;
+            }
+            if (!assertEquals(context, bossHealthBeforeJump, sandbox.teams().get(TeamId.RED).laneGroup().boss().health(), "Round jump should preserve boss health.")) {
+                return;
+            }
+            if (!assertEquals(context, diamondBeforeJump, economy.diamond(), "Round jump should not award skipped-round diamond income.")) {
+                return;
+            }
+            if (!assertEquals(context, emeraldBeforeJump, economy.emerald(), "Round jump should preserve emerald.")) {
+                return;
+            }
+            if (!assertEquals(context, incomeBeforeJump, economy.income(), "Round jump should preserve income.")) {
+                return;
+            }
+            if (!assertTrue(context, !sandbox.upcomingWaveEntries(ownerId).isEmpty(), "Round jump should select the target round wave.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox free summon and round movement test failed: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
+    public void sandboxSpectatorSwitchesSessionsAndCleansUpIndependently(GameTestHelper context) {
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            configureManager(manager);
+            MinecraftServer server = context.getLevel().getServer();
+            var spectator = context.makeMockServerPlayerInLevel();
+            UUID spectatorId = spectator.getUUID();
+            UUID ownerId = uuid("sandbox-spectate-target-owner");
+
+            if (!assertEquals(
+                    context,
+                    SemionGameManager.SandboxStartResult.STARTED,
+                    manager.startSandbox(
+                            server,
+                            spectatorId,
+                            spectator.getGameProfile().getName(),
+                            SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+                    ),
+                    "Spectator should start with an owned sandbox."
+            )) {
+                return;
+            }
+            if (!assertEquals(
+                    context,
+                    SemionGameManager.SandboxStartResult.STARTED,
+                    manager.startSandbox(
+                            server,
+                            ownerId,
+                            "sandbox-spectate-target-owner",
+                            SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(new BlockPos(200, 0, 0)))
+                    ),
+                    "Target sandbox should start independently."
+            )) {
+                return;
+            }
+            SemionGame targetSandbox = manager.sandboxGame(ownerId).orElseThrow();
+
+            if (!assertEquals(
+                    context,
+                    SemionGameManager.SandboxSpectateResult.SUCCESS,
+                    manager.spectateSandbox(server, spectator, ownerId),
+                    "Player should switch from their own sandbox to target spectating."
+            )) {
+                return;
+            }
+            if (!assertTrue(context, manager.sandboxGame(spectatorId).isEmpty(), "Entering spectate should close the viewer's owned sandbox.")) {
+                return;
+            }
+            if (!assertTrue(context, targetSandbox.isMatchSpectator(spectatorId), "Target sandbox should track the spectator.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.sandboxSpectatorGame(spectatorId).orElse(null) == targetSandbox, "Spectator lookup should resolve the target sandbox.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.playableGame(spectatorId).isEmpty(), "Spectator must not receive sandbox gameplay command access.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.protectionGame(spectatorId) == targetSandbox, "Spectator protection should use the viewed sandbox.")) {
+                return;
+            }
+            if (!assertEquals(context, GameType.SPECTATOR, spectator.gameMode.getGameModeForPlayer(), "Viewer should enter spectator mode.")) {
+                return;
+            }
+            if (!assertTrue(context, spectator.getInventory().getItem(0).isEmpty(), "Spectator should not retain sandbox tools.")) {
+                return;
+            }
+
+            manager.handlePlayerDisconnect(spectator);
+            if (!assertTrue(context, manager.sandboxGame(ownerId).orElse(null) == targetSandbox, "Spectator disconnect must not stop the target sandbox.")) {
+                return;
+            }
+            if (!assertTrue(context, !targetSandbox.isMatchSpectator(spectatorId), "Spectator disconnect should unregister only the viewer.")) {
+                return;
+            }
+
+            if (!assertEquals(
+                    context,
+                    SemionGameManager.SandboxSpectateResult.SUCCESS,
+                    manager.spectateSandbox(server, spectator, ownerId),
+                    "Viewer should be able to re-enter the remaining target sandbox."
+            )) {
+                return;
+            }
+            if (!assertTrue(context, manager.stopSandbox(server, ownerId), "Stopping the target sandbox should succeed.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.sandboxSpectatorGame(spectatorId).isEmpty(), "Target shutdown should clear spectator ownership.")) {
+                return;
+            }
+            if (!assertEquals(context, GameType.ADVENTURE, spectator.gameMode.getGameModeForPlayer(), "Target shutdown should return online spectators to the lobby.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Sandbox spectator lifecycle test failed: " + exception.getMessage()));
         } finally {
             manager.shutdown();
         }

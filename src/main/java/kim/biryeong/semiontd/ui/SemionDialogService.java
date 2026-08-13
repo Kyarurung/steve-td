@@ -799,6 +799,38 @@ public final class SemionDialogService {
         showSummonShop(player, game, 1);
     }
 
+    public void showSandboxRoundControl(ServerPlayer player, SemionGame game) {
+        if (game == null || !game.isSandboxMode() || !game.isActiveParticipant(player.getUUID())) {
+            show(player, "세미온 TD 샌드박스", "<red>진행 중인 본인 샌드박스가 없습니다.</red>");
+            return;
+        }
+        int currentRound = game.currentRound();
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        if (currentRound > 1) {
+            actions.add(actionButton(
+                    "이전 라운드",
+                    "/semiontd sandbox round " + (currentRound - 1),
+                    "현재 몹을 정리하고 " + (currentRound - 1) + "라운드 준비 단계로 이동합니다."
+            ));
+        }
+        if (currentRound < Integer.MAX_VALUE) {
+            actions.add(actionButton(
+                    "다음 라운드",
+                    "/semiontd sandbox round " + (currentRound + 1),
+                    "현재 몹을 정리하고 " + (currentRound + 1) + "라운드 준비 단계로 이동합니다."
+            ));
+        }
+        showActions(
+                player,
+                "세미온 TD 샌드박스",
+                "<gradient:#facc15:#fb923c><bold>라운드 이동</bold></gradient>\n"
+                        + "<gray>현재 라운드</gray> <gold>" + currentRound + "</gold>\n"
+                        + "<gray>타워·보스 체력·자원은 유지되며 현재 몹과 예약 소환은 제거됩니다.</gray>",
+                actions,
+                2
+        );
+    }
+
     public void showLeaderTargetControl(ServerPlayer player, SemionGame game) {
         SemionPlayer semionPlayer = game.players().get(player.getUUID());
         if (semionPlayer == null) {
@@ -845,6 +877,7 @@ public final class SemionDialogService {
     public void showSummonShop(ServerPlayer player, SemionGame game, int page) {
         SemionPlayer semionPlayer = game.players().get(player.getUUID());
         long emerald = semionPlayer == null ? 0 : semionPlayer.economy().emerald();
+        boolean sandbox = game.isSandboxMode();
         List<SummonMonsterType> summons = sortedSummons(game.summonShop().all());
         int pageCount = pageCount(summons.size());
         int safePage = clampPage(page, pageCount);
@@ -853,17 +886,23 @@ public final class SemionDialogService {
         body.append("<gray>페이지</gray> <yellow>").append(safePage).append("</yellow><gray>/</gray><yellow>").append(pageCount).append("</yellow>");
         body.append(" <dark_gray>|</dark_gray> <gray>소환 후보</gray> <yellow>").append(summons.size()).append("</yellow>");
         body.append(" <dark_gray>|</dark_gray> <gray>상세 스탯은 버튼에 마우스를 올려 확인하세요.</gray>");
+        if (sandbox) {
+            body.append("\n<green>샌드박스 소환은 무료이며 수입이 증가하지 않습니다.</green>");
+        }
         appendSummonNavigation(body, "/semiontd summonui ", safePage, pageCount);
 
         ArrayList<ActionButton> actions = summons.stream()
                 .skip((long) (safePage - 1) * SUMMON_PAGE_SIZE)
                 .limit(SUMMON_PAGE_SIZE)
-                .map(type -> actionButton(
-                        summonButtonLabel(type, emerald >= type.gasCost()),
-                        "/semiontd summon " + type.id(),
-                        summonTooltip(type, emerald >= type.gasCost()),
-                        SUMMON_BUTTON_WIDTH
-                ))
+                .map(type -> {
+                    boolean affordable = sandbox || emerald >= type.gasCost();
+                    return actionButton(
+                            summonButtonLabel(type, affordable),
+                            "/semiontd summon " + type.id(),
+                            summonTooltip(type, affordable, sandbox),
+                            SUMMON_BUTTON_WIDTH
+                    );
+                })
                 .collect(Collectors.toCollection(ArrayList::new));
         showActions(player, "세미온 TD 소환", body.toString(), actions, SUMMON_COLUMNS);
     }
@@ -1305,7 +1344,7 @@ public final class SemionDialogService {
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
         tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.damage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, type.attackIntervalTicks(), "") + "\n" + formatAttackRange(type.range(), "") + " <dark_gray>|</dark_gray> " + formatAggroPriority(type.aggroPriority(), "") + "\n"));
         tooltip.append(dividerComponent(160));
-        appendTowerDescription(tooltip, type.description());
+        appendTowerDescription(tooltip, type.description().stream().limit(2).toList());
         return tooltip;
     }
 
@@ -1440,10 +1479,18 @@ public final class SemionDialogService {
     }
 
     private static Component summonTooltip(SummonMonsterType type, boolean affordable) {
+        return summonTooltip(type, affordable, false);
+    }
+
+    private static Component summonTooltip(SummonMonsterType type, boolean affordable, boolean sandbox) {
         double attacksPerSecond = 20.0 / 13.0;
         MutableComponent tooltip = mutableMiniMessage("<yellow><bold>" + type.displayName() + "</bold></yellow> <dark_gray>|</dark_gray> <gray>" + roleList(type) + "</gray>\n");
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
-        tooltip.append(mutableMiniMessage(formatEmerald(type.gasCost(), affordable, "") + "\n" + formatKillReward(type.mineralReward(), "") + "\n" + formatIncome(type.incomeGain(), type.incomeRatio(), "") + "\n"));
+        if (sandbox) {
+            tooltip.append(mutableMiniMessage("<green>◆ 무료</green>\n<gray>수입 증가 없음</gray>\n" + formatKillReward(type.mineralReward(), "") + "\n"));
+        } else {
+            tooltip.append(mutableMiniMessage(formatEmerald(type.gasCost(), affordable, "") + "\n" + formatKillReward(type.mineralReward(), "") + "\n" + formatIncome(type.incomeGain(), type.incomeRatio(), "") + "\n"));
+        }
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));
         tooltip.append(mutableMiniMessage(formatHealth(type.maxHealth(), "") + "\n" + formatAttackDamage(type.attackDamage(), "") + "\n" + formatAttackSpeed(attacksPerSecond, 13, "") + "\n" + formatDefense(type.armor(), "") + " <dark_gray>|</dark_gray> " + formatResistance(type.resistance(), "") + "\n" + formatAggroPriority(type.targetRolePriority(), "") + "\n"));
         tooltip.append(dividerComponent(160)).append(Component.literal("\n"));

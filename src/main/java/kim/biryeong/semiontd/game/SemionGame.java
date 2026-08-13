@@ -189,6 +189,10 @@ public final class SemionGame {
         return currentRound;
     }
 
+    public boolean isSandboxMode() {
+        return sandboxMode;
+    }
+
     public int phaseTicks() {
         return phaseTicks;
     }
@@ -231,6 +235,20 @@ public final class SemionGame {
     public void enableSandboxMode() {
         sandboxMode = true;
         enableSelfTargetIncomeSummons();
+    }
+
+    public boolean moveSandboxToRound(MinecraftServer server, int round) {
+        if (!sandboxMode || !rosterLocked || phase == RoundPhase.WAITING || phase == RoundPhase.ENDED || round < 1) {
+            return false;
+        }
+        for (SemionTeam team : livingTeams()) {
+            team.laneGroup().disableMonsters();
+        }
+        currentWaveTeamIds.clear();
+        finalDefenseForcedThisRound = false;
+        currentRound = round;
+        startPreparePhase(server);
+        return true;
     }
 
     public void disableWaveSpawnsForTeam(TeamId teamId) {
@@ -790,8 +808,12 @@ public final class SemionGame {
         if (!job.canUseSummon(jobContext, type.get())) {
             return SummonResult.failure(SummonResultType.SUMMON_NOT_ALLOWED_BY_JOB, summonId);
         }
-        long gasCost = Math.max(0, job.modifySummonGasCost(jobContext, type.get(), type.get().gasCost()));
-        long incomeGain = Math.max(0, job.modifySummonIncomeGain(jobContext, type.get(), type.get().incomeGain()));
+        long gasCost = sandboxMode
+                ? 0L
+                : Math.max(0, job.modifySummonGasCost(jobContext, type.get(), type.get().gasCost()));
+        long incomeGain = sandboxMode
+                ? 0L
+                : Math.max(0, job.modifySummonIncomeGain(jobContext, type.get(), type.get().incomeGain()));
 
         if (!economyService.spendForSummon(player, gasCost)) {
             return SummonResult.failure(SummonResultType.NOT_ENOUGH_GAS, summonId);
@@ -1438,8 +1460,12 @@ public final class SemionGame {
             player.setGameMode(GameType.ADVENTURE);
             player.teleport(PlayerTeleportTransitions.preservingFacing(teamArena.world(), position, Vec3.ZERO, player));
             SemionSidebarHudService.refreshPlayerHud(player);
-            SemionHotbarService.grantMatchTools(player);
-            if (teams.get(activePlayer.teamId()).hasLeader(activePlayer.uuid())) {
+            if (sandboxMode) {
+                SemionHotbarService.grantSandboxTools(player);
+            } else {
+                SemionHotbarService.grantMatchTools(player);
+            }
+            if (!sandboxMode && teams.get(activePlayer.teamId()).hasLeader(activePlayer.uuid())) {
                 SemionHotbarService.grantLeaderTool(player);
             }
             setFlight(player, true);

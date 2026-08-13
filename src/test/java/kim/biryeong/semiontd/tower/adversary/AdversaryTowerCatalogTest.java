@@ -76,14 +76,14 @@ class AdversaryTowerCatalogTest {
             var intermediateEntry = ProductionTowerCatalog.find(AdversaryTowers.typeFor(intermediate).id())
                     .orElseThrow();
             assertEquals(2, intermediateEntry.tier());
-            assertEquals(0L, ProductionTowerCatalog.upgrade(
+            assertEquals(AdversaryBalance.FIRST_EVOLUTION_COST, ProductionTowerCatalog.upgrade(
                     AdversaryTowers.FOX,
                     intermediateEntry.type().id()
             ).orElseThrow().mineralCost());
             for (FoxForm finalForm : FoxForm.finalsFor(route)) {
                 var finalEntry = ProductionTowerCatalog.find(AdversaryTowers.typeFor(finalForm).id()).orElseThrow();
                 assertEquals(3, finalEntry.tier());
-                assertEquals(0L, ProductionTowerCatalog.upgrade(
+                assertEquals(AdversaryBalance.FINAL_EVOLUTION_COST, ProductionTowerCatalog.upgrade(
                         intermediateEntry.type(),
                         finalEntry.type().id()
                 ).orElseThrow().mineralCost());
@@ -137,13 +137,13 @@ class AdversaryTowerCatalogTest {
         assertTrue(lane.replaceTower(base, enhanced));
 
         assertEquals(base.rivalId(), enhanced.rivalId());
-        assertEquals(2, enhanced.contributedScore());
+        assertEquals(4, enhanced.contributedScore());
         assertTrue(enhanced.enhanced());
 
         assertTrue(AdversaryProgressStates.recordFoxKill(OWNER, enhanced.createProxy(1), lane));
-        assertEquals(5, enhanced.contributedScore());
+        assertEquals(7, enhanced.contributedScore());
         assertTrue(enhanced.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("처치 점수") && line.contains("3점") && line.contains("누적 기여 5점")));
+                line.contains("처치 점수") && line.contains("3점") && line.contains("누적 기여 7점")));
     }
 
     @Test
@@ -172,7 +172,7 @@ class AdversaryTowerCatalogTest {
         assertTrue(guide.contains("질풍 여우, 종지기 여우, 추적자 여우, 메아리 여우"));
         assertFalse(guide.contains("빠른 저비용"));
         assertFalse(guide.contains("진화 루트"));
-        assertTrue(guide.contains("업그레이드 메뉴에서 전직을 무료로 직접 선택"));
+        assertTrue(guide.contains("첫 전직은 200 다이아, 최종 전직은 400 다이아"));
         assertTrue(guide.contains("인컴 적은 점수를 주지 않습니다"));
         assertTrue(guide.contains("강등"));
         assertTrue(guide.contains("같은 전직 계열은 한 여우만"));
@@ -349,7 +349,7 @@ class AdversaryTowerCatalogTest {
         Map<String, Double> global = defaults.abilities().get(AdversaryBalance.GLOBAL_CONFIG_ID);
         assertEquals(4.0, global.get("maxFoxTowers"), 0.0001);
         assertEquals(4.0, global.get("baseSplashRadius"), 0.0001);
-        assertEquals(6.0, global.get("baseSplashExtraTargets"), 0.0001);
+        assertEquals(3.0, global.get("baseSplashExtraTargets"), 0.0001);
         assertEquals(0.07, global.get("rivalRoundHealthGrowth"), 0.0001);
         assertEquals(0.03, global.get("rivalRoundDamageGrowth"), 0.0001);
         assertEquals(20.0, global.get("teamEffectScanIntervalTicks"), 0.0001);
@@ -404,7 +404,7 @@ class AdversaryTowerCatalogTest {
         assertEquals(16.0, merged.towers().get(AdversaryTowers.FOX.id()).damage(), 0.0001);
         assertEquals(123L, merged.upgradeCosts().get(breezeUpgrade).longValue());
         assertEquals(2.75, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashRadius", 0.0), 0.0001);
-        assertEquals(6.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashExtraTargets", 0.0), 0.0001);
+        assertEquals(3.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashExtraTargets", 0.0), 0.0001);
         assertEquals(4.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "maxFoxTowers", 0.0), 0.0001);
         assertEquals(0.005, merged.ability(
                 AdversaryBalance.GLOBAL_CONFIG_ID,
@@ -507,7 +507,7 @@ class AdversaryTowerCatalogTest {
                 && foxDescription.contains("최대 200%"));
         assertTrue(foxDescription.contains("최대 체력의 20%") && foxDescription.contains("강화 숙적은 30%"));
         assertTrue(foxDescription.contains("1기를 넘을 때마다 받는 피해가 4% 감소"));
-        assertTrue(foxDescription.contains("전직 형태는 주변 적 최대 6기에게 공격력의 50%"));
+        assertTrue(foxDescription.contains("전직 형태는 주변 적 최대 3기에게 공격력의 50%"));
         assertTrue(foxDescription.contains("질풍의 연쇄 공격과 스컬크 폭발은 마법 피해"));
         assertTrue(foxDescription.contains("나머지 공격은 물리 피해"));
         assertFalse(foxDescription.contains("진화"));
@@ -542,7 +542,7 @@ class AdversaryTowerCatalogTest {
         assertEquals(attackKind, kind.attackKind());
         assertEquals(entityType, kind.entityTypeId());
         assertEquals(cost, kind.enhancementCost());
-        assertEquals(1, kind.scorePerKill(false));
+        assertEquals(2, kind.scorePerKill(false));
         assertEquals(3, kind.scorePerKill(true));
     }
 

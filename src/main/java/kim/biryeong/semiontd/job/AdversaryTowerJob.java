@@ -38,7 +38,7 @@ public final class AdversaryTowerJob extends SemionJob {
                 SemionText.mini("<gray>같은 전직 계열은 한 여우만 선택할 수 있고, 중간 형태로 웨이브를 한 번 완료해야 최종 전직할 수 있습니다.</gray>"),
                 SemionText.mini("<gray>최종 전직 후 남은 점수는 모든 최종 여우의 피해를 올립니다.</gray>"),
                 SemionText.mini("<gray>숙적을 처치하면 체력을 회복하며, 여러 적에게 집중 공격받을수록 받는 피해가 줄어듭니다.</gray>"),
-                SemionText.mini("<gray>준비 단계의 업그레이드 메뉴에서 전직을 무료로 직접 선택합니다. 인컴 적은 점수를 주지 않습니다.</gray>"),
+                SemionText.mini("<gray>준비 단계의 업그레이드 메뉴에서 첫 전직은 <aqua>200 다이아</aqua>, 최종 전직은 <aqua>400 다이아</aqua>를 사용해 직접 선택합니다. 인컴 적은 점수를 주지 않습니다.</gray>"),
                 SemionText.mini("<aqua>첫 전직은 질풍 여우, 종지기 여우, 추적자 여우, 메아리 여우 중 하나이며 각 계열에서 최종 형태 2종으로 갈립니다.</aqua>"),
                 SemionText.mini("<red>숙적을 판매해 점수가 부족해지면 최근에 전직한 여우부터 강등됩니다.</red>"),
                 SemionText.mini("<yellow>여우를 판매하면 사용 중이던 점수와 전직 계열을 반환합니다.</yellow>")

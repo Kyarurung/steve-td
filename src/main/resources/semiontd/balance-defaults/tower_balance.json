@@ -1438,18 +1438,18 @@
     "ancient_city_shrieker_t2->ancient_city_shrieker_t3": 220,
     "ancient_city_warden_t1->ancient_city_warden_t2": 160,
     "ancient_city_warden_t2->ancient_city_warden_t3": 300,
-    "adversary_fox->adversary_fox_form_breeze": 0,
-    "adversary_fox_form_breeze->adversary_fox_form_golden_fang": 0,
-    "adversary_fox_form_breeze->adversary_fox_form_shield_bearer": 0,
-    "adversary_fox->adversary_fox_form_bell_keeper": 0,
-    "adversary_fox_form_bell_keeper->adversary_fox_form_beacon_keeper": 0,
-    "adversary_fox_form_bell_keeper->adversary_fox_form_ominous_hexer": 0,
-    "adversary_fox->adversary_fox_form_tracker": 0,
-    "adversary_fox_form_tracker->adversary_fox_form_firework_piercer": 0,
-    "adversary_fox_form_tracker->adversary_fox_form_big_game_tracker": 0,
-    "adversary_fox->adversary_fox_form_echo_fox": 0,
-    "adversary_fox_form_echo_fox->adversary_fox_form_mace_executioner": 0,
-    "adversary_fox_form_echo_fox->adversary_fox_form_sculk_core": 0,
+    "adversary_fox->adversary_fox_form_breeze": 200,
+    "adversary_fox_form_breeze->adversary_fox_form_golden_fang": 400,
+    "adversary_fox_form_breeze->adversary_fox_form_shield_bearer": 400,
+    "adversary_fox->adversary_fox_form_bell_keeper": 200,
+    "adversary_fox_form_bell_keeper->adversary_fox_form_beacon_keeper": 400,
+    "adversary_fox_form_bell_keeper->adversary_fox_form_ominous_hexer": 400,
+    "adversary_fox->adversary_fox_form_tracker": 200,
+    "adversary_fox_form_tracker->adversary_fox_form_firework_piercer": 400,
+    "adversary_fox_form_tracker->adversary_fox_form_big_game_tracker": 400,
+    "adversary_fox->adversary_fox_form_echo_fox": 200,
+    "adversary_fox_form_echo_fox->adversary_fox_form_mace_executioner": 400,
+    "adversary_fox_form_echo_fox->adversary_fox_form_sculk_core": 400,
     "adversary_breeze_rival->adversary_breeze_rival_enhanced": 45,
     "adversary_creeper_rival->adversary_creeper_rival_enhanced": 60,
     "adversary_phantom_rival->adversary_phantom_rival_enhanced": 75,
@@ -2806,7 +2806,7 @@
       "echoBonusPerHit": 0.25,
       "teamEffectScanIntervalTicks": 20.0,
       "ominousMonsterDamageReduction": 0.08,
-      "breezeExtraTargets": 1.0,
+      "breezeExtraTargets": 4.0,
       "fireworkSecondary5Ratio": 0.15,
       "teamEffectDurationTicks": 40.0,
       "shieldCounterCooldownTicks": 40.0,
@@ -2832,7 +2832,7 @@
       "bigGameWaveDamageMultiplier": 0.8,
       "fireworkSecondary3Ratio": 0.4,
       "bigGameIncomeDamageMultiplier": 1.5,
-      "baseSplashExtraTargets": 6.0,
+      "baseSplashExtraTargets": 3.0,
       "maceFocusTicks": 30.0,
       "breezeExtraTargetDamageRatio": 0.6
     },
@@ -2948,7 +2948,7 @@
       "requiredCreeperScore": 40.0
     },
     "adversary_breeze_rival": {
-      "scorePerKill": 1.0,
+      "scorePerKill": 2.0,
       "baseArmor": 0.0
     },
     "adversary_breeze_rival_enhanced": {
@@ -2956,7 +2956,7 @@
       "baseArmor": 4.0
     },
     "adversary_creeper_rival": {
-      "scorePerKill": 1.0,
+      "scorePerKill": 2.0,
       "baseArmor": 2.0
     },
     "adversary_creeper_rival_enhanced": {
@@ -2964,7 +2964,7 @@
       "baseArmor": 6.0
     },
     "adversary_phantom_rival": {
-      "scorePerKill": 1.0,
+      "scorePerKill": 2.0,
       "baseArmor": 1.0
     },
     "adversary_phantom_rival_enhanced": {
@@ -2972,7 +2972,7 @@
       "baseArmor": 5.0
     },
     "adversary_polar_bear_rival": {
-      "scorePerKill": 1.0,
+      "scorePerKill": 2.0,
       "baseArmor": 3.0
     },
     "adversary_polar_bear_rival_enhanced": {

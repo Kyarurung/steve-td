@@ -9,11 +9,20 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class AdversaryProgressStateTest {
+    @BeforeAll
+    static void bootstrapMinecraftRegistries() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
+
     @Test
-    void enhancedRivalKillsCountTwoWithoutChangingPastScore() {
+    void baseAndEnhancedRivalKillsUseTheirCurrentScores() {
         AdversaryProgressState state = new AdversaryProgressState();
         UUID rival = id("enhanced-breeze");
 
@@ -21,8 +30,8 @@ class AdversaryProgressStateTest {
         state.recordRivalKill(rival, RivalKind.BREEZE, false);
         state.recordRivalKill(rival, RivalKind.BREEZE, true);
 
-        assertEquals(4, state.score(RivalKind.BREEZE));
-        assertEquals(4, state.contribution(rival));
+        assertEquals(5, state.score(RivalKind.BREEZE));
+        assertEquals(5, state.contribution(rival));
     }
 
     @Test

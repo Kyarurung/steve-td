@@ -3362,6 +3362,34 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void towerBuildTooltipsKeepPriceAndOnlyTwoDescriptionLines(GameTestHelper context) {
+        TowerType foxType = TowerBalanceRuntime.resolve(AdversaryTowers.FOX);
+        TowerType moobloomType = TowerBalanceRuntime.resolve(ResonanceTowers.FOCUS_CRYSTAL);
+        String foxTooltip = towerBuildTooltipText(new ProductionTowerCatalog.CatalogEntry(foxType, null, 1));
+        String moobloomTooltip = towerBuildTooltipText(new ProductionTowerCatalog.CatalogEntry(moobloomType, null, 1));
+
+        if (!assertTrue(context, foxTooltip.contains(foxType.mineralCost() + " 다이아"), "Fox build tooltip should keep its price visible.")) {
+            return;
+        }
+        if (!assertTrue(context, foxTooltip.contains("플레이어당 최대") && foxTooltip.contains("기본 공격이 반경"), "Fox build tooltip should keep its first two summary lines.")) {
+            return;
+        }
+        if (!assertTrue(context, !foxTooltip.contains("숙적을 직접 처치"), "Fox build tooltip should omit later detail lines.")) {
+            return;
+        }
+        if (!assertTrue(context, moobloomTooltip.contains(moobloomType.mineralCost() + " 다이아"), "Moobloom build tooltip should keep its price visible.")) {
+            return;
+        }
+        if (!assertTrue(context, moobloomTooltip.contains("단일 타겟") && moobloomTooltip.contains("다른 무블룸을 옆에 설치"), "Moobloom build tooltip should keep its first two summary lines.")) {
+            return;
+        }
+        if (!assertTrue(context, !moobloomTooltip.contains("안에 다른 종의 무블룸"), "Moobloom build tooltip should omit later detail lines.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void buildRecommendedUpgradeButtonLabelsUseBlue(GameTestHelper context) {
         TowerUpgradeOption option = new TowerUpgradeOption(
                 "manual_upgrade",
@@ -11206,7 +11234,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                         firstPosition,
                         AdversaryTowers.typeFor(FoxForm.BREEZE).id()
                 ),
-                "A scored base fox should manually evolve into Breeze for free."
+                "A scored base fox should manually evolve into Breeze for 200 diamonds."
         )) {
             return;
         }
@@ -11217,7 +11245,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 0.5, breeze.health() / breeze.currentMaxHealth(), "Evolution should preserve health ratio.")) {
             return;
         }
-        if (!assertEquals(context, mineralBeforeEvolution, game.players().get(playerId).economy().mineral(), "Fox evolution should cost no mineral.")) {
+        if (!assertEquals(context, mineralBeforeEvolution - 200L, game.players().get(playerId).economy().mineral(), "First fox evolution should cost 200 diamonds.")) {
             return;
         }
         if (!assertTrue(context, ProductionTowerService.availableUpgrades(game, playerId, firstPosition).isEmpty(), "Final evolution should require one completed intermediate wave.")) {
@@ -11264,6 +11292,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 ),
                 "The selected final form should replace the intermediate fox."
         )) {
+            return;
+        }
+        if (!assertEquals(context, mineralBeforeEvolution - 600L, game.players().get(playerId).economy().mineral(), "Final fox evolution should cost another 400 diamonds.")) {
             return;
         }
 
@@ -11417,6 +11448,48 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 core.health() > 0.0 && coreEntity.getHealth() > 0.0F,
                 "Warlock sacrifice healing must survive the siege ability's fixed-damage application."
         )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void wardenFixedDamageTriggersDrownedLastStand(GameTestHelper context) {
+        UUID playerId = stableUuid("drowned-warden-fixed-damage-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, UndeadTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        UndeadDrownedTower drowned = new UndeadDrownedTower(
+                TowerBalanceRuntime.resolve(UndeadTowers.T3_ZOMBIE_TOWER),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(towerPlacementPos(lane))
+        );
+        lane.addTower(drowned);
+        SemionTowerEntity drownedEntity = (SemionTowerEntity) lane.arenaWorld()
+                .getEntity(drowned.entityId().orElseThrow());
+        drowned.syncHealth(50.0);
+        drownedEntity.setHealth(50.0F);
+
+        SemionMonsterEntity warden = spawnSummonEntity(
+                context,
+                "warden-special-damage",
+                TeamId.BLUE,
+                TeamId.RED,
+                1,
+                drownedEntity.position().add(1.0, 0.0, 0.0),
+                100.0,
+                0.0
+        );
+        warden.setTarget(drownedEntity);
+        new SiegeTrueDamageGoal(warden, 100.0, 60, 1, 0.0).tick();
+        float lastStandHealth = drownedEntity.getHealth();
+        if (!assertTrue(context, lastStandHealth > 0.0F, "Warden fixed damage should trigger Drowned Last Stand instead of killing it.")) {
+            return;
+        }
+
+        new SiegeTrueDamageGoal(warden, 100.0, 60, 1, 0.0).tick();
+        if (!assertEquals(context, lastStandHealth, drownedEntity.getHealth(), "Drowned should ignore Warden fixed damage during Last Stand.")) {
             return;
         }
         context.succeed();
@@ -12720,6 +12793,22 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return body.toString();
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Failed to render tower timed effects.", exception);
+        }
+    }
+
+    private static String towerBuildTooltipText(ProductionTowerCatalog.CatalogEntry entry) {
+        try {
+            Method method = SemionDialogService.class.getDeclaredMethod(
+                    "towerTooltip",
+                    ProductionTowerCatalog.CatalogEntry.class,
+                    long.class,
+                    boolean.class,
+                    boolean.class
+            );
+            method.setAccessible(true);
+            return ((Component) method.invoke(null, entry, entry.type().mineralCost(), true, false)).getString();
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Failed to render tower build tooltip.", exception);
         }
     }
 

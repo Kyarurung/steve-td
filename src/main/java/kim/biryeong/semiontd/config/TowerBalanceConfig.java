@@ -1215,13 +1215,18 @@ public record TowerBalanceConfig(
     private static void putAdversaryUpgrades(Map<String, Long> upgrades) {
         for (FoxRoute route : FoxRoute.values()) {
             FoxForm intermediate = FoxForm.intermediateFor(route);
-            putUpgrade(upgrades, AdversaryTowers.FOX, AdversaryTowers.typeFor(intermediate).id(), 0L);
+            putUpgrade(
+                    upgrades,
+                    AdversaryTowers.FOX,
+                    AdversaryTowers.typeFor(intermediate).id(),
+                    AdversaryBalance.FIRST_EVOLUTION_COST
+            );
             for (FoxForm finalForm : FoxForm.finalsFor(route)) {
                 putUpgrade(
                         upgrades,
                         AdversaryTowers.typeFor(intermediate),
                         AdversaryTowers.typeFor(finalForm).id(),
-                        0L
+                        AdversaryBalance.FINAL_EVOLUTION_COST
                 );
             }
         }

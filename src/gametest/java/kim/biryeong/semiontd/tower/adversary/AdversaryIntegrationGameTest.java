@@ -316,16 +316,26 @@ public final class AdversaryIntegrationGameTest {
 
             Vec3 center = source.position().add(3.0, 0.0, 0.0);
             SemionMonsterEntity primary = spawnMonster(context, lane, "breeze-primary", center);
-            SemionMonsterEntity chained = spawnMonster(context, lane, "breeze-chained", center.add(0.0, 0.0, 0.5));
+            SemionMonsterEntity first = spawnMonster(context, lane, "breeze-first", center.add(0.0, 0.0, 0.5));
+            SemionMonsterEntity second = spawnMonster(context, lane, "breeze-second", center.add(0.0, 0.0, 0.8));
+            SemionMonsterEntity third = spawnMonster(context, lane, "breeze-third", center.add(0.0, 0.0, 1.1));
+            SemionMonsterEntity fourth = spawnMonster(context, lane, "breeze-fourth", center.add(0.0, 0.0, 1.4));
+            SemionMonsterEntity fifth = spawnMonster(context, lane, "breeze-fifth", center.add(0.0, 0.0, 1.7));
             primary.setNoAi(true);
-            chained.setNoAi(true);
+            for (SemionMonsterEntity monster : List.of(first, second, third, fourth, fifth)) {
+                monster.setNoAi(true);
+            }
 
             fox.onAttackResolved(source, primary, 30.0, 30.0, 30.0, false);
 
-            requireClose(982.0, chained.runtimeMonster().health(),
-                    "Breeze must deal sixty percent magic chain damage.");
-            requireClose(18.0, fox.roundMagicDamageDealt(),
-                    "Breeze chain damage must be recorded as magic.");
+            for (SemionMonsterEntity chained : List.of(first, second, third, fourth)) {
+                requireClose(982.0, chained.runtimeMonster().health(),
+                        "Breeze must deal sixty percent magic chain damage to four extra targets.");
+            }
+            requireClose(1_000.0, fifth.runtimeMonster().health(),
+                    "Breeze chain must stop after four extra targets.");
+            requireClose(72.0, fox.roundMagicDamageDealt(),
+                    "All four Breeze chain hits must be recorded as magic.");
             requireClose(0.0, fox.roundPhysicalDamageDealt(),
                     "The manually resolved Breeze chain must not enter physical statistics.");
             context.succeed();
@@ -372,9 +382,9 @@ public final class AdversaryIntegrationGameTest {
             fox.onAttackResolved(source, primary, 90.0, 90.0, 90.0, false);
 
             List<SemionMonsterEntity> secondaries = List.of(first, second, third, fourth, fifth);
-            require(secondaries.stream().filter(monster -> monster.runtimeMonster().health() < 1_000.0).count() == 5,
-                    "Evolved splash must reach every nearby target below the six-target cap.");
-            requireClose(225.0, secondaries.stream()
+            require(secondaries.stream().filter(monster -> monster.runtimeMonster().health() < 1_000.0).count() == 3,
+                    "Evolved splash must stop after three nearby targets.");
+            requireClose(135.0, secondaries.stream()
                             .mapToDouble(monster -> 1_000.0 - monster.runtimeMonster().health())
                             .sum(),
                     "An evolved single-target form must deal fifty percent splash.");

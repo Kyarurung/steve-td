@@ -578,6 +578,14 @@ public abstract class Tower {
         return damageAmount;
     }
 
+    public double modifyIncomingDamageIgnoringReductions(
+            SemionTowerEntity towerEntity,
+            DamageSource damageSource,
+            double damageAmount
+    ) {
+        return damageAmount;
+    }
+
     public void onDamaged(
             SemionTowerEntity towerEntity,
             DamageSource damageSource,

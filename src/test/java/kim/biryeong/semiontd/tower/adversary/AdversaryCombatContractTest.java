@@ -247,11 +247,11 @@ class AdversaryCombatContractTest {
     @Test
     void publishedAbilityConstantsProduceTheApprovedLongRunDamage() {
         assertAll(
-                () -> assertEquals(6, AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
+                () -> assertEquals(3, AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
                 () -> assertEquals(0.50, AdversaryBalance.BASE_SPLASH_DAMAGE_RATIO, 0.0001),
                 () -> assertEquals(0.005, AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE, 0.0001),
                 () -> assertEquals(2.00, AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_CAP, 0.0001),
-                () -> assertEquals(1, AdversaryBalance.BREEZE_EXTRA_TARGETS),
+                () -> assertEquals(4, AdversaryBalance.BREEZE_EXTRA_TARGETS),
                 () -> assertEquals(0.60, AdversaryBalance.BREEZE_EXTRA_TARGET_DAMAGE_RATIO, 0.0001),
                 () -> assertEquals(7, AdversaryBalance.GOLDEN_FANG_EXTRA_ATTACK_EVERY),
                 () -> assertEquals(0.50, AdversaryBalance.GOLDEN_FANG_EXTRA_DAMAGE_RATIO, 0.0001),
@@ -371,7 +371,7 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("최종 성장") && line.contains("최대 200%")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("주변 적 최대 6기에게 공격력의 50%")));
+                line.contains("주변 적 최대 3기에게 공격력의 50%")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("3초마다")
                         && line.contains("반경 10블록")

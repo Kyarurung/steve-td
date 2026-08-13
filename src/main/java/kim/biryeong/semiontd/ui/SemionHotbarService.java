@@ -19,9 +19,12 @@ public final class SemionHotbarService {
     private static final int TOWER_TOOL_SLOT = 0;
     private static final int SUMMON_TOOL_SLOT = 1;
     private static final int LEADER_TOOL_SLOT = 2;
+    private static final int SANDBOX_ROUND_TOOL_SLOT = 2;
     private static final Component TOWER_TOOL_NAME = Component.literal("타워 관리").withStyle(ChatFormatting.AQUA);
     private static final Component SUMMON_TOOL_NAME = Component.literal("견제 소환").withStyle(ChatFormatting.LIGHT_PURPLE);
     private static final Component LEADER_TOOL_NAME = Component.literal("팀장 타깃").withStyle(ChatFormatting.GOLD);
+    private static final Component SANDBOX_SUMMON_TOOL_NAME = Component.literal("샌드박스 몹 소환").withStyle(ChatFormatting.LIGHT_PURPLE);
+    private static final Component SANDBOX_ROUND_TOOL_NAME = Component.literal("라운드 이동").withStyle(ChatFormatting.YELLOW);
 
     private SemionHotbarService() {
     }
@@ -40,6 +43,12 @@ public final class SemionHotbarService {
         setTool(player, SUMMON_TOOL_SLOT, summonTool());
     }
 
+    public static void grantSandboxTools(ServerPlayer player) {
+        grantMatchTools(player);
+        setTool(player, SUMMON_TOOL_SLOT, sandboxSummonTool());
+        setTool(player, SANDBOX_ROUND_TOOL_SLOT, sandboxRoundTool());
+    }
+
     public static void grantLeaderTool(ServerPlayer player) {
         setTool(player, LEADER_TOOL_SLOT, leaderTool());
     }
@@ -48,6 +57,7 @@ public final class SemionHotbarService {
         clearTool(player, TOWER_TOOL_SLOT, Items.COMPASS);
         clearTool(player, SUMMON_TOOL_SLOT, Items.ECHO_SHARD);
         clearTool(player, LEADER_TOOL_SLOT, Items.BLAZE_ROD);
+        clearTool(player, SANDBOX_ROUND_TOOL_SLOT, Items.CLOCK);
     }
 
     private static InteractionResult handleUse(
@@ -74,6 +84,14 @@ public final class SemionHotbarService {
             gameManager.dialogService().showSummonShop(serverPlayer, game);
             return InteractionResult.SUCCESS;
         }
+        if (isSandboxSummonTool(stack) && game.isSandboxMode()) {
+            gameManager.dialogService().showSummonShop(serverPlayer, game);
+            return InteractionResult.SUCCESS;
+        }
+        if (isSandboxRoundTool(stack) && game.isSandboxMode()) {
+            gameManager.dialogService().showSandboxRoundControl(serverPlayer, game);
+            return InteractionResult.SUCCESS;
+        }
         if (isLeaderTool(stack)) {
             if (game.players().get(serverPlayer.getUUID()) != null
                     && game.teams().get(game.players().get(serverPlayer.getUUID()).teamId()).hasLeader(serverPlayer.getUUID())) {
@@ -94,6 +112,18 @@ public final class SemionHotbarService {
     private static ItemStack summonTool() {
         ItemStack stack = new ItemStack(Items.ECHO_SHARD);
         stack.set(DataComponents.CUSTOM_NAME, SUMMON_TOOL_NAME);
+        return stack;
+    }
+
+    private static ItemStack sandboxSummonTool() {
+        ItemStack stack = new ItemStack(Items.ECHO_SHARD);
+        stack.set(DataComponents.CUSTOM_NAME, SANDBOX_SUMMON_TOOL_NAME);
+        return stack;
+    }
+
+    private static ItemStack sandboxRoundTool() {
+        ItemStack stack = new ItemStack(Items.CLOCK);
+        stack.set(DataComponents.CUSTOM_NAME, SANDBOX_ROUND_TOOL_NAME);
         return stack;
     }
 
@@ -125,12 +155,21 @@ public final class SemionHotbarService {
         return stack.is(Items.ECHO_SHARD) && isNamed(stack, SUMMON_TOOL_NAME);
     }
 
+    private static boolean isSandboxSummonTool(ItemStack stack) {
+        return stack.is(Items.ECHO_SHARD) && isNamed(stack, SANDBOX_SUMMON_TOOL_NAME);
+    }
+
+    private static boolean isSandboxRoundTool(ItemStack stack) {
+        return stack.is(Items.CLOCK) && isNamed(stack, SANDBOX_ROUND_TOOL_NAME);
+    }
+
     private static boolean isLeaderTool(ItemStack stack) {
         return stack.is(Items.BLAZE_ROD) && isNamed(stack, LEADER_TOOL_NAME);
     }
 
     private static boolean isSemionTool(ItemStack stack) {
-        return isTowerTool(stack) || isSummonTool(stack) || isLeaderTool(stack);
+        return isTowerTool(stack) || isSummonTool(stack) || isLeaderTool(stack)
+                || isSandboxSummonTool(stack) || isSandboxRoundTool(stack);
     }
 
     private static boolean isNamed(ItemStack stack, Component expectedName) {

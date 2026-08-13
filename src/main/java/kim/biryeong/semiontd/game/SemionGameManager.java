@@ -196,6 +196,14 @@ public final class SemionGameManager {
         FAILED
     }
 
+    public enum SandboxSpectateResult {
+        SUCCESS,
+        TARGET_NOT_IN_SANDBOX,
+        CANNOT_SPECTATE_SELF,
+        PLAYER_IN_MATCH,
+        FAILED
+    }
+
     public enum SandboxCurrency {
         DIAMOND,
         EMERALD,
@@ -1007,6 +1015,15 @@ public final class SemionGameManager {
         return Optional.ofNullable(playerId == null ? null : sandboxGames.get(playerId));
     }
 
+    public Optional<SemionGame> sandboxSpectatorGame(UUID playerId) {
+        if (playerId == null) {
+            return Optional.empty();
+        }
+        return sandboxGames.values().stream()
+                .filter(game -> game.isMatchSpectator(playerId))
+                .findFirst();
+    }
+
     public boolean hasIllagerRaidBossBar(UUID playerId) {
         return illagerRaidBossBarService.hasPlayer(playerId);
     }
@@ -1028,7 +1045,8 @@ public final class SemionGameManager {
         if (activeGame != null && (activeGame.isActiveParticipant(playerId) || activeGame.isMatchSpectator(playerId))) {
             return activeGame;
         }
-        return sandboxGames.get(playerId);
+        SemionGame ownedSandbox = sandboxGames.get(playerId);
+        return ownedSandbox != null ? ownedSandbox : sandboxSpectatorGame(playerId).orElse(null);
     }
 
     public SandboxStartResult startSandbox(MinecraftServer server, ServerPlayer player) {
@@ -1065,7 +1083,8 @@ public final class SemionGameManager {
                             : TraitLoadout.none();
         }
         releaseActiveMatchSpectator(playerId);
-        boolean replacing = stopSandbox(playerId);
+        releaseSandboxSpectator(playerId);
+        boolean replacing = stopSandbox(server, playerId);
         SemionGame sandbox = new SemionGame(
                 economyConfig,
                 waveConfig,
@@ -1128,24 +1147,78 @@ public final class SemionGameManager {
         return startSandbox(server, player) != SandboxStartResult.FAILED;
     }
 
+    public boolean moveSandboxToRound(MinecraftServer server, UUID playerId, int round) {
+        SemionGame sandbox = playerId == null ? null : sandboxGames.get(playerId);
+        return sandbox != null && sandbox.moveSandboxToRound(server, round);
+    }
+
+    public SandboxSpectateResult spectateSandbox(
+            MinecraftServer server,
+            ServerPlayer spectator,
+            UUID ownerId
+    ) {
+        if (server == null || spectator == null || ownerId == null) {
+            return SandboxSpectateResult.FAILED;
+        }
+        UUID spectatorId = spectator.getUUID();
+        if (spectatorId.equals(ownerId)) {
+            return SandboxSpectateResult.CANNOT_SPECTATE_SELF;
+        }
+        SemionGame targetSandbox = sandboxGames.get(ownerId);
+        if (targetSandbox == null || !targetSandbox.canSpectateTeam(TeamId.RED)) {
+            return SandboxSpectateResult.TARGET_NOT_IN_SANDBOX;
+        }
+        if (isBlockedFromSandbox(spectatorId)) {
+            return SandboxSpectateResult.PLAYER_IN_MATCH;
+        }
+
+        releaseActiveMatchSpectator(spectatorId);
+        releaseSandboxSpectator(spectatorId);
+        stopSandbox(server, spectatorId);
+        if (!targetSandbox.addLateSpectator(server, spectator, TeamId.RED)) {
+            returnPlayerToLobby(server, spectator);
+            return SandboxSpectateResult.FAILED;
+        }
+        return SandboxSpectateResult.SUCCESS;
+    }
+
     public boolean leaveSandbox(MinecraftServer server, ServerPlayer player) {
-        if (player == null || !stopSandbox(player.getUUID())) {
+        if (player == null) {
             return false;
         }
-        if (server != null) {
-            try {
-                sendPlayerToLobby(server, player);
-            } catch (ArenaLoadException exception) {
-                SemionTd.LOGGER.warn("Failed to return sandbox player {} to lobby.", player.getGameProfile().getName(), exception);
-            }
+        UUID playerId = player.getUUID();
+        boolean ownedSandbox = sandboxGames.containsKey(playerId);
+        boolean spectatingSandbox = releaseSandboxSpectator(playerId);
+        if (!ownedSandbox && !spectatingSandbox) {
+            return false;
+        }
+        returnPlayerToLobby(server, player);
+        if (ownedSandbox) {
+            stopSandbox(server, playerId);
         }
         return true;
     }
 
     public boolean stopSandbox(UUID playerId) {
+        return stopSandbox(null, playerId);
+    }
+
+    public boolean stopSandbox(MinecraftServer server, UUID playerId) {
         SemionGame existing = playerId == null ? null : sandboxGames.remove(playerId);
         if (existing == null) {
             return false;
+        }
+        for (UUID spectatorId : Set.copyOf(existing.matchSpectatorIds())) {
+            existing.removeMatchSpectator(spectatorId);
+            illagerRaidBossBarService.removePlayer(spectatorId);
+            villagerAdvReputationBossBarService.removePlayer(spectatorId);
+            if (server != null) {
+                ServerPlayer spectator = server.getPlayerList().getPlayer(spectatorId);
+                if (spectator != null) {
+                    returnPlayerToLobby(server, spectator);
+                    spectator.sendSystemMessage(SemionText.prefixedPlain("관전하던 샌드박스가 종료되어 로비로 이동했습니다."));
+                }
+            }
         }
         illagerRaidBossBarService.removePlayer(playerId);
         villagerAdvReputationBossBarService.removePlayer(playerId);
@@ -1155,6 +1228,18 @@ public final class SemionGameManager {
             SemionTd.LOGGER.warn("Failed to close Semion TD sandbox for player {}.", playerId, exception);
         }
         return true;
+    }
+
+    private void returnPlayerToLobby(MinecraftServer server, ServerPlayer player) {
+        if (server == null || player == null) {
+            return;
+        }
+        sidebarHudService.remove(player);
+        try {
+            sendPlayerToLobby(server, player);
+        } catch (ArenaLoadException exception) {
+            SemionTd.LOGGER.warn("Failed to return sandbox player {} to lobby.", player.getGameProfile().getName(), exception);
+        }
     }
 
     private boolean isBlockedFromSandbox(UUID playerId) {
@@ -1182,28 +1267,52 @@ public final class SemionGameManager {
         }
     }
 
+    private boolean releaseSandboxSpectator(UUID playerId) {
+        SemionGame sandbox = sandboxSpectatorGame(playerId).orElse(null);
+        return sandbox != null && sandbox.removeMatchSpectator(playerId);
+    }
+
     private static UUID sandboxDummyPlayerId(UUID ownerId) {
         return UUID.nameUUIDFromBytes(("semion-td-sandbox-dummy:" + ownerId).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
-    private void closeSandboxesFor(ParticipantSelectionPlan plan) {
+    private void closeSandboxesFor(MinecraftServer server, ParticipantSelectionPlan plan) {
         if (plan == null) {
             return;
         }
-        plan.spectatorIds().forEach(this::stopSandbox);
+        plan.spectatorIds().forEach(playerId -> closeSandboxForPlayer(server, playerId));
         plan.activeParticipants().stream()
                 .map(AssignedParticipant::uuid)
-                .forEach(this::stopSandbox);
+                .forEach(playerId -> closeSandboxForPlayer(server, playerId));
+    }
+
+    private void closeSandboxForPlayer(MinecraftServer server, UUID playerId) {
+        ServerPlayer player = server == null ? null : server.getPlayerList().getPlayer(playerId);
+        if (player != null && leaveSandbox(server, player)) {
+            return;
+        }
+        releaseSandboxSpectator(playerId);
+        stopSandbox(server, playerId);
     }
 
     private void tickSandboxGames(MinecraftServer server) {
         for (Map.Entry<UUID, SemionGame> entry : sandboxGames.entrySet()) {
             SemionGame sandbox = entry.getValue();
             sandbox.tick(server);
-            sidebarHudService.refreshPlayersNow(server, sandbox, MatchMode.TEST, Set.of(entry.getKey()));
+            Set<UUID> viewers = new HashSet<>(sandbox.matchSpectatorIds());
+            viewers.add(entry.getKey());
+            sidebarHudService.refreshPlayersNow(server, sandbox, MatchMode.TEST, viewers);
             illagerRaidBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
             villagerAdvReputationBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
         }
+    }
+
+    private Set<UUID> sandboxViewerIds() {
+        Set<UUID> viewerIds = new HashSet<>(sandboxGames.keySet());
+        for (SemionGame sandbox : sandboxGames.values()) {
+            viewerIds.addAll(sandbox.matchSpectatorIds());
+        }
+        return viewerIds;
     }
 
     private void closeAllSandboxes() {
@@ -1311,7 +1420,7 @@ public final class SemionGameManager {
         }
 
         midLanePreferences.clear();
-        closeSandboxesFor(plan);
+        closeSandboxesFor(server, plan);
         if (!traitsEnabled() || !hasSelectableTraits()) {
             pendingStartPlan = plan;
             pendingStartTraitSnapshot = TraitSelectionSnapshot.empty();
@@ -1399,8 +1508,9 @@ public final class SemionGameManager {
         if (activeGame == null) {
             clearStartCountdown();
             clearTraitSelection();
-            illagerRaidBossBarService.clearExcept(sandboxGames.keySet());
-            villagerAdvReputationBossBarService.clearExcept(sandboxGames.keySet());
+            Set<UUID> sandboxViewerIds = sandboxViewerIds();
+            illagerRaidBossBarService.clearExcept(sandboxViewerIds);
+            villagerAdvReputationBossBarService.clearExcept(sandboxViewerIds);
             return;
         }
 
@@ -1415,13 +1525,13 @@ public final class SemionGameManager {
 
         if (pendingStartPlan != null) {
             tickStartCountdown(server);
-            sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
+            sidebarHudService.tick(server, activeGame, matchMode, sandboxViewerIds());
             return;
         }
 
         if (pendingTraitSelection != null) {
             tickTraitSelection(server);
-            sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
+            sidebarHudService.tick(server, activeGame, matchMode, sandboxViewerIds());
             return;
         }
 
@@ -1431,9 +1541,10 @@ public final class SemionGameManager {
             return;
         }
         if (activeGame != null) {
-            illagerRaidBossBarService.tick(server, activeGame, sandboxGames.keySet());
-            villagerAdvReputationBossBarService.tick(server, activeGame, sandboxGames.keySet());
-            sidebarHudService.tick(server, activeGame, matchMode, sandboxGames.keySet());
+            Set<UUID> sandboxViewerIds = sandboxViewerIds();
+            illagerRaidBossBarService.tick(server, activeGame, sandboxViewerIds);
+            villagerAdvReputationBossBarService.tick(server, activeGame, sandboxViewerIds);
+            sidebarHudService.tick(server, activeGame, matchMode, sandboxViewerIds);
         }
     }
 
@@ -1476,7 +1587,7 @@ public final class SemionGameManager {
             try {
                 sendPlayerToLobby(server, player);
                 if (activeGame != null && activeGame.canConfigureRoster()) {
-                    sidebarHudService.refreshNow(server, activeGame, matchMode, sandboxGames.keySet());
+                    sidebarHudService.refreshNow(server, activeGame, matchMode, sandboxViewerIds());
                 }
             } catch (ArenaLoadException exception) {
                 SemionTd.LOGGER.warn("Failed to send player {} to lobby.", player.getGameProfile().getName(), exception);
@@ -1491,7 +1602,8 @@ public final class SemionGameManager {
         sidebarHudService.remove(player);
         illagerRaidBossBarService.removePlayer(player.getUUID());
         villagerAdvReputationBossBarService.removePlayer(player.getUUID());
-        stopSandbox(player.getUUID());
+        releaseSandboxSpectator(player.getUUID());
+        stopSandbox(player.getServer(), player.getUUID());
     }
 
     public void handlePlayerWorldChanged(ServerPlayer player) {
@@ -1842,7 +1954,7 @@ public final class SemionGameManager {
         }
         TraitSelectionSnapshot traitSnapshot = pendingStartTraitSnapshot;
         clearStartCountdown();
-        closeSandboxesFor(plan);
+        closeSandboxesFor(server, plan);
         if (!activeGame.start(server, plan, traitSnapshot)) {
             server.getPlayerList().broadcastSystemMessage(
                     SemionText.prefixedPlain("시작 카운트다운이 취소되었습니다. 참가자 확정에 실패했습니다."),
@@ -1854,7 +1966,7 @@ public final class SemionGameManager {
         clearPriorityForActiveParticipants(plan);
         server.getPlayerList().broadcastSystemMessage(SemionText.prefixedMini("<green><bold>게임을 시작합니다.</bold></green>"), false);
         activeGame.announceTeamLeaders(server);
-        sidebarHudService.refreshNow(server, activeGame, matchMode, sandboxGames.keySet());
+        sidebarHudService.refreshNow(server, activeGame, matchMode, sandboxViewerIds());
     }
 
     private void announceStartCountdown(MinecraftServer server, int secondsRemaining) {

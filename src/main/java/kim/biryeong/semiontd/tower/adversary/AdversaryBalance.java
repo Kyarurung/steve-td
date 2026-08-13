@@ -17,6 +17,8 @@ public final class AdversaryBalance {
     public static final String FOX_TOWER_ID = "adversary_fox";
 
     public static final long FOX_COST = 100L;
+    public static final long FIRST_EVOLUTION_COST = 200L;
+    public static final long FINAL_EVOLUTION_COST = 400L;
     public static final int MAX_FOX_TOWERS = 4;
 
     public static final double RIVAL_ROUND_HEALTH_GROWTH = 0.07;
@@ -27,13 +29,13 @@ public final class AdversaryBalance {
     public static final double ENHANCED_RIVAL_ARMOR_BONUS = 4.0;
     public static final double ENHANCED_RIVAL_ATTACK_INTERVAL_MULTIPLIER = 0.80;
     public static final double ENHANCED_RIVAL_RANGE_BONUS = 0.50;
-    public static final int BASE_RIVAL_SCORE_PER_KILL = 1;
+    public static final int BASE_RIVAL_SCORE_PER_KILL = 2;
     public static final int ENHANCED_RIVAL_SCORE_PER_KILL = 3;
     public static final double POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE = 0.005;
     public static final double POST_EVOLUTION_DAMAGE_BONUS_CAP = 2.00;
 
     public static final double BASE_SPLASH_RADIUS = 4.0;
-    public static final int BASE_SPLASH_EXTRA_TARGETS = 6;
+    public static final int BASE_SPLASH_EXTRA_TARGETS = 3;
     public static final double BASE_SPLASH_DAMAGE_RATIO = 0.50;
     public static final double EVOLVED_SPLASH_DAMAGE_RATIO = 0.50;
 
@@ -43,7 +45,7 @@ public final class AdversaryBalance {
     public static final double FOCUS_FIRE_DAMAGE_REDUCTION_PER_EXTRA_ATTACKER = 0.04;
     public static final double FOCUS_FIRE_DAMAGE_REDUCTION_CAP = 0.40;
 
-    public static final int BREEZE_EXTRA_TARGETS = 1;
+    public static final int BREEZE_EXTRA_TARGETS = 4;
     public static final double BREEZE_EXTRA_TARGET_DAMAGE_RATIO = 0.60;
 
     public static final int GOLDEN_FANG_EXTRA_ATTACK_EVERY = 7;

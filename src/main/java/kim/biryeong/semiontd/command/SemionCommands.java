@@ -949,6 +949,20 @@ public final class SemionCommands {
                         .executes(context -> resetSandbox(context.getSource(), gameManager)))
                 .then(literal("leave")
                         .executes(context -> leaveSandbox(context.getSource(), gameManager)))
+                .then(literal("round")
+                        .then(argument("round", IntegerArgumentType.integer(1))
+                                .executes(context -> moveSandboxRound(
+                                        context.getSource(),
+                                        gameManager,
+                                        IntegerArgumentType.getInteger(context, "round")
+                                ))))
+                .then(literal("spectate")
+                        .then(argument("player", EntityArgument.player())
+                                .executes(context -> spectateSandbox(
+                                        context.getSource(),
+                                        gameManager,
+                                        EntityArgument.getPlayer(context, "player")
+                                ))))
                 .then(sandboxCurrencyCommand("give", gameManager))
                 .then(sandboxCurrencyCommand("money", gameManager));
     }
@@ -1397,8 +1411,59 @@ public final class SemionCommands {
             failure(source, "종료할 샌드박스 세션이 없습니다.");
             return 0;
         }
-        success(source, "샌드박스 모드를 종료했습니다.");
+        success(source, "샌드박스에서 나왔습니다.");
         return 1;
+    }
+
+    private static int moveSandboxRound(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            int round
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (!gameManager.moveSandboxToRound(source.getServer(), player.getUUID(), round)) {
+            failure(source, "이동할 수 있는 본인 샌드박스가 없습니다.");
+            return 0;
+        }
+        success(source, round + "라운드 준비 단계로 이동했습니다.");
+        gameManager.sandboxGame(player.getUUID())
+                .ifPresent(game -> gameManager.dialogService().showSandboxRoundControl(player, game));
+        return 1;
+    }
+
+    private static int spectateSandbox(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            ServerPlayer owner
+    ) throws CommandSyntaxException {
+        ServerPlayer spectator = source.getPlayerOrException();
+        SemionGameManager.SandboxSpectateResult result = gameManager.spectateSandbox(
+                source.getServer(),
+                spectator,
+                owner.getUUID()
+        );
+        return switch (result) {
+            case SUCCESS -> {
+                success(source, owner.getGameProfile().getName() + "님의 샌드박스 관전으로 이동했습니다.");
+                yield 1;
+            }
+            case TARGET_NOT_IN_SANDBOX -> {
+                failure(source, "대상 유저에게 진행 중인 샌드박스가 없습니다.");
+                yield 0;
+            }
+            case CANNOT_SPECTATE_SELF -> {
+                failure(source, "본인의 샌드박스는 관전할 수 없습니다.");
+                yield 0;
+            }
+            case PLAYER_IN_MATCH -> {
+                failure(source, "현재 경기 참가자 또는 시작 확정자는 샌드박스를 관전할 수 없습니다.");
+                yield 0;
+            }
+            case FAILED -> {
+                failure(source, "샌드박스 관전으로 이동하지 못했습니다.");
+                yield 0;
+            }
+        };
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> sandboxCurrencyCommand(
