@@ -1775,7 +1775,7 @@ public record TowerBalanceConfig(
         values.put("permanentHealth", 0.05);
         values.put("permanentDamage", 0.025);
         values.put("lifeStep", 0.01);
-        values.put("lifeCap", 0.16);
+        values.put("lifeCap", 0.12);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);

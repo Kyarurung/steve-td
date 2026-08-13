@@ -83,7 +83,7 @@ class WarlockTowerBalanceTest {
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
         assertEquals(0.085, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
-        assertEquals(0.16, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
+        assertEquals(0.12, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "splashStep", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "splashCap", -1.0), 0.0001);
         assertEquals(0.1, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashStep", -1.0), 0.0001);
@@ -237,14 +237,13 @@ class WarlockTowerBalanceTest {
 
         assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 0), 0.0001);
         assertEquals(0.03, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3), 0.0001);
-        assertEquals(0.15, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 15), 0.0001);
-        assertEquals(0.16, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 16), 0.0001);
-        assertEquals(0.16, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 17), 0.0001);
-        assertEquals(0.16, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 25), 0.0001);
+        assertEquals(0.12, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 12), 0.0001);
+        assertEquals(0.12, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 13), 0.0001);
+        assertEquals(0.12, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 25), 0.0001);
         assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3, false), 0.0001);
         assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 0, 0, true), 0.0001);
         assertEquals(0.03, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3, true), 0.0001);
-        assertEquals(0.16, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 20, true), 0.0001);
+        assertEquals(0.12, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 20, true), 0.0001);
         assertEquals(0.01, combat.lifeStealRatioForCounts(WarlockTowers.RANGED_WARLOCK_TOWER, 10, 3), 0.0001);
         assertEquals(0.01, combat.lifeStealRatioForCounts(WarlockTowers.RANGED_WARLOCK_TOWER, 10, 3, true), 0.0001);
     }
@@ -302,7 +301,7 @@ class WarlockTowerBalanceTest {
                 meleeDescriptionLines.get(4).replaceAll("<[^>]+>", "")
         );
         assertEquals(
-                "최대 16%까지 증가합니다.",
+                "최대 12%까지 증가합니다.",
                 meleeDescriptionLines.get(5).replaceAll("<[^>]+>", "")
         );
         assertTrue(meleeMarkup.contains("<#fc5454>양 계열</#fc5454>"));
