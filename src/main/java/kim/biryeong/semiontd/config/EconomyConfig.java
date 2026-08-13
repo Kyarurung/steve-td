@@ -128,7 +128,7 @@ public record EconomyConfig(
     }
 
     public static EconomyConfig defaultConfig() {
-        return new EconomyConfig(
+        EconomyConfig fallback = new EconomyConfig(
                 200,
                 50,
                 0,
@@ -139,6 +139,7 @@ public record EconomyConfig(
                 TeamTransferConfig.defaultConfig(),
                 EmeraldIncomeBoostConfig.defaultConfig()
         );
+        return BundledBalanceDefaults.load("economy.json", EconomyConfig.class, fallback);
     }
 
     public long startingMineral() {

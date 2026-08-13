@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 final class RatingEligibilityPolicyTest {
     @Test
     void winnerAndLoserMatchIsEligible() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
 
         assertTrue(policy.isEligible(matchResult(
                 List.of(participant("winner", TeamId.RED, true), participant("loser", TeamId.BLUE, false)),
@@ -49,7 +49,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void oneParticipantMatchIsNotEligible() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
 
         assertEquals("not enough rating-eligible participants", policy.skippedReason(matchResult(
                 List.of(participant("winner", TeamId.RED, true)),
@@ -60,7 +60,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void spectatorOnlyOpponentIsNotEligible() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
         MatchParticipantResult winner = participant("winner", TeamId.RED, true);
         MatchParticipantResult spectator = participant("spectator", TeamId.BLUE, false);
 
@@ -73,7 +73,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void participantWinnerFlagMustMatchWinningTeams() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
 
         assertEquals("participant winner flag does not match winning teams", policy.skippedReason(matchResult(
                 List.of(participant("winner", TeamId.RED, false), participant("loser", TeamId.BLUE, false)),
@@ -84,7 +84,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void multipleWinningTeamsAreNotEligibleUntilPlacementRatingExists() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
 
         assertEquals("rating requires exactly one winning team", policy.skippedReason(matchResult(
                 List.of(participant("winner", TeamId.RED, true), participant("otherWinner", TeamId.BLUE, true)),
@@ -95,7 +95,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void drawOrUnratedParticipantTeamIsNotEligible() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
         MatchParticipantResult winner = participant("winner", TeamId.RED, true);
         MatchParticipantResult unrated = participant("unrated", TeamId.BLUE, false);
         MatchResult result = new MatchResult(
@@ -117,7 +117,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void sameTeamOnlyMatchIsNotEligible() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
 
         assertEquals("rating requires winner and loser participant groups", policy.skippedReason(matchResult(
                 List.of(participant("winner", TeamId.RED, true), participant("teammate", TeamId.RED, true)),
@@ -128,7 +128,7 @@ final class RatingEligibilityPolicyTest {
 
     @Test
     void moreThanTwoParticipantTeamsAreEligibleWhenOneTeamWins() {
-        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(RatingConfig.defaultConfig());
+        RatingEligibilityPolicy policy = new RatingEligibilityPolicy(enabledRatingConfig());
 
         assertTrue(policy.isEligible(matchResult(
                 List.of(
@@ -143,6 +143,29 @@ final class RatingEligibilityPolicyTest {
 
     private static MatchParticipantResult participant(String name, TeamId teamId, boolean winner) {
         return new MatchParticipantResult(UUID.nameUUIDFromBytes(name.getBytes()), name, teamId, winner);
+    }
+
+    private static RatingConfig enabledRatingConfig() {
+        RatingConfig defaults = RatingConfig.defaultConfig();
+        return new RatingConfig(
+                true,
+                defaults.teamEloMatchmakingEnabled(),
+                defaults.eloKFactor(),
+                defaults.initialDisplayElo(),
+                defaults.initialMu(),
+                defaults.initialSigma(),
+                defaults.leaderboardLimit(),
+                defaults.minimumParticipants(),
+                defaults.excludeSpectators(),
+                defaults.contributionWeightingEnabled(),
+                defaults.contributionMultiplierMin(),
+                defaults.contributionMultiplierMax(),
+                defaults.defenseContributionWeight(),
+                defaults.pressureContributionWeight(),
+                defaults.economyContributionWeight(),
+                defaults.assistContributionWeight(),
+                defaults.perfectDefenseLossMultiplier()
+        );
     }
 
     private static MatchResult matchResult(

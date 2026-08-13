@@ -42,10 +42,10 @@ class NetherTowerCatalogTest {
         assertTrue(config.towers().containsKey(NetherTowers.T1_STRIDER.id()));
         assertTrue(config.towers().containsKey(NetherTowers.T3_WITHER.id()));
         assertEquals(0.0667, config.ability(NetherTower.CONFIG_ID, "netherDecayMaxHealthRatioPerSecond", -1), 0.0001);
-        assertEquals(0.143, config.ability(NetherTower.CONFIG_ID, "zombieDecayMaxHealthRatioPerSecond", -1), 0.0001);
+        assertEquals(0.20, config.ability(NetherTower.CONFIG_ID, "zombieDecayMaxHealthRatioPerSecond", -1), 0.0001);
         assertEquals(1.0, config.ability(NetherTower.CONFIG_ID, "zombieReviveHealthRatio", -1), 0.0001);
-        assertEquals(0.60, config.ability(NetherTower.CONFIG_ID, "lowHealthThreshold", -1), 0.0001);
-        assertEquals(0.30, config.ability(NetherTower.CONFIG_ID, "criticalHealthThreshold", -1), 0.0001);
+        assertEquals(0.70, config.ability(NetherTower.CONFIG_ID, "lowHealthThreshold", -1), 0.0001);
+        assertEquals(0.35, config.ability(NetherTower.CONFIG_ID, "criticalHealthThreshold", -1), 0.0001);
         assertEquals(0.12, config.ability(NetherTowers.T2_PIGLIN.id(), "lifeStealBonus", -1), 0.0001);
         assertEquals(0.16, config.ability(NetherTowers.T3_PIGLIN_BRUTE.id(), "lifeStealBonus", -1), 0.0001);
         assertEquals(0.75, config.ability(NetherTowers.T3_PIGLIN_BRUTE.id(), "tankDamageBonus", -1), 0.0001);
@@ -57,7 +57,7 @@ class NetherTowerCatalogTest {
         assertEquals(0.75, config.ability(NetherTowers.T3_GHAST.id(), "missingHealthAttackSpeedBonusCap", -1), 0.0001);
         assertEquals(1.50, config.ability(NetherTowers.T1_MAGMA_CUBE.id(), "pulseDamageRatio", -1), 0.0001);
         assertEquals(2.50, config.ability(NetherTowers.T1_MAGMA_CUBE.id(), "zombieTransitionPulseDamageRatio", -1), 0.0001);
-        assertEquals(0.20, config.ability(NetherTowers.T3_GHAST.id(), "criticalMarkDamageTakenBonus", -1), 0.0001);
+        assertEquals(0.40, config.ability(NetherTowers.T3_GHAST.id(), "criticalMarkDamageTakenBonus", -1), 0.0001);
         assertEquals(0.50, config.ability(NetherTowers.T2_WITHER_SKELETON.id(), "lowTargetDamageBonus", -1), 0.0001);
         assertEquals(0.75, config.ability(NetherTowers.T3_WITHER.id(), "lowTargetDamageBonus", -1), 0.0001);
         assertEquals(0.0, config.ability(NetherTowers.T3_WITHER.id(), "zombieLifeStealRatio", -1), 0.0001);
@@ -85,8 +85,8 @@ class NetherTowerCatalogTest {
 
         assertTrue(brute.contains("추가 16% 흡혈"));
         assertTrue(brute.contains("[좀비]"));
-        assertTrue(ghast.contains("100%"));
-        assertTrue(ghast.contains("75%"));
+        assertTrue(ghast.contains("60%"));
+        assertTrue(ghast.contains("125%"));
         assertTrue(magmaCube.contains("마법 피해"));
         assertTrue(blaze.contains("마법 피해"));
         assertTrue(ghast.contains("마법 피해"));
@@ -116,8 +116,8 @@ class NetherTowerCatalogTest {
         assertStarter(NetherTowers.T1_MAGMA_CUBE.id(), "마그마 큐브");
         assertStarter(NetherTowers.T1_SKELETON.id(), "스켈레톤");
         assertUpgrade(NetherTowers.T1_STRIDER.id(), NetherTowers.T2_PIGLIN.id(), "피글린", 100);
-        assertUpgrade(NetherTowers.T2_PIGLIN.id(), NetherTowers.T3_PIGLIN_BRUTE.id(), "피글린 야수", 180);
-        assertUpgrade(NetherTowers.T2_WITHER_SKELETON.id(), NetherTowers.T3_WITHER.id(), "위더", 180);
+        assertUpgrade(NetherTowers.T2_PIGLIN.id(), NetherTowers.T3_PIGLIN_BRUTE.id(), "피글린 야수", 200);
+        assertUpgrade(NetherTowers.T2_WITHER_SKELETON.id(), NetherTowers.T3_WITHER.id(), "위더", 200);
     }
 
     @Test

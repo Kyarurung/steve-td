@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 
 public final class AdversaryProgressStates {
     private static final Map<UUID, AdversaryProgressState> STATES = new ConcurrentHashMap<>();
@@ -25,10 +26,6 @@ public final class AdversaryProgressStates {
         return Optional.ofNullable(ownerPlayer == null ? null : STATES.get(ownerPlayer));
     }
 
-    public static FoxForm currentForm(UUID ownerPlayer) {
-        return ownerPlayer == null ? FoxForm.BASE : state(ownerPlayer).currentForm();
-    }
-
     public static void clear(UUID ownerPlayer) {
         if (ownerPlayer != null) {
             STATES.remove(ownerPlayer);
@@ -37,12 +34,6 @@ public final class AdversaryProgressStates {
 
     public static void clearAllForTesting() {
         STATES.clear();
-    }
-
-    public static void noteScoringKind(UUID ownerPlayer, RivalKind kind) {
-        if (ownerPlayer != null && kind != null) {
-            state(ownerPlayer).noteScoringKind(kind);
-        }
     }
 
     /**
@@ -91,6 +82,40 @@ public final class AdversaryProgressStates {
                 .map(RivalProgressSource.class::cast)
                 .map(RivalProgressSource::snapshot)
                 .toList();
-        state(ownerPlayer).reconcileRivals(contributions);
+        for (AdversaryProgressState.FoxDemotion demotion : state(ownerPlayer).reconcileRivals(contributions)) {
+            applyDemotion(lane, ownerPlayer, demotion);
+        }
+    }
+
+    private static void applyDemotion(
+            PlayerLane lane,
+            UUID ownerPlayer,
+            AdversaryProgressState.FoxDemotion demotion
+    ) {
+        AdversaryFoxTower current = lane.towers().stream()
+                .filter(AdversaryFoxTower.class::isInstance)
+                .map(AdversaryFoxTower.class::cast)
+                .filter(tower -> ownerPlayer.equals(tower.ownerPlayer()))
+                .filter(tower -> demotion.foxId().equals(tower.foxId()))
+                .findFirst()
+                .orElse(null);
+        if (current == null) {
+            return;
+        }
+        ProductionTowerCatalog.CatalogEntry parent = ProductionTowerCatalog
+                .find(AdversaryTowers.typeFor(demotion.current()).id())
+                .orElse(null);
+        if (parent == null) {
+            return;
+        }
+        AdversaryFoxTower replacement = (AdversaryFoxTower) parent.create(
+                current.ownerPlayer(),
+                current.teamId(),
+                current.laneId(),
+                current.originalPosition(),
+                current.position()
+        );
+        replacement.copyFrom(current, 0L);
+        lane.replaceTower(current, replacement);
     }
 }

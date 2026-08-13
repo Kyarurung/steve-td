@@ -107,8 +107,8 @@ final class AncientCityTowerCatalogTest {
         assertEquals(1.75, defaults.ability(AncientCityStates.CONFIG_ID, "incomeMagicDamageMultiplier", -1), EPSILON);
         assertEquals(30.0, defaults.ability(AncientCityTowers.CATALYST_T3.id(), "magicDamage", -1), EPSILON);
         assertEquals(0.30, defaults.ability(AncientCityTowers.SENSOR_T3.id(), "markDamageBonus", -1), EPSILON);
-        assertEquals(3.0, defaults.ability(AncientCityTowers.SHRIEKER_T3.id(), "magicRadius", -1), EPSILON);
-        assertEquals(0.25, defaults.ability(AncientCityTowers.WARDEN_T3.id(), "secondaryDamageRatio", -1), EPSILON);
+        assertEquals(2.25, defaults.ability(AncientCityTowers.SHRIEKER_T3.id(), "magicRadius", -1), EPSILON);
+        assertEquals(0.75, defaults.ability(AncientCityTowers.WARDEN_T3.id(), "secondaryDamageRatio", -1), EPSILON);
 
         TowerBalanceConfig merged = new TowerBalanceConfig(
                 Map.of(), Map.of(), Map.of(AncientCityStates.CONFIG_ID, Map.of("maxSculk", 40.0))

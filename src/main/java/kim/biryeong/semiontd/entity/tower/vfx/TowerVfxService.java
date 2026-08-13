@@ -34,6 +34,7 @@ import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
@@ -459,6 +460,9 @@ public final class TowerVfxService {
         }
         if (AncientCityTowers.isAncientCityTower(type)) {
             return BuilderPalette.ANCIENT_CITY;
+        }
+        if (AdversaryTowers.isAdversaryTower(type)) {
+            return BuilderPalette.ADVERSARY;
         }
         return BuilderPalette.DEFAULT;
     }

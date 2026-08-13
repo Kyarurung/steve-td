@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
+import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
 import kim.biryeong.semiontd.trait.SemionTrait;
@@ -349,6 +350,8 @@ public final class SemionCommands {
                 .executes(context -> ratingTop(context.getSource(), gameManager)));
         dispatcher.register(literal("준비")
                 .executes(context -> ready(context.getSource(), gameManager)));
+        dispatcher.register(literal("미드희망")
+                .executes(context -> requestMidLane(context.getSource(), gameManager)));
         dispatcher.register(literal("피해량보기")
                 .executes(context -> toggleDamageView(context.getSource(), gameManager)));
         dispatcher.register(literal("요청")
@@ -455,7 +458,22 @@ public final class SemionCommands {
                                 .then(literal("shriek")
                                         .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.SHRIEK)))
                                 .then(literal("warden")
-                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.WARDEN)))))
+                                        .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.WARDEN))))
+                        .then(literal("adversary")
+                                .then(literal("breeze")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.BREEZE)))
+                                .then(literal("golden")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.GOLDEN)))
+                                .then(literal("shield")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SHIELD)))
+                                .then(literal("support")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SUPPORT)))
+                                .then(literal("firework")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.FIREWORK)))
+                                .then(literal("mace")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.MACE)))
+                                .then(literal("sculk")
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SCULK)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -544,6 +562,15 @@ public final class SemionCommands {
     private static int debugMagicHitVfx(CommandSourceStack source) throws CommandSyntaxException {
         TowerVfxService.showMagicHitDebug(source.getPlayerOrException());
         success(source, "마법 피해 적중 VFX를 재생했습니다.");
+        return 1;
+    }
+
+    private static int debugAdversaryVfx(
+            CommandSourceStack source,
+            AdversaryVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        AdversaryVfx.showDebug(source.getPlayerOrException(), kind);
+        success(source, "대적자 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
         return 1;
     }
 
@@ -1230,6 +1257,38 @@ public final class SemionCommands {
         boolean enabled = gameManager.sidebarHudService().toggleDamageView(player.getUUID());
         success(source, enabled ? "피해량 사이드바를 켰습니다." : "기본 사이드바로 돌아갑니다.");
         return 1;
+    }
+
+    private static int requestMidLane(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGameManager.MidLanePreferenceResult result = gameManager.requestMidLane(
+                source.getPlayerOrException().getUUID()
+        );
+        return switch (result) {
+            case REQUESTED -> {
+                success(source, "5번 라인(미드) 희망을 등록했습니다.");
+                yield 1;
+            }
+            case ALREADY_REQUESTED -> {
+                success(source, "이미 5번 라인(미드)을 희망했습니다.");
+                yield 1;
+            }
+            case TEAM_ALREADY_REQUESTED -> {
+                failure(source, "같은 팀에서 다른 플레이어가 먼저 5번 라인(미드)을 희망했습니다.");
+                yield 0;
+            }
+            case NO_PENDING_START -> {
+                failure(source, "팀 배정 후 게임 시작 카운트다운 중에 사용할 수 있습니다.");
+                yield 0;
+            }
+            case NOT_PARTICIPANT -> {
+                failure(source, "이번 게임의 참가자가 아닙니다.");
+                yield 0;
+            }
+            case NO_MID_LANE -> {
+                failure(source, "팀원이 5명이 아니기 때문에 5번 라인(미드)이 없습니다.");
+                yield 0;
+            }
+        };
     }
 
     private static int unready(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
@@ -2930,7 +2989,7 @@ public final class SemionCommands {
             case UNKNOWN_UPGRADE -> "해당 타워에 없는 업그레이드 ID입니다";
             case UNKNOWN_TARGET_TYPE -> "타워 진화 대상 타입이 등록되지 않았습니다";
             case TOWER_NOT_ALLOWED -> "현재 직업으로 사용할 수 없는 타워입니다";
-            case UPGRADE_REQUIREMENTS_NOT_MET -> "최대 무리 스택과 계열별 우두머리 제한을 확인하세요.";
+            case UPGRADE_REQUIREMENTS_NOT_MET -> "이 업그레이드의 추가 조건을 충족하지 못했습니다.";
             case NOT_ENOUGH_MINERAL -> "다이아가 부족합니다";
             case NOT_ENOUGH_ADV_EXPERIENCE -> "주민 ADV 경험치가 부족합니다";
             case SUCCESS -> "성공";

@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.adversary;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -59,16 +60,35 @@ class AdversaryTowerCatalogTest {
     }
 
     @Test
-    void catalogContainsExactlyFoxAndFourTwoTierRivalLines() {
+    void catalogContainsFoxEvolutionTreeAndFourTwoTierRivalLines() {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
 
         var entries = ProductionTowerCatalog.all().stream()
                 .filter(entry -> AdversaryTowers.isAdversaryTower(entry.type()))
                 .toList();
-        assertEquals(9, entries.size());
+        assertEquals(21, entries.size());
         assertEquals(5, entries.stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count());
         assertTrue(ProductionTowerCatalog.find(AdversaryTowers.FOX.id()).orElseThrow().starter());
         assertTrue(JobRegistry.find(AdversaryTowerJob.ID).isPresent());
+
+        for (FoxRoute route : FoxRoute.values()) {
+            FoxForm intermediate = FoxForm.intermediateFor(route);
+            var intermediateEntry = ProductionTowerCatalog.find(AdversaryTowers.typeFor(intermediate).id())
+                    .orElseThrow();
+            assertEquals(2, intermediateEntry.tier());
+            assertEquals(0L, ProductionTowerCatalog.upgrade(
+                    AdversaryTowers.FOX,
+                    intermediateEntry.type().id()
+            ).orElseThrow().mineralCost());
+            for (FoxForm finalForm : FoxForm.finalsFor(route)) {
+                var finalEntry = ProductionTowerCatalog.find(AdversaryTowers.typeFor(finalForm).id()).orElseThrow();
+                assertEquals(3, finalEntry.tier());
+                assertEquals(0L, ProductionTowerCatalog.upgrade(
+                        intermediateEntry.type(),
+                        finalEntry.type().id()
+                ).orElseThrow().mineralCost());
+            }
+        }
 
         for (RivalKind kind : RivalKind.values()) {
             var base = ProductionTowerCatalog.find(AdversaryTowers.baseRival(kind).id()).orElseThrow();
@@ -121,16 +141,19 @@ class AdversaryTowerCatalogTest {
         assertTrue(enhanced.enhanced());
 
         assertTrue(AdversaryProgressStates.recordFoxKill(OWNER, enhanced.createProxy(1), lane));
-        assertEquals(4, enhanced.contributedScore());
+        assertEquals(5, enhanced.contributedScore());
         assertTrue(enhanced.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("처치 점수") && line.contains("2점") && line.contains("누적 기여 4점")));
+                line.contains("처치 점수") && line.contains("3점") && line.contains("누적 기여 5점")));
     }
 
     @Test
-    void jobOwnsOnlyTheNineAdversaryCatalogTypes() {
+    void jobOwnsAllAdversaryCatalogTypes() {
         AdversaryTowerJob job = new AdversaryTowerJob();
 
         assertTrue(job.canUseTower(null, AdversaryTowers.FOX));
+        for (FoxForm form : FoxForm.values()) {
+            assertTrue(job.canUseTower(null, AdversaryTowers.typeFor(form)));
+        }
         for (RivalKind kind : RivalKind.values()) {
             assertTrue(job.canUseTower(null, AdversaryTowers.baseRival(kind)));
             assertTrue(job.canUseTower(null, AdversaryTowers.enhancedRival(kind)));
@@ -139,7 +162,7 @@ class AdversaryTowerCatalogTest {
     }
 
     @Test
-    void jobDescriptionExplainsAutomaticEvolutionWithoutAbstractRouteLabels() {
+    void jobDescriptionExplainsSharedScoreAndManualEvolution() {
         String guide = new AdversaryTowerJob().description().stream()
                 .map(component -> component.getString())
                 .collect(java.util.stream.Collectors.joining("\n"));
@@ -149,15 +172,15 @@ class AdversaryTowerCatalogTest {
         assertTrue(guide.contains("질풍 여우, 종지기 여우, 추적자 여우, 메아리 여우"));
         assertFalse(guide.contains("빠른 저비용"));
         assertFalse(guide.contains("진화 루트"));
-        assertTrue(guide.contains("다음 준비 단계"));
+        assertTrue(guide.contains("업그레이드 메뉴에서 전직을 무료로 직접 선택"));
         assertTrue(guide.contains("인컴 적은 점수를 주지 않습니다"));
         assertTrue(guide.contains("강등"));
-        assertTrue(guide.contains("전직 계열은 유지"));
-        assertTrue(guide.contains("여우를 판매해도 전직 상태와 점수는 유지"));
+        assertTrue(guide.contains("같은 전직 계열은 한 여우만"));
+        assertTrue(guide.contains("여우를 판매하면 사용 중이던 점수와 전직 계열을 반환"));
     }
 
     @Test
-    void jobAllowsOnlyOneFoxInThePlayersLane() {
+    void jobAllowsFourFoxesAndStillAllowsEvolutionAtTheLimit() {
         EconomyConfig economy = EconomyConfig.defaultConfig();
         SemionGame game = new SemionGame(economy, WaveConfig.defaultConfig(), new GameArena(Map.of()));
         SemionPlayer player = new SemionPlayer(
@@ -175,8 +198,11 @@ class AdversaryTowerCatalogTest {
         AdversaryTowerJob job = new AdversaryTowerJob();
 
         assertTrue(job.canUseTower(context, AdversaryTowers.FOX));
-        lane.addTower(new TestTower(AdversaryTowers.FOX));
+        for (int index = 0; index < 4; index++) {
+            lane.addTower(new TestTower(AdversaryTowers.FOX));
+        }
         assertFalse(job.canUseTower(context, AdversaryTowers.FOX));
+        assertTrue(job.canUseTower(context, AdversaryTowers.typeFor(FoxForm.BREEZE)));
         assertTrue(job.canUseTower(context, AdversaryTowers.BREEZE_RIVAL));
     }
 
@@ -215,30 +241,42 @@ class AdversaryTowerCatalogTest {
 
     @Test
     void rivalRoundAndEnhancementScalingMatchesTheApprovedFormula() {
-        assertEquals(2.62, AdversaryBalance.rivalRoundHealthMultiplier(10), 0.0001);
-        assertEquals(1.45, AdversaryBalance.rivalRoundDamageMultiplier(10), 0.0001);
+        assertEquals(1.0, AdversaryBalance.rivalRoundHealthMultiplier(1), 0.0001);
+        assertEquals(1.63, AdversaryBalance.rivalRoundHealthMultiplier(10), 0.0001);
+        assertEquals(2.33, AdversaryBalance.rivalRoundHealthMultiplier(20), 0.0001);
+        assertEquals(3.73, AdversaryBalance.rivalRoundHealthMultiplier(40), 0.0001);
+        assertEquals(1.27, AdversaryBalance.rivalRoundDamageMultiplier(10), 0.0001);
         assertEquals(1, AdversaryBalance.rivalRoundArmorBonus(10));
 
         RivalKind kind = RivalKind.POLAR_BEAR;
-        assertEquals(180.0 * 2.62 * 2.25, kind.maxHealth(10, true), 0.0001);
-        assertEquals(11.0 * 1.45 * 1.70, kind.damage(10, true), 0.0001);
+        assertEquals(100.0 * 1.63 * 2.40, kind.maxHealth(10, true), 0.0001);
+        assertEquals(11.0 * 1.27 * 1.70, kind.damage(10, true), 0.0001);
         assertEquals(8.0, kind.armor(10, true), 0.0001);
         assertEquals(13, kind.attackIntervalTicks(true));
         assertEquals(3.0, kind.range(true), 0.0001);
-        assertEquals(2, kind.scorePerKill(true));
+        assertEquals(3, kind.scorePerKill(true));
     }
 
     @Test
     void allFourRivalsExposeTheApprovedBaseCombatStats() {
-        assertRival(RivalKind.BREEZE, 45, 45, 0, 3, 14, 6, AttackKind.RANGED, "minecraft:breeze");
-        assertRival(RivalKind.CREEPER, 60, 80, 2, 6, 15, 2.5, AttackKind.MELEE, "minecraft:creeper");
-        assertRival(RivalKind.PHANTOM, 75, 100, 1, 7, 11, 4, AttackKind.RANGED, "minecraft:phantom");
-        assertRival(RivalKind.POLAR_BEAR, 100, 180, 3, 11, 16, 2.5, AttackKind.MELEE, "minecraft:polar_bear");
+        assertRival(RivalKind.BREEZE, 45, 40, 0, 3, 14, 6, AttackKind.RANGED, "minecraft:breeze");
+        assertRival(RivalKind.CREEPER, 60, 65, 2, 6, 15, 2.5, AttackKind.MELEE, "minecraft:creeper");
+        assertRival(RivalKind.PHANTOM, 75, 75, 1, 7, 11, 4, AttackKind.RANGED, "minecraft:phantom");
+        assertRival(RivalKind.POLAR_BEAR, 100, 100, 3, 11, 16, 2.5, AttackKind.MELEE, "minecraft:polar_bear");
 
-        assertEnhancedRival(RivalKind.BREEZE, 101.25, 4, 5.1, 12, 6.5);
-        assertEnhancedRival(RivalKind.CREEPER, 180, 6, 10.2, 12, 3.0);
-        assertEnhancedRival(RivalKind.PHANTOM, 225, 5, 11.9, 9, 4.5);
-        assertEnhancedRival(RivalKind.POLAR_BEAR, 405, 7, 18.7, 13, 3.0);
+        assertEnhancedRival(RivalKind.BREEZE, 96, 4, 5.1, 12, 6.5);
+        assertEnhancedRival(RivalKind.CREEPER, 156, 6, 10.2, 12, 3.0);
+        assertEnhancedRival(RivalKind.PHANTOM, 180, 5, 11.9, 9, 4.5);
+        assertEnhancedRival(RivalKind.POLAR_BEAR, 240, 7, 18.7, 13, 3.0);
+
+        assertEnhancedHealthAtRound(RivalKind.BREEZE, 20, 223.68);
+        assertEnhancedHealthAtRound(RivalKind.CREEPER, 20, 363.48);
+        assertEnhancedHealthAtRound(RivalKind.PHANTOM, 20, 419.40);
+        assertEnhancedHealthAtRound(RivalKind.POLAR_BEAR, 20, 559.20);
+        assertEnhancedHealthAtRound(RivalKind.BREEZE, 40, 358.08);
+        assertEnhancedHealthAtRound(RivalKind.CREEPER, 40, 581.88);
+        assertEnhancedHealthAtRound(RivalKind.PHANTOM, 40, 671.40);
+        assertEnhancedHealthAtRound(RivalKind.POLAR_BEAR, 40, 895.20);
 
         assertEquals(0, AdversaryBalance.rivalRoundArmorBonus(5));
         assertEquals(1, AdversaryBalance.rivalRoundArmorBonus(6));
@@ -247,19 +285,19 @@ class AdversaryTowerCatalogTest {
     @Test
     void allThirteenFoxFormsExposeApprovedBaseStats() {
         assertEquals(13, FoxForm.values().length);
-        assertForm(FoxForm.BASE, 350, 3, 18, 10);
-        assertForm(FoxForm.BREEZE, 800, 7, 30, 4);
-        assertForm(FoxForm.GOLDEN_FANG, 1100, 5, 36, 3);
-        assertForm(FoxForm.SHIELD_BEARER, 1400, 3.5, 75, 7);
-        assertForm(FoxForm.BELL_KEEPER, 1250, 5, 70, 7);
-        assertForm(FoxForm.BEACON_KEEPER, 1600, 4, 90, 6);
-        assertForm(FoxForm.OMINOUS_HEXER, 1100, 8, 90, 6);
-        assertForm(FoxForm.TRACKER, 900, 8, 60, 7);
-        assertForm(FoxForm.FIREWORK_PIERCER, 1100, 10, 60, 8);
-        assertForm(FoxForm.BIG_GAME_TRACKER, 1250, 11, 120, 16);
-        assertForm(FoxForm.ECHO_FOX, 1200, 7, 90, 8);
-        assertForm(FoxForm.MACE_EXECUTIONER, 1400, 4.5, 500, 50);
-        assertForm(FoxForm.SCULK_CORE, 1100, 8, 1000, 100);
+        assertForm(FoxForm.BASE, 300, 3, 16, 10);
+        assertForm(FoxForm.BREEZE, 550, 7, 26, 4);
+        assertForm(FoxForm.GOLDEN_FANG, 750, 5, 30, 3);
+        assertForm(FoxForm.SHIELD_BEARER, 950, 3.5, 60, 7);
+        assertForm(FoxForm.BELL_KEEPER, 650, 5, 60, 7);
+        assertForm(FoxForm.BEACON_KEEPER, 850, 4, 72, 6);
+        assertForm(FoxForm.OMINOUS_HEXER, 700, 8, 72, 6);
+        assertForm(FoxForm.TRACKER, 550, 8, 52, 7);
+        assertForm(FoxForm.FIREWORK_PIERCER, 650, 10, 48, 8);
+        assertForm(FoxForm.BIG_GAME_TRACKER, 750, 11, 96, 16);
+        assertForm(FoxForm.ECHO_FOX, 700, 7, 76, 8);
+        assertForm(FoxForm.MACE_EXECUTIONER, 900, 4.5, 400, 50);
+        assertForm(FoxForm.SCULK_CORE, 800, 8, 800, 100);
 
         assertEquals(Items.STICK, FoxForm.BASE.heldItem());
         assertEquals(Items.BREEZE_ROD, FoxForm.BREEZE.heldItem());
@@ -286,7 +324,11 @@ class AdversaryTowerCatalogTest {
     void defaultBalancePublishesEveryAdversaryTowerUpgradeFormAndAbility() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
 
-        assertTrue(AdversaryTowers.all().stream().allMatch(type -> defaults.towers().containsKey(type.id())));
+        assertTrue(AdversaryTowers.configurableTowers().stream()
+                .allMatch(type -> defaults.towers().containsKey(type.id())));
+        assertTrue(java.util.Arrays.stream(FoxForm.values())
+                .filter(form -> form != FoxForm.BASE)
+                .noneMatch(form -> defaults.towers().containsKey(AdversaryTowers.typeFor(form).id())));
         for (RivalKind kind : RivalKind.values()) {
             TowerType base = AdversaryTowers.baseRival(kind);
             TowerType enhanced = AdversaryTowers.enhancedRival(kind);
@@ -305,16 +347,35 @@ class AdversaryTowerCatalogTest {
         }
 
         Map<String, Double> global = defaults.abilities().get(AdversaryBalance.GLOBAL_CONFIG_ID);
-        assertEquals(1.25, global.get("baseSplashRadius"), 0.0001);
-        assertEquals(0.05, global.get("rivalRoundDamageGrowth"), 0.0001);
+        assertEquals(4.0, global.get("maxFoxTowers"), 0.0001);
+        assertEquals(4.0, global.get("baseSplashRadius"), 0.0001);
+        assertEquals(6.0, global.get("baseSplashExtraTargets"), 0.0001);
+        assertEquals(0.07, global.get("rivalRoundHealthGrowth"), 0.0001);
+        assertEquals(0.03, global.get("rivalRoundDamageGrowth"), 0.0001);
         assertEquals(20.0, global.get("teamEffectScanIntervalTicks"), 0.0001);
-        assertEquals(0.10, global.get("beaconTeamAttackSpeedBonus"), 0.0001);
+        assertEquals(80.0, global.get("bellHealIntervalTicks"), 0.0001);
+        assertEquals(8.0, global.get("bellHealRadius"), 0.0001);
+        assertEquals(1.0, global.get("bellHealTargetCount"), 0.0001);
+        assertEquals(0.05, global.get("bellHealMaxHealthRatio"), 0.0001);
+        assertEquals(60.0, global.get("beaconHealIntervalTicks"), 0.0001);
+        assertEquals(10.0, global.get("beaconHealRadius"), 0.0001);
+        assertEquals(2.0, global.get("beaconHealTargetCount"), 0.0001);
+        assertEquals(0.06, global.get("beaconHealMaxHealthRatio"), 0.0001);
         assertEquals(0.20, global.get("maceBreakHealthRatio"), 0.0001);
         assertEquals(1.50, global.get("maceSweepRadius"), 0.0001);
-        assertEquals(2.0, global.get("maceSweepExtraTargets"), 0.0001);
+        assertEquals(5.0, global.get("maceSweepExtraTargets"), 0.0001);
         assertEquals(0.25, global.get("maceSweepDamageRatio"), 0.0001);
-        assertEquals(5.0, global.get("sculkMaxTargets"), 0.0001);
-        assertEquals(0.20, global.get("sculkSelfDamageFloorRatio"), 0.0001);
+        assertEquals(7.0, global.get("sculkMaxTargets"), 0.0001);
+        assertEquals(0.50, global.get("baseSplashDamageRatio"), 0.0001);
+        assertEquals(0.50, global.get("evolvedSplashDamageRatio"), 0.0001);
+        assertEquals(0.005, global.get("postEvolutionDamageBonusPerScore"), 0.0001);
+        assertEquals(2.00, global.get("postEvolutionDamageBonusCap"), 0.0001);
+        assertEquals(0.20, global.get("baseRivalKillHealRatio"), 0.0001);
+        assertEquals(0.30, global.get("enhancedRivalKillHealRatio"), 0.0001);
+        assertEquals(1.00, global.get("rivalKillHealCapRatioPerWave"), 0.0001);
+        assertEquals(0.04, global.get("focusFireDamageReductionPerExtraAttacker"), 0.0001);
+        assertEquals(0.40, global.get("focusFireDamageReductionCap"), 0.0001);
+        assertEquals(0.40, global.get("sculkSelfDamageFloorRatio"), 0.0001);
         assertFalse(global.containsKey("maceStrikeDamage"));
         assertFalse(global.containsKey("maceStrikeIntervalTicks"));
         assertFalse(global.containsKey("sculkDamage"));
@@ -339,10 +400,20 @@ class AdversaryTowerCatalogTest {
 
         TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
         assertEquals(135L, merged.towers().get(AdversaryTowers.FOX.id()).mineralCost().longValue());
-        assertEquals(350.0, merged.towers().get(AdversaryTowers.FOX.id()).maxHealth(), 0.0001);
+        assertEquals(300.0, merged.towers().get(AdversaryTowers.FOX.id()).maxHealth(), 0.0001);
+        assertEquals(16.0, merged.towers().get(AdversaryTowers.FOX.id()).damage(), 0.0001);
         assertEquals(123L, merged.upgradeCosts().get(breezeUpgrade).longValue());
         assertEquals(2.75, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashRadius", 0.0), 0.0001);
-        assertEquals(2.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashExtraTargets", 0.0), 0.0001);
+        assertEquals(6.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseSplashExtraTargets", 0.0), 0.0001);
+        assertEquals(4.0, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "maxFoxTowers", 0.0), 0.0001);
+        assertEquals(0.005, merged.ability(
+                AdversaryBalance.GLOBAL_CONFIG_ID,
+                "postEvolutionDamageBonusPerScore",
+                0.0
+        ), 0.0001);
+        assertEquals(0.20, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "baseRivalKillHealRatio", 0.0), 0.0001);
+        assertEquals(0.40, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "focusFireDamageReductionCap", 0.0), 0.0001);
+        assertEquals(0.06, merged.ability(AdversaryBalance.GLOBAL_CONFIG_ID, "beaconHealMaxHealthRatio", 0.0), 0.0001);
         assertEquals(650.0, merged.ability(
                 AdversaryBalance.formConfigId(FoxForm.MACE_EXECUTIONER),
                 "damage",
@@ -353,7 +424,13 @@ class AdversaryTowerCatalogTest {
                 "range",
                 0.0
         ), 0.0001);
-        assertTrue(AdversaryTowers.all().stream().allMatch(type -> merged.towers().containsKey(type.id())));
+        assertEquals(30.0, merged.ability(
+                AdversaryBalance.formConfigId(FoxForm.GOLDEN_FANG),
+                "damage",
+                0.0
+        ), 0.0001);
+        assertTrue(AdversaryTowers.configurableTowers().stream()
+                .allMatch(type -> merged.towers().containsKey(type.id())));
 
         ProductionTowerCatalogs.reloadBuiltIns(merged);
         assertEquals(135L, ProductionTowerCatalog.find(AdversaryTowers.FOX.id()).orElseThrow().type().mineralCost());
@@ -366,7 +443,7 @@ class AdversaryTowerCatalogTest {
     }
 
     @Test
-    void adversarySemanticValidationRejectsInvalidRatioAndFractionalTickValues() {
+    void adversaryValidationAcceptsAnyNonNegativeValueAndRejectsNegativeValues() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         LinkedHashMap<String, Map<String, Double>> invalidRatioAbilities = new LinkedHashMap<>(defaults.abilities());
         LinkedHashMap<String, Double> invalidGlobal = new LinkedHashMap<>(
@@ -382,7 +459,7 @@ class AdversaryTowerCatalogTest {
                 defaults.villagerAdv(),
                 defaults.schemaVersion()
         );
-        assertThrows(IllegalArgumentException.class, invalidRatio::validateForRuntime);
+        assertDoesNotThrow(invalidRatio::validateForRuntime);
 
         LinkedHashMap<String, Map<String, Double>> invalidTickAbilities = new LinkedHashMap<>(defaults.abilities());
         String formId = AdversaryBalance.formConfigId(FoxForm.BREEZE);
@@ -397,7 +474,19 @@ class AdversaryTowerCatalogTest {
                 defaults.villagerAdv(),
                 defaults.schemaVersion()
         );
-        assertThrows(IllegalArgumentException.class, invalidTick::validateForRuntime);
+        assertDoesNotThrow(invalidTick::validateForRuntime);
+
+        invalidForm.put("attackIntervalTicks", -0.5);
+        invalidTickAbilities.put(formId, invalidForm);
+        TowerBalanceConfig negative = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                invalidTickAbilities,
+                defaults.illusionCloneQueue(),
+                defaults.villagerAdv(),
+                defaults.schemaVersion()
+        );
+        assertThrows(IllegalArgumentException.class, negative::validateForRuntime);
     }
 
     @Test
@@ -411,18 +500,26 @@ class AdversaryTowerCatalogTest {
         }
         String foxDescription = String.join(" ", ProductionTowerCatalog.find(AdversaryTowers.FOX.id())
                 .orElseThrow().type().description());
-        assertTrue(foxDescription.contains("1.25블록"));
-        assertTrue(foxDescription.contains("2기"));
-        assertTrue(foxDescription.contains("전직 점수"));
+        assertTrue(foxDescription.contains("4블록"));
+        assertTrue(foxDescription.contains("4기"));
+        assertTrue(foxDescription.contains("공유 점수"));
+        assertTrue(foxDescription.contains("남은 점수 1점당 피해가 0.5% 증가")
+                && foxDescription.contains("최대 200%"));
+        assertTrue(foxDescription.contains("최대 체력의 20%") && foxDescription.contains("강화 숙적은 30%"));
+        assertTrue(foxDescription.contains("1기를 넘을 때마다 받는 피해가 4% 감소"));
+        assertTrue(foxDescription.contains("전직 형태는 주변 적 최대 6기에게 공격력의 50%"));
+        assertTrue(foxDescription.contains("질풍의 연쇄 공격과 스컬크 폭발은 마법 피해"));
+        assertTrue(foxDescription.contains("나머지 공격은 물리 피해"));
         assertFalse(foxDescription.contains("진화"));
 
         String enhancedDescription = String.join(" ", ProductionTowerCatalog
                 .find(AdversaryTowers.ENHANCED_POLAR_BEAR_RIVAL.id())
                 .orElseThrow().type().description());
-        assertTrue(enhancedDescription.contains("405"));
+        assertTrue(enhancedDescription.contains("240"));
         assertTrue(enhancedDescription.contains("7"));
-        assertTrue(enhancedDescription.contains("전직 점수 2점"));
+        assertTrue(enhancedDescription.contains("전직 점수 3점"));
         assertTrue(enhancedDescription.contains("라운드가 오를수록 증가"));
+        assertTrue(enhancedDescription.contains("플레이어 특성 효과를 받지 않습니다"));
     }
 
     private static void assertRival(
@@ -446,7 +543,7 @@ class AdversaryTowerCatalogTest {
         assertEquals(entityType, kind.entityTypeId());
         assertEquals(cost, kind.enhancementCost());
         assertEquals(1, kind.scorePerKill(false));
-        assertEquals(2, kind.scorePerKill(true));
+        assertEquals(3, kind.scorePerKill(true));
     }
 
     private static void assertForm(FoxForm form, double health, double range, double damage, int interval) {
@@ -474,6 +571,10 @@ class AdversaryTowerCatalogTest {
         assertTrue(kind.armor(1, true) > kind.armor(1, false));
         assertTrue(kind.attackIntervalTicks(true) < kind.attackIntervalTicks(false));
         assertTrue(kind.range(true) > kind.range(false));
+    }
+
+    private static void assertEnhancedHealthAtRound(RivalKind kind, int round, double health) {
+        assertEquals(health, kind.maxHealth(round, true), 0.0001);
     }
 
     private static PlayerLane testLane() {

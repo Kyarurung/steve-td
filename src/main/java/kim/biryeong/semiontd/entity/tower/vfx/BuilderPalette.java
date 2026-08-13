@@ -17,6 +17,7 @@ public enum BuilderPalette {
     NETHER(0xF57C00, 0x8AAA45, "minecraft:flame", "minecraft:smoke"),
     OCEAN(0x2196F3, 0x80DEEA, "minecraft:nautilus", "minecraft:splash"),
     ANCIENT_CITY(0x0B4F57, 0x63E6E2, "minecraft:sculk_soul", "minecraft:electric_spark"),
+    ADVERSARY(0xF28C28, 0xFFD166, "minecraft:crit", "minecraft:wax_on"),
     DEFAULT(0xE0E0E0, 0xFFFFFF, "minecraft:end_rod", "minecraft:crit");
 
     private final DustParticleOptions rayParticle;

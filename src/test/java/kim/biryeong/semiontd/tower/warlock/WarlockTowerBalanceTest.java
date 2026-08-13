@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.warlock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,22 +55,22 @@ class WarlockTowerBalanceTest {
         assertEquals(7.0, meleeStats.damage(), 0.0001);
         assertEquals(20, meleeStats.attackIntervalTicks());
         assertEquals(80, meleeStats.aggroPriority());
-        assertEquals(85, config.upgradeCost(
+        assertEquals(70, config.upgradeCost(
                 WarlockTowers.T1_SLAVE.id(),
                 WarlockTowers.T2_SLAVE.id(),
                 -1
         ));
-        assertEquals(135, config.upgradeCost(
+        assertEquals(150, config.upgradeCost(
                 WarlockTowers.T2_SLAVE.id(),
                 WarlockTowers.T3_SLAVE.id(),
                 -1
         ));
-        assertEquals(90, config.upgradeCost(
+        assertEquals(80, config.upgradeCost(
                 WarlockTowers.T1_RANGED_SLAVE.id(),
                 WarlockTowers.T2_RANGED_SLAVE.id(),
                 -1
         ));
-        assertEquals(140, config.upgradeCost(
+        assertEquals(160, config.upgradeCost(
                 WarlockTowers.T2_RANGED_SLAVE.id(),
                 WarlockTowers.T3_RANGED_SLAVE.id(),
                 -1
@@ -166,35 +167,14 @@ class WarlockTowerBalanceTest {
     }
 
     @Test
-    void damageScalingConfigRejectsInvalidRangesAndMergesLegacyFiles() {
+    void damageScalingConfigAcceptsZeroAndMergesLegacyFiles() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> invalidAbilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> invalidWarlock = new LinkedHashMap<>(invalidAbilities.get(WarlockTowers.CONFIG_ID));
         invalidWarlock.put("damageThreshold", 0.0);
         invalidAbilities.put(WarlockTowers.CONFIG_ID, invalidWarlock);
-        TowerBalanceConfig invalidThreshold = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalidThreshold));
-
-        invalidWarlock = new LinkedHashMap<>(invalidAbilities.get(WarlockTowers.CONFIG_ID));
-        invalidWarlock.put("damageThreshold", 175.0);
-        invalidWarlock.put("damageScale", 0.0);
-        invalidAbilities.put(WarlockTowers.CONFIG_ID, invalidWarlock);
-        TowerBalanceConfig invalidScale = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalidScale));
-
-        invalidWarlock = new LinkedHashMap<>(defaults.abilities().get(WarlockTowers.CONFIG_ID));
-        invalidWarlock.put("healthThreshold", 0.0);
-        invalidAbilities = new LinkedHashMap<>(defaults.abilities());
-        invalidAbilities.put(WarlockTowers.CONFIG_ID, invalidWarlock);
-        TowerBalanceConfig invalidHealthThreshold = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalidHealthThreshold));
-
-        invalidWarlock = new LinkedHashMap<>(defaults.abilities().get(WarlockTowers.CONFIG_ID));
-        invalidWarlock.put("healthScale", 0.0);
-        invalidAbilities = new LinkedHashMap<>(defaults.abilities());
-        invalidAbilities.put(WarlockTowers.CONFIG_ID, invalidWarlock);
-        TowerBalanceConfig invalidHealthScale = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalidHealthScale));
+        TowerBalanceConfig zero = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(zero));
 
         Map<String, Map<String, Double>> legacyAbilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> legacyWarlock = new LinkedHashMap<>(legacyAbilities.get(WarlockTowers.CONFIG_ID));

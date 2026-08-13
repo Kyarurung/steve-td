@@ -86,10 +86,10 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
                 .findFirst()
                 .orElseThrow()
                 .description();
-        if (!assertTrue(context, splashDescription.stream().anyMatch(line -> line.contains("경험치 1마다 공격력이 0.15%")), "Villager ADV catalog should show experience growth lines.")) {
+        if (!assertTrue(context, splashDescription.stream().anyMatch(line -> line.contains("경험치 1마다 공격력이 1%")), "Villager ADV catalog should show experience growth lines.")) {
             return;
         }
-        if (!assertTrue(context, splashDescription.stream().anyMatch(line -> line.contains("평판 1마다 공격력이 0.1%")), "Villager ADV catalog should show reputation growth lines.")) {
+        if (!assertTrue(context, splashDescription.stream().anyMatch(line -> line.contains("평판 1마다 공격력이 0.5%")), "Villager ADV catalog should show reputation growth lines.")) {
             return;
         }
         if (!assertTrue(context, ProductionTowerCatalog.find(VillagerTowers.T1_SPLASH_TOWER.id()).isPresent(), "Base villager tower should remain registered separately.")) {
@@ -102,7 +102,7 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, balance.towers().containsKey(VillagerTowers.ADV_T1_SPLASH_TOWER.id()), "ADV villager tower should have its own tower balance key.")) {
             return;
         }
-        if (!assertEquals(context, 75L, balance.towers().get(VillagerTowers.T1_SPLASH_TOWER.id()).mineralCost(), "Base villager tower should keep its own balance.")) {
+        if (!assertEquals(context, 50L, balance.towers().get(VillagerTowers.T1_SPLASH_TOWER.id()).mineralCost(), "Base villager tower should keep its own balance.")) {
             return;
         }
         if (!assertAdvVanillaStats(context, balance)) {
@@ -204,7 +204,7 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, SemionDialogService.towerRuntimeDetailLines(librarian).stream().anyMatch(line -> line.contains("피해 +2.5%")), "ADV librarian runtime detail should show the reduced survival bonus.")) {
             return;
         }
-        if (!assertTrue(context, SemionDialogService.towerRuntimeDetailLines(librarian).stream().anyMatch(line -> line.contains("경험치 12.0/100.0")), "ADV runtime detail should show current tower experience.")) {
+        if (!assertTrue(context, SemionDialogService.towerRuntimeDetailLines(librarian).stream().anyMatch(line -> line.contains("경험치 12.0/1557.0")), "ADV runtime detail should show current tower experience.")) {
             return;
         }
         if (!assertTrue(context, SemionDialogService.towerRuntimeDetailLines(golem).stream().anyMatch(line -> line.contains("체력 +5.0%")), "ADV golem runtime detail should show the reduced survival bonus.")) {
@@ -281,7 +281,7 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
             return;
         }
         VillagerAdvStates.onWaveCleared(game, 1);
-        if (!assertClose(context, 1.0, VillagerAdvStates.reputation(playerId), "A fully defended wave should grant reputation during payout.")) {
+        if (!assertClose(context, 0.75, VillagerAdvStates.reputation(playerId), "A fully defended wave should grant reputation during payout.")) {
             return;
         }
 
@@ -308,11 +308,11 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, player != null, "ADV owner should still exist.")) {
             return;
         }
-        if (!assertClose(context, 0.5, VillagerAdvStates.reputation(playerId), "Any lane leak should subtract 0.5 reputation.")) {
+        if (!assertClose(context, 0.25, VillagerAdvStates.reputation(playerId), "Any lane leak should subtract 0.5 reputation.")) {
             return;
         }
         VillagerAdvStates.onWaveCleared(game, 2);
-        if (!assertClose(context, 0.5, VillagerAdvStates.reputation(playerId), "A leaked wave should not grant payout reputation.")) {
+        if (!assertClose(context, 0.25, VillagerAdvStates.reputation(playerId), "A leaked wave should not grant payout reputation.")) {
             return;
         }
         context.succeed();
@@ -388,13 +388,13 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
         context.runAfterDelay(1, () -> {
             VillagerAdvStates.applyPending(game);
             Tower tower = lane.towerAt(gridPosition);
-            if (tower != null && Math.abs(VillagerAdvStates.experience(tower) - 2.0) <= 0.01) {
+            if (tower != null && Math.abs(VillagerAdvStates.experience(tower) - 5.5) <= 0.01) {
                 continuation.run();
                 return;
             }
             if (waitedTicks >= 180) {
                 double experience = tower == null ? 0.0 : VillagerAdvStates.experience(tower);
-                context.fail(Component.literal("T1 tower should gain experiencePerTower + experiencePerTier asynchronously. Expected 2.0, got " + experience + "."));
+                context.fail(Component.literal("T1 tower should gain experiencePerTower + experiencePerTier asynchronously. Expected 5.5, got " + experience + "."));
                 return;
             }
             waitForAdvExperience(context, game, lane, gridPosition, waitedTicks + 1, continuation);
@@ -430,35 +430,35 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
     }
 
     private static boolean assertAdvVanillaStats(GameTestHelper context, TowerBalanceConfig balance) {
-        return assertStats(context, balance, VillagerTowers.ADV_T1_SPLASH_TOWER, 50, 40.0, 5.5, 5.0, 10, 0)
-                && assertStats(context, balance, VillagerTowers.ADV_T2_LIBRARIAN_TOWER, 110, 60.0, 7.0, 8.0, 10, 5)
-                && assertStats(context, balance, VillagerTowers.ADV_T3_CLERIC_TOWER, 180, 80.0, 7.0, 10.0, 10, 10)
-                && assertStats(context, balance, VillagerTowers.ADV_T1_GOLEM_TOWER, 50, 120.0, 2.0, 5.0, 20, 35)
-                && assertStats(context, balance, VillagerTowers.ADV_T2_GOLEM_TOWER, 180, 200.0, 2.0, 8.0, 20, 50)
-                && assertStats(context, balance, VillagerTowers.ADV_T3_GOLEM_TOWER, 350, 300.0, 3.0, 10.0, 20, 80)
-                && assertStats(context, balance, VillagerTowers.ADV_T1_ALLAY_TOWER, 80, 40.0, 5.0, 2.0, 15, -5)
-                && assertStats(context, balance, VillagerTowers.ADV_T2_ALLAY_TOWER, 200, 50.0, 5.0, 4.0, 15, -5)
-                && assertStats(context, balance, VillagerTowers.ADV_T2_WEAPON_SMITH_TOWER, 250, 50.0, 12.0, 5.0, 15, -5)
-                && assertStats(context, balance, VillagerTowers.ADV_T3_ARMORER_TOWER, 300, 70.0, 7.0, 10.0, 15, -5)
-                && assertStats(context, balance, VillagerTowers.ADV_T3_WEAPON_SMITH_TOWER, 350, 60.0, 12.0, 7.0, 15, -5)
-                && assertStats(context, balance, VillagerTowers.ADV_T1_CAT_TOWER, 60, 50.0, 10.0, 10.0, 15, 5)
-                && assertStats(context, balance, VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER, 180, 50.0, 12.0, 20.0, 15, 5)
+        return assertStats(context, balance, VillagerTowers.ADV_T1_SPLASH_TOWER, 40, 40.0, 5.5, 5.0, 10, 0)
+                && assertStats(context, balance, VillagerTowers.ADV_T2_LIBRARIAN_TOWER, 110, 60.0, 7.0, 12.0, 15, 5)
+                && assertStats(context, balance, VillagerTowers.ADV_T3_CLERIC_TOWER, 180, 80.0, 7.0, 18.0, 20, 10)
+                && assertStats(context, balance, VillagerTowers.ADV_T1_GOLEM_TOWER, 40, 120.0, 2.0, 5.0, 20, 35)
+                && assertStats(context, balance, VillagerTowers.ADV_T2_GOLEM_TOWER, 180, 150.0, 2.0, 8.0, 20, 50)
+                && assertStats(context, balance, VillagerTowers.ADV_T3_GOLEM_TOWER, 350, 200.0, 3.0, 10.0, 20, 80)
+                && assertStats(context, balance, VillagerTowers.ADV_T1_ALLAY_TOWER, 80, 40.0, 3.0, 2.0, 15, -5)
+                && assertStats(context, balance, VillagerTowers.ADV_T2_ALLAY_TOWER, 200, 65.0, 3.0, 4.0, 15, -5)
+                && assertStats(context, balance, VillagerTowers.ADV_T2_WEAPON_SMITH_TOWER, 250, 50.0, 8.0, 5.0, 15, -5)
+                && assertStats(context, balance, VillagerTowers.ADV_T3_ARMORER_TOWER, 300, 70.0, 3.0, 10.0, 15, -5)
+                && assertStats(context, balance, VillagerTowers.ADV_T3_WEAPON_SMITH_TOWER, 350, 60.0, 8.0, 7.0, 15, -5)
+                && assertStats(context, balance, VillagerTowers.ADV_T1_CAT_TOWER, 55, 50.0, 10.0, 10.0, 15, 5)
+                && assertStats(context, balance, VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER, 180, 50.0, 12.0, 25.0, 15, 5)
                 && assertStats(context, balance, VillagerTowers.ADV_T2_LANE_CLEAR_CAT_TOWER, 200, 50.0, 10.0, 15.0, 15, 5)
-                && assertStats(context, balance, VillagerTowers.ADV_T3_ANTI_TANKER_CAT_TOWER, 250, 50.0, 15.0, 25.0, 15, 5)
+                && assertStats(context, balance, VillagerTowers.ADV_T3_ANTI_TANKER_CAT_TOWER, 250, 50.0, 15.0, 20.0, 15, 5)
                 && assertStats(context, balance, VillagerTowers.ADV_T3_LANE_CLEAR_CAT_TOWER, 275, 50.0, 10.0, 20.0, 10, 5)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_SPLASH_TOWER, "villager_splash_t2", 80)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_LIBRARIAN_TOWER, "villager_splash_t3", 150)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_GOLEM_TOWER, "t2_golem_tower", 100)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_GOLEM_TOWER, "t3_golem_tower", 200)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_SPLASH_TOWER, "villager_splash_t2", 100)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_LIBRARIAN_TOWER, "villager_splash_t3", 225)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_GOLEM_TOWER, "t2_golem_tower", 120)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_GOLEM_TOWER, "t3_golem_tower", 250)
                 && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_ALLAY_TOWER, "t2_allay_tower", 150)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_ALLAY_TOWER, "t2_weapon_smith_tower", 180)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_ALLAY_TOWER, "t2_weapon_smith_tower", 200)
                 && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_ALLAY_TOWER, "t3_armorer_tower", 200)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_WEAPON_SMITH_TOWER, "t3_weapon_smith_tower", 200)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_CAT_TOWER, "t2_anti_tanker_cat_tower", 120)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_CAT_TOWER, "t2_lane_clear_cat_tower", 120)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER, "t3_anti_tanker_cat_tower", 210)
-                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_LANE_CLEAR_CAT_TOWER, "t3_lane_clear_cat_tower", 210)
-                && assertEquals(context, 0.0015, balance.villagerAdv().buff(VillagerTowers.ADV_T1_SPLASH_TOWER.id(), "rangedDamagePerExperience"), "ADV ranged damage buff should be tower-scoped.")
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_WEAPON_SMITH_TOWER, "t3_weapon_smith_tower", 250)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_CAT_TOWER, "t2_anti_tanker_cat_tower", 125)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T1_CAT_TOWER, "t2_lane_clear_cat_tower", 125)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER, "t3_anti_tanker_cat_tower", 220)
+                && assertUpgradeCost(context, balance, VillagerTowers.ADV_T2_LANE_CLEAR_CAT_TOWER, "t3_lane_clear_cat_tower", 220)
+                && assertEquals(context, 0.01, balance.villagerAdv().buff(VillagerTowers.ADV_T1_SPLASH_TOWER.id(), "rangedDamagePerExperience"), "ADV ranged damage buff should be tower-scoped.")
                 && assertEquals(context, 1.0, balance.villagerAdv().buffInterval(VillagerTowers.ADV_T1_SPLASH_TOWER.id(), "rangedDamagePerExperience"), "ADV ranged damage buff interval should be configurable per tower.")
                 && assertEquals(context, 0.0, balance.villagerAdv().buff(VillagerTowers.ADV_T1_GOLEM_TOWER.id(), "rangedDamagePerExperience"), "ADV golem should not inherit ranged experience buffs.")
                 && assertEquals(context, 0.0, balance.villagerAdv().buff(VillagerTowers.ADV_T2_WEAPON_SMITH_TOWER.id(), "allayHealAmountPerExperience"), "ADV weapon smith should not inherit allay heal amount buffs.");

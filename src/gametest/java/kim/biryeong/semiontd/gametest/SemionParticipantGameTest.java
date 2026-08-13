@@ -161,6 +161,14 @@ import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTower;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
+import kim.biryeong.semiontd.tower.adversary.AdversaryFoxTower;
+import kim.biryeong.semiontd.tower.adversary.AdversaryProgressState;
+import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
+import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
+import kim.biryeong.semiontd.tower.adversary.FoxForm;
+import kim.biryeong.semiontd.tower.adversary.FoxRoute;
+import kim.biryeong.semiontd.tower.adversary.RivalContribution;
+import kim.biryeong.semiontd.tower.adversary.RivalKind;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.animal.FoxTower;
@@ -429,10 +437,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         new EconomyService(EconomyConfig.defaultConfig()).awardMonsterKillReward(monster, Map.of(playerId, player));
 
         var snapshot = player.matchStats().snapshot(player.economy().income());
-        if (!assertEquals(context, 204L, player.economy().diamond(), "Cross-lane final-defense wave kill should pay 40% of 10 diamond reward.")) {
+        if (!assertEquals(context, 153L, player.economy().diamond(), "Cross-lane final-defense wave kill should pay 25% of 10 diamond reward.")) {
             return;
         }
-        if (!assertEquals(context, 4L, snapshot.assistClearDiamondGain(), "Assist clear diamond gain should record paid reduced reward.")) {
+        if (!assertEquals(context, 3L, snapshot.assistClearDiamondGain(), "Assist clear diamond gain should record paid reduced reward.")) {
             return;
         }
         if (!assertEquals(context, 25.0, snapshot.assistClearThreat(), "Assist clear threat should preserve full monster threat.")) {
@@ -1327,6 +1335,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, actionbarText.contains("타워"), "Active actionbar should show tower limit.")) {
             return;
         }
+        game.players().get(redId).economy().addGas(
+                game.economyConfig().towerLimit().initialPurchaseEmeraldCost(),
+                Long.MAX_VALUE
+        );
         if (!assertTrue(context, game.purchaseTowerLimit(redId), "Tower limit purchase should succeed before actionbar rendering.")) {
             return;
         }
@@ -2726,6 +2738,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, waterTowerEntity.isNoAi(), "Water tower entity should disable floating AI.")) {
             return;
         }
+        if (!assertTrue(context, waterTowerEntity.canBreatheUnderwater(), "Water tower entity must not drown in its water block.")) {
+            return;
+        }
         Vec3 entityPosition = waterTowerEntity.position();
 
         BlockPos waterPos = OceanWaterTower.waterBlockPos(waterTower.position());
@@ -2786,7 +2801,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.markWaveStarted(1);
         if (!assertEquals(
                 context,
-                70.0,
+                107.0,
                 codTower.water(),
                 "Water supply should use the fixed water block even if its proxy entity position drifted."
         )) {
@@ -2808,16 +2823,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(lateNearbyTower);
         lane.tick(context.getLevel().getServer());
-        if (!assertEquals(context, 71.0, codTower.water(), "Captured towers should keep receiving water after moving out of range.")) {
+        if (!assertEquals(context, 108.5, codTower.water(), "Captured towers should keep receiving water after moving out of range.")) {
             return;
         }
-        if (!assertEquals(context, 50.0, lateNearbyTower.water(), "Towers entering range after the first wave starts must not receive water.")) {
+        if (!assertEquals(context, 100.0, lateNearbyTower.water(), "Towers entering range after the first wave starts must not receive water.")) {
             return;
         }
 
         lane.resetForRound();
         lane.markWaveStarted(2);
-        if (!assertEquals(context, 70.0, lateNearbyTower.water(), "The next wave should capture newly placed nearby towers.")) {
+        if (!assertEquals(context, 107.0, lateNearbyTower.water(), "The next wave should capture newly placed nearby towers.")) {
             return;
         }
 
@@ -2893,7 +2908,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.addTower(codTower);
 
         tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS);
-        if (!assertEquals(context, 70.0, codTower.water(), "Round one should capture and supply the nearby cod tower.")) {
+        if (!assertEquals(context, 107.0, codTower.water(), "Round one should capture and supply the nearby cod tower.")) {
             return;
         }
         tickGame(game, context.getLevel().getServer(), 3);
@@ -2908,7 +2923,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         if (!assertEquals(
                 context,
-                beforeRoundTwoWave + 20.0,
+                beforeRoundTwoWave + 7.0,
                 codTower.water(),
                 "The same water tower should recapture and supply the same cod tower in round two."
         )) {
@@ -3055,73 +3070,73 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         tank.onDamaged(tankEntity, null, 30.0, 100.0, 70.0);
-        if (!assertEquals(context, 74.0, target.water(), "The first hit should transfer the doubled tier-one cap.")) {
+        if (!assertEquals(context, 124.0, target.water(), "The first hit should transfer the tier-one cap.")) {
             return;
         }
-        if (!assertEquals(context, 49.0, tank.water(), "A successful transfer should spend water once.")) {
+        if (!assertEquals(context, 96.0, tank.water(), "A successful transfer should spend water once.")) {
             return;
         }
-        if (!assertEquals(context, 50.0, guardian.water(), "Pufferfish water transfer should exclude guardian tanks.")) {
+        if (!assertEquals(context, 100.0, guardian.water(), "Pufferfish water transfer should exclude guardian tanks.")) {
             return;
         }
-        if (!assertEquals(context, 50.0, elderGuardian.water(), "Pufferfish water transfer should exclude elder guardian tanks.")) {
+        if (!assertEquals(context, 100.0, elderGuardian.water(), "Pufferfish water transfer should exclude elder guardian tanks.")) {
             return;
         }
 
         tank.onDamaged(tankEntity, null, 30.0, 70.0, 40.0);
-        if (!assertEquals(context, 74.0, target.water(), "Hits during the transfer cooldown should not create water.")) {
+        if (!assertEquals(context, 124.0, target.water(), "Hits during the transfer cooldown should not create water.")) {
             return;
         }
-        if (!assertEquals(context, 49.0, tank.water(), "Hits during the transfer cooldown should not spend water.")) {
+        if (!assertEquals(context, 96.0, tank.water(), "Hits during the transfer cooldown should not spend water.")) {
             return;
         }
 
-        for (int tick = 0; tick < 49; tick++) {
+        for (int tick = 0; tick < 99; tick++) {
             tank.tick(lane);
         }
         tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
-        if (!assertEquals(context, 74.0, target.water(), "The ability should remain blocked before fifty ticks pass.")) {
+        if (!assertEquals(context, 124.0, target.water(), "The ability should remain blocked before one hundred ticks pass.")) {
             return;
         }
 
         tank.tick(lane);
         tank.onDamaged(tankEntity, null, 10.0, 10.0, 0.0);
-        if (!assertEquals(context, 74.0, target.water(), "A fatal hit should not create water.")) {
+        if (!assertEquals(context, 124.0, target.water(), "A fatal hit should not create water.")) {
             return;
         }
-        if (!assertEquals(context, 49.0, tank.water(), "A fatal hit should not spend transfer water.")) {
+        if (!assertEquals(context, 96.0, tank.water(), "A fatal hit should not spend transfer water.")) {
             return;
         }
 
         tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
-        if (!assertEquals(context, 98.0, target.water(), "The ability should become ready after fifty ticks.")) {
+        if (!assertEquals(context, 148.0, target.water(), "The ability should become ready after one hundred ticks.")) {
             return;
         }
-        if (!assertEquals(context, 48.0, tank.water(), "The next ready transfer should spend water exactly once.")) {
+        if (!assertEquals(context, 92.0, tank.water(), "The next ready transfer should spend water exactly once.")) {
             return;
         }
 
         lane.moveTowersToFinalDefense();
-        for (int tick = 0; tick < 50; tick++) {
+        for (int tick = 0; tick < 100; tick++) {
             tank.tick(lane);
         }
         tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
-        if (!assertEquals(context, 98.0, target.water(), "Ocean tanks should stop supplying water at final defense.")) {
+        if (!assertEquals(context, 148.0, target.water(), "Ocean tanks should stop supplying water at final defense.")) {
             return;
         }
-        if (!assertEquals(context, 48.0, tank.water(), "Stopped final-defense transfers should not spend water.")) {
+        if (!assertEquals(context, 92.0, tank.water(), "Stopped final-defense transfers should not spend water.")) {
             return;
         }
 
         target.syncHealth(0.0);
-        for (int tick = 0; tick < 50; tick++) {
+        for (int tick = 0; tick < 100; tick++) {
             tank.tick(lane);
         }
         tank.onDamaged(tankEntity, null, 30.0, 40.0, 10.0);
-        if (!assertEquals(context, 98.0, target.water(), "A dead tower should not receive transferred water.")) {
+        if (!assertEquals(context, 148.0, target.water(), "A dead tower should not receive transferred water.")) {
             return;
         }
-        if (!assertEquals(context, 48.0, tank.water(), "No water should be spent when every nearby target is dead.")) {
+        if (!assertEquals(context, 92.0, tank.water(), "No water should be spent when every nearby target is dead.")) {
             return;
         }
         context.succeed();
@@ -3157,7 +3172,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         support.addWater(50.0);
         lane.markWaveStarted(1);
         support.tick(lane);
-        if (!assertEquals(context, 84.0, support.water(), "Empowered support should spend twice its normal water cost.")) {
+        if (!assertEquals(context, 126.0, support.water(), "Empowered support should spend three times its normal water cost.")) {
             return;
         }
         if (!assertClose(context, 0.12, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS),
@@ -3200,17 +3215,20 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         target.syncHealth(10.0);
         targetEntity.setHealth(10.0F);
+        if (!assertTrue(context, healer.spendWater(1.0), "Normal healing setup should stay below the empowered threshold.")) {
+            return;
+        }
         lane.markWaveStarted(1);
         healer.tick(lane);
         if (!assertEquals(context, 25.0, target.health(), "Squid should heal a nearby damaged tower by fifteen.")) {
             return;
         }
-        if (!assertEquals(context, 44.0, healer.water(), "A successful squid heal should spend six water.")) {
+        if (!assertEquals(context, 89.0, healer.water(), "A successful squid heal should spend ten water.")) {
             return;
         }
 
         healer.resetForRound(lane);
-        healer.addWater(56.0);
+        healer.addWater(11.0);
         healer.onWaveStarted(lane, 2);
         target.syncHealth(target.currentMaxHealth());
         targetEntity.setHealth((float) target.currentMaxHealth());
@@ -3225,7 +3243,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 32.5, target.health(), "Empowered squid should heal by one and a half times its normal amount.")) {
             return;
         }
-        if (!assertEquals(context, 88.0, healer.water(), "Empowered squid should spend twice its normal water cost.")) {
+        if (!assertEquals(context, 70.0, healer.water(), "Empowered squid should spend three times its normal water cost.")) {
             return;
         }
         context.succeed();
@@ -3422,6 +3440,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
         ProductionTowerService.placeTower(game, redId, towerPos, "missing_tower");
         if (!assertEquals(
                 context,
@@ -4296,6 +4315,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         int traitLimit = roundLimit + 4;
         long diamondCost = game.economyConfig().towerLimit().initialPurchaseDiamondCost();
         long emeraldCost = game.economyConfig().towerLimit().initialPurchaseEmeraldCost();
+        economy.addGas(emeraldCost, Long.MAX_VALUE);
 
         if (!assertEquals(context, 9, traitLimit, "Primary Supply Depot should raise the initial tower limit from 5 to 9.")) {
             return;
@@ -4312,7 +4332,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, EconomyConfig.defaultConfig().startingMineral() - diamondCost, economy.mineral(), "Tower slot purchase should spend the configured diamond cost.")) {
             return;
         }
-        if (!assertEquals(context, EconomyConfig.defaultConfig().startingGas() - emeraldCost, economy.gas(), "Tower slot purchase should spend the configured emerald cost.")) {
+        if (!assertEquals(context, 0L, economy.gas(), "Tower slot purchase should spend the configured emerald cost.")) {
             return;
         }
         context.succeed();
@@ -4506,7 +4526,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         if (!assertEquals(
                 context,
-                60L,
+                10L,
                 game.players().get(playerId).economy().mineral(),
                 "Tower evolution should spend the configured mineral cost."
         )) {
@@ -5244,7 +5264,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         EconomyService economyService = new EconomyService(EconomyConfig.defaultConfig());
         economyService.awardMonsterKillReward(runtimeMonster, Map.of(playerId, player));
         economyService.awardMonsterKillReward(runtimeMonster, Map.of(playerId, player));
-        if (!assertEquals(context, 210L, player.economy().diamond(), "Monster reward should be granted exactly once.")) {
+        if (!assertEquals(context, 160L, player.economy().diamond(), "Monster reward should be granted exactly once.")) {
             return;
         }
         context.succeed();
@@ -5906,10 +5926,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, tower.spawnedCloneEntities().size() < 2, "Clone spawning should stay distributed after one tick.")) {
             return;
         }
-        for (int tick = 1; tick < 40; tick++) {
+        for (int tick = 1; tick <= TowerBalanceRuntime.illusionCloneSpawnSpreadTicks(); tick++) {
             tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
         }
-        if (!assertEquals(context, 2, tower.spawnedCloneEntities().size(), "Wave start should spawn the configured clone count within 40 ticks.")) {
+        if (!assertEquals(context, 2, tower.spawnedCloneEntities().size(), "Wave start should spawn the configured clone count within the configured spread.")) {
             return;
         }
         if (!assertEquals(context, 1, lane.towers().size(), "Illusion clones should not be inserted into the lane tower list.")) {
@@ -6000,11 +6020,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         int previousCloneCount = tower.spawnedCloneEntities().size();
         lane.markWaveStarted(2);
-        for (int tick = 0; tick < 40; tick++) {
+        for (int tick = 0; tick <= TowerBalanceRuntime.illusionCloneSpawnSpreadTicks(); tick++) {
             tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
         }
         List<SemionTowerEntity> secondRoundClones = tower.spawnedCloneEntities().subList(previousCloneCount, tower.spawnedCloneEntities().size());
-        if (!assertEquals(context, 2, secondRoundClones.size(), "A later wave should spawn a fresh clone set within 40 ticks.")) {
+        if (!assertEquals(context, 2, secondRoundClones.size(), "A later wave should spawn a fresh clone set within the configured spread.")) {
             return;
         }
         if (!assertTrue(context, lane.removeTower(tower), "Removing the source tower should succeed.")) {
@@ -6151,10 +6171,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, tower.spawnedCloneEntities().size() < 12, "Clone counts above 10 should not all spawn in one tick.")) {
             return;
         }
-        for (int tick = 1; tick < 40; tick++) {
+        for (int tick = 1; tick <= TowerBalanceRuntime.illusionCloneSpawnSpreadTicks(); tick++) {
             tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
         }
-        if (!assertEquals(context, 12, tower.spawnedCloneEntities().size(), "All queued clones should spawn within 40 ticks.")) {
+        if (!assertEquals(context, 12, tower.spawnedCloneEntities().size(), "All queued clones should spawn within the configured spread.")) {
             return;
         }
         context.succeed();
@@ -6446,7 +6466,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 175.0, tower.modifyAttackDamage(null, highHealth, 100.0), "Critical piglin brute should deal 75% bonus damage to high-health targets.")) {
             return;
         }
-        if (!assertClose(context, 150.0, tower.modifyAttackDamage(null, income, 100.0), "Piglin brute should retain the piglin income damage bonus.")) {
+        if (!assertClose(context, 200.0, tower.modifyAttackDamage(null, income, 100.0), "Piglin brute should retain the piglin income damage bonus.")) {
             return;
         }
         context.succeed();
@@ -6471,9 +6491,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         if (!assertClose(
                 context,
-                0.20,
+                0.40,
                 target.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS),
-                "Critical ghast should apply a 20% tower-damage-taken mark."
+                "Critical ghast should apply a 40% tower-damage-taken mark."
         )) {
             return;
         }
@@ -6516,7 +6536,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         tower.onAttack(towerEntity, target, tower.type().damage(), false);
 
-        if (!assertClose(context, 89.5, target.getHealth(), "Magma cube pulse should use magic resistance instead of 100 armor.")) {
+        if (!assertClose(context, 91.0, target.getHealth(), "Magma cube pulse should use magic resistance instead of 100 armor.")) {
             return;
         }
         if (!assertTrue(context, target.activeTimedEffectTicks(TimedEffectType.MONSTER_IGNITED) == 0,
@@ -6925,7 +6945,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
-        if (!assertEquals(context, 18, towerEntity.attackIntervalTicks(), "Ghast attack interval should reflect the missing-health speed bonus.")) {
+        if (!assertEquals(context, 8, towerEntity.attackIntervalTicks(), "Ghast attack interval should reflect the missing-health speed bonus.")) {
             return;
         }
         context.succeed();
@@ -7556,10 +7576,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 2, game.currentRound(), "Lifecycle game should advance to round 2 after first payout.")) {
             return;
         }
-        if (!assertEquals(context, 207L, game.players().get(redId).economy().mineral(), "Round payout should pay RED's accumulated income.")) {
+        if (!assertEquals(context, 167L, game.players().get(redId).economy().mineral(), "Round payout should pay RED's accumulated income.")) {
             return;
         }
-        if (!assertEquals(context, 209L, game.players().get(blueId).economy().mineral(), "Round payout should pay BLUE's accumulated income.")) {
+        if (!assertEquals(context, 169L, game.players().get(blueId).economy().mineral(), "Round payout should pay BLUE's accumulated income.")) {
             return;
         }
 
@@ -7610,13 +7630,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("economy-start-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
 
-        if (!assertEquals(context, 200L, game.players().get(playerId).economy().mineral(), "Starting mineral should match config default.")) {
+        if (!assertEquals(context, 150L, game.players().get(playerId).economy().mineral(), "Starting mineral should match config default.")) {
             return;
         }
-        if (!assertEquals(context, 50L, game.players().get(playerId).economy().gas(), "Starting gas should match config default.")) {
+        if (!assertEquals(context, 0L, game.players().get(playerId).economy().gas(), "Starting gas should match config default.")) {
             return;
         }
-        if (!assertEquals(context, 0L, game.players().get(playerId).economy().income(), "Starting income should match config default.")) {
+        if (!assertEquals(context, 10L, game.players().get(playerId).economy().income(), "Starting income should match config default.")) {
             return;
         }
         if (!assertEquals(context, 1L, game.players().get(playerId).economy().gasPerSec(), "Starting gas per second should match config default.")) {
@@ -7662,7 +7682,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, game.upgradeGasProduction(playerId), "Gas upgrade should succeed with default starting mineral.")) {
             return;
         }
-        if (!assertEquals(context, 150L, game.players().get(playerId).economy().mineral(), "Gas upgrade should consume mineral cost.")) {
+        if (!assertEquals(context, 120L, game.players().get(playerId).economy().mineral(), "Gas upgrade should consume mineral cost.")) {
             return;
         }
         if (!assertEquals(context, 2L, game.players().get(playerId).economy().gasPerSec(), "Gas upgrade should increase gas per second.")) {
@@ -7901,10 +7921,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         tickGame(game, context.getLevel().getServer(), SemionGame.DEFAULT_PREPARE_TICKS + 2);
 
-        if (!assertEquals(context, 207L, game.players().get(redId).economy().mineral(), "Living RED player should receive round payout.")) {
+        if (!assertEquals(context, 167L, game.players().get(redId).economy().mineral(), "Living RED player should receive round payout.")) {
             return;
         }
-        if (!assertEquals(context, 209L, game.players().get(blueId).economy().mineral(), "Living BLUE player should receive round payout.")) {
+        if (!assertEquals(context, 169L, game.players().get(blueId).economy().mineral(), "Living BLUE player should receive round payout.")) {
             return;
         }
         context.succeed();
@@ -7938,15 +7958,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID redId = stableUuid("summon-red-owner");
         UUID blueId = stableUuid("summon-blue-owner");
         SemionGame game = startedTwoPlayerGame(context, redId, blueId);
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
 
         var result = game.summonMonster(redId, "chicken");
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.SUCCESS, result.type(), "Default income summon should be summonable.")) {
             return;
         }
-        if (!assertEquals(context, 30L, game.players().get(redId).economy().gas(), "Successful summon should spend chicken emerald cost.")) {
+        if (!assertEquals(context, 0L, game.players().get(redId).economy().gas(), "Successful summon should spend chicken emerald cost.")) {
             return;
         }
-        if (!assertEquals(context, 1L, game.players().get(redId).economy().income(), "Successful summon should add chicken income.")) {
+        if (!assertEquals(context, 11L, game.players().get(redId).economy().income(), "Successful summon should add chicken income.")) {
             return;
         }
         PlayerLane targetLane = lane(game, result.targetTeam().orElseThrow(), result.targetLaneId().orElseThrow());
@@ -7974,6 +7995,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID redId = stableUuid("summon-display-name-red-owner");
         UUID blueId = stableUuid("summon-display-name-blue-owner");
         SemionGame game = startedTwoPlayerGame(context, redId, blueId);
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
 
         var result = game.summonMonster(redId, "chicken");
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.SUCCESS, result.type(), "Income summon should succeed before checking its display name.")) {
@@ -8009,6 +8031,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID redId = stableUuid("summon-feedback-red-owner");
         UUID blueId = stableUuid("summon-feedback-blue-owner");
         SemionGame game = startedTwoPlayerGame(context, redId, blueId);
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
 
         var result = game.summonMonster(redId, "chicken");
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.SUCCESS, result.type(), "Income summon should succeed for feedback formatting.")) {
@@ -8021,7 +8044,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 game.currentRound(),
                 result.scheduledRound().orElse(game.currentRound())
         );
-        if (!assertEquals(context, "Chicken 이(가) <blue>blue</blue> 의 라인으로 공격합니다!", markup, "Income summon feedback should use the income name and target lane owner's colored nickname.")) {
+        if (!assertEquals(context, "닭 이(가) <blue>blue</blue> 의 라인으로 공격합니다!", markup, "Income summon feedback should use the income name and target lane owner's colored nickname.")) {
             return;
         }
         if (!assertTrue(context, !markup.contains("팀=") && !markup.contains("라인="), "Income summon feedback should not expose team/lane labels.")) {
@@ -8041,6 +8064,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
         long gasBeforeSummon = game.players().get(redId).economy().gas();
         var result = game.summonMonster(redId, "chicken");
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.SUCCESS, result.type(), "Wave phase income summon should be purchasable.")) {
@@ -8056,7 +8080,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 game.currentRound(),
                 result.scheduledRound().orElse(game.currentRound())
         );
-        if (!assertEquals(context, "Chicken 이(가) <blue>blue</blue> 의 라인으로 공격합니다!", markup, "Reserved summon feedback should use the fallback attack message.")) {
+        if (!assertEquals(context, "닭 이(가) <blue>blue</blue> 의 라인으로 공격합니다!", markup, "Reserved summon feedback should use the fallback attack message.")) {
             return;
         }
         if (!assertTrue(context, !markup.contains("예약") && !markup.contains("팀=") && !markup.contains("라인="), "Reserved summon feedback should not expose reservation or team/lane labels.")) {
@@ -8065,7 +8089,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, gasBeforeSummon - 20, game.players().get(redId).economy().gas(), "Wave phase summon should spend emerald immediately.")) {
             return;
         }
-        if (!assertEquals(context, 1L, game.players().get(redId).economy().income(), "Wave phase summon should add income immediately.")) {
+        if (!assertEquals(context, 11L, game.players().get(redId).economy().income(), "Wave phase summon should add income immediately.")) {
             return;
         }
         if (!assertEquals(context, 1L, game.players().get(redId).matchStats().summonedMonsters(), "Wave phase summon should update match stats immediately.")) {
@@ -8188,15 +8212,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void incomeSummonRefundsWhenNoTargetTeamExists(GameTestHelper context) {
         UUID redId = stableUuid("refund-red-owner");
         SemionGame game = startedSinglePlayerGame(context, redId, TeamId.RED);
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
 
         var result = game.summonMonster(redId, "chicken");
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.NO_TARGET_TEAM, result.type(), "Summon should fail when there is no target team.")) {
             return;
         }
-        if (!assertEquals(context, 50L, game.players().get(redId).economy().gas(), "Failed summon should refund emerald cost.")) {
+        if (!assertEquals(context, 20L, game.players().get(redId).economy().gas(), "Failed summon should refund emerald cost.")) {
             return;
         }
-        if (!assertEquals(context, 0L, game.players().get(redId).economy().income(), "Failed summon should not add income.")) {
+        if (!assertEquals(context, 10L, game.players().get(redId).economy().income(), "Failed summon should not add income.")) {
             return;
         }
         context.succeed();
@@ -8213,6 +8238,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
+        game.players().get(redId).economy().addGas(20L, Long.MAX_VALUE);
         var result = game.summonMonster(redId, "chicken");
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.SUCCESS, result.type(), "Summon should still succeed with another living enemy team.")) {
             return;
@@ -8258,7 +8284,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         context.runAfterDelay(100, () -> {
             lane.tick(context.getLevel().getServer(), new EconomyService(game.economyConfig()), game.players());
-            if (!assertEquals(context, 209L, game.players().get(playerId).economy().mineral(), "Tower owner should receive wave monster mineral reward.")) {
+            if (!assertEquals(context, 159L, game.players().get(playerId).economy().mineral(), "Tower owner should receive wave monster mineral reward.")) {
                 return;
             }
             context.succeed();
@@ -8291,7 +8317,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.tick(context.getLevel().getServer(), economyService, game.players());
         lane.tick(context.getLevel().getServer(), economyService, game.players());
 
-        if (!assertEquals(context, 211L, game.players().get(playerId).economy().mineral(), "Defender last hit should pay the reward only once.")) {
+        if (!assertEquals(context, 161L, game.players().get(playerId).economy().mineral(), "Defender last hit should pay the reward only once.")) {
             return;
         }
         context.succeed();
@@ -8337,7 +8363,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         unknownKilledMonster.syncHealth(0.0);
         lane.tick(context.getLevel().getServer(), economyService, game.players());
 
-        if (!assertEquals(context, 200L, game.players().get(playerId).economy().mineral(), "Boss or unknown kills should not pay mineral reward.")) {
+        if (!assertEquals(context, 150L, game.players().get(playerId).economy().mineral(), "Boss or unknown kills should not pay mineral reward.")) {
             return;
         }
         context.succeed();
@@ -8366,7 +8392,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 300L, enderman.gasCost(), "Enderman should keep the planned high-income emerald cost.")) {
             return;
         }
-        if (!assertEquals(context, 30L, enderman.incomeGain(), "Enderman should keep the planned high-income gain.")) {
+        if (!assertEquals(context, 15L, enderman.incomeGain(), "Enderman should keep the planned high-income gain.")) {
             return;
         }
         context.succeed();
@@ -8402,13 +8428,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, allay.description().stream().anyMatch(line -> line.equals("반경 6블록 내 아군 유닛 최대 6기를 8 회복시킵니다. (6초 쿨타임)")), "Allay description should describe only its healing ability.")) {
             return;
         }
-        if (!assertTrue(context, chicken.description().isEmpty(), "Summons without abilities should not get filler description lines.")) {
+        if (!assertTrue(context, chicken.description().contains("상대한테 돈 쥐어주는 꼴이니 이거말고 더 비싼거나 보내세요."), "Chicken should expose its live description.")) {
             return;
         }
         if (!assertTrue(context, SummonRegistry.find("chicken").orElseThrow().description().isEmpty(), "Summon types without abilities should not generate fallback description lines.")) {
             return;
         }
-        if (!assertTrue(context, warden.description().stream().anyMatch(line -> line.equals("방어 대상에게 50 고정 피해를 줍니다. (4.5초 쿨타임)")), "Warden description should be a concise siege ability line.")) {
+        if (!assertTrue(context, warden.description().stream().anyMatch(line -> line.equals("방어 대상에게 100 고정 피해를 줍니다. (3초 쿨타임)")), "Warden description should be a concise siege ability line.")) {
             return;
         }
         if (!assertTrue(context, SummonRegistry.find("warden").orElseThrow().abilityActivations().equals(List.of(SummonAbilityActivation.COOLDOWN)), "Siege summon fixed-damage abilities should display as cooldown abilities.")) {
@@ -8865,7 +8891,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         ((SemionTowerEntity) lane.arenaWorld().getEntity(farTower.entityId().orElseThrow())).syncTowerState(farTower);
 
         allayTower.tick(lane);
-        if (!assertEquals(context, 40.0, nearbyTower.health(), "Allay tower should heal nearby damaged towers.")) {
+        if (!assertEquals(context, 45.0, nearbyTower.health(), "Allay tower should heal nearby damaged towers.")) {
             return;
         }
         if (!assertEquals(context, 30.0, farTower.health(), "Allay tower should ignore towers outside its support radius.")) {
@@ -8874,7 +8900,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (int i = 0; i < VillagerTowers.T1_ALLAY_TOWER.attackIntervalTicks() + 1; i++) {
             allayTower.tick(lane);
         }
-        if (!assertEquals(context, 40.0, nearbyTower.health(), "Allay tower should not re-heal the same target inside the block window.")) {
+        if (!assertEquals(context, 45.0, nearbyTower.health(), "Allay tower should not re-heal the same target inside the block window.")) {
             return;
         }
         context.succeed();
@@ -8897,7 +8923,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         lane.resetForRound();
 
-        double expectedMaxHealth = VillagerTowers.T2_GOLEM_TOWER.maxHealth() * 1.10;
+        double expectedMaxHealth = VillagerTowers.T2_GOLEM_TOWER.maxHealth() * 1.15;
         if (!assertEquals(context, expectedMaxHealth, tower.currentMaxHealth(), "Golem survival bonus should increase current max health.")) {
             return;
         }
@@ -9012,16 +9038,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionTowerEntity targetEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(targetTower.entityId().orElseThrow());
 
         weaponSmithTower.tick(lane);
-        if (!assertEquals(context, 0.10, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Weapon smith should apply a sourced damage buff.")) {
+        if (!assertEquals(context, 0.075, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Weapon smith should apply a sourced damage buff.")) {
             return;
         }
-        if (!assertEquals(context, 0.10, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS), "Weapon smith should apply a sourced attack-speed buff.")) {
+        if (!assertEquals(context, 0.075, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS), "Weapon smith should apply a sourced attack-speed buff.")) {
             return;
         }
         for (int i = 0; i < VillagerTowers.T2_WEAPON_SMITH_TOWER.attackIntervalTicks() + 1; i++) {
             weaponSmithTower.tick(lane);
         }
-        if (!assertEquals(context, 0.10, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Weapon smith should not stack the same sourced buff inside the block window.")) {
+        if (!assertEquals(context, 0.075, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Weapon smith should not stack the same sourced buff inside the block window.")) {
             return;
         }
         context.succeed();
@@ -9529,13 +9555,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         firstTower.tick(lane);
         secondTower.tick(lane);
-        if (!assertClose(context, 0.10, monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION), "Undead animal tower should apply non-stacking monster attack damage reduction.")) {
+        if (!assertClose(context, 0.20, monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION), "Undead animal tower should apply non-stacking monster attack damage reduction.")) {
             return;
         }
         if (!assertClose(context, 0.10, monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS), "T2 undead animal tower should apply non-stacking tower damage taken bonus.")) {
             return;
         }
-        if (!assertClose(context, 18.0, monster.attackDamageAmount(), "Monster attack damage reduction should lower runtime attack damage.")) {
+        if (!assertClose(context, 16.0, monster.attackDamageAmount(), "Monster attack damage reduction should lower runtime attack damage.")) {
             return;
         }
         if (!assertClose(context, 110.0, monster.towerDamageTaken(100.0), "Tower damage taken bonus should increase runtime tower damage.")) {
@@ -9587,10 +9613,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 20.0, catTower.modifyAttackDamage(null, wave, 20.0), "Anti-tanker cat should not bonus wave monsters.")) {
             return;
         }
-        if (!assertClose(context, 30.0, catTower.modifyAttackDamage(null, rushSummon, 20.0), "T2 anti-tanker cat should deal 50% bonus damage to non-wave summons.")) {
+        if (!assertClose(context, 50.0, catTower.modifyAttackDamage(null, rushSummon, 20.0), "T2 anti-tanker cat should deal 150% bonus damage to non-wave summons.")) {
             return;
         }
-        if (!assertClose(context, 40.0, catTower.modifyAttackDamage(null, tankSummon, 20.0), "T2 anti-tanker cat should deal 100% bonus damage to tank summons.")) {
+        if (!assertClose(context, 50.0, catTower.modifyAttackDamage(null, tankSummon, 20.0), "T2 anti-tanker cat should use its tank-target bonus.")) {
             return;
         }
         context.succeed();
@@ -9794,7 +9820,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, detailLines.stream().anyMatch(line -> line.contains("사망 스택 3/")), "Nearby wave, income, and tower deaths should each add one death stack: " + detailLines)) {
             return;
         }
-        if (!assertClose(context, 20.06, catTower.modifyAttackDamage(null, null, 20.0), "Three default T2 anti-tanker cat death stacks should add 0.06 attack damage.")) {
+        if (!assertClose(context, 22.4, catTower.modifyAttackDamage(null, null, 20.0), "Three default T2 anti-tanker cat death stacks should add 2.4 attack damage.")) {
             return;
         }
         context.succeed();
@@ -10356,13 +10382,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         tower.tick(lane);
 
-        if (!assertClose(context, 0.20, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Illager raid damage bonus should be exposed as a tower timed effect.")) {
+        if (!assertClose(context, 0.32, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Illager raid damage bonus should be exposed as a tower timed effect.")) {
             return;
         }
-        if (!assertClose(context, 0.08, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS), "Illager raid attack speed bonus should be exposed as a tower timed effect.")) {
+        if (!assertClose(context, 0.12, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS), "Illager raid attack speed bonus should be exposed as a tower timed effect.")) {
             return;
         }
-        if (!assertClose(context, 0.25, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Illager raid damage reduction should be exposed as a tower timed effect.")) {
+        if (!assertClose(context, 0.35, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Illager raid damage reduction should be exposed as a tower timed effect.")) {
             return;
         }
         if (!assertEquals(context, 40, towerEntity.activeTimedEffectTicks(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Illager raid timed effect duration should come from towerbalance.")) {
@@ -10737,11 +10763,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(slime);
         lane.markWaveStarted(1);
-        for (int tick = 0; tick < 40; tick++) {
+        for (int tick = 0; tick <= TowerBalanceRuntime.illusionCloneSpawnSpreadTicks(); tick++) {
             tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
         }
 
-        if (!assertEquals(context, 2, slime.spawnedCloneEntities().size(), "T2 slime should spawn configured clone count within 40 ticks.")) {
+        if (!assertEquals(context, 2, slime.spawnedCloneEntities().size(), "T2 slime should spawn its configured clone count within the configured spread.")) {
             return;
         }
         SemionTowerEntity cloneEntity = slime.spawnedCloneEntities().getFirst();
@@ -10809,10 +10835,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 1, cloneTower.attackStacks(), "Parrot clone should gain a stack after attacking.")) {
             return;
         }
-        if (!assertClose(context, baseDamage * 1.2, cloneTower.modifyAttackDamage(cloneEntity, null, baseDamage), "T2 parrot clone should apply configured attack stack damage bonus.")) {
+        if (!assertClose(context, baseDamage * 1.3, cloneTower.modifyAttackDamage(cloneEntity, null, baseDamage), "T2 parrot clone should apply configured attack stack damage bonus.")) {
             return;
         }
-        if (!assertEquals(context, (int) Math.ceil(baseInterval / 1.2), cloneTower.adjustAttackInterval(baseInterval), "T2 parrot clone should apply configured attack stack speed bonus.")) {
+        if (!assertEquals(context, (int) Math.ceil(baseInterval / 1.3), cloneTower.adjustAttackInterval(baseInterval), "T2 parrot clone should apply configured attack stack speed bonus.")) {
             return;
         }
         context.succeed();
@@ -10889,13 +10915,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, RoundPhase.PREPARE_AND_SUMMON, game.phase(), "Goat buff verification should run during the real prepare phase.")) {
             return;
         }
-        if (!assertClose(context, 0.02, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat should buff a player's Legion tower during prepare.")) {
+        if (!assertClose(context, 0.025, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat should buff a player's Legion tower during prepare.")) {
             return;
         }
         if (!assertClose(context, 0.02, targetEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat should temporarily reduce incoming damage for a player's Legion tower during prepare.")) {
             return;
         }
-        if (!assertTrue(context, towerTimedEffectBody(targetEntity).contains("피해 증가 +2.0%"), "Right-click tower details should show the active goat damage buff.")) {
+        if (!assertTrue(context, towerTimedEffectBody(targetEntity).contains("피해 증가 +2.5%"), "Right-click tower details should show the active goat damage buff.")) {
             return;
         }
         if (!assertTrue(context, towerTimedEffectBody(targetEntity).contains("받피 감소 +2.0%"), "Right-click tower details should show the active goat damage reduction buff.")) {
@@ -10989,7 +11015,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.addTower(fourthGoat);
 
         lane.markWaveStarted(1);
-        for (int tick = 0; tick < 40; tick++) {
+        for (int tick = 0; tick <= TowerBalanceRuntime.illusionCloneSpawnSpreadTicks(); tick++) {
             tickLaneWithGlobalCloneQueue(lane, context.getLevel().getServer());
         }
         if (!assertEquals(context, 2, slime.spawnedCloneEntities().size(), "T2 slime should spawn clones for goat buff targeting.")) {
@@ -11002,16 +11028,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         secondGoat.tick(lane);
         thirdGoat.tick(lane);
         fourthGoat.tick(lane);
-        if (!assertClose(context, 0.15, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat body damage buff should stack up to three times.")) {
+        if (!assertClose(context, 0.30, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat body damage buff should stack up to three times.")) {
             return;
         }
         if (!assertClose(context, 0.195, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat body damage reduction should stack up to three times.")) {
             return;
         }
-        if (!assertClose(context, 0.195, cloneEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat clone damage buff should stack up to three times.")) {
+        if (!assertClose(context, 0.30, cloneEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Goat clone damage buff should stack up to three times.")) {
             return;
         }
-        if (!assertClose(context, 0.195, cloneEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat clone damage reduction should stack up to three times.")) {
+        if (!assertClose(context, 0.24, cloneEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat clone damage reduction should stack up to three times.")) {
             return;
         }
 
@@ -11026,7 +11052,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             provider.resetForRound(lane);
             provider.tick(lane);
         }
-        if (!assertClose(context, 0.15, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "A dead goat should not consume one of the three buff stacks.")) {
+        if (!assertClose(context, 0.30, bodyEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "A dead goat should not consume one of the three buff stacks.")) {
             return;
         }
         context.succeed();
@@ -11124,6 +11150,147 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 Set.of(AnimalTowers.T2_RABBIT_TOWER.id()),
                 upgradeIds,
                 "Animal rabbit starter should connect only to the rabbit upgrade."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void adversaryFoxesUseSharedScoreForManualEvolutionAndReleaseItOnSale(GameTestHelper context) {
+        UUID playerId = stableUuid("adversary-multi-fox-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AdversaryTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos base = towerPlacementPos(lane);
+        game.players().get(playerId).economy().addMineral(2_000);
+
+        List<BlockPos> foxPositions = List.of(
+                base,
+                base.offset(1, 0, 0),
+                base.offset(2, 0, 0),
+                base.offset(3, 0, 0)
+        );
+        for (BlockPos position : foxPositions) {
+            if (!assertEquals(
+                    context,
+                    TowerPlacementResult.SUCCESS,
+                    ProductionTowerService.placeTower(game, playerId, position, AdversaryTowers.FOX.id()),
+                    "The first four adversary foxes should be placeable."
+            )) {
+                return;
+            }
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.TOWER_NOT_ALLOWED,
+                ProductionTowerService.placeTower(
+                        game,
+                        playerId,
+                        base.offset(4, 0, 0),
+                        AdversaryTowers.FOX.id()
+                ),
+                "The fifth adversary fox should be rejected by the builder limit."
+        )) {
+            return;
+        }
+
+        GridPosition firstPosition = GridPosition.from(foxPositions.getFirst());
+        AdversaryFoxTower first = (AdversaryFoxTower) lane.towerAt(firstPosition);
+        UUID logicalFoxId = first.foxId();
+        first.syncHealth(first.currentMaxHealth() * 0.5);
+        AdversaryProgressStates.state(playerId).reconcileRivals(List.of(new RivalContribution(
+                stableUuid("adversary-multi-fox-breeze-score"),
+                RivalKind.BREEZE,
+                50
+        )));
+
+        long mineralBeforeEvolution = game.players().get(playerId).economy().mineral();
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(
+                        game,
+                        playerId,
+                        firstPosition,
+                        AdversaryTowers.typeFor(FoxForm.BREEZE).id()
+                ),
+                "A scored base fox should manually evolve into Breeze for free."
+        )) {
+            return;
+        }
+        AdversaryFoxTower breeze = (AdversaryFoxTower) lane.towerAt(firstPosition);
+        if (!assertTrue(context, breeze.foxId().equals(logicalFoxId), "Evolution should preserve the logical fox id.")) {
+            return;
+        }
+        if (!assertClose(context, 0.5, breeze.health() / breeze.currentMaxHealth(), "Evolution should preserve health ratio.")) {
+            return;
+        }
+        if (!assertEquals(context, mineralBeforeEvolution, game.players().get(playerId).economy().mineral(), "Fox evolution should cost no mineral.")) {
+            return;
+        }
+        if (!assertTrue(context, ProductionTowerService.availableUpgrades(game, playerId, firstPosition).isEmpty(), "Final evolution should require one completed intermediate wave.")) {
+            return;
+        }
+
+        GridPosition secondPosition = GridPosition.from(foxPositions.get(1));
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
+                ProductionTowerService.upgradeTower(
+                        game,
+                        playerId,
+                        secondPosition,
+                        AdversaryTowers.typeFor(FoxForm.BREEZE).id()
+                ),
+                "Another fox should not claim the already occupied Rapid route."
+        )) {
+            return;
+        }
+
+        new AdversaryTowerJob().onRoundEnded(
+                new JobContext(game, game.players().get(playerId)),
+                game.currentRound()
+        );
+        if (!assertEquals(
+                context,
+                Set.of(AdversaryTowers.typeFor(FoxForm.GOLDEN_FANG).id()),
+                ProductionTowerService.availableUpgrades(game, playerId, firstPosition).stream()
+                        .map(option -> option.targetType().id())
+                        .collect(Collectors.toSet()),
+                "One completed Breeze wave should unlock its affordable final form."
+        )) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerUpgradeResult.SUCCESS,
+                ProductionTowerService.upgradeTower(
+                        game,
+                        playerId,
+                        firstPosition,
+                        AdversaryTowers.typeFor(FoxForm.GOLDEN_FANG).id()
+                ),
+                "The selected final form should replace the intermediate fox."
+        )) {
+            return;
+        }
+
+        ProductionTowerService.SaleResult sale = ProductionTowerService.sellTower(game, playerId, firstPosition);
+        if (!assertEquals(context, TowerSellResult.SUCCESS, sale.result(), "Selling the final fox should succeed.")) {
+            return;
+        }
+        AdversaryProgressState progress = AdversaryProgressStates.state(playerId);
+        if (!assertEquals(context, 0, progress.spentScore(RivalKind.BREEZE), "Selling a fox should refund all of its committed score.")) {
+            return;
+        }
+        if (!assertTrue(context, progress.routeOwner(FoxRoute.RAPID).isEmpty(), "Selling a fox should release its route claim.")) {
+            return;
+        }
+        if (!assertEquals(
+                context,
+                TowerPlacementResult.SUCCESS,
+                ProductionTowerService.placeTower(game, playerId, foxPositions.getFirst(), AdversaryTowers.FOX.id()),
+                "A replacement fourth fox should be placeable after the sale."
         )) {
             return;
         }
@@ -11758,7 +11925,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 100.0,
                 List.of(SummonRole.RUSH)
         );
-        if (!assertClose(context, 40.04, t3Anti.modifyAttackDamage(null, rushSummon, 20.0), "Anti-tanker cat upgrade should keep death stack count before applying T3 summon bonus.")) {
+        if (!assertClose(context, 62.4, t3Anti.modifyAttackDamage(null, rushSummon, 20.0), "Anti-tanker cat upgrade should keep death stack count before applying T3 summon bonus.")) {
             return;
         }
 
@@ -11789,7 +11956,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 100.0,
                 List.of(SummonRole.RUSH)
         );
-        if (!assertClose(context, 35.04375, t3LaneClear.modifyAttackDamage(null, wave, 20.0), "Lane-clear cat upgrade should keep death stack damage before applying T3 wave bonus.")) {
+        if (!assertClose(context, 52.39, t3LaneClear.modifyAttackDamage(null, wave, 20.0), "Lane-clear cat upgrade should keep death stack damage before applying T3 wave bonus.")) {
             return;
         }
         context.succeed();
@@ -12019,14 +12186,15 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
+        game.players().get(redId).economy().addGas(15L, Long.MAX_VALUE);
         var result = game.summonMonster(redId, summonId);
         if (!assertEquals(context, kim.biryeong.semiontd.summon.SummonResultType.SUCCESS, result.type(), "Custom summon class should be registered in the game.")) {
             return;
         }
-        if (!assertEquals(context, 35L, game.players().get(redId).economy().gas(), "Custom summon class should spend its gas cost.")) {
+        if (!assertEquals(context, 0L, game.players().get(redId).economy().gas(), "Custom summon class should spend its gas cost.")) {
             return;
         }
-        if (!assertEquals(context, 4L, game.players().get(redId).economy().income(), "Custom summon class should grant its income.")) {
+        if (!assertEquals(context, 14L, game.players().get(redId).economy().income(), "Custom summon class should grant its income.")) {
             return;
         }
         PlayerLane targetLane = lane(game, result.targetTeam().orElseThrow(), result.targetLaneId().orElseThrow());

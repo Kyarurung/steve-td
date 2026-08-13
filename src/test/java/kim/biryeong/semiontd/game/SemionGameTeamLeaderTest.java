@@ -99,7 +99,7 @@ final class SemionGameTeamLeaderTest {
     }
 
     @Test
-    void onlyTwoLeaderTargetsMayPointAtTheSameTeam() {
+    void onlyOneLeaderTargetMayPointAtTheSameTeam() {
         SemionGame game = newGame();
         UUID red = addLeader(game, TeamId.RED);
         UUID blue = addLeader(game, TeamId.BLUE);
@@ -107,22 +107,19 @@ final class SemionGameTeamLeaderTest {
         addLeader(game, TeamId.YELLOW);
 
         assertEquals(LeaderTargetResult.SUCCESS, game.setLeaderTarget(red, TeamId.YELLOW));
-        assertEquals(LeaderTargetResult.SUCCESS, game.setLeaderTarget(blue, TeamId.YELLOW));
+        assertEquals(LeaderTargetResult.TARGET_TEAM_ALREADY_DESIGNATED, game.setLeaderTarget(blue, TeamId.YELLOW));
         assertEquals(LeaderTargetResult.TARGET_TEAM_ALREADY_DESIGNATED, game.setLeaderTarget(green, TeamId.YELLOW));
         assertEquals("해당 라인을 지정할 수 없습니다.", LeaderTargetResult.TARGET_TEAM_ALREADY_DESIGNATED.message());
     }
 
     @Test
-    void forcedIncomeTargetExpiresAfterTwoRounds() {
+    void forcedIncomeTargetExpiresAfterOneRound() {
         SemionGame game = newGame();
         UUID red = addLeader(game, TeamId.RED);
         addLeader(game, TeamId.BLUE);
         addLeader(game, TeamId.GREEN);
 
         assertEquals(LeaderTargetResult.SUCCESS, game.setLeaderTarget(red, TeamId.BLUE));
-        assertEquals(Optional.of(TeamId.BLUE), game.targetTeamForSummon(TeamId.RED).map(SemionTeam::id));
-
-        game.tickLeaderCooldowns();
         assertEquals(Optional.of(TeamId.BLUE), game.targetTeamForSummon(TeamId.RED).map(SemionTeam::id));
 
         game.tickLeaderCooldowns();

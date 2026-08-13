@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.tower.end;
 
 import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -243,24 +244,26 @@ class EndTowerTransferTest {
     }
 
     @Test
-    void invalidEndBalanceIsRejectedBeforeItBecomesRuntimeState() {
+    void zeroEndBalanceValueCanBecomeRuntimeState() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
         Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
         end.put("transferTicks", 0.0);
         abilities.put(EndTower.CONFIG_ID, end);
-        TowerBalanceConfig invalid = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities
+        TowerBalanceConfig config = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities
         );
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(invalid));
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(config));
+        assertEquals(0.0, EndConfig.RUNTIME.value(TRANSFER_TICKS), 0.0001);
     }
 
     @Test
-    void malformedEndRatiosIntegerSettingsAndCrossFieldRangesAreRejected() {
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("splashDamageRatio", 1.01))));
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("transferTicks", 1.5))));
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("phantomScaleBase", 2.0, "phantomScaleCap", 1.0))));
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("attackSpeedMinimumTicks", 16.0))));
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("damageScale", 0.0))));
+    void endValuesDoNotRequireRatioIntegerOrCrossFieldOrdering() {
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(endConfig(Map.of("splashDamageRatio", 1.01))));
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(endConfig(Map.of("transferTicks", 1.5))));
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(endConfig(Map.of("phantomScaleBase", 2.0, "phantomScaleCap", 1.0))));
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(endConfig(Map.of("attackSpeedMinimumTicks", 16.0))));
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(endConfig(Map.of("damageScale", 0.0))));
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(endConfig(Map.of("damageScale", -0.01))));
     }
 
     @Test
@@ -296,7 +299,7 @@ class EndTowerTransferTest {
     }
 
     @Test
-    void nonFiniteTowerStatsAndOversizedEndIntegersAreRejected() {
+    void nonFiniteTowerStatsAreRejectedAndLargeAbilityValuesAreAccepted() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, TowerBalanceConfig.TowerStats> towers = new LinkedHashMap<>(defaults.towers());
         TowerBalanceConfig.TowerStats base = towers.get(EndTowers.BASE_END_TOWER.id());
@@ -318,8 +321,7 @@ class EndTowerTransferTest {
         end.put("transferTicks", (double) Integer.MAX_VALUE + 1.0);
         abilities.put(EndTower.CONFIG_ID, end);
         TowerBalanceConfig oversizedInteger = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities);
-        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(oversizedInteger)
-        );
+        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(oversizedInteger));
     }
 
     @Test

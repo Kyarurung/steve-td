@@ -428,7 +428,7 @@ public final class PlayerLane {
             return;
         }
         for (Tower tower : towers) {
-            if (tower.health() <= 0.0) {
+            if (tower.health() <= 0.0 || !tower.receivesTraitEffects()) {
                 continue;
             }
             SemionTowerEntity towerEntity = towerEntity(tower);
@@ -456,6 +456,7 @@ public final class PlayerLane {
         List<SemionTowerEntity> targets = towerEntities().stream()
                 .filter(entity -> entity.isAlive() && !entity.isRemoved())
                 .filter(entity -> entity.runtimeTower().health() > 0.0)
+                .filter(entity -> entity.runtimeTower().receivesTraitEffects())
                 .toList();
         for (SemionTowerEntity target : targets) {
             target.setPersistentEffect(
@@ -493,6 +494,9 @@ public final class PlayerLane {
     }
 
     private void syncStaticTraitEffects(Tower tower) {
+        if (!tower.receivesTraitEffects()) {
+            return;
+        }
         SemionTowerEntity towerEntity = towerEntity(tower);
         if (towerEntity == null) {
             return;
@@ -526,7 +530,7 @@ public final class PlayerLane {
 
     private void applyRoundTraitEffects() {
         for (Tower tower : towers) {
-            if (tower.health() <= 0.0) {
+            if (tower.health() <= 0.0 || !tower.receivesTraitEffects()) {
                 continue;
             }
             SemionTowerEntity towerEntity = towerEntity(tower);

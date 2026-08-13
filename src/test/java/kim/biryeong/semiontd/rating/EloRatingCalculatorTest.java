@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 final class EloRatingCalculatorTest {
     @Test
-    void equalRatedWinnerGainsAndLoserLosesSixteenElo() {
+    void equalRatedWinnerGainsAndLoserLosesThirtyTwoElo() {
         UUID winnerId = UUID.nameUUIDFromBytes("winner".getBytes());
         UUID loserId = UUID.nameUUIDFromBytes("loser".getBytes());
         RatingMatchInput input = new RatingMatchInput(
@@ -40,8 +40,8 @@ final class EloRatingCalculatorTest {
 
         RatingAdjustment winner = result.adjustments().get(0);
         RatingAdjustment loser = result.adjustments().get(1);
-        assertEquals(16, winner.displayEloDelta());
-        assertEquals(-16, loser.displayEloDelta());
+        assertEquals(32, winner.displayEloDelta());
+        assertEquals(-32, loser.displayEloDelta());
         assertEquals(1, winner.after().gamesPlayed());
         assertEquals(1, winner.after().wins());
         assertEquals(1, loser.after().losses());
@@ -89,8 +89,8 @@ final class EloRatingCalculatorTest {
                 .mapToDouble(RatingAdjustment::muDelta)
                 .sum();
 
-        assertEquals(32.0, winnerTotal, 0.000001);
-        assertEquals(-32.0, loserTotal, 0.000001);
+        assertEquals(64.0, winnerTotal, 0.000001);
+        assertEquals(-64.0, loserTotal, 0.000001);
     }
 
     @Test
@@ -106,7 +106,7 @@ final class EloRatingCalculatorTest {
                 )
         ));
 
-        assertEquals(List.of(16, 13, -13, -16), result.adjustments().stream()
+        assertEquals(List.of(32, 26, -26, -32), result.adjustments().stream()
                 .map(RatingAdjustment::displayEloDelta)
                 .toList());
     }
@@ -125,7 +125,7 @@ final class EloRatingCalculatorTest {
                 )
         ));
 
-        assertEquals(List.of(16, 13, 0, -13, -16), result.adjustments().stream()
+        assertEquals(List.of(32, 26, 0, -26, -32), result.adjustments().stream()
                 .map(RatingAdjustment::displayEloDelta)
                 .toList());
     }
@@ -149,8 +149,8 @@ final class EloRatingCalculatorTest {
                 )
         ));
 
-        assertEquals(-16.0, weakLoss.adjustments().get(1).muDelta(), 0.000001);
-        assertEquals(-10.2, perfectLoss.adjustments().get(1).muDelta(), 0.000001);
+        assertEquals(-32.0, weakLoss.adjustments().get(1).muDelta(), 0.000001);
+        assertEquals(-20.4, perfectLoss.adjustments().get(1).muDelta(), 0.000001);
     }
 
     private static RatingParticipant participant(String name, TeamId teamId, boolean winner) {

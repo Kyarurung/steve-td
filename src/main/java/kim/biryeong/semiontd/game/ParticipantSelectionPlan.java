@@ -41,4 +41,35 @@ public record ParticipantSelectionPlan(
                 .map(String::valueOf)
                 .collect(Collectors.joining("/"));
     }
+
+    public ParticipantSelectionPlan withFifthLanePreference(UUID playerId) {
+        AssignedParticipant preferred = activeParticipants.stream()
+                .filter(participant -> participant.uuid().equals(playerId))
+                .findFirst()
+                .orElse(null);
+        if (preferred == null || preferred.laneId() == 5 || teamSizes().getOrDefault(preferred.teamId(), 0) != 5) {
+            return this;
+        }
+
+        List<AssignedParticipant> reassigned = activeParticipants.stream()
+                .map(participant -> {
+                    int laneId = participant.laneId();
+                    if (participant.uuid().equals(playerId)) {
+                        laneId = 5;
+                    } else if (participant.teamId() == preferred.teamId() && participant.laneId() == 5) {
+                        laneId = preferred.laneId();
+                    }
+                    return laneId == participant.laneId()
+                            ? participant
+                            : new AssignedParticipant(
+                                    participant.uuid(),
+                                    participant.name(),
+                                    participant.teamId(),
+                                    laneId,
+                                    participant.displayElo()
+                            );
+                })
+                .toList();
+        return new ParticipantSelectionPlan(mode, reassigned, spectatorIds, activeTeamCount);
+    }
 }

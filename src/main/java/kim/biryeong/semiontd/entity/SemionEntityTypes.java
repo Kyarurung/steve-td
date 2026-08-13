@@ -5,6 +5,7 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.entity.boss.SemionBossEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.mixin.accessor.RangedAttributeAccessor;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -47,6 +48,7 @@ public final class SemionEntityTypes {
     }
 
     public static void register() {
+        ((RangedAttributeAccessor) Attributes.MAX_HEALTH.value()).semiontd$setMaxValue(Float.MAX_VALUE);
         PolymerEntityUtils.registerType(MONSTER);
         PolymerEntityUtils.registerType(BOSS);
         PolymerEntityUtils.registerType(TOWER);

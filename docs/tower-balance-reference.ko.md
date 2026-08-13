@@ -321,7 +321,7 @@
 | 숙적 라운드 보정 | `rivalRoundHealthGrowth`, `rivalRoundDamageGrowth`, `rivalArmorRoundInterval` |
 | 기본/질풍 공격 | `baseSplashRadius`, `baseSplashExtraTargets`, `baseSplashDamageRatio`, `breezeExtraTargets`, `breezeExtraTargetDamageRatio` |
 | 황금/방패 공격 | `goldenExtraAttackEvery`, `goldenExtraDamageRatio`, `shieldCounterDamage`, `shieldCounterCooldownTicks` |
-| 팀 지원 | `bellTeamDamageBonus`, `beaconTeamDamageBonus`, `beaconTeamAttackSpeedBonus`, `beaconTeamMaxHealthBonus`, `ominousMonsterDamageReduction`, `ominousMonsterAttackSpeedReduction`, `ominousMonsterTowerDamageTakenBonus`, `teamEffectScanIntervalTicks`, `teamEffectDurationTicks` |
+| 여우 회복·팀 지원 | `bellHealIntervalTicks`, `bellHealRadius`, `bellHealTargetCount`, `bellHealMaxHealthRatio`, `beaconHealIntervalTicks`, `beaconHealRadius`, `beaconHealTargetCount`, `beaconHealMaxHealthRatio`, `ominousMonsterDamageReduction`, `ominousMonsterAttackSpeedReduction`, `ominousMonsterTowerDamageTakenBonus`, `teamEffectScanIntervalTicks`, `teamEffectDurationTicks` |
 | 폭죽 관통 | `fireworkWaveDamageMultiplier`, `fireworkIncomeDamageMultiplier`, `fireworkMaxTargets`, `fireworkSecondary2Ratio` ~ `fireworkSecondary5Ratio` |
 | 거물/메아리 | `bigGameWaveDamageMultiplier`, `bigGameIncomeDamageMultiplier`, `bigGameStreak2`, `bigGameStreak3`, `echoBonusPerHit`, `echoMaxBonusStacks` |
 | 메이스 | `maceFocusTicks`, `maceBreakHealthRatio`, `maceStreak2` ~ `maceStreak5`, `maceSweepRadius`, `maceSweepExtraTargets`, `maceSweepDamageRatio` |

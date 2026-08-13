@@ -32,17 +32,17 @@ class AnimalTowerBalanceConfigTest {
 
         assertEquals(new TowerStats(40L, 80.0, 2.0, 5.0, 20, 40), stats(config, AnimalTowers.T1_PIG_TOWER));
         assertEquals(new TowerStats(180L, 150.0, 2.0, 7.0, 20, 55), stats(config, AnimalTowers.T2_PIG_TOWER));
-        assertEquals(new TowerStats(300L, 350.0, 2.0, 15.0, 20, 60), stats(config, AnimalTowers.T3_PIG_TOWER));
+        assertEquals(new TowerStats(300L, 400.0, 2.0, 15.0, 20, 60), stats(config, AnimalTowers.T3_PIG_TOWER));
         assertEquals(new TowerStats(50L, 50.0, 6.0, 5.0, 20, 5), stats(config, AnimalTowers.T1_WOLF_TOWER));
         assertEquals(new TowerStats(110L, 70.0, 6.0, 10.0, 20, 5), stats(config, AnimalTowers.T2_WOLF_DPS_TOWER));
         assertEquals(new TowerStats(110L, 90.0, 6.0, 20.0, 20, 0), stats(config, AnimalTowers.T3_WOLF_DPS_TOWER));
-        assertEquals(new TowerStats(50L, 40.0, 7.0, 5.0, 15, -5), stats(config, AnimalTowers.T1_RABBIT_TOWER));
+        assertEquals(new TowerStats(50L, 30.0, 7.0, 5.0, 15, -5), stats(config, AnimalTowers.T1_RABBIT_TOWER));
         assertEquals(new TowerStats(180L, 55.0, 7.0, 8.0, 15, -5), stats(config, AnimalTowers.T2_RABBIT_TOWER));
         assertEquals(new TowerStats(300L, 70.0, 7.0, 10.0, 13, -5), stats(config, AnimalTowers.T3_RABBIT_TOWER));
         assertEquals(new TowerStats(60L, 45.0, 7.0, 12.0, 20, 5), stats(config, AnimalTowers.T1_FOX_TOWER));
         assertEquals(new TowerStats(170L, 60.0, 7.0, 20.0, 15, 5), stats(config, AnimalTowers.T2_FOX_TOWER));
         assertEquals(new TowerStats(320L, 80.0, 8.0, 30.0, 10, 5), stats(config, AnimalTowers.T3_FOX_TOWER));
-        assertEquals(new TowerStats(350L, 400.0, 2.0, 18.0, 20, -20), stats(config, AnimalTowers.T4_PIG_LEADER_TOWER));
+        assertEquals(new TowerStats(350L, 450.0, 2.0, 18.0, 20, 40), stats(config, AnimalTowers.T4_PIG_LEADER_TOWER));
         assertEquals(new TowerStats(400L, 105.0, 6.5, 24.0, 18, -20), stats(config, AnimalTowers.T4_WOLF_LEADER_TOWER));
         assertEquals(new TowerStats(450L, 85.0, 8.0, 12.0, 12, -20), stats(config, AnimalTowers.T4_RABBIT_LEADER_TOWER));
         assertEquals(new TowerStats(500L, 95.0, 8.5, 35.0, 10, -20), stats(config, AnimalTowers.T4_FOX_LEADER_TOWER));
@@ -123,14 +123,14 @@ class AnimalTowerBalanceConfigTest {
         assertAbilities(config, AnimalTowers.T4_PIG_LEADER_TOWER, Map.of(
                 "maxStacks", 2.0, "healthPerStack", 90.0, "damagePerStack", 15.0,
                 "damageReduction", 0.30, "splashRadius", 1.0, "splashDamageRatio", 0.50,
-                "leaderAuraRadius", 4.0, "leaderMaxHealthBonus", 0.15,
+                "leaderAuraRadius", 8.0, "leaderMaxHealthBonus", 0.15,
                 "leaderDamageReductionBonus", 0.05
         ));
         assertAbilities(config, AnimalTowers.T4_WOLF_LEADER_TOWER, Map.of(
                 "maxStacks", 4.0, "damagePerStack", 10.0, "intervalReductionPerStack", 1.25,
                 "splashRadius", 2.0, "splashDamageRatio", 0.75,
                 "maxStackExtraIntervalReduction", 5.0, "maxStackDamageBonus", 5.0,
-                "leaderAuraRadius", 6.0, "leaderAttackIntervalReductionTicks", 1.0,
+                "leaderAuraRadius", 8.0, "leaderAttackIntervalReductionTicks", 1.0,
                 "leaderSplashDamageRatioBonus", 0.10
         ));
         assertAbilities(config, AnimalTowers.T4_RABBIT_LEADER_TOWER, Map.of(
@@ -180,7 +180,7 @@ class AnimalTowerBalanceConfigTest {
         TowerBalanceConfig merged = new TowerBalanceConfig(towers, costs, abilities).withMissingDefaults(defaults);
 
         assertEquals(999L, merged.towers().get(AnimalTowers.T3_PIG_TOWER.id()).mineralCost());
-        assertEquals(350.0, merged.towers().get(AnimalTowers.T3_PIG_TOWER.id()).maxHealth());
+        assertEquals(400.0, merged.towers().get(AnimalTowers.T3_PIG_TOWER.id()).maxHealth());
         assertEquals(777L, merged.upgradeCost("t2_pig_tower", "t3_pig_tower", -1));
         assertEquals(123.0, merged.ability(AnimalTowers.T3_PIG_TOWER.id(), "damagePerStack", -1.0));
         assertEquals(stats(defaults, AnimalTowers.T4_PIG_LEADER_TOWER), stats(merged, AnimalTowers.T4_PIG_LEADER_TOWER));
@@ -207,9 +207,9 @@ class AnimalTowerBalanceConfigTest {
         assertTrue(TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER).description().stream()
                 .noneMatch(line -> line.contains("우두머리로 승급")));
         assertTrue(TowerBalanceRuntime.resolve(AnimalTowers.T4_PIG_LEADER_TOWER).description().stream()
-                .anyMatch(line -> line.contains("반경 4블록") && line.contains("최대 체력 +15%") && line.contains("5%p")));
+                .anyMatch(line -> line.contains("반경 8블록") && line.contains("최대 체력 +15%") && line.contains("5%p")));
         assertTrue(TowerBalanceRuntime.resolve(AnimalTowers.T4_WOLF_LEADER_TOWER).description().stream()
-                .anyMatch(line -> line.contains("반경 6블록") && line.contains("1틱") && line.contains("10%p")));
+                .anyMatch(line -> line.contains("반경 8블록") && line.contains("1틱") && line.contains("10%p")));
         assertTrue(TowerBalanceRuntime.resolve(AnimalTowers.T4_RABBIT_LEADER_TOWER).description().stream()
                 .anyMatch(line -> line.contains("반경 7블록") && line.contains("공격 피해 +8%") && line.contains("사거리 +1블록")));
         assertTrue(TowerBalanceRuntime.resolve(AnimalTowers.T4_FOX_LEADER_TOWER).description().stream()

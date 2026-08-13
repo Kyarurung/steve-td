@@ -56,7 +56,8 @@ class AdversaryCombatContractTest {
     @Test
     void formChangesKeepHealthRatioAndTheSameLogicalFox() {
         AdversaryFoxTower fox = fox();
-        fox.syncHealth(87.5);
+        UUID foxId = fox.foxId();
+        fox.syncHealth(75.0);
 
         fox.setForm(FoxForm.BEACON_KEEPER, null);
 
@@ -64,21 +65,18 @@ class AdversaryCombatContractTest {
                 () -> assertSame(AdversaryTowers.FOX, fox.type()),
                 () -> assertEquals(OWNER, fox.ownerPlayer()),
                 () -> assertEquals(FoxForm.BEACON_KEEPER, fox.form()),
-                () -> assertEquals(1_600.0, fox.currentMaxHealth(), 0.0001),
-                () -> assertEquals(400.0, fox.health(), 0.0001),
-                () -> assertEquals(
-                        FoxForm.BEACON_KEEPER,
-                        AdversaryProgressStates.currentForm(OWNER)
-                )
+                () -> assertEquals(850.0, fox.currentMaxHealth(), 0.0001),
+                () -> assertEquals(212.5, fox.health(), 0.0001),
+                () -> assertEquals(foxId, fox.foxId())
         );
 
         fox.setForm(FoxForm.SCULK_CORE, null);
-        assertEquals(1_100.0, fox.currentMaxHealth(), 0.0001);
-        assertEquals(275.0, fox.health(), 0.0001);
+        assertEquals(800.0, fox.currentMaxHealth(), 0.0001);
+        assertEquals(200.0, fox.health(), 0.0001);
 
         fox.setForm(FoxForm.BASE, null);
-        assertEquals(350.0, fox.currentMaxHealth(), 0.0001);
-        assertEquals(87.5, fox.health(), 0.0001);
+        assertEquals(300.0, fox.currentMaxHealth(), 0.0001);
+        assertEquals(75.0, fox.health(), 0.0001);
     }
 
     @Test
@@ -97,28 +95,57 @@ class AdversaryCombatContractTest {
     void ordinaryAttackPipelineUsesEachFormAndSpecialFormsKeepZeroDamageAimRays() {
         AdversaryFoxTower fox = fox();
 
-        assertBasicAttack(fox, FoxForm.BASE, 18.0, 10);
-        assertBasicAttack(fox, FoxForm.BREEZE, 30.0, 4);
-        assertBasicAttack(fox, FoxForm.GOLDEN_FANG, 36.0, 3);
-        assertBasicAttack(fox, FoxForm.SHIELD_BEARER, 75.0, 7);
-        assertBasicAttack(fox, FoxForm.BELL_KEEPER, 70.0, 7);
-        assertBasicAttack(fox, FoxForm.BEACON_KEEPER, 90.0, 6);
-        assertBasicAttack(fox, FoxForm.OMINOUS_HEXER, 90.0, 6);
-        assertBasicAttack(fox, FoxForm.TRACKER, 60.0, 7);
-        assertBasicAttack(fox, FoxForm.FIREWORK_PIERCER, 108.0, 8);
-        assertBasicAttack(fox, FoxForm.BIG_GAME_TRACKER, 96.0, 16);
-        assertBasicAttack(fox, FoxForm.ECHO_FOX, 90.0, 8);
+        assertBasicAttack(fox, FoxForm.BASE, 16.0, 10);
+        assertBasicAttack(fox, FoxForm.BREEZE, 26.0, 4);
+        assertBasicAttack(fox, FoxForm.GOLDEN_FANG, 30.0, 3);
+        assertBasicAttack(fox, FoxForm.SHIELD_BEARER, 60.0, 7);
+        assertBasicAttack(fox, FoxForm.BELL_KEEPER, 60.0, 7);
+        assertBasicAttack(fox, FoxForm.BEACON_KEEPER, 72.0, 6);
+        assertBasicAttack(fox, FoxForm.OMINOUS_HEXER, 72.0, 6);
+        assertBasicAttack(fox, FoxForm.TRACKER, 52.0, 7);
+        assertBasicAttack(fox, FoxForm.FIREWORK_PIERCER, 86.4, 8);
+        assertBasicAttack(fox, FoxForm.BIG_GAME_TRACKER, 76.8, 16);
+        assertBasicAttack(fox, FoxForm.ECHO_FOX, 76.0, 8);
         assertBasicAttack(fox, FoxForm.MACE_EXECUTIONER, 0.0, 50);
         assertBasicAttack(fox, FoxForm.SCULK_CORE, 0.0, 100);
     }
 
     @Test
-    void beaconAttackSpeedBonusAlsoAcceleratesMaceAndSculkBaseIntervals() {
+    void finalFormsGainCappedDamageFromScoreEarnedAfterEvolution() {
+        AdversaryFoxTower fox = fox();
+        AdversaryProgressState progress = AdversaryProgressStates.state(OWNER);
+        progress.registerFox(fox.foxId(), FoxForm.BASE);
+        progress.reconcileRivals(List.of(new RivalContribution(
+                UUID.randomUUID(),
+                RivalKind.BREEZE,
+                60
+        )));
+        assertTrue(progress.commitEvolution(fox.foxId(), FoxForm.BASE, FoxForm.BREEZE));
+        progress.recordCompletedWave(fox.foxId(), FoxForm.BREEZE);
+        assertTrue(progress.commitEvolution(fox.foxId(), FoxForm.BREEZE, FoxForm.GOLDEN_FANG));
+        fox.setForm(FoxForm.GOLDEN_FANG, null);
+
+        assertEquals(10, progress.postEvolutionBonusScore());
+        assertEquals(105.0, fox.modifyResolvedAttackDamage(null, null, 100.0), 0.0001);
+
+        progress.reconcileRivals(List.of(new RivalContribution(
+                UUID.randomUUID(),
+                RivalKind.BREEZE,
+                450
+        )));
+        assertEquals(300.0, fox.modifyResolvedAttackDamage(null, null, 100.0), 0.0001);
+
+        fox.setForm(FoxForm.BREEZE, null);
+        assertEquals(100.0, fox.modifyResolvedAttackDamage(null, null, 100.0), 0.0001);
+    }
+
+    @Test
+    void genericAttackSpeedBonusAlsoAcceleratesMaceAndSculkBaseIntervals() {
         AdversaryFoxTower fox = fox();
         TimedEffectSet effects = new TimedEffectSet();
         effects.apply(
                 TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
-                AdversaryBalance.BEACON_TEAM_ATTACK_SPEED_BONUS,
+                0.10,
                 AdversaryBalance.TEAM_EFFECT_DURATION_TICKS
         );
 
@@ -135,7 +162,7 @@ class AdversaryCombatContractTest {
     }
 
     @Test
-    void teamSupportUsesTheStrongestValuePerChannelAndBuffsCoexistWithDebuffs() {
+    void supportHealingProfilesAndOminousTeamDebuffsUseConfiguredValues() {
         AdversaryTeamEffects.TeamProfile profile = AdversaryTeamEffects.strongestProfile(List.of(
                 FoxForm.BELL_KEEPER,
                 FoxForm.BELL_KEEPER,
@@ -144,14 +171,20 @@ class AdversaryCombatContractTest {
                 FoxForm.OMINOUS_HEXER,
                 FoxForm.OMINOUS_HEXER
         ));
+        AdversaryTeamEffects.HealProfile bell = AdversaryTeamEffects.healingProfile(FoxForm.BELL_KEEPER);
+        AdversaryTeamEffects.HealProfile beacon = AdversaryTeamEffects.healingProfile(FoxForm.BEACON_KEEPER);
+        AdversaryTeamEffects.HealProfile ominous = AdversaryTeamEffects.healingProfile(FoxForm.OMINOUS_HEXER);
 
         assertAll(
-                () -> assertEquals(AdversaryBalance.BEACON_TEAM_DAMAGE_BONUS,
-                        profile.towerDamageBonus(), 0.0001),
-                () -> assertEquals(AdversaryBalance.BEACON_TEAM_ATTACK_SPEED_BONUS,
-                        profile.towerAttackSpeedBonus(), 0.0001),
-                () -> assertEquals(AdversaryBalance.BEACON_TEAM_MAX_HEALTH_BONUS,
-                        profile.towerMaxHealthBonus(), 0.0001),
+                () -> assertEquals(80, bell.intervalTicks()),
+                () -> assertEquals(8.0, bell.radius(), 0.0001),
+                () -> assertEquals(1, bell.targetCount()),
+                () -> assertEquals(0.05, bell.maxHealthRatio(), 0.0001),
+                () -> assertEquals(60, beacon.intervalTicks()),
+                () -> assertEquals(10.0, beacon.radius(), 0.0001),
+                () -> assertEquals(2, beacon.targetCount()),
+                () -> assertEquals(0.06, beacon.maxHealthRatio(), 0.0001),
+                () -> assertEquals(bell, ominous),
                 () -> assertEquals(AdversaryBalance.OMINOUS_MONSTER_DAMAGE_REDUCTION,
                         profile.monsterDamageReduction(), 0.0001),
                 () -> assertEquals(AdversaryBalance.OMINOUS_MONSTER_ATTACK_SPEED_REDUCTION,
@@ -177,7 +210,7 @@ class AdversaryCombatContractTest {
         abilities.get(AdversaryBalance.formConfigId(FoxForm.BEACON_KEEPER)).put("attackIntervalTicks", 5.0);
         abilities.get(AdversaryBalance.formConfigId(FoxForm.BEACON_KEEPER)).put("damageReduction", 0.40);
         abilities.get(AdversaryBalance.formConfigId(FoxForm.BEACON_KEEPER)).put("requiredPhantomScore", 60.0);
-        abilities.get(AdversaryBalance.GLOBAL_CONFIG_ID).put("beaconTeamDamageBonus", 0.08);
+        abilities.get(AdversaryBalance.GLOBAL_CONFIG_ID).put("beaconHealMaxHealthRatio", 0.08);
         TowerBalanceRuntime.apply(new TowerBalanceConfig(
                 defaults.towers(),
                 defaults.upgradeCosts(),
@@ -185,9 +218,7 @@ class AdversaryCombatContractTest {
         ));
 
         fox.refreshType(AdversaryTowers.FOX, null);
-        AdversaryTeamEffects.TeamProfile profile = AdversaryTeamEffects.strongestProfile(
-                List.of(FoxForm.BEACON_KEEPER)
-        );
+        AdversaryTeamEffects.HealProfile healing = AdversaryTeamEffects.healingProfile(FoxForm.BEACON_KEEPER);
 
         assertAll(
                 () -> assertEquals(2_000.0, fox.currentMaxHealth(), 0.0001),
@@ -198,7 +229,7 @@ class AdversaryCombatContractTest {
                 () -> assertEquals(60.0, fox.modifyIncomingDamage(null, null, 100.0), 0.0001),
                 () -> assertEquals(60, FoxForm.BEACON_KEEPER.recipe().orElseThrow()
                         .required(RivalKind.PHANTOM)),
-                () -> assertEquals(0.08, profile.towerDamageBonus(), 0.0001)
+                () -> assertEquals(0.08, healing.maxHealthRatio(), 0.0001)
         );
     }
 
@@ -210,21 +241,23 @@ class AdversaryCombatContractTest {
         hits.setAccessible(true);
         hits.setInt(fox, 2);
 
-        assertEquals(96.0, fox.modifyAttackDamage(null, null, fox.type().damage()), 0.0001);
+        assertEquals(76.8, fox.modifyAttackDamage(null, null, fox.type().damage()), 0.0001);
     }
 
     @Test
     void publishedAbilityConstantsProduceTheApprovedLongRunDamage() {
         assertAll(
-                () -> assertEquals(2, AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
-                () -> assertEquals(0.30, AdversaryBalance.BASE_SPLASH_DAMAGE_RATIO, 0.0001),
+                () -> assertEquals(6, AdversaryBalance.BASE_SPLASH_EXTRA_TARGETS),
+                () -> assertEquals(0.50, AdversaryBalance.BASE_SPLASH_DAMAGE_RATIO, 0.0001),
+                () -> assertEquals(0.005, AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_PER_SCORE, 0.0001),
+                () -> assertEquals(2.00, AdversaryBalance.POST_EVOLUTION_DAMAGE_BONUS_CAP, 0.0001),
                 () -> assertEquals(1, AdversaryBalance.BREEZE_EXTRA_TARGETS),
                 () -> assertEquals(0.60, AdversaryBalance.BREEZE_EXTRA_TARGET_DAMAGE_RATIO, 0.0001),
-                () -> assertEquals(5, AdversaryBalance.GOLDEN_FANG_EXTRA_ATTACK_EVERY),
+                () -> assertEquals(7, AdversaryBalance.GOLDEN_FANG_EXTRA_ATTACK_EVERY),
                 () -> assertEquals(0.50, AdversaryBalance.GOLDEN_FANG_EXTRA_DAMAGE_RATIO, 0.0001),
-                () -> assertEquals(240.0, dps(30.0, 4) * 1.60, 0.0001),
-                () -> assertEquals(264.0, dps(36.0, 3) * 1.10, 0.0001),
-                () -> assertEquals(393.75, dps(90.0, 8) * 1.75, 0.0001)
+                () -> assertEquals(208.0, dps(26.0, 4) * 1.60, 0.0001),
+                () -> assertEquals(220.0, dps(30.0, 3) * 1.10, 0.0001),
+                () -> assertEquals(332.5, dps(76.0, 8) * 1.75, 0.0001)
         );
 
         assertArrayEquals(
@@ -236,13 +269,13 @@ class AdversaryCombatContractTest {
                 AdversaryBalance.FIREWORK_TARGET_DAMAGE_RATIOS
         ).sum();
         assertAll(
-                () -> assertEquals(5, AdversaryBalance.FIREWORK_MAX_TARGETS),
-                () -> assertEquals(270.0, dps(60.0, 8)
+                () -> assertEquals(8, AdversaryBalance.FIREWORK_MAX_TARGETS),
+                () -> assertEquals(216.0, dps(48.0, 8)
                         * AdversaryBalance.FIREWORK_WAVE_DAMAGE_MULTIPLIER, 0.0001),
-                () -> assertEquals(634.5, dps(60.0, 8)
+                () -> assertEquals(507.6, dps(48.0, 8)
                         * AdversaryBalance.FIREWORK_WAVE_DAMAGE_MULTIPLIER
                         * fireworkRatioSum, 0.0001),
-                () -> assertEquals(90.0, dps(60.0, 8)
+                () -> assertEquals(72.0, dps(48.0, 8)
                         * AdversaryBalance.FIREWORK_INCOME_DAMAGE_MULTIPLIER, 0.0001)
         );
 
@@ -252,11 +285,11 @@ class AdversaryCombatContractTest {
                 0.0001
         );
         assertAll(
-                () -> assertEquals(120.0, dps(120.0, 16)
+                () -> assertEquals(96.0, dps(96.0, 16)
                         * AdversaryBalance.BIG_GAME_WAVE_DAMAGE_MULTIPLIER, 0.0001),
-                () -> assertEquals(225.0, dps(120.0, 16)
+                () -> assertEquals(180.0, dps(96.0, 16)
                         * AdversaryBalance.BIG_GAME_INCOME_DAMAGE_MULTIPLIER, 0.0001),
-                () -> assertEquals(382.5, dps(120.0, 16)
+                () -> assertEquals(306.0, dps(96.0, 16)
                         * AdversaryBalance.BIG_GAME_INCOME_DAMAGE_MULTIPLIER
                         * AdversaryBalance.BIG_GAME_STREAK_MULTIPLIERS[2], 0.0001)
         );
@@ -268,35 +301,53 @@ class AdversaryCombatContractTest {
         );
         assertAll(
                 () -> assertEquals(30, AdversaryBalance.MACE_FOCUS_TICKS),
-                () -> assertEquals(600.0, dps(
+                () -> assertEquals(480.0, dps(
                         AdversaryBalance.MACE_STRIKE_DAMAGE
                                 * AdversaryBalance.MACE_STREAK_MULTIPLIERS[4],
                         AdversaryBalance.MACE_STRIKE_INTERVAL_TICKS
                 ), 0.0001),
-                () -> assertEquals(200.0, dps(
+                () -> assertEquals(160.0, dps(
                         AdversaryBalance.SCULK_DETONATION_DAMAGE,
                         AdversaryBalance.SCULK_ATTACK_INTERVAL_TICKS
                 ), 0.0001),
-                () -> assertEquals(1_000.0, dps(
+                () -> assertEquals(1_120.0, dps(
                         AdversaryBalance.SCULK_DETONATION_DAMAGE,
                         AdversaryBalance.SCULK_ATTACK_INTERVAL_TICKS
                 ) * AdversaryBalance.SCULK_MAX_TARGETS, 0.0001),
                 () -> assertEquals(0.20, AdversaryBalance.MACE_FOCUS_BREAK_MAX_HEALTH_RATIO, 0.0001),
                 () -> assertEquals(1.5, AdversaryBalance.MACE_SWEEP_RADIUS, 0.0001),
-                () -> assertEquals(2, AdversaryBalance.MACE_SWEEP_EXTRA_TARGETS),
+                () -> assertEquals(5, AdversaryBalance.MACE_SWEEP_EXTRA_TARGETS),
                 () -> assertEquals(0.25, AdversaryBalance.MACE_SWEEP_DAMAGE_RATIO, 0.0001),
                 () -> assertEquals(0.10, AdversaryBalance.SCULK_SELF_DAMAGE_MAX_HEALTH_RATIO, 0.0001),
-                () -> assertEquals(0.20, AdversaryBalance.SCULK_SELF_DAMAGE_HEALTH_FLOOR_RATIO, 0.0001)
+                () -> assertEquals(0.40, AdversaryBalance.SCULK_SELF_DAMAGE_HEALTH_FLOOR_RATIO, 0.0001)
         );
     }
 
     @Test
-    void sculkRecoilNeverDropsTheFoxBelowTwentyPercentHealth() {
+    void sculkRecoilNeverDropsTheFoxBelowFortyPercentHealth() {
         assertAll(
                 () -> assertEquals(110.0, AdversaryFoxTower.sculkRecoilDamage(1_100.0, 1_100.0), 0.0001),
-                () -> assertEquals(55.0, AdversaryFoxTower.sculkRecoilDamage(275.0, 1_100.0), 0.0001),
-                () -> assertEquals(0.0, AdversaryFoxTower.sculkRecoilDamage(220.0, 1_100.0), 0.0001),
+                () -> assertEquals(55.0, AdversaryFoxTower.sculkRecoilDamage(495.0, 1_100.0), 0.0001),
+                () -> assertEquals(0.0, AdversaryFoxTower.sculkRecoilDamage(440.0, 1_100.0), 0.0001),
                 () -> assertEquals(0.0, AdversaryFoxTower.sculkRecoilDamage(100.0, 1_100.0), 0.0001)
+        );
+    }
+
+    @Test
+    void rivalHealingAndFocusFireMitigationRespectTheirWaveCaps() {
+        assertAll(
+                () -> assertEquals(70.0,
+                        AdversaryFoxTower.rivalKillHealingAmount(100.0, 350.0, 0.0, false), 0.0001),
+                () -> assertEquals(105.0,
+                        AdversaryFoxTower.rivalKillHealingAmount(100.0, 350.0, 0.0, true), 0.0001),
+                () -> assertEquals(105.0,
+                        AdversaryFoxTower.rivalKillHealingAmount(100.0, 350.0, 240.0, true), 0.0001),
+                () -> assertEquals(5.0,
+                        AdversaryFoxTower.rivalKillHealingAmount(345.0, 350.0, 0.0, true), 0.0001),
+                () -> assertEquals(0.0, AdversaryFoxTower.focusFireDamageReduction(1), 0.0001),
+                () -> assertEquals(0.12, AdversaryFoxTower.focusFireDamageReduction(4), 0.0001),
+                () -> assertEquals(0.40, AdversaryFoxTower.focusFireDamageReduction(11), 0.0001),
+                () -> assertEquals(0.40, AdversaryFoxTower.focusFireDamageReduction(100), 0.0001)
         );
     }
 
@@ -305,17 +356,33 @@ class AdversaryCombatContractTest {
         AdversaryFoxTower fox = fox();
 
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line -> line.contains("현재 형태</gold>:")));
-        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line -> line.contains("전직 점수")));
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line -> line.contains("점수</yellow>")));
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("숙적 처치 회복") && line.contains("일반 20%") && line.contains("강화 30%")));
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("집중포화 방어") && line.contains("최대 40%")));
         assertTrue(fox.runtimeDetailLines().stream().noneMatch(line -> line.contains("인컴 처치")));
+
+        fox.setForm(FoxForm.BREEZE, null);
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("연쇄 마법 피해")));
 
         fox.setForm(FoxForm.BEACON_KEEPER, null);
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("모든 아군 타워")
-                        && line.contains("피해 +4%")
-                        && line.contains("공격 속도 +10%")
-                        && line.contains("최대 체력 +5%")));
+                line.contains("최종 성장") && line.contains("최대 200%")));
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("주변 적 최대 6기에게 공격력의 50%")));
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("3초마다")
+                        && line.contains("반경 10블록")
+                        && line.contains("다른 여우 최대 2기")
+                        && line.contains("각각 6%")));
 
         fox.setForm(FoxForm.OMINOUS_HEXER, null);
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("4초마다")
+                        && line.contains("다른 여우 1기")
+                        && line.contains("5%")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("숙적에게는 적용되지 않습니다")));
 
@@ -323,20 +390,23 @@ class AdversaryCombatContractTest {
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("웨이브 적에게 1.8배") && line.contains("인컴 적에게 0.6배")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("직선상의 적 최대 5기")
-                        && line.contains("100% / 55% / 40% / 25% / 15%")));
+                line.contains("직선상의 적 최대 8기")
+                        && line.contains("100% / 55% / 40% / 25% / 15%")
+                        && line.contains("물리 피해")));
 
         fox.setForm(FoxForm.SCULK_CORE, null);
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("40틱 뒤 폭발")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("최대 5기") && line.contains("1000의 마법 피해")));
+                line.contains("최대 7기") && line.contains("800의 마법 피해")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("방어를 무시") && line.contains("체력은 20% 아래")));
+                line.contains("방어를 무시") && line.contains("체력은 40% 아래")));
 
         fox.setForm(FoxForm.MACE_EXECUTIONER, null);
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
-                line.contains("주변 적 최대 2기") && line.contains("25%만큼 피해")));
+                line.contains("집중한 뒤 400의 물리 피해")));
+        assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
+                line.contains("주변 적 최대 5기") && line.contains("25%만큼 피해")));
         assertTrue(fox.runtimeDetailLines().stream().anyMatch(line ->
                 line.contains("최대 체력의 20%") && line.contains("공격이 취소")));
     }

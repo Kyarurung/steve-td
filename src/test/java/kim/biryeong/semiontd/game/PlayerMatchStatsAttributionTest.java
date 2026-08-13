@@ -67,9 +67,9 @@ final class PlayerMatchStatsAttributionTest {
 
         PlayerMatchStatsSnapshot snapshot = player.matchStats().snapshot(player.economy().income());
         assertEquals(0, snapshot.ownLaneDiamondGain());
-        assertEquals(4, snapshot.assistClearDiamondGain());
+        assertEquals(3, snapshot.assistClearDiamondGain());
         assertEquals(monster.attributionThreat(), snapshot.assistClearThreat(), 0.0001);
-        assertEquals(EconomyConfig.defaultConfig().startingDiamond() + 4, player.economy().diamond());
+        assertEquals(EconomyConfig.defaultConfig().startingDiamond() + 3, player.economy().diamond());
     }
 
     @Test

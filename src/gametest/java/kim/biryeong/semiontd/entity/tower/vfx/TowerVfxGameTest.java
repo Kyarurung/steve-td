@@ -21,6 +21,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
@@ -62,6 +63,7 @@ public final class TowerVfxGameTest {
         assertPalette(NetherTowers.T1_STRIDER, BuilderPalette.NETHER);
         assertPalette(OceanTowers.T1_WATER, BuilderPalette.OCEAN);
         assertPalette(AncientCityTowers.CATALYST_T1, BuilderPalette.ANCIENT_CITY);
+        assertPalette(AdversaryTowers.FOX, BuilderPalette.ADVERSARY);
         context.succeed();
     }
 
@@ -238,6 +240,19 @@ public final class TowerVfxGameTest {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         for (String effect : List.of("growth", "catalyst", "sensor", "shriek", "warden")) {
             String command = "semiontd-debug vfx ancient_city " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void adversaryDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("breeze", "golden", "shield", "support", "firework", "mace", "sculk")) {
+            String command = "semiontd-debug vfx adversary " + effect;
             var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");
