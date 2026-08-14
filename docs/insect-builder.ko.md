@@ -1,5 +1,7 @@
 # 벌레 빌더
 
+> 핵심 컨셉과 유닛 역할은 [다섯 신규 빌더 컨셉 설명집](five-builders-player-guide.ko.md#벌레-빌더)을 참고하세요.
+
 직업 ID는 `semion-td:insect_towers`입니다. 벌레는 첫 배치의 순간 화력과 스포너 주변의 반복 부활로 라인을 오래 붙잡습니다.
 
 ## 병과

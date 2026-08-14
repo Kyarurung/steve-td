@@ -20,6 +20,13 @@
 | `semion-td:ocean` | 바다 빌더 | 물을 생산·저장·소비해 타워를 강화합니다. | 바다 |
 | `semion-td:ancient_city` | 고대 도시 빌더 | 스컬크 영토와 공명으로 마법 능력을 증폭합니다. | 고대 도시 |
 | `semion-td:adversary_towers` | 대적자 빌더 | 한 마리 여우가 직접 숙적을 사냥해 네 루트로 진화합니다. | 대적자 |
+| `semion-td:mage_towers` | 마도사 빌더 | 마나를 모아 지속 주문을 시전하고 인컴을 예언합니다. | 마도사 |
+| `semion-td:engineer_towers` | 기술자 빌더 | 구리 골렘과 실제 레드스톤 회로로 함정을 가동합니다. | 기술자 |
+| `semion-td:insect_towers` | 벌레 빌더 | 첫 배치 강화와 스포너 부활로 전선을 오래 유지합니다. | 벌레 |
+| `semion-td:future_agency_towers` | 미래기관 빌더 | 생존 요원과 정책을 누적한 뒤 세계 구원으로 왕귀합니다. | 미래기관 |
+| `semion-td:queen_towers` | 붉은 여왕 빌더 | 카드병정이 적을 약체화하고 자이언트가 처형합니다. | 붉은 여왕 |
+
+다섯 신규 빌더의 핵심 컨셉과 유닛 역할은 [다섯 신규 빌더 컨셉 설명집](five-builders-player-guide.ko.md)에 정리되어 있습니다.
 
 ## 타워 계열
 
