@@ -3070,6 +3070,7 @@ public final class SemionCommands {
             case UNKNOWN_LANE -> "담당 라인을 찾을 수 없습니다.";
             case NO_TOWER_AT_POSITION -> "현재 위치에 판매할 타워가 없습니다.";
             case TOWER_NOT_OWNED -> "자신이 설치한 타워만 판매할 수 있습니다.";
+            case TOWER_NOT_SELLABLE -> "이 타워는 판매할 수 없습니다.";
         };
     }
 

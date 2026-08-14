@@ -106,6 +106,9 @@ public abstract class EntityBackedTower extends Tower {
                     towerEntity.setDeltaMovement(Vec3.ZERO);
                     towerEntity.recordCurrentAttackTarget(null);
                     towerEntity.teleportTo(anchorX(), anchorY(), anchorZ());
+                    // A direct MoveControl request can survive Navigation#stop. Consume the
+                    // zero-distance request now so it cannot move the tower on the next tick.
+                    towerEntity.getMoveControl().tick();
                 }
             });
         }

@@ -51,6 +51,11 @@ public final class JobRegistry {
         registerIfAbsent(new OceanTowerJob());
         registerIfAbsent(new AncientCityTowerJob());
         registerIfAbsent(new AdversaryTowerJob());
+        registerIfAbsent(new MageTowerJob());
+        registerIfAbsent(new EngineerTowerJob());
+        registerIfAbsent(new InsectTowerJob());
+        registerIfAbsent(new FutureAgencyTowerJob());
+        registerIfAbsent(new QueenTowerJob());
     }
 
     public static synchronized Optional<SemionJob> find(ResourceLocation id) {

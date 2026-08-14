@@ -274,14 +274,14 @@ public final class PlayerLane {
     }
 
     public boolean hasTowerAt(GridPosition position) {
-        return towers.stream().anyMatch(tower -> tower.position().equals(position));
+        return towers.stream().anyMatch(tower -> tower.reservesPlacementPosition(position));
     }
 
     public Tower towerAt(GridPosition position) {
-        return towers.stream()
-                .filter(tower -> tower.position().equals(position))
-                .findFirst()
-                .orElse(null);
+        Tower current = towers.stream().filter(tower -> tower.position().equals(position)).findFirst().orElse(null);
+        return current != null ? current : towers.stream()
+                .filter(tower -> tower.managementPosition().equals(position))
+                .findFirst().orElse(null);
     }
 
     public boolean replaceTower(Tower existing, Tower replacement) {
@@ -399,6 +399,9 @@ public final class PlayerLane {
 
         if (!clearedThisRound && activeMonsters.isEmpty()
                 && waveMonsterSpawnQueue.isEmpty() && summonedMonsterSpawnQueue.isEmpty()) {
+            for (Tower tower : List.copyOf(towers)) {
+                tower.onLaneCleared(this);
+            }
             clearedThisRound = true;
         }
         IllagerRaidStates.playPendingActivationEffects(server, this);
@@ -668,6 +671,10 @@ public final class PlayerLane {
         }
 
         for (Tower tower : towers) {
+            if (!tower.participatesInFinalDefense()) {
+                tower.moveToFinalDefense(this, tower.position());
+                continue;
+            }
             tower.moveToFinalDefense(this, nextFinalDefenseTowerPosition(tower));
         }
         towersMovedToFinalDefense = true;
@@ -709,6 +716,9 @@ public final class PlayerLane {
     private void syncTowerStates() {
         boolean allTowersDestroyed = !towers.isEmpty();
         for (Tower tower : towers) {
+            if (!tower.countsForLaneDefense()) {
+                continue;
+            }
             boolean destroyed = tower.isDestroyed(this);
             if (destroyed) {
                 if (tower.notifyDeath(this)) {

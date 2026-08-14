@@ -15,13 +15,29 @@ import kim.biryeong.semiontd.tower.adversary.FoxRoute;
 import kim.biryeong.semiontd.tower.adversary.RivalKind;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
+import kim.biryeong.semiontd.tower.engineer.EngineerBalance;
+import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
+import kim.biryeong.semiontd.tower.engineer.EngineerTrapTower;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyBalance;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyLeaderTower;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyPolicy;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
+import kim.biryeong.semiontd.tower.insect.InsectBalance;
+import kim.biryeong.semiontd.tower.insect.InsectTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.mage.MageBalance;
+import kim.biryeong.semiontd.tower.mage.MageSpell;
+import kim.biryeong.semiontd.tower.mage.MageTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTower;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTower;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
+import kim.biryeong.semiontd.tower.queen.PokerHand;
+import kim.biryeong.semiontd.tower.queen.QueenBalance;
+import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -184,6 +200,11 @@ public record TowerBalanceConfig(
         addOceanTowers(towers);
         addAncientCityTowers(towers);
         addAdversaryTowers(towers);
+        addMageTowers(towers);
+        addEngineerTowers(towers);
+        addInsectTowers(towers);
+        addFutureAgencyTowers(towers);
+        addQueenTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -256,6 +277,10 @@ public record TowerBalanceConfig(
         putOceanUpgrades(upgradeCosts);
         putAncientCityUpgrades(upgradeCosts);
         putAdversaryUpgrades(upgradeCosts);
+        putMageUpgrades(upgradeCosts);
+        putEngineerUpgrades(upgradeCosts);
+        putInsectUpgrades(upgradeCosts);
+        putFutureAgencyUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -814,6 +839,11 @@ public record TowerBalanceConfig(
         putOceanAbilities(abilities);
         putAncientCityAbilities(abilities);
         putAdversaryAbilities(abilities);
+        putMageAbilities(abilities);
+        putEngineerAbilities(abilities);
+        putInsectAbilities(abilities);
+        putFutureAgencyAbilities(abilities);
+        putQueenAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -877,6 +907,11 @@ public record TowerBalanceConfig(
                 );
             }
         }));
+        validateMageBalance();
+        validateEngineerBalance();
+        validateInsectBalance();
+        validateFutureAgencyBalance();
+        validateQueenBalance();
     }
 
     private static void validateTowerStats(String towerId, TowerStats stats) {
@@ -1118,6 +1153,26 @@ public record TowerBalanceConfig(
         AdversaryTowers.configurableTowers().forEach(type -> addTower(towers, type));
     }
 
+    private static void addMageTowers(Map<String, TowerStats> towers) {
+        MageTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addEngineerTowers(Map<String, TowerStats> towers) {
+        EngineerTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addInsectTowers(Map<String, TowerStats> towers) {
+        InsectTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addFutureAgencyTowers(Map<String, TowerStats> towers) {
+        FutureAgencyTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addQueenTowers(Map<String, TowerStats> towers) {
+        QueenTowers.all().forEach(type -> addTower(towers, type));
+    }
+
     private static void putNetherUpgrades(Map<String, Long> upgrades) {
         putUpgrade(upgrades, NetherTowers.T1_STRIDER, NetherTowers.T2_PIGLIN.id(), 100);
         putUpgrade(upgrades, NetherTowers.T2_PIGLIN, NetherTowers.T3_PIGLIN_BRUTE.id(), 180);
@@ -1184,6 +1239,508 @@ public record TowerBalanceConfig(
             TowerType base = AdversaryTowers.baseRival(kind);
             TowerType enhanced = AdversaryTowers.enhancedRival(kind);
             putUpgrade(upgrades, base, enhanced.id(), AdversaryBalance.defaultRivalBaseCost(kind));
+        }
+    }
+
+    private static void putMageUpgrades(Map<String, Long> upgrades) {
+        for (MageSpell spell : MageSpell.values()) {
+            putUpgrade(upgrades, MageTowers.WIZARD, MageTowers.spellType(spell).id(), 0);
+        }
+        MageTowers.predictionTypes().values().forEach(type ->
+                putUpgrade(upgrades, MageTowers.PROPHET, type.id(), 0));
+    }
+
+    private static void putEngineerUpgrades(Map<String, Long> upgrades) {
+        EngineerTowers.repeaters().values().forEach(type ->
+                putUpgrade(upgrades, EngineerTowers.REDSTONE_DUST, type.id(), 8));
+        java.util.List<net.minecraft.core.Direction> directions = java.util.List.of(
+                net.minecraft.core.Direction.NORTH,
+                net.minecraft.core.Direction.EAST,
+                net.minecraft.core.Direction.SOUTH,
+                net.minecraft.core.Direction.WEST
+        );
+        for (int index = 0; index < directions.size(); index++) {
+            TowerType from = EngineerTowers.repeater(directions.get(index));
+            TowerType to = EngineerTowers.repeater(directions.get((index + 1) % directions.size()));
+            putUpgrade(upgrades, from, to.id(), 0);
+        }
+        for (EngineerTowers.PlateKind kind : EngineerTowers.PlateKind.values()) {
+            kind.next().ifPresent(next ->
+                    putUpgrade(upgrades, EngineerTowers.plate(kind), EngineerTowers.plate(next).id(), 15));
+        }
+        long[][] costs = {
+                {70, 120},
+                {100, 160},
+                {80, 130},
+                {120, 180},
+                {85, 140}
+        };
+        for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
+            int row = kind.ordinal();
+            putUpgrade(upgrades, EngineerTowers.trap(kind, 1), EngineerTowers.trap(kind, 2).id(), costs[row][0]);
+            putUpgrade(upgrades, EngineerTowers.trap(kind, 2), EngineerTowers.trap(kind, 3).id(), costs[row][1]);
+        }
+    }
+
+    private static void putInsectUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, InsectTowers.SILVERFISH, InsectTowers.ENDERMITE.id(), 75);
+        putUpgrade(upgrades, InsectTowers.ENDERMITE, InsectTowers.ENHANCED_ENDERMITE.id(), 140);
+        putUpgrade(upgrades, InsectTowers.CAVE_SPIDER, InsectTowers.SPIDER.id(), 90);
+        putUpgrade(upgrades, InsectTowers.SPIDER, InsectTowers.ENHANCED_SPIDER.id(), 160);
+        putUpgrade(upgrades, InsectTowers.BEE, InsectTowers.ENHANCED_BEE.id(), 90);
+        putUpgrade(upgrades, InsectTowers.ENHANCED_BEE, InsectTowers.QUEEN_BEE.id(), 170);
+    }
+
+    private static void putFutureAgencyUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, FutureAgencyTowers.ESCAPEE, FutureAgencyLeaderTower.RECONSTRUCT, 0);
+        putUpgrade(upgrades, FutureAgencyTowers.REBUILDER, FutureAgencyLeaderTower.PROMOTE_COMMANDER, 800);
+        for (TowerType leader : java.util.List.of(FutureAgencyTowers.REBUILDER, FutureAgencyTowers.COMMANDER)) {
+            for (FutureAgencyPolicy policy : FutureAgencyPolicy.values()) {
+                putUpgrade(upgrades, leader, policy.upgradeId(), 0);
+            }
+        }
+        putUpgrade(upgrades, FutureAgencyTowers.REBUILDER, FutureAgencyLeaderTower.SAVE_WORLD, 1500);
+        putUpgrade(upgrades, FutureAgencyTowers.COMMANDER, FutureAgencyLeaderTower.SAVE_WORLD, 1500);
+        long[] costs = {100, 180, 360, 700};
+        for (FutureAgencyRole role : FutureAgencyRole.values()) {
+            for (int grade = 5; grade > 1; grade--) {
+                putUpgrade(upgrades, FutureAgencyTowers.agent(role, grade),
+                        FutureAgencyTowers.agent(role, grade - 1).id(), costs[5 - grade]);
+            }
+        }
+    }
+
+    private static void putEngineerAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, EngineerBalance.GLOBAL_ID, Map.of(
+                "activeTicks", (double) EngineerBalance.ACTIVE_TICKS,
+                "plateCooldownTicks", (double) EngineerBalance.PLATE_COOLDOWN_TICKS,
+                "golemMoveSpeed", EngineerBalance.GOLEM_MOVE_SPEED,
+                "pistonImmunityTicks", (double) EngineerBalance.PISTON_IMMUNITY_TICKS,
+                "doorRetargetTicks", (double) EngineerBalance.DOOR_RETARGET_TICKS,
+                "tntFuseTicks", (double) EngineerBalance.TNT_FUSE_TICKS,
+                "maxRedstone", (double) EngineerBalance.MAX_REDSTONE,
+                "maxPlates", (double) EngineerBalance.MAX_PLATES,
+                "maxPistons", (double) EngineerBalance.MAX_PISTONS,
+                "dispenserDamagePerPlateBlock", EngineerBalance.DISPENSER_DAMAGE_PER_PLATE_BLOCK
+        ));
+        for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
+            for (int tier = 1; tier <= 3; tier++) {
+                LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+                switch (kind) {
+                    case DOOR -> values.put("radius", EngineerTrapTower.doorRadius(tier));
+                    case TNT -> {
+                        values.put("damage", EngineerTrapTower.tntDamage(tier));
+                        values.put("radius", EngineerTrapTower.tntRadius(tier));
+                        values.put("maxTargets", (double) EngineerTrapTower.tntMaxTargets(tier));
+                    }
+                    case DISPENSER -> {
+                        values.put("damage", EngineerTrapTower.dispenserDamage(tier));
+                        values.put("intervalTicks", (double) EngineerTrapTower.dispenserInterval(tier));
+                        values.put("range", EngineerTrapTower.dispenserRange(tier));
+                    }
+                    case PISTON -> {
+                        values.put("radius", EngineerTrapTower.pistonRadius(tier));
+                        values.put("maxTargets", (double) tier);
+                    }
+                    case SLIME -> {
+                        values.put("radius", EngineerTrapTower.slimeRadius(tier));
+                        values.put("slow", EngineerTrapTower.slimeSlow(tier));
+                    }
+                }
+                putAbilities(abilities, EngineerTowers.trap(kind, tier).id(), values);
+            }
+        }
+    }
+
+    private static void putInsectAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, InsectBalance.GLOBAL_ID, Map.of(
+                "freshPowerMultiplier", InsectBalance.FRESH_POWER_MULTIPLIER,
+                "freshPowerScale", InsectBalance.FRESH_POWER_SCALE,
+                "reviveBaseTicks", (double) InsectBalance.REVIVE_BASE_TICKS,
+                "reviveIncrementTicks", (double) InsectBalance.REVIVE_INCREMENT_TICKS,
+                "deathDamageTakenPerStack", InsectBalance.DEATH_DAMAGE_TAKEN_PER_STACK
+        ));
+        putAbilities(abilities, InsectTowers.SPAWNER.id(), Map.of(
+                "reviveRadius", InsectBalance.SPAWNER_RADIUS
+        ));
+        for (int tier = 1; tier <= 3; tier++) {
+            putAbilities(abilities, InsectTowers.spider(tier).id(), Map.of(
+                    "damageReduction", switch (tier) {
+                        case 1 -> 0.10;
+                        case 2 -> 0.20;
+                        default -> 0.30;
+                    }
+            ));
+        }
+    }
+
+    private static void putFutureAgencyAbilities(Map<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("rebuilderDamageBonus", FutureAgencyBalance.REBUILDER_DAMAGE);
+        values.put("rebuilderMaxHealthBonus", FutureAgencyBalance.REBUILDER_HEALTH);
+        values.put("commanderDamageBonus", FutureAgencyBalance.COMMANDER_DAMAGE);
+        values.put("commanderMaxHealthBonus", FutureAgencyBalance.COMMANDER_HEALTH);
+        values.put("commanderAttackSpeedBonus", FutureAgencyBalance.COMMANDER_ATTACK_SPEED);
+        values.put("damageReductionCap", FutureAgencyBalance.DAMAGE_REDUCTION_CAP);
+        values.put("slowCap", FutureAgencyBalance.SLOW_CAP);
+        values.put("suppressionDenseCap", FutureAgencyBalance.SUPPRESSION_DENSE_CAP);
+        values.put("suppressionDenseRadius", FutureAgencyBalance.SUPPRESSION_DENSE_RADIUS);
+        values.put("escortRadius", FutureAgencyBalance.ESCORT_RADIUS);
+        for (FutureAgencyPolicy policy : FutureAgencyPolicy.values()) {
+            values.put("policy." + policy.id(), policy.defaultValue());
+        }
+        putAbilities(abilities, FutureAgencyBalance.GLOBAL_ID, values);
+        double[] suppressionRadius = {1.25, 1.5, 1.75, 2.0, 2.5};
+        double[] suppressionTargets = {3, 4, 5, 6, 8};
+        double[] suppressionRatio = {.50, .55, .60, .65, .70};
+        double[] suppressionSlow = {.10, .15, .20, .25, .30};
+        double[] protectionReduction = {.10, .15, .20, .25, .30};
+        for (int index = 0; index < 5; index++) {
+            int grade = 5 - index;
+            putAbilities(abilities, FutureAgencyTowers.agent(FutureAgencyRole.SUPPRESSION, grade).id(), Map.of(
+                    "suppressionRadius", suppressionRadius[index],
+                    "suppressionMaxTargets", suppressionTargets[index],
+                    "suppressionDamageRatio", suppressionRatio[index],
+                    "suppressionSlow", suppressionSlow[index]
+            ));
+            putAbilities(abilities, FutureAgencyTowers.agent(FutureAgencyRole.PROTECTION, grade).id(), Map.of(
+                    "damageReduction", protectionReduction[index]
+            ));
+        }
+    }
+
+    private static void putQueenAbilities(Map<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("shrinkFactorPerPoint", 0.98);
+        values.put("minimumVisualScale", 0.10);
+        values.put("queenShrinkPoints", 8.0);
+        values.put("cardShrinkPoints", 1.0);
+        values.put("cardDeathShrinkPoints", 3.0);
+        values.put("cardDeathRadius", 3.0);
+        values.put("heartHealIntervalTicks", 60.0);
+        values.put("heartHealAmount", 12.0);
+        values.put("heartHealRadius", 5.0);
+        values.put("clubDamageReduction", 0.15);
+        values.put("cardSplashRadius", 1.25);
+        values.put("cardSplashExtraTargets", 1.0);
+        values.put("spadeRadius", 1.5);
+        values.put("spadeExtraTargets", 3.0);
+        values.put("giantChargeTicks", 600.0);
+        values.put("giantAccelerationRadius", 6.0);
+        values.put("giantAccelerationMemoryTicks", 40.0);
+        values.put("giantInitialExecutionHealth", 50.0);
+        values.put("giantExecutionGrowthRatio", 0.10);
+        values.put("giantContactRadius", 4.0);
+        values.put("giantSpeed", 0.65);
+        values.put("giantSlow", 0.80);
+        values.put("giantSlowTicks", 60.0);
+        values.put("card.heart.maxHealth", 60.0);
+        values.put("card.heart.range", 6.0);
+        values.put("card.heart.intervalTicks", 20.0);
+        values.put("card.heart.aggro", 55.0);
+        values.put("card.diamond.maxHealth", 45.0);
+        values.put("card.diamond.range", 8.0);
+        values.put("card.diamond.intervalTicks", 10.0);
+        values.put("card.diamond.aggro", 45.0);
+        values.put("card.club.maxHealth", 125.0);
+        values.put("card.club.range", 2.5);
+        values.put("card.club.intervalTicks", 24.0);
+        values.put("card.club.aggro", 110.0);
+        values.put("card.spade.maxHealth", 75.0);
+        values.put("card.spade.range", 3.0);
+        values.put("card.spade.intervalTicks", 18.0);
+        values.put("card.spade.aggro", 80.0);
+        for (PokerHand hand : PokerHand.values()) {
+            values.put("hand." + hand.name().toLowerCase(), hand.defaultBonus());
+        }
+        putAbilities(abilities, QueenBalance.GLOBAL_ID, values);
+    }
+
+    private void validateQueenBalance() {
+        Map<String, Double> values = abilities.get(QueenBalance.GLOBAL_ID);
+        if (values == null) return;
+        values.forEach((key, value) -> {
+            if (value == null || !Double.isFinite(value) || value < 0.0) {
+                throw new IllegalArgumentException("Queen balance must be finite and non-negative: " + key);
+            }
+        });
+        double shrinkFactor = values.getOrDefault("shrinkFactorPerPoint", 0.0);
+        if (shrinkFactor <= 0.0 || shrinkFactor >= 1.0) {
+            throw new IllegalArgumentException("Queen shrinkFactorPerPoint must be between 0 and 1 (exclusive).");
+        }
+        double minimumVisualScale = values.getOrDefault("minimumVisualScale", 0.0);
+        if (minimumVisualScale <= 0.0 || minimumVisualScale > 1.0) {
+            throw new IllegalArgumentException("Queen minimumVisualScale must be between 0 (exclusive) and 1.");
+        }
+        for (String key : java.util.List.of("clubDamageReduction", "giantExecutionGrowthRatio", "giantSlow")) {
+            double value = values.getOrDefault(key, -1.0);
+            if (value < 0.0 || value > 1.0) throw new IllegalArgumentException("Queen ratio must be between 0 and 1: " + key);
+        }
+        for (String key : java.util.List.of("heartHealIntervalTicks", "cardSplashExtraTargets", "spadeExtraTargets", "giantChargeTicks",
+                "giantAccelerationMemoryTicks", "giantSlowTicks", "card.heart.intervalTicks",
+                "card.diamond.intervalTicks", "card.club.intervalTicks", "card.spade.intervalTicks")) {
+            double value = values.getOrDefault(key, 0.0);
+            if (value <= 0.0 || value != Math.rint(value)) {
+                throw new IllegalArgumentException("Queen integer must be positive: " + key);
+            }
+        }
+        for (String key : java.util.List.of("queenShrinkPoints", "cardShrinkPoints", "cardDeathShrinkPoints",
+                "cardDeathRadius", "heartHealAmount", "heartHealRadius", "cardSplashRadius", "spadeRadius", "giantAccelerationRadius",
+                "giantInitialExecutionHealth", "giantContactRadius", "giantSpeed",
+                "card.heart.maxHealth", "card.heart.range", "card.diamond.maxHealth", "card.diamond.range",
+                "card.club.maxHealth", "card.club.range", "card.spade.maxHealth", "card.spade.range")) {
+            if (values.getOrDefault(key, 0.0) <= 0.0) {
+                throw new IllegalArgumentException("Queen value must be positive: " + key);
+            }
+        }
+    }
+
+    private void validateFutureAgencyBalance() {
+        Map<String, Double> values = abilities.get(FutureAgencyBalance.GLOBAL_ID);
+        if (values == null) return;
+        values.forEach((key, value) -> {
+            if (value == null || !Double.isFinite(value) || value < 0.0) {
+                throw new IllegalArgumentException("Future agency balance must be finite and non-negative: " + key);
+            }
+        });
+        for (String key : java.util.List.of("damageReductionCap", "slowCap")) {
+            double value = values.getOrDefault(key, 0.0);
+            if (value <= 0.0 || value > 1.0) {
+                throw new IllegalArgumentException("Future agency cap must be between 0 and 1: " + key);
+            }
+        }
+        if (values.getOrDefault("escortRadius", 0.0) <= 0.0) {
+            throw new IllegalArgumentException("Future agency escortRadius must be positive.");
+        }
+        for (int grade = 5; grade >= 1; grade--) {
+            Map<String, Double> suppression = abilities.get(
+                    FutureAgencyTowers.agent(FutureAgencyRole.SUPPRESSION, grade).id());
+            if (suppression != null) {
+                double targetCount = suppression.getOrDefault("suppressionMaxTargets", 0.0);
+                if (targetCount <= 0.0 || targetCount != Math.rint(targetCount)) {
+                    throw new IllegalArgumentException("Future agency suppression target count must be a positive integer.");
+                }
+                if (suppression.getOrDefault("suppressionRadius", 0.0) <= 0.0
+                        || suppression.getOrDefault("suppressionDamageRatio", 0.0) <= 0.0
+                        || suppression.getOrDefault("suppressionSlow", 0.0) < 0.0
+                        || suppression.getOrDefault("suppressionSlow", 0.0) > 1.0) {
+                    throw new IllegalArgumentException("Future agency suppression values are invalid.");
+                }
+            }
+            Map<String, Double> protection = abilities.get(
+                    FutureAgencyTowers.agent(FutureAgencyRole.PROTECTION, grade).id());
+            if (protection != null) {
+                double reduction = protection.getOrDefault("damageReduction", -1.0);
+                if (reduction < 0.0 || reduction > 1.0) {
+                    throw new IllegalArgumentException("Future agency protection reduction must be between 0 and 1.");
+                }
+            }
+        }
+    }
+
+    private void validateEngineerBalance() {
+        Map<String, Double> global = abilities.get(EngineerBalance.GLOBAL_ID);
+        if (global == null) {
+            return;
+        }
+        validateEngineerValues(EngineerBalance.GLOBAL_ID, global);
+        requireEngineerPositive(global,
+                "activeTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
+                "doorRetargetTicks", "tntFuseTicks", "maxRedstone", "maxPlates", "maxPistons",
+                "dispenserDamagePerPlateBlock");
+        requireEngineerIntegral(global,
+                "activeTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
+                "maxRedstone", "maxPlates", "maxPistons");
+        for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
+            for (int tier = 1; tier <= 3; tier++) {
+                String id = EngineerTowers.trap(kind, tier).id();
+                Map<String, Double> values = abilities.get(id);
+                if (values == null) {
+                    continue;
+                }
+                validateEngineerValues(id, values);
+                values.forEach((key, value) -> {
+                    if (value <= 0.0) {
+                        throw new IllegalArgumentException("Engineer balance ability must be positive: " + id + "." + key);
+                    }
+                });
+                if (values.containsKey("maxTargets")) {
+                    requireEngineerIntegral(values, "maxTargets");
+                }
+                if (values.containsKey("intervalTicks")) {
+                    requireEngineerIntegral(values, "intervalTicks");
+                }
+                if (values.containsKey("slow") && values.get("slow") > 1.0) {
+                    throw new IllegalArgumentException("Engineer slow ratio must not exceed 1: " + id);
+                }
+            }
+        }
+    }
+
+    private void validateInsectBalance() {
+        Map<String, Double> global = abilities.get(InsectBalance.GLOBAL_ID);
+        if (global != null) {
+            validateEngineerValues(InsectBalance.GLOBAL_ID, global);
+            requireEngineerPositive(global,
+                    "freshPowerMultiplier", "freshPowerScale", "reviveBaseTicks", "reviveIncrementTicks",
+                    "deathDamageTakenPerStack");
+            requireEngineerIntegral(global, "reviveBaseTicks", "reviveIncrementTicks");
+        }
+        Map<String, Double> spawner = abilities.get(InsectTowers.SPAWNER.id());
+        if (spawner != null && spawner.getOrDefault("reviveRadius", 0.0) <= 0.0) {
+            throw new IllegalArgumentException("Insect spawner radius must be positive.");
+        }
+        for (int tier = 1; tier <= 3; tier++) {
+            String id = InsectTowers.spider(tier).id();
+            Map<String, Double> values = abilities.get(id);
+            if (values == null) {
+                continue;
+            }
+            double reduction = values.getOrDefault("damageReduction", -1.0);
+            if (!Double.isFinite(reduction) || reduction < 0.0 || reduction >= 1.0) {
+                throw new IllegalArgumentException("Insect spider damage reduction must be in [0, 1): " + id);
+            }
+        }
+    }
+
+    private static void validateEngineerValues(String id, Map<String, Double> values) {
+        values.forEach((key, value) -> {
+            if (value == null || !Double.isFinite(value) || value < 0.0) {
+                throw new IllegalArgumentException("Engineer balance ability must be finite and non-negative: " + id + "." + key);
+            }
+        });
+    }
+
+    private static void requireEngineerPositive(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            if (values.getOrDefault(key, 0.0) <= 0.0) {
+                throw new IllegalArgumentException("Engineer balance ability must be positive: " + key);
+            }
+        }
+    }
+
+    private static void requireEngineerIntegral(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            double value = values.getOrDefault(key, -1.0);
+            if (value < 0.0 || value != Math.rint(value) || value > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Engineer balance ability must be an integer: " + key);
+            }
+        }
+    }
+
+    private static void putMageAbilities(Map<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        values.put("manaCapacity", (double) MageBalance.MANA_CAPACITY);
+        values.put("startingMana", (double) MageBalance.STARTING_MANA);
+        values.put("idleWizardMana", (double) MageBalance.IDLE_WIZARD_MANA);
+        values.put("prophetMana", (double) MageBalance.PROPHET_MANA);
+        values.put("coreMana", (double) MageBalance.CORE_MANA);
+        values.put("coreBreakManaLossRatio", MageBalance.CORE_BREAK_MANA_LOSS_RATIO);
+        values.put("prophecyReward", (double) MageBalance.PROPHECY_REWARD);
+        values.put("supportRadius", MageBalance.SUPPORT_RADIUS);
+        values.put("amplificationBonus", MageBalance.AMPLIFICATION_BONUS);
+        values.put("manaDamageBonusAtCapacity", MageBalance.MANA_DAMAGE_BONUS_AT_CAPACITY);
+        values.put("rangedBarrierReduction", MageBalance.RANGED_BARRIER_REDUCTION);
+        values.put("intermediateCasts", (double) MageBalance.INTERMEDIATE_CASTS);
+        values.put("archmageCasts", (double) MageBalance.ARCHMAGE_CASTS);
+        values.put("intermediateDamageMultiplier", MageBalance.INTERMEDIATE_DAMAGE_MULTIPLIER);
+        values.put("archmageDamageMultiplier", MageBalance.ARCHMAGE_DAMAGE_MULTIPLIER);
+        values.put("manaRetryTicks", (double) MageBalance.MANA_RETRY_TICKS);
+        for (MageSpell spell : MageSpell.values()) {
+            values.put(spell.id() + "ManaCost", (double) spell.defaultManaCost());
+            values.put(spell.id() + "CooldownTicks", (double) spell.defaultCooldownTicks());
+            values.put(spell.id() + "Range", spell.defaultRange());
+        }
+        values.put("missileDamage", MageBalance.MISSILE_DAMAGE);
+        values.put("missileCount", (double) MageBalance.MISSILE_COUNT);
+        values.put("missileIntervalTicks", (double) MageBalance.MISSILE_INTERVAL_TICKS);
+        values.put("windCutterDamage", MageBalance.WIND_CUTTER_DAMAGE);
+        values.put("windCutterWidth", MageBalance.WIND_CUTTER_WIDTH);
+        values.put("manaBombDamage", MageBalance.MANA_BOMB_DAMAGE);
+        values.put("manaBombRadius", MageBalance.MANA_BOMB_RADIUS);
+        values.put("manaBombMaxTargets", (double) MageBalance.MANA_BOMB_MAX_TARGETS);
+        values.put("manaBombDelayTicks", (double) MageBalance.MANA_BOMB_DELAY_TICKS);
+        for (int index = 0; index < MageBalance.CHAIN_LIGHTNING_DAMAGE.length; index++) {
+            values.put("chainDamage" + (index + 1), MageBalance.CHAIN_LIGHTNING_DAMAGE[index]);
+        }
+        values.put("chainJumpRange", MageBalance.CHAIN_LIGHTNING_JUMP_RANGE);
+        values.put("frostWaveDamage", MageBalance.FROST_WAVE_DAMAGE);
+        values.put("frostWaveRadius", MageBalance.FROST_WAVE_RADIUS);
+        values.put("frostWaveMaxTargets", (double) MageBalance.FROST_WAVE_MAX_TARGETS);
+        values.put("frostWaveSlow", MageBalance.FROST_WAVE_SLOW);
+        values.put("frostWaveDurationTicks", (double) MageBalance.FROST_WAVE_DURATION_TICKS);
+        values.put("collapseDamage", MageBalance.DIMENSIONAL_COLLAPSE_DAMAGE);
+        values.put("collapseRadius", MageBalance.DIMENSIONAL_COLLAPSE_RADIUS);
+        values.put("collapseDelayTicks", (double) MageBalance.DIMENSIONAL_COLLAPSE_DELAY_TICKS);
+        putAbilities(abilities, MageBalance.GLOBAL_ID, values);
+    }
+
+    private void validateMageBalance() {
+        Map<String, Double> values = abilities.get(MageBalance.GLOBAL_ID);
+        if (values == null) {
+            return;
+        }
+        values.forEach((key, value) -> {
+            if (value == null || !Double.isFinite(value) || value < 0.0) {
+                throw new IllegalArgumentException("Mage balance ability must be finite and non-negative: " + key);
+            }
+        });
+        requireMagePositive(values,
+                "manaCapacity", "supportRadius", "intermediateCasts", "archmageCasts",
+                "intermediateDamageMultiplier", "archmageDamageMultiplier", "manaRetryTicks",
+                "missileCount", "missileIntervalTicks",
+                "windCutterWidth", "manaBombRadius", "manaBombMaxTargets", "manaBombDelayTicks",
+                "chainJumpRange", "frostWaveRadius", "frostWaveMaxTargets", "frostWaveDurationTicks",
+                "collapseRadius", "collapseDelayTicks", "missileDamage", "windCutterDamage",
+                "manaBombDamage", "chainDamage1", "chainDamage2", "chainDamage3", "chainDamage4",
+                "chainDamage5", "chainDamage6", "frostWaveDamage", "collapseDamage");
+        requireMageRatio(values, "rangedBarrierReduction", "frostWaveSlow", "coreBreakManaLossRatio");
+        requireMageIntegral(values,
+                "manaCapacity", "startingMana", "idleWizardMana", "prophetMana", "coreMana", "prophecyReward",
+                "intermediateCasts", "archmageCasts", "manaRetryTicks", "missileCount", "missileIntervalTicks", "manaBombMaxTargets",
+                "manaBombDelayTicks", "frostWaveMaxTargets", "frostWaveDurationTicks", "collapseDelayTicks");
+        for (MageSpell spell : MageSpell.values()) {
+            requireMagePositive(values, spell.id() + "ManaCost");
+            requireMagePositive(values, spell.id() + "CooldownTicks", spell.id() + "Range");
+            requireMageIntegral(values, spell.id() + "ManaCost");
+            requireMageIntegral(values, spell.id() + "CooldownTicks");
+        }
+        if (values.get("archmageCasts") <= values.get("intermediateCasts")) {
+            throw new IllegalArgumentException("Mage archmage cast threshold must exceed intermediate threshold");
+        }
+        if (values.get("archmageDamageMultiplier") < values.get("intermediateDamageMultiplier")) {
+            throw new IllegalArgumentException("Mage rank damage multipliers must not decrease");
+        }
+        for (int index = 2; index <= MageBalance.CHAIN_LIGHTNING_DAMAGE.length; index++) {
+            if (values.get("chainDamage" + index) > values.get("chainDamage" + (index - 1))) {
+                throw new IllegalArgumentException("Mage chain lightning damage must not increase at jump " + index);
+            }
+        }
+    }
+
+    private static void requireMagePositive(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            if (values.getOrDefault(key, 0.0) <= 0.0) {
+                throw new IllegalArgumentException("Mage balance ability must be positive: " + key);
+            }
+        }
+    }
+
+    private static void requireMageRatio(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            double value = values.getOrDefault(key, -1.0);
+            if (value < 0.0 || value > 1.0) {
+                throw new IllegalArgumentException("Mage balance ratio must be between 0 and 1: " + key);
+            }
+        }
+    }
+
+    private static void requireMageIntegral(Map<String, Double> values, String... keys) {
+        for (String key : keys) {
+            double value = values.getOrDefault(key, -1.0);
+            if (value < 0.0 || value != Math.rint(value) || value > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Mage balance ability must be an integer: " + key);
+            }
         }
     }
 

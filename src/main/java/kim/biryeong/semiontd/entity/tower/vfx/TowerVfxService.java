@@ -123,6 +123,7 @@ public final class TowerVfxService {
     private static volatile BiConsumer<Vec3, Vec3> warlockSacrificeTestObserver;
     private static volatile Consumer<List<Vec3>> transcendenceTestObserver;
     private static volatile Consumer<Vec3> magicHitTestObserver;
+    private static volatile Consumer<Vec3> prophecyLightningTestObserver;
     private static final Set<net.minecraft.resources.ResourceLocation> MISSING_STYLE_WARNINGS = ConcurrentHashMap.newKeySet();
     private static final Map<net.minecraft.resources.ResourceLocation, Long> STYLE_ERROR_LOG_TICKS = new ConcurrentHashMap<>();
 
@@ -192,6 +193,24 @@ public final class TowerVfxService {
         EventContext context = context(tower, impact);
         if (context != null) {
             enqueueMagicHit(context, impact);
+        }
+    }
+
+    public static void showProphecyLightning(SemionTowerEntity tower, SemionMonsterEntity target) {
+        if (!config.enabled() || tower == null || target == null
+                || !(tower.level() instanceof ServerLevel level)) {
+            return;
+        }
+        Vec3 impact = target.position();
+        Consumer<Vec3> observer = prophecyLightningTestObserver;
+        if (observer != null) {
+            observer.accept(impact);
+        }
+        LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.TRIGGERED);
+        if (lightning != null) {
+            lightning.setVisualOnly(true);
+            lightning.setPos(impact.x, impact.y, impact.z);
+            level.addFreshEntity(lightning);
         }
     }
 
@@ -576,6 +595,10 @@ public final class TowerVfxService {
 
     static void setMagicHitTestObserver(Consumer<Vec3> observer) {
         magicHitTestObserver = observer;
+    }
+
+    static void setProphecyLightningTestObserver(Consumer<Vec3> observer) {
+        prophecyLightningTestObserver = observer;
     }
 
     private static Vec3 towerCenter(SemionTowerEntity tower) {
