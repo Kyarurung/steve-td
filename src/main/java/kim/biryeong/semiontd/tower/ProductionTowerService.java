@@ -18,6 +18,8 @@ import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanWaterTower;
+import kim.biryeong.semiontd.tower.plant.PlantSoilStates;
+import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import net.minecraft.core.BlockPos;
 
 public final class ProductionTowerService {
@@ -49,17 +51,14 @@ public final class ProductionTowerService {
         if (OceanTowers.isWaterTower(towerType) && !OceanWaterTower.canPlaceAt(laneContext.lane, position)) {
             return TowerPlacementResult.OCCUPIED;
         }
+        if (PlantTowers.isPlantTower(towerType)
+                && !PlantSoilStates.canPlantAt(laneContext.player.uuid(), position, towerType)) {
+            return TowerPlacementResult.OCCUPIED;
+        }
         if (!canUseTower(game, laneContext.player, towerType)) {
             return TowerPlacementResult.TOWER_NOT_ALLOWED;
         }
-
-        Tower tower = entry.get().create(
-                laneContext.player.uuid(),
-                laneContext.player.teamId(),
-                laneContext.player.laneId(),
-                position
-        );
-        if (!game.canPlaceTowers(playerId, tower.slotWeight())) {
+        if (!game.canFitTower(playerId, towerType)) {
             return TowerPlacementResult.TOWER_LIMIT_REACHED;
         }
 
@@ -68,6 +67,12 @@ public final class ProductionTowerService {
             return TowerPlacementResult.NOT_ENOUGH_MINERAL;
         }
 
+        Tower tower = entry.get().create(
+                laneContext.player.uuid(),
+                laneContext.player.teamId(),
+                laneContext.player.laneId(),
+                position
+        );
         tower.recordPlacementEconomy(mineralCost, game.currentRound());
         laneContext.lane.addTower(tower);
         VillagerAdvStates.refreshTowerEffects(laneContext.player, laneContext.lane, tower);
@@ -202,6 +207,9 @@ public final class ProductionTowerService {
         }
         if (!tower.meetsUpgradeRequirements(laneContext.lane, upgrade)) {
             return TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET;
+        }
+        if (!game.canFitUpgrade(playerId, tower.type(), targetType)) {
+            return TowerUpgradeResult.TOWER_LIMIT_REACHED;
         }
         if (!VillagerAdvStates.canUpgrade(laneContext.player, tower, upgrade)) {
             return TowerUpgradeResult.NOT_ENOUGH_ADV_EXPERIENCE;

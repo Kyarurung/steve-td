@@ -34,13 +34,20 @@ import kim.biryeong.semiontd.test.TestTowerService;
 import kim.biryeong.semiontd.tip.SemionTipService;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
+import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
+import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
+import kim.biryeong.semiontd.tower.hero.HeroCompanionSkinGui;
+import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
+import kim.biryeong.semiontd.tower.hero.HeroShopGui;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitRegistry;
@@ -228,11 +235,37 @@ public final class SemionCommands {
                                                 StringArgumentType.getString(context, "id")
                                         )))))
                 .then(traitCommand("trait", gameManager))
+                .then(literal("hero")
+                        .then(literal("skin")
+                                .executes(context -> heroSkin(context.getSource(), gameManager)))
+                        .then(literal("shop")
+                                .executes(context -> heroShop(context.getSource(), gameManager)))
+                        .then(literal("quest")
+                                .executes(context -> heroQuest(context.getSource(), gameManager)))
+                        .then(literal("party")
+                                .executes(context -> heroParty(context.getSource(), gameManager)))
+                        .then(literal("companion")
+                                .then(argument("role", StringArgumentType.word())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                java.util.Arrays.stream(HeroCompanionRole.values()).map(HeroCompanionRole::id),
+                                                builder
+                                        ))
+                                        .executes(context -> heroCompanion(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "role")
+                                        )))))
                 .then(literal("tower")
                         .then(literal("list")
                                 .executes(context -> listProductionTowers(context.getSource(), gameManager)))
                         .then(literal("ui")
-                                .executes(context -> towerDialog(context.getSource(), gameManager)))
+                                .executes(context -> towerDialog(context.getSource(), gameManager))
+                                .then(argument("group", StringArgumentType.greedyString())
+                                        .executes(context -> towerDialog(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "group")
+                                        ))))
                         .then(literal("limitup")
                                 .executes(context -> towerLimitUp(context.getSource(), gameManager)))
                         .then(literal("build")
@@ -473,7 +506,14 @@ public final class SemionCommands {
                                 .then(literal("mace")
                                         .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.MACE)))
                                 .then(literal("sculk")
-                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SCULK)))))
+                                        .executes(context -> debugAdversaryVfx(context.getSource(), AdversaryVfx.DebugKind.SCULK))))
+                        .then(literal("atlantis")
+                                .then(literal("zone")
+                                        .executes(context -> debugAtlantisVfx(
+                                                context.getSource(), gameManager, AtlantisVfx.DebugKind.ZONE)))
+                                .then(literal("burst")
+                                        .executes(context -> debugAtlantisVfx(
+                                                context.getSource(), gameManager, AtlantisVfx.DebugKind.BURST)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -572,6 +612,34 @@ public final class SemionCommands {
         AdversaryVfx.showDebug(source.getPlayerOrException(), kind);
         success(source, "대적자 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
         return 1;
+    }
+
+    private static int debugAtlantisVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            AtlantisVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane == null) {
+            failure(source, "아틀란티스 VFX를 재생할 샌드박스 또는 경기 라인이 없습니다.");
+            return 0;
+        }
+        for (Tower tower : lane.towers()) {
+            if (!AtlantisTowers.isAtlantisTower(tower.type()) || !(tower instanceof EntityBackedTower backed)) {
+                continue;
+            }
+            var entity = backed.entityId().isPresent() ? lane.arenaWorld().getEntity(backed.entityId().getAsInt()) : null;
+            if (entity instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity
+                    && towerEntity.isAlive()) {
+                AtlantisVfx.showDebug(towerEntity, player, kind);
+                success(source, "아틀란티스 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+                return 1;
+            }
+        }
+        failure(source, "살아 있는 아틀란티스 타워가 필요합니다.");
+        return 0;
     }
 
     private static int debugOceanSupplyVfx(CommandSourceStack source) throws CommandSyntaxException {
@@ -2357,15 +2425,84 @@ public final class SemionCommands {
 
     private static int towerDialog(CommandSourceStack source, SemionGameManager gameManager)
             throws CommandSyntaxException {
+        return towerDialog(source, gameManager, null);
+    }
+
+    private static int towerDialog(CommandSourceStack source, SemionGameManager gameManager, String group)
+            throws CommandSyntaxException {
         SemionGame game = playableGame(source, gameManager);
         if (game == null) {
             failure(source, "진행 중인 게임 또는 샌드박스가 없습니다. /semiontd sandbox start를 사용하세요.");
             return 0;
         }
-        gameManager.dialogService().showTowerControl(source.getPlayerOrException(), game, gameManager.buildGuideService());
-        success(source, "타워 관리 창을 열었습니다.");
+        gameManager.dialogService().showTowerControl(
+                source.getPlayerOrException(),
+                game,
+                gameManager.buildGuideService(),
+                group
+        );
+        success(source, group == null ? "타워 관리 창을 열었습니다." : group + " 계열 타워를 열었습니다.");
         return 1;
     }
+
+    private static int heroShop(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        SemionGame game = playableGame(source, gameManager);
+        ServerPlayer player = source.getPlayerOrException();
+        if (game == null) {
+            failure(source, "진행 중인 게임 또는 샌드박스가 없습니다.");
+            return 0;
+        }
+        if (!HeroPartyStates.hasActiveHero(game, player.getUUID())) {
+            failure(source, "용사를 설치해야 상점을 사용할 수 있습니다.");
+            return 0;
+        }
+        new HeroShopGui(player, game).open();
+        return 1;
+    }
+
+    private static int heroSkin(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        gameManager.profile(source.getServer(), player.getUUID(), player.getGameProfile().getName());
+        new HeroCompanionSkinGui(player, gameManager).open();
+        return 1;
+    }
+
+    private static int heroQuest(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        SemionGame game = playableGame(source, gameManager);
+        if (game == null) {
+            failure(source, "진행 중인 게임 또는 샌드박스가 없습니다.");
+            return 0;
+        }
+        gameManager.dialogService().showHeroQuest(source.getPlayerOrException(), game);
+        return 1;
+    }
+
+    private static int heroParty(CommandSourceStack source, SemionGameManager gameManager)
+            throws CommandSyntaxException {
+        SemionGame game = playableGame(source, gameManager);
+        if (game == null) {
+            failure(source, "진행 중인 게임 또는 샌드박스가 없습니다.");
+            return 0;
+        }
+        gameManager.dialogService().showHeroParty(source.getPlayerOrException(), game);
+        return 1;
+    }
+
+    private static int heroCompanion(CommandSourceStack source, SemionGameManager gameManager, String roleId)
+            throws CommandSyntaxException {
+        SemionGame game = playableGame(source, gameManager);
+        HeroCompanionRole role = HeroCompanionRole.byId(roleId);
+        if (game == null || role == null) {
+            failure(source, game == null ? "진행 중인 게임 또는 샌드박스가 없습니다." : "알 수 없는 동료입니다.");
+            return 0;
+        }
+        gameManager.dialogService().showHeroCompanionConfirmation(source.getPlayerOrException(), game, role);
+        return 1;
+    }
+
 
     private static int debugTowerDialog(CommandSourceStack source, SemionGameManager gameManager)
             throws CommandSyntaxException {
@@ -3055,6 +3192,7 @@ public final class SemionCommands {
             case UNKNOWN_TARGET_TYPE -> "타워 진화 대상 타입이 등록되지 않았습니다";
             case TOWER_NOT_ALLOWED -> "현재 직업으로 사용할 수 없는 타워입니다";
             case UPGRADE_REQUIREMENTS_NOT_MET -> "이 업그레이드의 추가 조건을 충족하지 못했습니다.";
+            case TOWER_LIMIT_REACHED -> "업그레이드에 필요한 타워 수가 부족합니다";
             case NOT_ENOUGH_MINERAL -> "다이아가 부족합니다";
             case NOT_ENOUGH_ADV_EXPERIENCE -> "주민 ADV 경험치가 부족합니다";
             case SUCCESS -> "성공";

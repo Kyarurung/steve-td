@@ -6,16 +6,19 @@ import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowerCatalogs;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisTowerCatalogs;
 import kim.biryeong.semiontd.tower.end.EndTowerCatalogs;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowerCatalogs;
 import kim.biryeong.semiontd.tower.illager.IllagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowerCatalogs;
 import kim.biryeong.semiontd.tower.insect.InsectTowerCatalogs;
+import kim.biryeong.semiontd.tower.hero.HeroPartyTowerCatalogs;
 import kim.biryeong.semiontd.tower.legion.LegionTowerCatalogs;
 import kim.biryeong.semiontd.tower.mage.MageTowerCatalogs;
 import kim.biryeong.semiontd.tower.nether.NetherTowerCatalogs;
 import kim.biryeong.semiontd.tower.ocean.OceanTowerCatalogs;
 import kim.biryeong.semiontd.tower.queen.QueenTowerCatalogs;
+import kim.biryeong.semiontd.tower.plant.PlantTowerCatalogs;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowerCatalogs;
 import kim.biryeong.semiontd.tower.undead.UndeadTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
@@ -47,6 +50,9 @@ public final class ProductionTowerCatalogs {
             InsectTowerCatalogs.register();
             FutureAgencyTowerCatalogs.register();
             QueenTowerCatalogs.register();
+            HeroPartyTowerCatalogs.register();
+            AtlantisTowerCatalogs.register();
+            PlantTowerCatalogs.register();
         }
     }
 }

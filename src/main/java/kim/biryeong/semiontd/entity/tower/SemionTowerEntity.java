@@ -106,6 +106,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     private EntityAttachment holderAttachment;
     private ElementHolder blockDisplayHolder;
     private BlockDisplayElement blockDisplayElement;
+    private BlockDisplayElement blockDisplayTopElement;
     private ElementHolder endCoreInteractionHolder;
     private InteractionElement endCoreInteractionElement;
     private MoobloomEntity moobloomVisualEntity;
@@ -261,6 +262,15 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     @Override
     public boolean defendsLane(int targetLaneId) {
         return finalDefense || laneId == targetLaneId;
+    }
+
+    @Override
+    public boolean drawsAggro() {
+        return runtimeTower == null || runtimeTower.drawsAggro();
+    }
+
+    public boolean isInvulnerableTower() {
+        return runtimeTower != null && runtimeTower.invulnerable();
     }
 
     public boolean isValidAttackTarget(SemionMonsterEntity target) {
@@ -450,6 +460,10 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     public double chaseSpeedModifier() {
         return resolvedMovementSpeed();
+    }
+
+    public boolean canChaseTargets() {
+        return runtimeTower == null || runtimeTower.canChaseTargets();
     }
 
     public boolean deployedAtFinalDefense() {
@@ -949,7 +963,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     @Override
     protected void actuallyHurt(ServerLevel serverLevel, DamageSource damageSource, float amount) {
-        if (damageSource.getEntity() instanceof ServerPlayer) {
+        if (damageSource.getEntity() instanceof ServerPlayer || isInvulnerableTower()) {
             return;
         }
 
@@ -966,7 +980,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public void hurtIgnoringReductions(DamageSource damageSource, double damageAmount) {
-        if (!(level() instanceof ServerLevel serverLevel) || damageAmount <= 0.0) {
+        if (!(level() instanceof ServerLevel serverLevel) || damageAmount <= 0.0 || isInvulnerableTower()) {
             return;
         }
         if (runtimeTower != null) {
@@ -1093,6 +1107,27 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         float scale = (float) visual.scale();
         blockDisplayElement.setTranslation(new Vector3f(-scale / 2.0F, 0.0F, -scale / 2.0F));
         blockDisplayElement.setScale(new Vector3f(scale, scale, scale));
+        syncBlockDisplayTopVisual(scale);
+    }
+
+    private void syncBlockDisplayTopVisual(float scale) {
+        var topBlockState = BlockDisplayVisual.topBlockState(visual);
+        if (topBlockState == null) {
+            if (blockDisplayTopElement != null) {
+                blockDisplayHolder.removeElement(blockDisplayTopElement);
+                blockDisplayTopElement = null;
+            }
+            return;
+        }
+        if (blockDisplayTopElement == null) {
+            blockDisplayTopElement = new BlockDisplayElement(topBlockState);
+            blockDisplayTopElement.setTeleportDuration(3);
+            blockDisplayHolder.addElement(blockDisplayTopElement);
+        } else if (!topBlockState.equals(blockDisplayTopElement.getBlockState())) {
+            blockDisplayTopElement.setBlockState(topBlockState);
+        }
+        blockDisplayTopElement.setTranslation(new Vector3f(-scale / 2.0F, scale, -scale / 2.0F));
+        blockDisplayTopElement.setScale(new Vector3f(scale, scale, scale));
     }
 
     private void discardBlockDisplayVisual() {
@@ -1101,6 +1136,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         }
         blockDisplayHolder = null;
         blockDisplayElement = null;
+        blockDisplayTopElement = null;
     }
 
     @SuppressWarnings("unchecked")

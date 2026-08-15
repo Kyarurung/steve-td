@@ -108,16 +108,24 @@ import kim.biryeong.semiontd.game.VanillaTeamBridge;
 import kim.biryeong.semiontd.job.AnimalTowerJob;
 import kim.biryeong.semiontd.job.AncientCityTowerJob;
 import kim.biryeong.semiontd.job.AdversaryTowerJob;
+import kim.biryeong.semiontd.job.AtlantisTowerJob;
 import kim.biryeong.semiontd.job.EndTowerJob;
+import kim.biryeong.semiontd.job.EngineerTowerJob;
+import kim.biryeong.semiontd.job.FutureAgencyTowerJob;
+import kim.biryeong.semiontd.job.HeroPartyTowerJob;
 import kim.biryeong.semiontd.job.IllagerTowerJob;
 import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.LegionTowerJob;
+import kim.biryeong.semiontd.job.MageTowerJob;
 import kim.biryeong.semiontd.job.NetherTowerJob;
 import kim.biryeong.semiontd.job.OceanTowerJob;
+import kim.biryeong.semiontd.job.PlantTowerJob;
+import kim.biryeong.semiontd.job.QueenTowerJob;
 import kim.biryeong.semiontd.job.ResonanceTowerJob;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.job.UndeadTowerJob;
+import kim.biryeong.semiontd.job.InsectTowerJob;
 import kim.biryeong.semiontd.job.VillagerTowerJob;
 import kim.biryeong.semiontd.job.WarlockTowerJob;
 import kim.biryeong.semiontd.map.ArenaLayout;
@@ -175,6 +183,10 @@ import kim.biryeong.semiontd.tower.animal.FoxTower;
 import kim.biryeong.semiontd.tower.animal.PigTower;
 import kim.biryeong.semiontd.tower.animal.RabbitTower;
 import kim.biryeong.semiontd.tower.animal.WolfTower;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisTower;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
 import kim.biryeong.semiontd.tower.illager.IllagerMarks;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidState;
@@ -10236,10 +10248,92 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(AdversaryTowerJob.ID), "Built-in reload should register the adversary tower job.")) {
             return;
         }
-        if (!assertEquals(context, 74L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family including the five new builders.")) {
+        if (!assertPresent(context, JobRegistry.find(MageTowerJob.ID), "Built-in reload should register the mage tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(EngineerTowerJob.ID), "Built-in reload should register the engineer tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(InsectTowerJob.ID), "Built-in reload should register the insect tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(FutureAgencyTowerJob.ID), "Built-in reload should register the future-agency tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(QueenTowerJob.ID), "Built-in reload should register the queen tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(HeroPartyTowerJob.ID), "Built-in reload should register the hero-party tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(AtlantisTowerJob.ID), "Built-in reload should register the atlantis tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(PlantTowerJob.ID), "Built-in reload should register the plant tower job.")) {
+            return;
+        }
+        if (!assertEquals(context, 82L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
             return;
         }
         context.succeed();
+    }
+
+    @GameTest
+    public void atlantisStateClearsOnMatchStartEliminationAndClose(GameTestHelper context) {
+        UUID playerId = stableUuid("atlantis-state-lifecycle-owner");
+        UUID monsterId = stableUuid("atlantis-state-lifecycle-monster");
+        GridPosition staleSource = new GridPosition(0, 64, 0);
+        AtlantisPressure.addStacks(monsterId, playerId, staleSource, 3, 40.0, 10, 100);
+
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, AtlantisTowerJob.ID);
+        boolean closed = false;
+        try {
+            if (!assertEquals(context, 0, AtlantisPressure.stacks(playerId, monsterId),
+                    "Match start should clear pressure from a previous game.")) {
+                return;
+            }
+
+            PlayerLane lane = redLane(game, 1);
+            GridPosition turtlePosition = GridPosition.from(towerPlacementPos(lane));
+            AtlantisTower turtle = new AtlantisTower(
+                    TowerBalanceRuntime.resolve(AtlantisTowers.TURTLE_T1),
+                    playerId,
+                    TeamId.RED,
+                    1,
+                    turtlePosition
+            );
+            lane.addTower(turtle);
+            AtlantisPressure.addStacks(monsterId, playerId, turtlePosition, 3, 40.0, 10, 100);
+            new AtlantisTowerJob().onEliminated(new JobContext(game, game.players().get(playerId)));
+            if (!assertEquals(context, 0, AtlantisStates.zoneCount(playerId),
+                    "Elimination should clear pressure zones.")) {
+                return;
+            }
+            if (!assertEquals(context, 0, AtlantisPressure.stacks(playerId, monsterId),
+                    "Elimination should clear carried pressure.")) {
+                return;
+            }
+
+            AtlantisStates.rebuild(playerId, lane);
+            AtlantisPressure.addStacks(monsterId, playerId, turtlePosition, 3, 40.0, 10, 100);
+            game.close();
+            closed = true;
+            if (!assertEquals(context, 0, AtlantisStates.zoneCount(playerId),
+                    "Game close should clear pressure zones.")) {
+                return;
+            }
+            if (!assertEquals(context, 0, AtlantisPressure.stacks(playerId, monsterId),
+                    "Game close should clear carried pressure for player reuse.")) {
+                return;
+            }
+            context.succeed();
+        } finally {
+            if (!closed) {
+                game.close();
+            }
+            AtlantisStates.clear(playerId);
+            AtlantisPressure.clearPlayer(playerId);
+        }
     }
 
     @GameTest
