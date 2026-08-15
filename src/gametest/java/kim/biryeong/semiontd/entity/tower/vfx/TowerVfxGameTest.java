@@ -33,6 +33,7 @@ import kim.biryeong.semiontd.tower.nether.NetherTowerState;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
+import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
@@ -69,6 +70,8 @@ public final class TowerVfxGameTest {
         assertPalette(FutureAgencyTowers.agent(kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole.COMBAT, 5),
                 BuilderPalette.FUTURE_AGENCY);
         assertPalette(PlantTowers.T1_MEADOW_TOWER, BuilderPalette.PLANT);
+        assertPalette(QueenTowers.QUEEN, BuilderPalette.QUEEN);
+        assertPalette(QueenTowers.RANDOM_CARD_SOLDIER, BuilderPalette.QUEEN);
         context.succeed();
     }
 
@@ -284,6 +287,19 @@ public final class TowerVfxGameTest {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         for (String effect : List.of("carry", "suppression")) {
             String command = "semiontd-debug vfx future_agency " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void queenDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("shrink", "giant")) {
+            String command = "semiontd-debug vfx queen " + effect;
             var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");

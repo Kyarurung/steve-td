@@ -23,7 +23,7 @@ public final class QueenTowerJob extends SemionJob {
     public List<Component> description() {
         return List.of(
                 SemionText.mini("<gray>붉은 여왕을 먼저 설치한 뒤 25 다이아 카드병정을 뽑고, 다음 카드도 관리창에서 미리 확인합니다.</gray>"),
-                SemionText.mini("<gray>모든 병정은 주변 적까지 조금씩 약체화하며 직접 죽이지 못합니다. 약해진 적은 자이언트가 처형합니다.</gray>"),
+                SemionText.mini("<gray>모든 병정은 주변 적을 원본 능력치의 절반까지 약화하며 직접 죽이지 못합니다. 약해진 적은 자이언트가 처형합니다.</gray>"),
                 SemionText.mini("<gray>라인에 수직인 가로 5장으로 <light_purple>포커 족보</light_purple>를 완성하면 체력·공속·치유·축소가 함께 강해집니다.</gray>"),
                 SemionText.mini("<gray>여왕의 원 안에서 병정이 교전하면 <gold>저놈의 목을 쳐라!</gold>가 2배로 차며, 자이언트가 라인 끝에서 몬스터 생성점으로 질주합니다.</gray>")
         );

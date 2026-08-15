@@ -8,16 +8,16 @@ import java.util.Set;
 
 public enum PokerHand {
     HIGH_CARD("하이 카드", 0.00),
-    ONE_PAIR("원 페어", 0.10),
-    TWO_PAIR("투 페어", 0.15),
-    THREE_OF_A_KIND("트리플", 0.20),
-    STRAIGHT("스트레이트", 0.25),
-    FLUSH("플러시", 0.30),
-    FULL_HOUSE("풀하우스", 0.40),
-    FOUR_OF_A_KIND("포카드", 0.50),
-    STRAIGHT_FLUSH("스트레이트 플러시", 0.65),
-    ROYAL_FLUSH("로열 플러시", 0.80),
-    FIVE_OF_A_KIND("파이브 카드", 1.00);
+    ONE_PAIR("원 페어", 0.06),
+    TWO_PAIR("투 페어", 0.10),
+    THREE_OF_A_KIND("트리플", 0.14),
+    STRAIGHT("스트레이트", 0.18),
+    FLUSH("플러시", 0.22),
+    FULL_HOUSE("풀하우스", 0.28),
+    FOUR_OF_A_KIND("포카드", 0.32),
+    STRAIGHT_FLUSH("스트레이트 플러시", 0.38),
+    ROYAL_FLUSH("로열 플러시", 0.42),
+    FIVE_OF_A_KIND("파이브 카드", 0.50);
 
     private final String displayName;
     private final double defaultBonus;

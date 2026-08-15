@@ -14,17 +14,20 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
 
 public final class QueenTower extends ProductionTower {
-    private static final int RANGE_PULSE_INTERVAL_TICKS = 40;
     private transient PlayerLane lane;
     private boolean waveActive;
     private boolean accelerationActive;
     private int rangePulseTicks;
+    private transient ArmorStand equipmentVisual;
 
     public QueenTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId,
                       GridPosition originalPosition, GridPosition currentPosition) {
@@ -44,15 +47,33 @@ public final class QueenTower extends ProductionTower {
     public void onPlaced(PlayerLane lane) {
         this.lane = lane;
         super.onPlaced(lane);
+        syncEquipmentVisual();
         showAccelerationRange(lane);
-        rangePulseTicks = RANGE_PULSE_INTERVAL_TICKS;
+        rangePulseTicks = QueenBalance.rangeVfxIntervalTicks();
     }
 
     @Override
     protected void configureEntityAfterSpawn(SemionTowerEntity entity, PlayerLane lane) {
+        ItemStack chestplate = new ItemStack(Items.LEATHER_CHESTPLATE);
+        chestplate.set(DataComponents.DYED_COLOR, new DyedItemColor(0xB02E26));
         entity.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.GOLDEN_HELMET));
+        entity.setItemSlot(EquipmentSlot.CHEST, chestplate);
+        entity.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_SWORD));
         entity.setCustomName(Component.literal("붉은 여왕"));
         entity.setCustomNameVisible(true);
+    }
+
+    @Override
+    public void onStateChanged(PlayerLane lane) {
+        super.onStateChanged(lane);
+        syncEquipmentVisual();
+    }
+
+    @Override
+    public void onRemoved(PlayerLane lane) {
+        QueenEquipmentVisual.remove(equipmentVisual);
+        equipmentVisual = null;
+        super.onRemoved(lane);
     }
 
     @Override
@@ -61,7 +82,7 @@ public final class QueenTower extends ProductionTower {
         waveActive = true;
         QueenPoker.snapshot(lane, ownerPlayer());
         showAccelerationRange(lane);
-        rangePulseTicks = RANGE_PULSE_INTERVAL_TICKS;
+        rangePulseTicks = QueenBalance.rangeVfxIntervalTicks();
     }
 
     @Override
@@ -76,9 +97,10 @@ public final class QueenTower extends ProductionTower {
     public void tick(PlayerLane lane) {
         this.lane = lane;
         super.tick(lane);
-        if (!isDestroyed(lane) && --rangePulseTicks <= 0) {
+        syncEquipmentVisual();
+        if (waveActive && !isDestroyed(lane) && --rangePulseTicks <= 0) {
             showAccelerationRange(lane);
-            rangePulseTicks = RANGE_PULSE_INTERVAL_TICKS;
+            rangePulseTicks = QueenBalance.rangeVfxIntervalTicks();
         }
         QueenStates.PlayerState state = QueenStates.state(ownerPlayer());
         if (state.runnerActive()) {
@@ -110,6 +132,7 @@ public final class QueenTower extends ProductionTower {
         int current = Math.min(required, (int) Math.floor(state.charge()));
         return List.of(
                 "축소 위력: " + oneDecimal(QueenBalance.queenShrinkPoints()),
+                "약체화 하한: 원본의 " + percentInteger(QueenBalance.minimumStatScale()),
                 "처형선: 현재 체력 " + oneDecimal(state.executionHealth()),
                 "저놈의 목을 쳐라!: " + current + "/" + required,
                 "남은 충전: " + oneDecimal(Math.max(0.0, required - state.charge()) / 20.0) + "초",
@@ -149,5 +172,9 @@ public final class QueenTower extends ProductionTower {
                 QueenBalance.giantAccelerationRadius(),
                 List.of(), 0, 0, 0
         ));
+    }
+
+    private void syncEquipmentVisual() {
+        equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity().orElse(null));
     }
 }

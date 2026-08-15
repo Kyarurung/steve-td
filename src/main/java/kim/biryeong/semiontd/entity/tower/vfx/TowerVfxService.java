@@ -43,6 +43,7 @@ import kim.biryeong.semiontd.tower.legion.LegionTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
+import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.area.AreaVfxStyleRegistryImpl;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -487,6 +488,9 @@ public final class TowerVfxService {
         }
         if (FutureAgencyTowers.isFutureAgencyTower(type)) {
             return BuilderPalette.FUTURE_AGENCY;
+        }
+        if (QueenTowers.isQueenTower(type)) {
+            return BuilderPalette.QUEEN;
         }
         if (PlantTowers.isPlantTower(type)) {
             return BuilderPalette.PLANT;

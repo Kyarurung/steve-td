@@ -7,11 +7,12 @@ public final class QueenBalance {
 
     private QueenBalance() {}
 
-    public static double shrinkFactorPerPoint() {return ability("shrinkFactorPerPoint", 0.98);}
-    public static double minimumVisualScale() {return ability("minimumVisualScale", 0.10);}
-    public static double queenShrinkPoints() {return ability("queenShrinkPoints", 8.0);}
-    public static double cardShrinkPoints() {return ability("cardShrinkPoints", 1.0);}
-    public static double cardDeathShrinkPoints() {return ability("cardDeathShrinkPoints", 3.0);}
+    public static double shrinkFactorPerPoint() {return ability("shrinkFactorPerPoint", 0.99);}
+    public static double minimumStatScale() {return ability("minimumStatScale", 0.50);}
+    public static double minimumVisualScale() {return ability("minimumVisualScale", 0.50);}
+    public static double queenShrinkPoints() {return ability("queenShrinkPoints", 5.0);}
+    public static double cardShrinkPoints() {return ability("cardShrinkPoints", 0.75);}
+    public static double cardDeathShrinkPoints() {return ability("cardDeathShrinkPoints", 1.5);}
     public static double cardDeathRadius() {return ability("cardDeathRadius", 3.0);}
     public static int heartHealIntervalTicks() {return abilityInt("heartHealIntervalTicks", 60);}
     public static double heartHealAmount() {return ability("heartHealAmount", 12.0);}
@@ -21,15 +22,17 @@ public final class QueenBalance {
     public static int cardSplashExtraTargets() {return abilityInt("cardSplashExtraTargets", 1);}
     public static double spadeRadius() {return ability("spadeRadius", 1.5);}
     public static int spadeExtraTargets() {return abilityInt("spadeExtraTargets", 3);}
-    public static int giantChargeTicks() {return abilityInt("giantChargeTicks", 600);}
+    public static int giantChargeTicks() {return abilityInt("giantChargeTicks", 400);}
     public static double giantAccelerationRadius() {return ability("giantAccelerationRadius", 6.0);}
     public static int giantAccelerationMemoryTicks() {return abilityInt("giantAccelerationMemoryTicks", 40);}
     public static double giantInitialExecutionHealth() {return ability("giantInitialExecutionHealth", 50.0);}
-    public static double giantExecutionGrowthRatio() {return ability("giantExecutionGrowthRatio", 0.10);}
+    public static double giantExecutionGrowthRatio() {return ability("giantExecutionGrowthRatio", 0.02);}
+    public static double giantGrowthTargetCapMultiplier() {return ability("giantGrowthTargetCapMultiplier", 4.0);}
     public static double giantContactRadius() {return ability("giantContactRadius", 4.0);}
     public static double giantSpeed() {return ability("giantSpeed", 0.65);}
-    public static double giantSlow() {return ability("giantSlow", 0.80);}
-    public static int giantSlowTicks() {return abilityInt("giantSlowTicks", 60);}
+    public static double giantSlow() {return ability("giantSlow", 0.55);}
+    public static int giantSlowTicks() {return abilityInt("giantSlowTicks", 40);}
+    public static int rangeVfxIntervalTicks() {return abilityInt("rangeVfxIntervalTicks", 80);}
     public static double handBonus(PokerHand hand) {
         return ability("hand." + hand.name().toLowerCase(), hand.defaultBonus());
     }

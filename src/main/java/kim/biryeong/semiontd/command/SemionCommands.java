@@ -47,6 +47,8 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
+import kim.biryeong.semiontd.tower.queen.QueenBalance;
+import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkinGui;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
@@ -523,6 +525,13 @@ public final class SemionCommands {
                                                 context.getSource(), gameManager, false)))
                                 .then(literal("suppression")
                                         .executes(context -> debugFutureAgencyVfx(
+                                                context.getSource(), gameManager, true))))
+                        .then(literal("queen")
+                                .then(literal("shrink")
+                                        .executes(context -> debugQueenVfx(
+                                                context.getSource(), gameManager, false)))
+                                .then(literal("giant")
+                                        .executes(context -> debugQueenVfx(
                                                 context.getSource(), gameManager, true)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
@@ -679,6 +688,37 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 미래기관 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugQueenVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            boolean giant
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (!tower.type().id().equals(QueenTowers.QUEEN.id()) || !(tower instanceof EntityBackedTower backed)
+                        || backed.entityId().isEmpty()) continue;
+                var entity = lane.arenaWorld().getEntity(backed.entityId().getAsInt());
+                if (!(entity instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity)
+                        || !towerEntity.isAlive()) continue;
+                TowerVfxService.showAreaEffect(
+                        towerEntity,
+                        AreaEffectIds.tower(tower, giant ? "queen_giant_debug" : "queen_shrink_debug"),
+                        giant ? AreaVfxStyles.PULSE : AreaVfxStyles.DEBUFF,
+                        towerEntity.position().add(0.0, 0.08, 0.0),
+                        giant ? QueenBalance.giantContactRadius() : 3.0,
+                        List.of(), 1, 1, 0
+                );
+                success(source, "붉은 여왕 " + (giant ? "giant" : "shrink") + " VFX를 재생했습니다.");
+                return 1;
+            }
+        }
+        failure(source, "살아 있는 붉은 여왕 타워가 필요합니다.");
         return 0;
     }
 

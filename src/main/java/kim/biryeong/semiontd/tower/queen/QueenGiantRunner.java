@@ -11,17 +11,16 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.api.SemionTdApi;
 import kim.biryeong.semiontd.api.area.AreaEffectOutcome;
 import kim.biryeong.semiontd.api.area.AreaVfxSpec;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.DamageType;
-import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.PlayerLane;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -30,6 +29,7 @@ import net.minecraft.world.phys.Vec3;
 
 final class QueenGiantRunner {
     private static final ResourceLocation EFFECT_ID = ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "queen_giant_run");
+    private static final ResourceLocation SPAWN_EFFECT_ID = ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "queen_giant_spawn");
     private final Entity entity;
     private final SemionTowerEntity source;
     private final List<Vec3> path;
@@ -60,8 +60,9 @@ final class QueenGiantRunner {
         giant.setPos(start.x, start.y, start.z);
         orientToward(giant, path.get(1));
         if (!lane.arenaWorld().addFreshEntity(giant)) return false;
-        lane.arenaWorld().sendParticles(ParticleTypes.TOTEM_OF_UNDYING, start.x, start.y + 1.0, start.z,
-                24, 0.8, 1.0, 0.8, 0.08);
+        TowerVfxService.showAreaEffect(
+                source, SPAWN_EFFECT_ID, AreaVfxStyles.PULSE, start, 2.5, List.of(), 0, 0, 0
+        );
         state.runner(new QueenGiantRunner(giant, source, path));
         return true;
     }
@@ -113,25 +114,17 @@ final class QueenGiantRunner {
                 EFFECT_ID, source, entity.position(), QueenBalance.giantContactRadius(), Set.of(),
                 target -> target.runtimeMonster() != null
                         && target.runtimeMonster().targetTeam() == queen.teamId()
-                        && !contacted.contains(target.getUUID()), AreaVfxSpec.none());
+                        && !contacted.contains(target.getUUID()), AreaVfxSpec.onChange(AreaVfxStyles.DEBUFF));
         SemionTdApi.areaEffects().applyToMonsters(request, target -> {
             contacted.add(target.getUUID());
             if (target.runtimeMonster() == null) return AreaEffectOutcome.UNCHANGED;
             if (target.runtimeMonster().health() <= state.executionHealth()) {
                 double effectiveMaxHealth = target.runtimeMonster().maxHealth();
-                double previous = target.runtimeMonster().health();
-                boolean killed = target.applyRuntimeDamage(
-                        source.damageSources().mobAttack(source), previous + 1.0, DamageType.TRUE);
-                double dealt = Math.max(0.0, previous - target.runtimeMonster().health());
-                queen.recordDamageDealt(target, dealt, DamageType.TRUE);
-                if (dealt > 0.0) target.runtimeMonster().recordLastHit(queen.ownerPlayer(), KillSourceKind.TOWER);
-                if (killed) {
-                    queen.onKill(source, target, previous + 1.0);
+                double lethalDamage = Math.max(1.0, effectiveMaxHealth * 1_000_000.0);
+                var damageResult = queen.damageResolvedTargetResult(source, target, lethalDamage, DamageType.TRUE);
+                if (damageResult.killed()) {
+                    queen.onKill(source, target, damageResult.outgoingDamage());
                     state.growExecutionHealth(effectiveMaxHealth);
-                    if (source.level() instanceof ServerLevel level) {
-                        level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, target.getX(), target.getY() + 0.8, target.getZ(),
-                                12, 0.35, 0.5, 0.35, 0.1);
-                    }
                     return AreaEffectOutcome.KILLED;
                 }
             }

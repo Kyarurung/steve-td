@@ -2004,11 +2004,12 @@ public record TowerBalanceConfig(
 
     private static void putQueenAbilities(Map<String, Map<String, Double>> abilities) {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("shrinkFactorPerPoint", 0.98);
-        values.put("minimumVisualScale", 0.10);
-        values.put("queenShrinkPoints", 8.0);
-        values.put("cardShrinkPoints", 1.0);
-        values.put("cardDeathShrinkPoints", 3.0);
+        values.put("shrinkFactorPerPoint", 0.99);
+        values.put("minimumStatScale", 0.50);
+        values.put("minimumVisualScale", 0.50);
+        values.put("queenShrinkPoints", 5.0);
+        values.put("cardShrinkPoints", 0.75);
+        values.put("cardDeathShrinkPoints", 1.5);
         values.put("cardDeathRadius", 3.0);
         values.put("heartHealIntervalTicks", 60.0);
         values.put("heartHealAmount", 12.0);
@@ -2018,15 +2019,17 @@ public record TowerBalanceConfig(
         values.put("cardSplashExtraTargets", 1.0);
         values.put("spadeRadius", 1.5);
         values.put("spadeExtraTargets", 3.0);
-        values.put("giantChargeTicks", 600.0);
+        values.put("giantChargeTicks", 400.0);
         values.put("giantAccelerationRadius", 6.0);
         values.put("giantAccelerationMemoryTicks", 40.0);
         values.put("giantInitialExecutionHealth", 50.0);
-        values.put("giantExecutionGrowthRatio", 0.10);
+        values.put("giantExecutionGrowthRatio", 0.02);
+        values.put("giantGrowthTargetCapMultiplier", 4.0);
         values.put("giantContactRadius", 4.0);
         values.put("giantSpeed", 0.65);
-        values.put("giantSlow", 0.80);
-        values.put("giantSlowTicks", 60.0);
+        values.put("giantSlow", 0.55);
+        values.put("giantSlowTicks", 40.0);
+        values.put("rangeVfxIntervalTicks", 80.0);
         values.put("card.heart.maxHealth", 60.0);
         values.put("card.heart.range", 6.0);
         values.put("card.heart.intervalTicks", 20.0);
@@ -2065,13 +2068,18 @@ public record TowerBalanceConfig(
         if (minimumVisualScale <= 0.0 || minimumVisualScale > 1.0) {
             throw new IllegalArgumentException("Queen minimumVisualScale must be between 0 (exclusive) and 1.");
         }
+        double minimumStatScale = values.getOrDefault("minimumStatScale", 0.0);
+        if (minimumStatScale <= 0.0 || minimumStatScale > 1.0) {
+            throw new IllegalArgumentException("Queen minimumStatScale must be between 0 (exclusive) and 1.");
+        }
         for (String key : java.util.List.of("clubDamageReduction", "giantExecutionGrowthRatio", "giantSlow")) {
             double value = values.getOrDefault(key, -1.0);
             if (value < 0.0 || value > 1.0) throw new IllegalArgumentException("Queen ratio must be between 0 and 1: " + key);
         }
         for (String key : java.util.List.of("heartHealIntervalTicks", "cardSplashExtraTargets", "spadeExtraTargets", "giantChargeTicks",
-                "giantAccelerationMemoryTicks", "giantSlowTicks", "card.heart.intervalTicks",
-                "card.diamond.intervalTicks", "card.club.intervalTicks", "card.spade.intervalTicks")) {
+                "giantAccelerationMemoryTicks", "giantSlowTicks", "rangeVfxIntervalTicks", "card.heart.intervalTicks",
+                "card.diamond.intervalTicks", "card.club.intervalTicks", "card.spade.intervalTicks",
+                "card.heart.aggro", "card.diamond.aggro", "card.club.aggro", "card.spade.aggro")) {
             double value = values.getOrDefault(key, 0.0);
             if (value <= 0.0 || value != Math.rint(value)) {
                 throw new IllegalArgumentException("Queen integer must be positive: " + key);
@@ -2079,12 +2087,25 @@ public record TowerBalanceConfig(
         }
         for (String key : java.util.List.of("queenShrinkPoints", "cardShrinkPoints", "cardDeathShrinkPoints",
                 "cardDeathRadius", "heartHealAmount", "heartHealRadius", "cardSplashRadius", "spadeRadius", "giantAccelerationRadius",
-                "giantInitialExecutionHealth", "giantContactRadius", "giantSpeed",
+                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "giantContactRadius", "giantSpeed",
                 "card.heart.maxHealth", "card.heart.range", "card.diamond.maxHealth", "card.diamond.range",
                 "card.club.maxHealth", "card.club.range", "card.spade.maxHealth", "card.spade.range")) {
             if (values.getOrDefault(key, 0.0) <= 0.0) {
                 throw new IllegalArgumentException("Queen value must be positive: " + key);
             }
+        }
+        double previousHandBonus = -1.0;
+        for (PokerHand hand : PokerHand.values()) {
+            String key = "hand." + hand.name().toLowerCase();
+            double value = values.getOrDefault(key, -1.0);
+            if (value < 0.0 || value > 1.0 || value < previousHandBonus) {
+                throw new IllegalArgumentException("Queen poker bonuses must be ordered ratios: " + key);
+            }
+            previousHandBonus = value;
+        }
+        if (values.getOrDefault("spadeRadius", 0.0) < values.getOrDefault("cardSplashRadius", 0.0)
+                || values.getOrDefault("spadeExtraTargets", 0.0) < values.getOrDefault("cardSplashExtraTargets", 0.0)) {
+            throw new IllegalArgumentException("Queen spade splash must not be weaker than the common card splash.");
         }
     }
 

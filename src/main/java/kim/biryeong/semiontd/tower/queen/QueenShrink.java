@@ -14,9 +14,15 @@ public final class QueenShrink {
     public static boolean apply(SemionMonsterEntity target, double points) {
         if (target == null || target.runtimeMonster() == null || !target.isAlive()
                 || !Double.isFinite(points) || points <= 0.0) return false;
-        double factor = Math.pow(QueenBalance.shrinkFactorPerPoint(), points);
+        double currentScale = target.runtimeMonster().permanentStatScale();
+        double minimumScale = QueenBalance.minimumStatScale();
+        if (currentScale <= minimumScale) return false;
+        double requestedFactor = Math.pow(QueenBalance.shrinkFactorPerPoint(), points);
+        double factor = Math.max(minimumScale, currentScale * requestedFactor) / currentScale;
+        if (factor >= 1.0) return false;
         target.applyPermanentStatScale(factor, QueenBalance.minimumVisualScale());
-        target.runtimeMonster().setData(POINTS, points(target) + points);
+        double appliedPoints = Math.min(points, Math.log(factor) / Math.log(QueenBalance.shrinkFactorPerPoint()));
+        target.runtimeMonster().setData(POINTS, points(target) + appliedPoints);
         return true;
     }
 

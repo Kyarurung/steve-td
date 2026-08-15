@@ -24,12 +24,15 @@ import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
 
 public final class QueenCardTower extends ProductionTower {
     private static final TowerDataKey<String> SUIT = TowerDataKey.of(id("queen_card_suit"), String.class);
@@ -40,6 +43,7 @@ public final class QueenCardTower extends ProductionTower {
     private long lastCombatTick = Long.MIN_VALUE;
     private int heartHealCooldown;
     private boolean waveActive;
+    private transient ArmorStand equipmentVisual;
 
     public QueenCardTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId,
                           GridPosition originalPosition, GridPosition currentPosition) {
@@ -59,12 +63,18 @@ public final class QueenCardTower extends ProductionTower {
     public void onPlaced(PlayerLane lane) {
         this.lane = lane;
         if (card().isEmpty()) {
-            QueenCard rolled = QueenStates.state(ownerPlayer()).drawNextCard();
-            setData(SUIT, rolled.suit().name());
-            setData(RANK, rolled.rank());
-            syncMaxHealth(desiredMaxHealth(), true);
+            assignCard(QueenStates.state(ownerPlayer()).drawNextCard());
         }
         super.onPlaced(lane);
+        syncEquipmentVisual();
+    }
+
+    void assignCard(QueenCard value) {
+        if (value == null) return;
+        setData(SUIT, value.suit().name());
+        setData(RANK, value.rank());
+        syncMaxHealth(desiredMaxHealth(), true);
+        if (lane != null) onStateChanged(lane);
     }
 
     @Override
@@ -76,7 +86,17 @@ public final class QueenCardTower extends ProductionTower {
     public void onStateChanged(PlayerLane lane) {
         super.onStateChanged(lane);
         this.lane = lane;
-        entity(lane).ifPresent(this::applyAppearance);
+        entity(lane).ifPresent(entity -> {
+            applyAppearance(entity);
+            equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity);
+        });
+    }
+
+    @Override
+    public void onRemoved(PlayerLane lane) {
+        QueenEquipmentVisual.remove(equipmentVisual);
+        equipmentVisual = null;
+        super.onRemoved(lane);
     }
 
     @Override
@@ -101,6 +121,7 @@ public final class QueenCardTower extends ProductionTower {
     public void tick(PlayerLane lane) {
         this.lane = lane;
         super.tick(lane);
+        syncEquipmentVisual();
         if (!waveActive || isDestroyed(lane) || card().map(QueenCard::suit).orElse(null) != QueenCard.Suit.HEART) return;
         if (heartHealCooldown > 0) {heartHealCooldown--; return;}
         if (healFamily(lane)) heartHealCooldown = QueenBalance.heartHealIntervalTicks();
@@ -168,7 +189,7 @@ public final class QueenCardTower extends ProductionTower {
                 "카드: " + value.label() + " (" + value.suit().displayName() + ")",
                 "현재 족보: " + pokerHand.displayName(),
                 "축소 위력: " + oneDecimal(QueenBalance.cardShrinkPoints() * (1.0 + pokerBonus)),
-                "축소 효과: 적 최대체력·공격력·크기 감소 (직접 처치 불가)",
+                "축소 효과: 원본의 " + percentInteger(QueenBalance.minimumStatScale()) + "까지 감소",
                 "족보 보너스: " + percentInteger(pokerBonus)
         );
     }
@@ -239,7 +260,20 @@ public final class QueenCardTower extends ProductionTower {
             case CLUB -> new ItemStack(Items.OAK_SAPLING);
             case SPADE -> new ItemStack(Items.IRON_SHOVEL);
         };
+        int armorColor = switch (value.suit()) {
+            case HEART -> 0xB02E26;
+            case DIAMOND -> 0x3AB3DA;
+            case CLUB -> 0x5E7C16;
+            case SPADE -> 0x1D1D21;
+        };
+        ItemStack chestplate = new ItemStack(Items.LEATHER_CHESTPLATE);
+        chestplate.set(DataComponents.DYED_COLOR, new DyedItemColor(armorColor));
         entity.setItemSlot(EquipmentSlot.MAINHAND, item);
+        entity.setItemSlot(EquipmentSlot.CHEST, chestplate);
+    }
+
+    private void syncEquipmentVisual() {
+        equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity(lane).orElse(null));
     }
 
     private static ResourceLocation id(String path) {

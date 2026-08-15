@@ -66,7 +66,11 @@ public final class QueenStates {
 
         public void growExecutionHealth(double effectiveMaxHealth) {
             if (Double.isFinite(effectiveMaxHealth) && effectiveMaxHealth > 0.0) {
-                executionHealth += effectiveMaxHealth * QueenBalance.giantExecutionGrowthRatio();
+                double growthBase = Math.min(
+                        effectiveMaxHealth,
+                        executionHealth * QueenBalance.giantGrowthTargetCapMultiplier()
+                );
+                executionHealth += growthBase * QueenBalance.giantExecutionGrowthRatio();
             }
         }
 
