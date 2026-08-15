@@ -239,16 +239,21 @@ public final class QueenGameTest {
             );
             hand.forEach(lane::addTower);
             lane.markWaveStarted(2);
-            require(hasDetail(hand.getFirst(), "원 페어"), "Poker hands must be fixed at wave start.");
-            requireClose(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART)
-                            * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR)),
-                    hand.getFirst().currentMaxHealth(), "Poker hands must increase card maximum health.");
-            require(hand.getFirst().adjustAttackInterval(999) == 19,
+            QueenCardTower firstCard = hand.getFirst();
+            double pairHealth = QueenBalance.cardMaxHealth(QueenCard.Suit.HEART)
+                    * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR));
+            requireClose(pairHealth, firstCard.currentMaxHealth(),
+                    "Poker hands must increase card maximum health.");
+            require(firstCard.adjustAttackInterval(999) == 19,
                     "One pair must improve the Heart card attack interval.");
-            hand.getFirst().assignCard(new QueenCard(QueenCard.Suit.HEART, 3));
-            require(hasDetail(hand.getFirst(), "원 페어"), "Card changes during a wave must not change the snapshot.");
+            firstCard.assignCard(new QueenCard(QueenCard.Suit.HEART, 3));
+            requireClose(pairHealth, firstCard.currentMaxHealth(),
+                    "Card changes during a wave must not change the snapshot.");
             lane.markWaveStarted(3);
-            require(hasDetail(hand.getFirst(), "하이 카드"), "The next wave must capture the updated hand.");
+            requireClose(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART), firstCard.currentMaxHealth(),
+                    "The next wave must capture the updated hand.");
+            require(firstCard.adjustAttackInterval(999) == QueenBalance.cardInterval(QueenCard.Suit.HEART),
+                    "The next wave must replace the previous attack-speed bonus.");
             context.succeed();
         } finally {
             group.closeRuntime();
@@ -307,10 +312,6 @@ public final class QueenGameTest {
         return context.getLevel().getEntitiesOfClass(ArmorStand.class, source.getBoundingBox().inflate(0.4),
                         visual -> visual.isInvisible() && visual.distanceToSqr(source) < 0.01).stream().findFirst()
                 .orElseThrow(() -> new AssertionError("The equipment overlay must spawn with its tower."));
-    }
-
-    private static boolean hasDetail(QueenCardTower card, String text) {
-        return card.runtimeDetailLines().stream().anyMatch(line -> line.contains(text));
     }
 
     private static PlayerLane testLane(GameTestHelper context, UUID owner) {

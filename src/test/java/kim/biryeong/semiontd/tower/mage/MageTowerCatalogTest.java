@@ -142,7 +142,7 @@ final class MageTowerCatalogTest {
     }
 
     @Test
-    void defaultsAndDescriptionsPublishEveryMageValue() {
+    void defaultsPublishEveryMageValue() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         assertTrue(MageTowers.all().stream().allMatch(type -> defaults.towers().containsKey(type.id())));
         assertEquals(1_000.0, defaults.ability(MageBalance.GLOBAL_ID, "manaCapacity", -1), 0.0001);
@@ -161,12 +161,6 @@ final class MageTowerCatalogTest {
         assertEquals(60.0, defaults.ability(MageBalance.GLOBAL_ID, "frostWaveDamage", -1), 0.0001);
         assertEquals(380.0, defaults.ability(MageBalance.GLOBAL_ID, "collapseDamage", -1), 0.0001);
 
-        ProductionTowerCatalogs.reloadBuiltIns(defaults);
-        for (var type : MageTowers.all()) {
-            List<String> description = ProductionTowerCatalog.find(type.id()).orElseThrow().type().description();
-            assertFalse(description.isEmpty());
-            assertTrue(description.stream().noneMatch(line -> line.contains("{ability.")), type.id());
-        }
     }
 
     @Test

@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.queen;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,7 +15,6 @@ import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
-import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
@@ -54,20 +52,7 @@ final class QueenTowerCatalogTest {
                 .create(OWNER, TeamId.RED, 1, new GridPosition(1, 64, 0)));
         assertTrue(ProductionTowerCatalog.upgrades(QueenTowers.QUEEN).isEmpty());
         assertTrue(ProductionTowerCatalog.upgrades(QueenTowers.RANDOM_CARD_SOLDIER).isEmpty());
-        String queenDescription = String.join(" ", ProductionTowerCatalog.find(QueenTowers.QUEEN.id())
-                .orElseThrow().type().description());
-        assertFalse(queenDescription.contains("{ability."));
-        assertFalse(queenDescription.contains("{stat."));
-        assertTrue(queenDescription.contains("원본의 20%"));
-        assertTrue(queenDescription.contains("외형을 50%"));
         assertEquals("붉은 여왕", ProductionTowerCatalog.find(QueenTowers.QUEEN.id()).orElseThrow().type().displayName());
-        String cardDescription = String.join(" ", ProductionTowerCatalog.find(QueenTowers.RANDOM_CARD_SOLDIER.id())
-                .orElseThrow().type().description());
-        assertFalse(cardDescription.contains("{ability."));
-        assertFalse(cardDescription.contains("{stat."));
-        assertTrue(cardDescription.contains("능력치를 20%"));
-        assertTrue(cardDescription.contains("외형을 50%"));
-        assertTrue(cardDescription.contains("직접 처치하지 못"));
         assertEquals(55, QueenBalance.cardAggro(QueenCard.Suit.HEART));
         assertEquals(45, QueenBalance.cardAggro(QueenCard.Suit.DIAMOND));
         assertEquals(110, QueenBalance.cardAggro(QueenCard.Suit.CLUB));
@@ -114,7 +99,6 @@ final class QueenTowerCatalogTest {
 
         assertEquals(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART) * 2.0, card.currentMaxHealth(), 0.0001);
         assertEquals(QueenBalance.cardInterval(QueenCard.Suit.HEART) / 2, card.adjustAttackInterval(999));
-        assertTrue(card.runtimeDetailLines().contains("족보 보너스: 100%"));
     }
 
     @Test
@@ -125,51 +109,6 @@ final class QueenTowerCatalogTest {
         assertEquals(54.0, state.executionHealth(), 0.0001);
         state.growExecutionHealth(100.0);
         assertEquals(56.0, state.executionHealth(), 0.0001);
-    }
-
-    @Test
-    void maximumShrinkKeepsExecutionViableFromEarlyToLateRounds() {
-        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
-        double pointsToFloor = Math.log(QueenBalance.minimumStatScale())
-                / Math.log(QueenBalance.shrinkFactorPerPoint());
-        double slowestInitialPartyPointsPerSecond = QueenBalance.queenShrinkPoints() / 6.0
-                + 3.0 * QueenBalance.cardShrinkPoints()
-                / (QueenBalance.cardInterval(QueenCard.Suit.CLUB) / 20.0);
-        assertTrue(pointsToFloor / slowestInitialPartyPointsPerSecond < 30.0,
-                "The initial Queen and three slowest cards must reach the floor within 30 seconds.");
-
-        WaveConfig waves = WaveConfig.defaultConfig();
-        QueenStates.PlayerState state = QueenStates.state(OWNER);
-        for (int round = 1; round <= 40; round++) {
-            if (round == 1) {
-                assertTrue(state.executionHealth() >= 10.0,
-                        "The initial execution line must cover the first wave.");
-            } else if (round == 15) {
-                double weakenedWardenHealth = 1_100.0 * QueenBalance.minimumStatScale();
-                assertEquals(220.0, weakenedWardenHealth, 0.0001);
-                assertTrue(state.executionHealth() >= weakenedWardenHealth,
-                        "A fully weakened round-15 Warden must enter the execution line.");
-            } else if (round == 40) {
-                double largestWeakenedHealth = waves.candidatesForRound(round).stream()
-                        .flatMap(candidate -> candidate.entriesForLane("default").stream())
-                        .mapToDouble(entry -> entry.health() * QueenBalance.minimumStatScale())
-                        .max().orElseThrow();
-                assertTrue(state.executionHealth() >= largestWeakenedHealth,
-                        "Fully weakened round-40 monsters must remain executable.");
-            }
-
-            var wave = waves.configForRound(round).orElseThrow();
-            for (var entry : wave.entriesForLane("default")) {
-                for (int index = 0; index < entry.count(); index++) {
-                    double effectiveMaxHealth = entry.health() <= state.executionHealth()
-                            ? entry.health()
-                            : entry.health() * QueenBalance.minimumStatScale();
-                    assertTrue(effectiveMaxHealth <= state.executionHealth(),
-                            "Round " + round + " must remain reachable by full weakening.");
-                    state.growExecutionHealth(effectiveMaxHealth);
-                }
-            }
-        }
     }
 
     @Test

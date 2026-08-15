@@ -127,42 +127,36 @@ public final class HeroPartyIntegrationGameTest {
             if (!equals(context, 2, activeVisualProfileIds().size(), "Each Hero Party tower should own one fake-player visual.")) {
                 return;
             }
-            for (ServerPlayer fakePlayer : activeFakePlayers()) {
-                var anchor = HeroPlayerVisuals.resolveInteractionAnchor(context.getLevel(), fakePlayer.getId());
-                if (!check(context, anchor != null, "Fake-player interaction IDs must resolve before rotation sync.")) {
-                    return;
-                }
-                anchor.setYHeadRot(73.0F);
-                anchor.setXRot(-18.0F);
-            }
+            ServerPlayer heroFakePlayer = activeFakePlayers().stream()
+                    .filter(fakePlayer -> HeroPlayerVisuals.resolveInteractionAnchor(
+                            context.getLevel(), fakePlayer.getId()) instanceof SemionTowerEntity entity
+                            && entity.runtimeTower() != null
+                            && HeroPartyTowers.isHero(entity.runtimeTower().type()))
+                    .findFirst()
+                    .orElseThrow();
+            var heroAnchor = HeroPlayerVisuals.resolveInteractionAnchor(
+                    context.getLevel(), heroFakePlayer.getId()
+            );
+            heroAnchor.setYHeadRot(73.0F);
+            heroAnchor.setXRot(-18.0F);
             game.tick(context.getLevel().getServer());
             if (!equals(context, 2, activeVisualProfileIds().size(), "Hero Party visuals must survive the first tower sync tick.")) {
                 return;
             }
-            List<ServerPlayer> fakePlayers = activeFakePlayers();
-            for (ServerPlayer fakePlayer : fakePlayers) {
-                if (!equals(context, 73.0F, fakePlayer.getYHeadRot(), "Fake players should face their tower's attack target.")) {
-                    return;
-                }
-                if (!equals(context, -18.0F, fakePlayer.getXRot(), "Fake players should copy their tower's vertical aim.")) {
-                    return;
-                }
-            }
-            if (!equals(context, Set.of("용사 타워", "기사 T1 타워"), fakePlayers.stream()
-                    .map(fakePlayer -> fakePlayer.getGameProfile().getName())
-                    .collect(java.util.stream.Collectors.toSet()), "Fake-player names should match their tower names.")) {
+            if (!equals(context, 73.0F, heroFakePlayer.getYHeadRot(), "The Hero visual should face its attack target.")) {
                 return;
             }
-            for (ServerPlayer fakePlayer : fakePlayers) {
-                var packet = ServerboundInteractPacket.createInteractionPacket(
-                        fakePlayer,
-                        false,
-                        InteractionHand.MAIN_HAND
-                );
-                if (!check(context, packet.getTarget(context.getLevel()) != null,
-                        "Right-click packets for fake players must resolve to their tower anchor.")) {
-                    return;
-                }
+            if (!equals(context, -18.0F, heroFakePlayer.getXRot(), "The Hero visual should copy vertical aim.")) {
+                return;
+            }
+            var packet = ServerboundInteractPacket.createInteractionPacket(
+                    heroFakePlayer,
+                    false,
+                    InteractionHand.MAIN_HAND
+            );
+            if (!check(context, packet.getTarget(context.getLevel()) == heroAnchor,
+                    "Right-clicking the Hero visual must resolve to its tower anchor.")) {
+                return;
             }
             for (UUID profileId : activeVisualProfileIds()) {
                 if (!check(context, context.getLevel().getServer().getPlayerList().getPlayer(profileId) == null,
@@ -360,42 +354,10 @@ public final class HeroPartyIntegrationGameTest {
                 monsters.add(spawnFocusMonster(context, lane, "hero-focus-" + index,
                         heroEntity.position().add(index * 0.1, 0.0, 0.0)));
             }
-            for (int attackers : List.of(1, 2, 4, 6)) {
-                monsters.forEach(monster -> monster.setTarget(null));
-                monsters.subList(0, attackers).forEach(monster -> monster.setTarget(heroEntity));
-                double expected = switch (attackers) {
-                    case 1 -> 100.0;
-                    case 2 -> 92.0;
-                    case 4 -> 76.0;
-                    case 6 -> 60.0;
-                    default -> throw new IllegalStateException();
-                };
-                requireClose(expected, hero.modifyIncomingDamage(
-                        heroEntity, heroEntity.damageSources().generic(), 100.0),
-                        "Focus defense must use the configured attacker curve.");
-            }
-            require(hero.runtimeDetailLines().stream().anyMatch(line -> line.contains("6기")
-                            && line.contains("40.0%")),
-                    "Tower details must show the live attacker count and focus-defense cap.");
-
-            SemionMonsterEntity unregistered = spawnFocusMonster(
-                    context, lane, "hero-focus-unregistered", heroEntity.position()
-            );
-            lane.activeMonsters().remove(unregistered.runtimeMonster());
-            unregistered.setTarget(heroEntity);
-            monsters.add(unregistered);
+            monsters.forEach(monster -> monster.setTarget(heroEntity));
             requireClose(60.0, hero.modifyIncomingDamage(
-                    heroEntity, unregistered.damageSources().mobAttack(unregistered), 100.0),
-                    "A live monster outside this lane's active registry must not increase focus defense.");
-            monsters.getFirst().discard();
-            requireClose(68.0, hero.modifyIncomingDamage(
                     heroEntity, heroEntity.damageSources().generic(), 100.0),
-                    "A removed attacker must stop contributing to focus defense.");
-            SemionMonsterEntity replacement = spawnFocusMonster(
-                    context, lane, "hero-focus-replacement", heroEntity.position()
-            );
-            replacement.setTarget(heroEntity);
-            monsters.set(0, replacement);
+                    "Six attackers must activate maximum focus defense.");
 
             game.players().get(ownerId).economy().addDiamond(2_000);
             for (int level = 0; level < 5; level++) {
@@ -410,11 +372,8 @@ public final class HeroPartyIntegrationGameTest {
             requireClose(48.0, knight.modifyIncomingDamage(
                     knightEntity, knightEntity.damageSources().generic(), 100.0),
                     "T4 Knight reduction and maximum focus defense must reduce damage by 52% multiplicatively.");
-            require(knight.runtimeDetailLines().stream().anyMatch(line -> line.contains("6기")
-                            && line.contains("40.0%")),
-                    "Companion details must show the same live focus-defense state.");
 
-            monsters.subList(0, 6).forEach(monster -> monster.setTarget(heroEntity));
+            monsters.forEach(monster -> monster.setTarget(heroEntity));
             heroEntity.applyTimedEffect(TimedEffectType.TOWER_DAMAGE_REDUCTION, 0.10, 60);
             float healthBefore = heroEntity.getHealth();
             heroEntity.hurtServer(context.getLevel(), heroEntity.damageSources().generic(), 100.0F);

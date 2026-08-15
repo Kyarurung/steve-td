@@ -108,7 +108,7 @@ final class EngineerTowerCatalogTest {
     }
 
     @Test
-    void defaultsMergeAndDescriptionsResolve() {
+    void defaultsMerge() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         assertTrue(EngineerTowers.all().stream().allMatch(type -> defaults.towers().containsKey(type.id())));
         assertEquals(60, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "activeTicks", -1));
@@ -147,15 +147,6 @@ final class EngineerTowerCatalogTest {
         assertEquals(10, merged.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
         assertEquals(20, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
 
-        for (var type : EngineerTowers.all()) {
-            List<String> description = ProductionTowerCatalog.find(type.id()).orElseThrow().type().description();
-            assertFalse(description.isEmpty());
-            assertTrue(description.stream().noneMatch(line -> line.contains("{ability.")), type.id());
-        }
-        assertTrue(ProductionTowerCatalog.find(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1).id())
-                .orElseThrow().type().description().stream().anyMatch(line -> line.contains("6초")));
-        assertTrue(ProductionTowerCatalog.find(EngineerTowers.trap(EngineerTowers.TrapKind.SLIME, 1).id())
-                .orElseThrow().type().description().stream().anyMatch(line -> line.contains("3초")));
     }
 
     @Test

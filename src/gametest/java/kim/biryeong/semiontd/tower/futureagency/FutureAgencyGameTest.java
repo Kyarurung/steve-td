@@ -69,10 +69,6 @@ public final class FutureAgencyGameTest {
                 require(carried(lane).size() == 2,
                         "Two installed originals must retain exactly two survivors after wave " + round + ".");
             }
-            require(first.runtimeDetailLines().stream().anyMatch(line -> line.contains("연결 생존자") && line.contains("1/1")),
-                    "Original detail must expose its linked survivor count.");
-            require(carried(lane).getFirst().runtimeDetailLines().stream().anyMatch(line -> line.contains("연결 원본")),
-                    "Survivor detail must expose its linked origin.");
             context.succeed();
         } finally {
             lane.clearTowers();

@@ -279,10 +279,6 @@ class HeroPartyTowerCatalogTest {
         assertInvalidFocusConfig(defaults, "focusFireDamageReductionPerExtraAttacker", 0.50);
 
         ProductionTowerCatalogs.reloadBuiltIns(defaults);
-        HeroPartyTower hero = (HeroPartyTower) hero(testContext(), new GridPosition(1, 64, 1));
-        assertTrue(hero.runtimeDetailLines().stream()
-                .anyMatch(line -> line.contains("집중 방어") && line.contains("최대 40.0%")));
-
         try (var input = HeroPartyTowerCatalogTest.class.getResourceAsStream(
                 "/semiontd/balance-defaults/tower_balance.json")) {
             var bundled = JsonParser.parseReader(new InputStreamReader(

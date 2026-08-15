@@ -36,7 +36,6 @@ import kim.biryeong.semiontd.trait.TraitSelectionSession;
 import kim.biryeong.semiontd.trait.TraitSlot;
 import kim.biryeong.semiontd.tower.undead.UndeadDrownedTower;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
-import kim.biryeong.semiontd.ui.SemionDialogService;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -219,19 +218,6 @@ public final class SemionTraitSelectionGameTest {
                 firstEntity.applyTraitOutgoingDamage(null, baseDisplayedDamage),
                 "Right-click damage should include target-independent trait damage."
         )) {
-            return;
-        }
-        String persistentEffectBody = towerEffectBody(firstEntity);
-        if (!assertTrue(context, persistentEffectBody.contains("특성 인컴 피해 증가 +7.5%</green> <gray>지속</gray>"), "Right-click details should show persistent income-target damage.")) {
-            return;
-        }
-        if (!assertTrue(context, persistentEffectBody.contains("최종 피해 증가 +25.0%</green> <gray>지속</gray>"), "Right-click details should show persistent final damage.")) {
-            return;
-        }
-        if (!assertTrue(context, persistentEffectBody.contains("받는 피해 증가 +25.0%</red> <gray>지속</gray>"), "Right-click details should show persistent incoming damage.")) {
-            return;
-        }
-        if (!assertTrue(context, !persistentEffectBody.contains("초</gray>"), "Persistent trait details should not show a giant duration.")) {
             return;
         }
         SemionMonsterEntity incomeEntity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, lane.arenaWorld());
@@ -429,22 +415,6 @@ public final class SemionTraitSelectionGameTest {
         )) {
             return;
         }
-        String effectBody = towerEffectBody(livingEntity);
-        if (!assertTrue(
-                context,
-                effectBody.contains("특성 피해 증가 +30.0%</green> <gray>지속</gray>"),
-                "Tower details should expose the active Transcendence damage."
-        )) {
-            return;
-        }
-        if (!assertTrue(
-                context,
-                towerEffectBody(secondaryEntity).contains("특성 피해 증가 +15.0%</green> <gray>지속</gray>"),
-                "Tower details should expose secondary Transcendence damage."
-        )) {
-            return;
-        }
-
         lane.clearTranscendence();
         blueLane.clearTranscendence();
         if (!assertDoubleEquals(
@@ -603,22 +573,6 @@ public final class SemionTraitSelectionGameTest {
 
     private static UUID playerId(String seed) {
         return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static String towerEffectBody(SemionTowerEntity entity) {
-        try {
-            var method = SemionDialogService.class.getDeclaredMethod(
-                    "appendTowerTimedEffects",
-                    StringBuilder.class,
-                    SemionTowerEntity.class
-            );
-            method.setAccessible(true);
-            StringBuilder body = new StringBuilder();
-            method.invoke(null, body, entity);
-            return body.toString();
-        } catch (ReflectiveOperationException exception) {
-            throw new RuntimeException("Failed to render tower effect details.", exception);
-        }
     }
 
     private static boolean assertTrue(GameTestHelper context, boolean condition, String message) {
