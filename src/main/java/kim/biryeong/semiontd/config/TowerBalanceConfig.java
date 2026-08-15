@@ -1120,6 +1120,10 @@ public record TowerBalanceConfig(
                 );
             }
         }));
+        validateIntegralAbility(WarlockTowers.CONFIG_ID, "awakeningKills");
+        validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeEvery");
+        validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashEvery");
+        validateIntegralAbility(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery");
         validateMageBalance();
         validateEngineerBalance();
         validateInsectBalance();
@@ -1127,6 +1131,17 @@ public record TowerBalanceConfig(
         validateQueenBalance();
         validateAtlantisAbilities();
         validatePlantAbilities();
+    }
+
+    private void validateIntegralAbility(String configId, String key) {
+        Map<String, Double> values = abilities.get(configId);
+        Double value = values == null ? null : values.get(key);
+        if (value != null && (value > Integer.MAX_VALUE || value != Math.rint(value))) {
+            throw new IllegalArgumentException(
+                    "Tower balance count ability must be a whole number no greater than "
+                            + Integer.MAX_VALUE + ": " + configId + "." + key
+            );
+        }
     }
 
     private void validateAtlantisAbilities() {
@@ -2863,8 +2878,8 @@ public record TowerBalanceConfig(
         values.put(HEALTH_SCALE.key(), 500.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
-        values.put(DAMAGE_THRESHOLD.key(), 150.0);
-        values.put(DAMAGE_SCALE.key(), 25.0);
+        values.put(DAMAGE_THRESHOLD.key(), 140.0);
+        values.put(DAMAGE_SCALE.key(), 20.0);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);
@@ -3021,14 +3036,10 @@ public record TowerBalanceConfig(
 
     private static Map<String, Double> warlockGlobalAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("damageThreshold", 175.0);
-        values.put("damageScale", 25.0);
-        values.put("healthThreshold", 3500.0);
-        values.put("healthScale", 500.0);
         values.put("sacrificeRadius", 25.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningAbsorptions", 20.0);
+        values.put("awakeningKills", 1350.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -3047,20 +3058,25 @@ public record TowerBalanceConfig(
         values.put("threshold", 0.55);
         values.put("roundStat", 0.40);
         values.put("permanentHealth", 0.025);
+        values.put("healthThreshold", 2000.0);
+        values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.05);
-        values.put("lifeEvery", 5.0);
+        values.put("damageThreshold", 145.0);
+        values.put("damageScale", 20.0);
+        values.put("lifeEvery", 10.0);
         values.put("lifeStep", 0.005);
-        values.put("lifeCap", 0.085);
+        values.put("lifeCap", 0.08);
+        values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
-        values.put("splashDamage", 0.50);
+        values.put("splashDamage", 0.45);
         values.put("defenseThreshold", 3.0);
-        values.put("defense", 0.10);
-        values.put("petHealth", 0.05);
-        values.put("petHealthCap", 0.15);
-        values.put("petDamage", 0.15);
-        values.put("petDamageCap", 0.75);
-        values.put("awakeningHeal", 400.0);
+        values.put("defense", 0.15);
+        values.put("petHealth", 0.04);
+        values.put("petHealthCap", 0.20);
+        values.put("petDamage", 0.10);
+        values.put("petDamageCap", 0.50);
+        values.put("awakeningHeal", 600.0);
         values.put("awakeningRegeneration", 40.0);
         values.put("awakeningRegenerationTicks", 20.0);
         return values;
@@ -3071,20 +3087,25 @@ public record TowerBalanceConfig(
         values.put("threshold", 0.55);
         values.put("roundStat", 0.60);
         values.put("permanentHealth", 0.05);
+        values.put("healthThreshold", 3500.0);
+        values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.025);
+        values.put("damageThreshold", 200.0);
+        values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
         values.put("lifeCap", 0.12);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);
         values.put("splashDamage", 0.75);
-        values.put("defenseEvery", 5.0);
+        values.put("defenseEvery", 10.0);
         values.put("defenseStep", 0.025);
-        values.put("defenseCap", 0.25);
-        values.put("petHealth", 0.15);
-        values.put("petHealthCap", 0.75);
-        values.put("petDamage", 0.05);
-        values.put("petDamageCap", 0.15);
+        values.put("defenseCap", 0.30);
+        values.put("petHealth", 0.10);
+        values.put("petHealthCap", 0.50);
+        values.put("petDamage", 0.04);
+        values.put("petDamageCap", 0.20);
+        values.put("awakeningHeal", 600.0);
         values.put("awakeningDamage", 75.0);
         values.put("awakeningMoveSpeed", 0.30);
         return values;
