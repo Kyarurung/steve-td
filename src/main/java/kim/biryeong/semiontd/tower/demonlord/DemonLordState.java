@@ -4,6 +4,8 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.tower.TowerType;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Everything the demon lord player carries between ticks: the boss-bar health pool, the kill-fed
@@ -25,9 +27,14 @@ public final class DemonLordState {
     private long shieldExpiryTick;
     private boolean inCombat;
     private boolean pendingSpawn;
+    private boolean combatKitGranted;
     private boolean loadoutDirty = true;
     private int lastSelectedSlot = -1;
     private int laneId = -1;
+    private long lastBladeAttackTick = Long.MIN_VALUE;
+    private TowerType pendingBombardment;
+    private long pendingBombardmentTick;
+    private HellfireZone zone;
 
     public DemonLordState(UUID playerId) {
         this.playerId = playerId;
@@ -171,6 +178,82 @@ public final class DemonLordState {
         return global("bladeDamage", 30.0) * damageMultiplier();
     }
 
+    /**
+     * Vanilla-style swing charge, so mashing the button is worse than timing swings.
+     *
+     * <p>Returns the fraction of the attack interval that has elapsed since the last swing, clamped
+     * to 1. Callers turn it into a damage multiplier; a fully charged swing is 1.0.
+     */
+    public double bladeChargeScale(long gameTime, int intervalTicks) {
+        if (intervalTicks <= 0 || lastBladeAttackTick == Long.MIN_VALUE) {
+            return 1.0;
+        }
+        double elapsed = gameTime - lastBladeAttackTick;
+        return Math.max(0.0, Math.min(1.0, elapsed / intervalTicks));
+    }
+
+    /** Every swing resets the charge, including the weak ones. */
+    public void recordBladeAttack(long gameTime) {
+        lastBladeAttackTick = gameTime;
+    }
+
+    // ---------------------------------------------------- delayed 마도 폭격
+
+    /**
+     * 마도 폭격은 먼저 솟아오른 뒤 정점에서 쏩니다. 시전 시점이 아니라 발사 시점의 시선으로
+     * 조준해야 하므로, 발사를 예약해 두고 서비스 틱이 처리합니다.
+     */
+    public void queueBombardment(TowerType altar, long fireTick) {
+        pendingBombardment = altar;
+        pendingBombardmentTick = fireTick;
+    }
+
+    public boolean bombardmentReady(long gameTime) {
+        return pendingBombardment != null && gameTime >= pendingBombardmentTick;
+    }
+
+    public TowerType consumeBombardment() {
+        TowerType altar = pendingBombardment;
+        pendingBombardment = null;
+        return altar;
+    }
+
+    public void clearPendingSkills() {
+        pendingBombardment = null;
+        zone = null;
+    }
+
+    // -------------------------------------------------- 지옥불 낙인 장판
+
+    /**
+     * 지옥불 낙인이 남긴 장판.
+     *
+     * <p>한 번에 하나만 유지합니다. 다시 시전하면 새 장판이 이전 것을 대체하므로, 여러 장을 겹쳐
+     * 깔아 피해를 중첩시킬 수 없습니다.
+     */
+    public record HellfireZone(
+            Vec3 centre,
+            double radius,
+            double damage,
+            double damageTakenBonus,
+            int tickIntervalTicks,
+            long expiryTick,
+            long nextPulseTick
+    ) {
+    }
+
+    public void placeZone(HellfireZone newZone) {
+        zone = newZone;
+    }
+
+    public HellfireZone zone() {
+        return zone;
+    }
+
+    public void clearZone() {
+        zone = null;
+    }
+
     // ---------------------------------------------------------------- combat
 
     public boolean inCombat() {
@@ -188,6 +271,7 @@ public final class DemonLordState {
         pendingSpawn = true;
         health = maxHealth();
         clearShield();
+        clearPendingSkills();
         cooldownReadyTick.clear();
         loadoutDirty = true;
     }
@@ -203,6 +287,7 @@ public final class DemonLordState {
         inCombat = false;
         health = 0.0;
         clearShield();
+        clearPendingSkills();
         loadoutDirty = true;
     }
 
@@ -246,6 +331,15 @@ public final class DemonLordState {
 
     public void setLaneId(int laneId) {
         this.laneId = laneId;
+    }
+
+    /** True while the hotbar is holding the combat kit instead of the normal match tools. */
+    public boolean combatKitGranted() {
+        return combatKitGranted;
+    }
+
+    public void setCombatKitGranted(boolean granted) {
+        combatKitGranted = granted;
     }
 
     public int lastSelectedSlot() {

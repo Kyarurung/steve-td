@@ -41,9 +41,17 @@ public final class DemonLordStates {
         }
     }
 
+    /**
+     * Drops the state and the boss bar together.
+     *
+     * <p>The bar is a {@code ServerBossEvent} the player stays subscribed to until it is explicitly
+     * removed, so forgetting this leaves a demon lord health bar stuck on screen for the rest of the
+     * session - across match end, job change and even other dimensions.
+     */
     public static void clear(UUID playerId) {
         if (playerId != null) {
             STATES.remove(playerId);
+            DemonLordService.clearBossBar(playerId);
         }
     }
 

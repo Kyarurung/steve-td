@@ -3,13 +3,17 @@ package kim.biryeong.semiontd.tower.demonlord;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -94,14 +98,15 @@ final class DemonLordTowerCatalogTest {
         }
     }
 
-    /** 스킬 5종을 전부 열면 코스트 16. 초반 타워 한도로는 절대 못 여는 값이어야 선택이 생깁니다. */
+    /** 전부 열면 코스트가 크게 넘칩니다. 초반 타워 한도로는 못 여는 값이어야 선택이 생깁니다. */
     @Test
     void openingEverySkillCostsMoreThanAnEarlyTowerLimit() {
         int total = 0;
         for (DemonLordSkill skill : DemonLordSkill.values()) {
             total += skill.slotCost();
+            assertTrue(skill.slotCost() >= 2 && skill.slotCost() <= 4, skill + " 코스트는 2~4 범위여야 합니다");
         }
-        assertEquals(16, total);
+        assertTrue(total >= 24, "총 코스트 " + total + " 는 초반 한도로 감당할 수 없어야 합니다");
     }
 
     /** 업글마다 쿨타임 -1초. 4티어면 -3초입니다. */
@@ -140,19 +145,100 @@ final class DemonLordTowerCatalogTest {
         }
     }
 
-    /** 슬롯 0~2 는 기존 도구가 쓰고, 8 번은 마검 자리입니다. */
+    /**
+     * 바인딩은 1·2·3·4·5(우클릭)·F·Q 일곱 개이고, 먼저 지은 순서대로 배정됩니다.
+     * 핫바를 쓰는 것끼리는 겹치면 안 되고, 마검 자리는 침범하면 안 됩니다.
+     */
     @Test
-    void skillsOccupyDistinctHotbarSlotsAwayFromTheMatchTools() {
+    void bindingsCoverSevenKeysAndNeverTakeTheBladeSlot() {
         Set<Integer> slots = new HashSet<>();
-        for (DemonLordSkill skill : DemonLordSkill.values()) {
-            assertTrue(slots.add(skill.hotbarSlot()), "Duplicate hotbar slot for " + skill);
-            assertTrue(skill.hotbarSlot() >= DemonLordSkill.FIRST_SKILL_SLOT
-                            && skill.hotbarSlot() <= DemonLordSkill.LAST_SKILL_SLOT,
-                    skill + " must sit between slots 3 and 7");
-            assertFalse(skill.hotbarSlot() == DemonLordSkill.BLADE_SLOT, skill + " must not take the blade slot");
+        for (DemonLordBinding binding : DemonLordBinding.values()) {
+            if (!binding.isHotbarSlot()) {
+                continue;
+            }
+            assertTrue(slots.add(binding.hotbarSlot()), "Duplicate hotbar slot for " + binding);
+            assertNotEquals(DemonLordSkill.BLADE_SLOT, binding.hotbarSlot(),
+                    binding + " must not take the blade slot");
         }
-        assertEquals(DemonLordSkill.values().length, slots.size());
+        assertEquals(5, slots.size(), "1-4 와 우클릭 슬롯이 실제 핫바를 씁니다");
+        assertEquals(7, DemonLordBinding.values().length);
+        assertEquals("1", DemonLordBinding.forIndex(0).label());
+        assertEquals("4", DemonLordBinding.forIndex(3).label());
+        assertEquals(DemonLordBinding.RIGHT_CLICK, DemonLordBinding.forIndex(4));
+        assertEquals("F", DemonLordBinding.forIndex(5).label());
+        assertEquals("Q", DemonLordBinding.forIndex(6).label());
+        assertNull(DemonLordBinding.forIndex(7), "여덟 번째 스킬은 누를 키가 없습니다");
         assertEquals(8, DemonLordSkill.BLADE_SLOT);
+
+        assertNull(DemonLordBinding.forHotbarSlot(DemonLordSkill.BLADE_SLOT));
+        assertEquals(DemonLordBinding.SLOT_1, DemonLordBinding.forHotbarSlot(0));
+    }
+
+    /**
+     * 우클릭 슬롯만 손에 들 수 있어야 합니다. 나머지 핫바 바인딩은 고르는 순간 나가므로
+     * castOnSelect 가 켜져 있어야 하고, 우클릭 슬롯은 반대로 꺼져 있어야 조준이 됩니다.
+     */
+    @Test
+    void onlyTheRightClickBindingIsHoldable() {
+        for (DemonLordBinding binding : DemonLordBinding.values()) {
+            if (binding == DemonLordBinding.RIGHT_CLICK) {
+                assertFalse(binding.castOnSelect(), "우클릭 슬롯은 선택만으로 나가면 안 됩니다");
+                assertTrue(binding.isHotbarSlot(), "우클릭 슬롯은 손에 들 수 있어야 합니다");
+                continue;
+            }
+            assertEquals(binding.isHotbarSlot(), binding.castOnSelect(),
+                    binding + ": 핫바 바인딩은 선택 즉시 발동해야 합니다");
+        }
+    }
+
+    /**
+     * 스킬이 바인딩 수보다 많아야 "무엇을 들고 갈지" 고르는 재미가 생깁니다.
+     *
+     * <p>동시에, 키보다 많이 지으면 누를 수 없는 타워가 생기므로 배치 단계에서 막아야 합니다.
+     * 그 방어는 {@code ProductionTowerService} 가 하고, 여기서는 전제를 못 박아 둡니다.
+     */
+    @Test
+    void thereAreMoreSkillsThanKeysToBindThem() {
+        assertTrue(DemonLordSkill.values().length > DemonLordBinding.values().length,
+                "스킬 " + DemonLordSkill.values().length + "종 / 키 " + DemonLordBinding.values().length + "개");
+        // 키 개수를 넘어서는 순번에는 바인딩이 없어야 하고, 그래서 배치를 막아야 합니다.
+        assertNull(DemonLordBinding.forIndex(DemonLordBinding.values().length));
+    }
+
+    /** 광역만 있으면 단단한 하나를 끊을 수단이 없습니다. 단일 대상 기술이 있어야 합니다. */
+    @Test
+    void aSingleTargetSkillExists() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        String id = DemonLordSkill.GRIP_OF_DOOM.towerId(1);
+        assertTrue(defaults.ability(id, "killRefundTicks", -1) > 0.0,
+                "처형 시 쿨타임 환급이 있어야 연쇄가 됩니다");
+        // 단일 대상이므로 광역 기술보다 한 방이 커야 합니다.
+        assertTrue(defaults.ability(id, "damage", 0)
+                        > defaults.ability(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "damage", 0),
+                "단일 대상 피해가 광역보다 커야 합니다");
+    }
+
+    /**
+     * 처형은 조건부여야 합니다.
+     *
+     * <p>임계값이 1.0 이면 체력과 무관하게 무조건 즉사라, 상대가 비싸게 산 유닛을 12초마다 대응
+     * 없이 지울 수 있습니다. 티어가 올라도 100% 에는 닿지 않아야 합니다.
+     */
+    @Test
+    void executeStaysConditionalAtEveryTier() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        double previous = 0.0;
+        for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+            String id = DemonLordSkill.GRIP_OF_DOOM.towerId(tier);
+            double ratio = defaults.ability(id, "executeHealthRatio", -1);
+            assertTrue(ratio > 0.0 && ratio < 1.0, "T" + tier + " 처형 임계값이 " + ratio + " 입니다");
+            assertTrue(ratio > previous, "T" + tier + " 임계값은 아래 티어보다 높아야 합니다");
+            previous = ratio;
+
+            assertTrue(defaults.ability(id, "explosionRadius", -1) > 0.0, "T" + tier + " 폭발 반경 누락");
+            assertTrue(defaults.ability(id, "explosionHealthRatio", -1) > 0.0, "T" + tier + " 폭발 체력 비율 누락");
+            assertTrue(defaults.ability(id, "areaDamage", -1) > 0.0, "T" + tier + " 폭발 고정 피해 누락");
+        }
     }
 
     /** 스킬 하나만 열어도 150 다이아 안에서 시작할 수 있어야 합니다. */
@@ -306,6 +392,59 @@ final class DemonLordTowerCatalogTest {
         }
         assertEquals(code.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1),
                 bundled.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -2), EPSILON);
+    }
+
+    /**
+     * 툴팁의 {@code {ability.키}} 는 해당 타워의 설정에서 값을 찾지 못하면 게임에 그대로 노출됩니다.
+     * 키를 오타 내도 컴파일은 통과하므로 여기서 막습니다.
+     */
+    @Test
+    void everyTooltipPlaceholderResolvesToARealAbilityValue() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Pattern placeholder = Pattern.compile("\\{ability\\.([a-zA-Z_][a-zA-Z0-9_]*)(?::[a-zA-Z_]+)?\\}");
+        double missing = -987654.0;
+
+        for (TowerType type : DemonLordTowers.all()) {
+            for (String line : type.description()) {
+                Matcher matcher = placeholder.matcher(line);
+                while (matcher.find()) {
+                    String key = matcher.group(1);
+                    assertNotEquals(missing, defaults.ability(type.id(), key, missing),
+                            type.id() + " tooltip references unknown ability '" + key + "'");
+                }
+            }
+        }
+    }
+
+    /** 툴팁이 피해량과 범위를 실제로 보여 줘야 합니다. 쿨타임만 있으면 값을 가늠할 수 없습니다. */
+    @Test
+    void tooltipsShowDamageAndReach() {
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+                String joined = String.join("\n", DemonLordTowers.tower(skill, tier).description());
+                assertTrue(joined.contains("{ability.cooldownTicks:"), skill + " T" + tier + " must show its cooldown");
+                if (skill == DemonLordSkill.DEMON_BARRIER) {
+                    assertTrue(joined.contains("{ability.shieldRatio:"), "배리어는 방어막 비율을 보여야 합니다");
+                    continue;
+                }
+                assertTrue(joined.contains("{ability.damage:"), skill + " T" + tier + " must show its damage");
+                assertTrue(joined.contains("{ability.range:")
+                                || joined.contains("{ability.radius:")
+                                || joined.contains("{ability.zoneRadius:")
+                                || joined.contains("{ability.dashDistance:")
+                                || joined.contains("{ability.blastRadius:"),
+                        skill + " T" + tier + " must show how far it reaches");
+            }
+        }
+        // 범위를 가진 스킬은 그 범위도 표기합니다.
+        assertTrue(String.join("", DemonLordTowers.tower(DemonLordSkill.WAVE_OF_MALICE, 1).description())
+                .contains("{ability.range:"));
+        assertTrue(String.join("", DemonLordTowers.tower(DemonLordSkill.DEMON_WINGS, 1).description())
+                .contains("{ability.radius:"));
+        assertTrue(String.join("", DemonLordTowers.tower(DemonLordSkill.SKY_BREAKER, 1).description())
+                .contains("{ability.dashDistance:"));
+        assertTrue(String.join("", DemonLordTowers.tower(DemonLordSkill.ARCANE_BOMBARDMENT, 1).description())
+                .contains("{ability.blastRadius:"));
     }
 
     /** 스킬 피해는 티어가 오를수록 반드시 강해져야 업그레이드가 의미를 가집니다. */

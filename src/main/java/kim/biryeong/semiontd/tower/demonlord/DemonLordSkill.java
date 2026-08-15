@@ -17,20 +17,19 @@ import net.minecraft.world.item.Items;
  * live at once. All five together cost 16, which is far more than an early limit allows.
  */
 public enum DemonLordSkill {
-    WAVE_OF_MALICE("wave_of_malice", "악의 파동", 3, 8, 3, Items.BREEZE_ROD),
-    DEMON_WINGS("demon_wings", "악마의 날개", 2, 6, 4, Items.PHANTOM_MEMBRANE),
-    SKY_BREAKER("sky_breaker", "하늘 부수기", 4, 10, 5, Items.MACE),
-    ARCANE_BOMBARDMENT("arcane_bombardment", "마도 폭격", 4, 10, 6, Items.FIRE_CHARGE),
-    DEMON_BARRIER("demon_barrier", "악마 배리어", 3, 20, 7, Items.SHIELD);
+    WAVE_OF_MALICE("wave_of_malice", "악의 파동", 3, 8, Items.BREEZE_ROD),
+    DEMON_WINGS("demon_wings", "악마의 날개", 2, 6, Items.PHANTOM_MEMBRANE),
+    SKY_BREAKER("sky_breaker", "하늘 부수기", 4, 10, Items.MACE),
+    ARCANE_BOMBARDMENT("arcane_bombardment", "마도 폭격", 4, 10, Items.FIRE_CHARGE),
+    DEMON_BARRIER("demon_barrier", "악마 배리어", 3, 20, Items.SHIELD),
+    HELLFIRE_BRAND("hellfire_brand", "지옥불 낙인", 3, 12, Items.BLAZE_POWDER),
+    SOUL_DRAIN("soul_drain", "영혼 흡수", 2, 9, Items.GHAST_TEAR),
+    ROAR_OF_DREAD("roar_of_dread", "공포의 포효", 3, 14, Items.GOAT_HORN),
+    GRIP_OF_DOOM("grip_of_doom", "파멸의 손아귀", 4, 12, Items.WITHER_SKELETON_SKULL),
+    HELL_GUILLOTINE("hell_guillotine", "지옥의 단두대", 4, 13, Items.NETHERITE_AXE);
 
     /** Hotbar slot the hand is forced back to after a cast. Holds the 마검. */
     public static final int BLADE_SLOT = 8;
-
-    /** Lowest hotbar slot a skill can occupy; 0-2 belong to the shared match tools. */
-    public static final int FIRST_SKILL_SLOT = 3;
-
-    /** Highest hotbar slot a skill can occupy. */
-    public static final int LAST_SKILL_SLOT = 7;
 
     /** Number of upgrade tiers. Every tier past the first shaves one second off the cooldown. */
     public static final int MAX_TIER = 4;
@@ -39,15 +38,13 @@ public enum DemonLordSkill {
     private final String displayName;
     private final int slotCost;
     private final int baseCooldownSeconds;
-    private final int hotbarSlot;
     private final Item item;
 
-    DemonLordSkill(String key, String displayName, int slotCost, int baseCooldownSeconds, int hotbarSlot, Item item) {
+    DemonLordSkill(String key, String displayName, int slotCost, int baseCooldownSeconds, Item item) {
         this.key = key;
         this.displayName = displayName;
         this.slotCost = slotCost;
         this.baseCooldownSeconds = baseCooldownSeconds;
-        this.hotbarSlot = hotbarSlot;
         this.item = item;
     }
 
@@ -66,10 +63,6 @@ public enum DemonLordSkill {
 
     public int baseCooldownSeconds() {
         return baseCooldownSeconds;
-    }
-
-    public int hotbarSlot() {
-        return hotbarSlot;
     }
 
     public Item item() {
@@ -107,13 +100,4 @@ public enum DemonLordSkill {
         return null;
     }
 
-    /** The skill bound to a hotbar slot, or {@code null} when that slot holds something else. */
-    public static DemonLordSkill fromHotbarSlot(int slot) {
-        for (DemonLordSkill skill : values()) {
-            if (skill.hotbarSlot == slot) {
-                return skill;
-            }
-        }
-        return null;
-    }
 }

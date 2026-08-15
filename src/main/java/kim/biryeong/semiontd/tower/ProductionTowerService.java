@@ -15,6 +15,8 @@ import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.SemionJob;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordBinding;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
@@ -61,6 +63,13 @@ public final class ProductionTowerService {
         if (DemonLordTowers.isDemonLordTower(towerType)
                 && hasDemonLordSkillAltar(laneContext.lane, playerId, DemonLordTowers.skillOf(towerType))) {
             return TowerPlacementResult.OCCUPIED;
+        }
+        // 바인딩은 1·2·3·4·5·F·Q 일곱 개뿐입니다. 더 지으면 누를 키가 없어 다이아와 코스트만
+        // 버리게 되므로, 조용히 죽은 타워를 만드는 대신 아예 막습니다.
+        if (DemonLordTowers.isDemonLordTower(towerType)
+                && DemonLordService.orderedAltars(laneContext.lane, playerId).size()
+                        >= DemonLordBinding.values().length) {
+            return TowerPlacementResult.TOWER_LIMIT_REACHED;
         }
         if (!canUseTower(game, laneContext.player, towerType)) {
             return TowerPlacementResult.TOWER_NOT_ALLOWED;

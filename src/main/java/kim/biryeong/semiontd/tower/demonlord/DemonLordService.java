@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.tower.demonlord;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -10,18 +11,24 @@ import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.job.DemonLordTowerJob;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import kim.biryeong.semiontd.map.LaneRegionLayout;
 import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
+import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -34,6 +41,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
+import xyz.nucleoid.map_templates.BlockBounds;
 
 /**
  * Drives everything the demon lord player does: the boss bar, the combat lock, the hotbar and the
@@ -46,6 +54,15 @@ import net.minecraft.world.phys.Vec3;
 public final class DemonLordService {
     private static final Map<UUID, ServerBossEvent> BOSS_BARS = new ConcurrentHashMap<>();
 
+    /** Keeps a leashed player just inside the boundary instead of exactly on it. */
+    private static final double EDGE_MARGIN = 0.3;
+
+    /** Falling this far below the lane floor means something threw the player out of the map. */
+    private static final double FALL_RESCUE_DEPTH = 4.0;
+
+    /** How often a knocked-out demon lord shakes off lingering monster targets. */
+    private static final int AGGRO_RELEASE_INTERVAL = 5;
+
     private static final Component BLADE_NAME =
             Component.literal("마검").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD);
 
@@ -56,7 +73,23 @@ public final class DemonLordService {
      * Hooks damage and melee. Must run after {@code SemionPlayerProtectionService}, which already
      * stops protecting a demon lord while they are in combat.
      */
-    public static void register() {
+    public static void register(SemionGameManager gameManager) {
+        // 우클릭 시전 슬롯. 손에 들고 조준한 뒤 우클릭해야 나갑니다.
+        UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (world.isClientSide() || hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) {
+                return InteractionResult.PASS;
+            }
+            if (serverPlayer.getInventory().getSelectedSlot() != DemonLordBinding.RIGHT_CLICK.hotbarSlot()) {
+                return InteractionResult.PASS;
+            }
+            return handleKeyBinding(gameManager, serverPlayer, DemonLordBinding.RIGHT_CLICK)
+                    ? InteractionResult.SUCCESS
+                    : InteractionResult.PASS;
+        });
+        registerCombatHooks();
+    }
+
+    private static void registerCombatHooks() {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayer player)) {
                 return true;
@@ -85,7 +118,17 @@ public final class DemonLordService {
                 return InteractionResult.PASS;
             }
             // 마검 평타. 바닐라 피해 대신 런타임 피해로 넣어야 몹의 방어/저항이 정상 적용됩니다.
-            dealDamage(attacker, monsterEntity, state.bladeDamage(), DamageType.PHYSICAL);
+            //
+            // 바닐라 공격 쿨다운은 바닐라 피해 경로에만 걸리므로, 여기서 직접 걸지 않으면 연타가
+            // 그대로 최대 피해가 됩니다. 차지 비율을 바닐라와 같은 곡선으로 곱해 줍니다.
+            int interval = (int) TowerBalanceRuntime.ability(
+                    DemonLordTowers.GLOBAL_CONFIG_ID, "bladeAttackIntervalTicks", 12.0);
+            long now = attacker.level().getGameTime();
+            double charge = state.bladeChargeScale(now, interval);
+            state.recordBladeAttack(now);
+            dealDamage(attacker, monsterEntity, state.bladeDamage() * (0.2 + charge * charge * 0.8),
+                    DamageType.PHYSICAL);
+            playSwing(attacker, charge);
             return InteractionResult.SUCCESS;
         });
     }
@@ -98,6 +141,10 @@ public final class DemonLordService {
         UUID owner = lane.ownerPlayer();
         SemionPlayer semionPlayer = owner == null ? null : players.get(owner);
         if (semionPlayer == null || !isDemonLord(semionPlayer)) {
+            // 직업이 바뀌었는데 예전 보스바가 남아 있으면 여기서 걷어냅니다.
+            if (owner != null) {
+                clearBossBar(owner);
+            }
             return;
         }
         ServerPlayer player = lane.arenaWorld().getServer().getPlayerList().getPlayer(owner);
@@ -120,6 +167,7 @@ public final class DemonLordService {
 
         if (!state.inCombat()) {
             restoreFlight(player);
+            releaseAggro(lane, player, gameTime);
             return;
         }
 
@@ -129,17 +177,78 @@ public final class DemonLordService {
         state.expireShieldIfNeeded(gameTime);
         lockFlight(player);
         leashToLane(player, lane);
+        DemonLordSkills.tickPending(player, lane, state, gameTime);
         detectSkillCast(player, lane, state, gameTime);
     }
 
     /** Round start: pull the demon lord to the middle of their own lane. */
     private static void moveToLaneCentre(ServerPlayer player, PlayerLane lane) {
-        if (lane.laneLayout() == null) {
+        LaneRegionLayout layout = lane.laneLayout();
+        if (layout == null) {
             return;
         }
-        Vec3 centre = lane.laneLayout().positionAt(0.5);
+        Vec3 centre = laneCentre(layout);
         player.teleportTo(centre.x, centre.y, centre.z);
-        player.getInventory().setSelectedSlot(DemonLordSkill.BLADE_SLOT);
+        setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
+    }
+
+    /**
+     * Middle of the player's own lane.
+     *
+     * <p>Not {@code positionAt(0.5)}: {@link LaneRegionLayout#pathPoints()} runs lane spawn ->
+     * lane waypoints -> the shared final waypoints -> the central boss spawn, so half way along it
+     * lands outside the lane entirely. Only the stretch that is actually inside {@code lane_path}
+     * counts, which keeps the drop on walkable path rather than on the lane area's bounding box
+     * centre (an L-shaped lane would put that inside a wall).
+     */
+    private static Vec3 laneCentre(LaneRegionLayout layout) {
+        List<Vec3> inside = layout.pathPoints().stream()
+                .filter(point -> containsHorizontally(layout.laneArea(), point))
+                .toList();
+        if (inside.size() == 1) {
+            return inside.getFirst();
+        }
+        if (inside.size() >= 2) {
+            return midpointAlong(inside);
+        }
+        BlockBounds area = layout.laneArea();
+        return new Vec3(
+                (area.min().getX() + area.max().getX() + 1.0) / 2.0,
+                layout.spawn().y,
+                (area.min().getZ() + area.max().getZ() + 1.0) / 2.0
+        );
+    }
+
+    private static Vec3 midpointAlong(List<Vec3> points) {
+        double total = 0.0;
+        for (int i = 0; i < points.size() - 1; i++) {
+            total += points.get(i).distanceTo(points.get(i + 1));
+        }
+        if (total <= 0.0) {
+            return points.getFirst();
+        }
+        double target = total / 2.0;
+        double walked = 0.0;
+        for (int i = 0; i < points.size() - 1; i++) {
+            Vec3 from = points.get(i);
+            Vec3 to = points.get(i + 1);
+            double segment = from.distanceTo(to);
+            if (segment <= 0.0) {
+                continue;
+            }
+            if (walked + segment >= target) {
+                return from.lerp(to, (target - walked) / segment);
+            }
+            walked += segment;
+        }
+        return points.getLast();
+    }
+
+    private static boolean containsHorizontally(BlockBounds area, Vec3 point) {
+        return point.x >= area.min().getX()
+                && point.x < area.max().getX() + 1.0
+                && point.z >= area.min().getZ()
+                && point.z < area.max().getZ() + 1.0;
     }
 
     public static void clearBossBar(UUID playerId) {
@@ -158,11 +267,35 @@ public final class DemonLordService {
     private static void knockOutOfCombat(ServerPlayer player, DemonLordState state) {
         state.leaveCombat();
         restoreFlight(player);
-        player.getInventory().setSelectedSlot(DemonLordSkill.BLADE_SLOT);
+        setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
         player.displayClientMessage(
                 Component.literal("전투에서 제외되었습니다. 다음 라운드에 부활합니다.")
                         .withStyle(ChatFormatting.DARK_RED),
                 false
+        );
+    }
+
+    /**
+     * Restores the swing animation and hit sound.
+     *
+     * <p>Returning {@code SUCCESS} from the attack callback cancels vanilla's whole attack path, and
+     * the arm swing and the strong/weak hit sound go with it. Charge decides which sound plays, so
+     * the player can hear whether the swing was fully wound up.
+     */
+    private static void playSwing(ServerPlayer attacker, double charge) {
+        attacker.swing(InteractionHand.MAIN_HAND, true);
+        if (!(attacker.level() instanceof ServerLevel level)) {
+            return;
+        }
+        level.playSound(
+                null,
+                attacker.getX(),
+                attacker.getY(),
+                attacker.getZ(),
+                charge >= 1.0 ? SoundEvents.PLAYER_ATTACK_STRONG : SoundEvents.PLAYER_ATTACK_WEAK,
+                SoundSource.PLAYERS,
+                1.0f,
+                1.0f
         );
     }
 
@@ -222,6 +355,28 @@ public final class DemonLordService {
         }
     }
 
+    /**
+     * Drops monsters that are still chewing on a knocked-out demon lord.
+     *
+     * <p>Blocking target <i>acquisition</i> is not enough: a monster that locked on while the player
+     * was still fighting keeps that target until something clears it, so [전투 제외] would not
+     * actually take the player out of the fight.
+     */
+    private static void releaseAggro(PlayerLane lane, ServerPlayer player, long gameTime) {
+        if (gameTime % AGGRO_RELEASE_INTERVAL != 0) {
+            return;
+        }
+        for (Monster monster : List.copyOf(lane.activeMonsters())) {
+            if (monster == null || !monster.hasMinecraftEntity()) {
+                continue;
+            }
+            if (lane.arenaWorld().getEntity(monster.minecraftEntityId()) instanceof SemionMonsterEntity entity
+                    && entity.getTarget() == player) {
+                entity.setTarget(null);
+            }
+        }
+    }
+
     private static void lockFlight(ServerPlayer player) {
         if (player.isCreative() || player.isSpectator()) {
             return;
@@ -252,13 +407,46 @@ public final class DemonLordService {
         if (lane.laneLayout() == null || lane.clearedThisRound()) {
             return;
         }
-        double leash = TowerBalanceRuntime.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "laneLeashRadius", 24.0);
         Vec3 position = player.position();
-        Vec3 onPath = lane.laneLayout().positionAt(lane.laneLayout().progressAt(position));
-        if (position.distanceTo(onPath) <= leash) {
+
+        // 맵 아래로 떨어지면 X/Z 만 잡아 봐야 계속 낙하합니다. 이 경우는 레인 중앙으로 되돌립니다.
+        double floor = lane.laneLayout().laneArea().min().getY();
+        if (position.y < floor - FALL_RESCUE_DEPTH) {
+            Vec3 centre = laneCentre(lane.laneLayout());
+            player.teleportTo(centre.x, centre.y, centre.z);
+            player.setDeltaMovement(Vec3.ZERO);
+            player.resetFallDistance();
             return;
         }
-        player.teleportTo(onPath.x, onPath.y, onPath.z);
+
+        Vec3 clamped = clampToLane(lane, position);
+        if (clamped.x == position.x && clamped.z == position.z) {
+            return;
+        }
+        player.teleportTo(clamped.x, position.y, clamped.z);
+    }
+
+    /**
+     * Clamps a position into the player's own {@code lane_path} box.
+     *
+     * <p>Used both by the per-tick leash and by 하늘 부수기, which would otherwise teleport straight
+     * through the arena barrier and drop the player out of the map.
+     */
+    static Vec3 clampToLane(PlayerLane lane, Vec3 position) {
+        if (lane.laneLayout() == null) {
+            return position;
+        }
+        BlockBounds area = lane.laneLayout().laneArea();
+        double slack = TowerBalanceRuntime.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "laneLeashSlack", 1.5);
+        double minX = area.min().getX() - slack + EDGE_MARGIN;
+        double maxX = area.max().getX() + 1.0 + slack - EDGE_MARGIN;
+        double minZ = area.min().getZ() - slack + EDGE_MARGIN;
+        double maxZ = area.max().getZ() + 1.0 + slack - EDGE_MARGIN;
+        return new Vec3(
+                Mth.clamp(position.x, Math.min(minX, maxX), Math.max(minX, maxX)),
+                position.y,
+                Mth.clamp(position.z, Math.min(minZ, maxZ), Math.max(minZ, maxZ))
+        );
     }
 
     /**
@@ -273,59 +461,155 @@ public final class DemonLordService {
         }
         state.setLastSelectedSlot(selected);
 
-        DemonLordSkill skill = DemonLordSkill.fromHotbarSlot(selected);
-        if (skill == null) {
+        DemonLordBinding binding = DemonLordBinding.forHotbarSlot(selected);
+        // 우클릭 슬롯은 손에 들고 조준해야 하므로 선택만으로는 발동하지 않습니다.
+        if (binding == null || !binding.castOnSelect()) {
             return;
         }
-        DemonLordSkillTower altar = findAltar(lane, player.getUUID(), skill);
-        if (altar == null) {
-            return;
-        }
-        if (!state.isSkillReady(skill, gameTime)) {
-            player.getInventory().setSelectedSlot(DemonLordSkill.BLADE_SLOT);
-            state.setLastSelectedSlot(DemonLordSkill.BLADE_SLOT);
-            return;
-        }
-
-        DemonLordSkills.cast(player, lane, state, skill, altar.type());
-        int cooldown = altar.cooldownTicks();
-        state.startCooldown(skill, gameTime, cooldown);
-        player.getCooldowns().addCooldown(new ItemStack(skill.item()), cooldown);
-
-        player.getInventory().setSelectedSlot(DemonLordSkill.BLADE_SLOT);
+        tryCast(player, lane, state, binding, gameTime);
+        setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
         state.setLastSelectedSlot(DemonLordSkill.BLADE_SLOT);
     }
 
-    private static DemonLordSkillTower findAltar(PlayerLane lane, UUID owner, DemonLordSkill skill) {
-        for (Tower tower : List.copyOf(lane.towers())) {
-            if (tower instanceof DemonLordSkillTower altar
-                    && owner.equals(altar.ownerPlayer())
-                    && altar.skill() == skill) {
-                return altar;
-            }
+    /**
+     * Fires the skill on {@code binding} if the player owns it and it is off cooldown.
+     *
+     * @return {@code true} when the input belonged to the demon lord and should be swallowed
+     */
+    public static boolean tryCast(
+            ServerPlayer player,
+            PlayerLane lane,
+            DemonLordState state,
+            DemonLordBinding binding,
+            long gameTime
+    ) {
+        DemonLordSkillTower altar = altarFor(lane, player.getUUID(), binding);
+        if (altar == null) {
+            return false;
         }
-        return null;
+        DemonLordSkill skill = altar.skill();
+        if (skill == null) {
+            return false;
+        }
+        if (!state.isSkillReady(skill, gameTime)) {
+            return true;
+        }
+        int refund = DemonLordSkills.cast(player, lane, state, skill, altar.type(), gameTime);
+        int cooldown = Math.max(1, altar.cooldownTicks() - Math.max(0, refund));
+        state.startCooldown(skill, gameTime, cooldown);
+        player.getCooldowns().addCooldown(new ItemStack(skill.item()), cooldown);
+        return true;
     }
 
     /**
-     * Rebuilds slots 3-7 from the altars that are actually standing, and keeps the 마검 in slot 8.
-     * Slots without an altar are emptied so a sold skill disappears from the bar immediately.
+     * Entry point for the key-driven bindings (F and Q).
+     *
+     * @return {@code true} when the key was consumed as a skill and its vanilla action must not run
+     */
+    public static boolean handleKeyBinding(SemionGameManager gameManager, ServerPlayer player, DemonLordBinding binding) {
+        DemonLordState state = DemonLordStates.get(player.getUUID());
+        if (state == null || !state.inCombat()) {
+            return false;
+        }
+        PlayerLane lane = gameManager.playableGame(player.getUUID())
+                .flatMap(game -> game.playerLane(player.getUUID()))
+                .orElse(null);
+        if (lane == null || lane.arenaWorld() == null) {
+            return false;
+        }
+        return tryCast(player, lane, state, binding, lane.arenaWorld().getGameTime());
+    }
+
+    /**
+     * Moves the hand and tells the client about it.
+     *
+     * <p>{@code Inventory#setSelectedSlot} only updates the server copy; without the packet the
+     * client keeps its own selection and echoes it straight back, so the hand appears never to move.
+     */
+    private static void setHeldSlot(ServerPlayer player, int slot) {
+        player.getInventory().setSelectedSlot(slot);
+        player.connection.send(new ClientboundSetHeldSlotPacket(slot));
+    }
+
+    /**
+     * The player's altars in build order.
+     *
+     * <p>Build order is what decides the key binding, so the first altar raised answers to
+     * {@code 1}. {@code lane.towers()} keeps insertion order, and upgrading replaces a tower in
+     * place, so a tier-up never shuffles the bar under the player's fingers.
+     */
+    public static List<DemonLordSkillTower> orderedAltars(PlayerLane lane, UUID owner) {
+        List<DemonLordSkillTower> altars = new ArrayList<>();
+        for (Tower tower : List.copyOf(lane.towers())) {
+            if (tower instanceof DemonLordSkillTower altar && owner.equals(altar.ownerPlayer())) {
+                altars.add(altar);
+            }
+        }
+        return altars;
+    }
+
+    private static DemonLordSkillTower altarFor(PlayerLane lane, UUID owner, DemonLordBinding binding) {
+        List<DemonLordSkillTower> altars = orderedAltars(lane, owner);
+        int index = binding.ordinal();
+        return index < altars.size() ? altars.get(index) : null;
+    }
+
+    /**
+     * Rebuilds the bar.
+     *
+     * <p>In combat the hotbar belongs entirely to the demon lord kit: the first four altars sit on
+     * keys 1-4 and the 마검 waits in slot 9. Out of combat the kit is stripped and the normal match
+     * tools come back, because that is when the player is actually shopping for towers.
      */
     private static void syncHotbar(ServerPlayer player, PlayerLane lane, DemonLordState state) {
-        for (DemonLordSkill skill : DemonLordSkill.values()) {
-            DemonLordSkillTower altar = findAltar(lane, player.getUUID(), skill);
-            if (altar == null) {
-                player.getInventory().setItem(skill.hotbarSlot(), ItemStack.EMPTY);
+        if (!state.inCombat()) {
+            if (state.combatKitGranted()) {
+                clearCombatKit(player);
+                SemionHotbarService.grantMatchTools(player);
+                state.setCombatKitGranted(false);
+            }
+            return;
+        }
+
+        SemionHotbarService.clearMatchTools(player);
+        List<DemonLordSkillTower> altars = orderedAltars(lane, player.getUUID());
+        // 타워 정보창이 자기 키를 보여줄 수 있게 배정 결과를 되돌려 씁니다.
+        for (int i = 0; i < altars.size(); i++) {
+            altars.get(i).setBinding(DemonLordBinding.forIndex(i));
+        }
+        for (DemonLordBinding binding : DemonLordBinding.values()) {
+            if (!binding.isHotbarSlot()) {
                 continue;
             }
-            ItemStack stack = new ItemStack(skill.item());
-            stack.set(DataComponents.CUSTOM_NAME, Component.literal(skill.displayName())
-                    .withStyle(ChatFormatting.LIGHT_PURPLE));
-            player.getInventory().setItem(skill.hotbarSlot(), stack);
+            int index = binding.ordinal();
+            if (index >= altars.size()) {
+                player.getInventory().setItem(binding.hotbarSlot(), ItemStack.EMPTY);
+                continue;
+            }
+            player.getInventory().setItem(binding.hotbarSlot(), skillStack(altars.get(index), binding));
         }
         ItemStack blade = new ItemStack(Items.NETHERITE_SWORD);
         blade.set(DataComponents.CUSTOM_NAME, BLADE_NAME);
         player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, blade);
+        state.setCombatKitGranted(true);
+    }
+
+    /** Item name carries the key, so F/Q skills are still discoverable even off the bar. */
+    private static ItemStack skillStack(DemonLordSkillTower altar, DemonLordBinding binding) {
+        ItemStack stack = new ItemStack(altar.skill().item());
+        stack.set(DataComponents.CUSTOM_NAME, Component.literal(
+                        "[" + binding.label() + "] " + altar.skill().displayName())
+                .withStyle(ChatFormatting.LIGHT_PURPLE));
+        return stack;
+    }
+
+    private static void clearCombatKit(ServerPlayer player) {
+        for (DemonLordBinding binding : DemonLordBinding.values()) {
+            if (binding.isHotbarSlot()) {
+                player.getInventory().setItem(binding.hotbarSlot(), ItemStack.EMPTY);
+            }
+        }
+        player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, ItemStack.EMPTY);
     }
 
     /** Shared damage entry point for the blade and every skill. */

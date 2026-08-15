@@ -16,6 +16,8 @@ import kim.biryeong.semiontd.tower.TowerType;
  * protect it with and losing an altar mid-round would silently delete a skill the player paid for.
  */
 public class DemonLordSkillTower extends ProductionTower {
+    private DemonLordBinding binding;
+
     public DemonLordSkillTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
     }
@@ -41,6 +43,20 @@ public class DemonLordSkillTower extends ProductionTower {
 
     public int cooldownTicks() {
         return DemonLordTowers.cooldownTicks(type());
+    }
+
+    /**
+     * Key this altar answers to, refreshed by {@code DemonLordService} whenever the bar is rebuilt.
+     *
+     * <p>Cached on the tower purely so the tower info panel can show it - the binding itself is
+     * always derived from build order, never stored as the source of truth.
+     */
+    public DemonLordBinding binding() {
+        return binding;
+    }
+
+    void setBinding(DemonLordBinding binding) {
+        this.binding = binding;
     }
 
     @Override
@@ -82,7 +98,8 @@ public class DemonLordSkillTower extends ProductionTower {
         }
         return List.of(
                 skill.displayName() + " · 쿨타임 " + String.format("%.1f", cooldownTicks() / 20.0) + "초",
-                "핫바 " + (skill.hotbarSlot() + 1) + "번 슬롯"
+                "코스트 " + skill.slotCost()
+                        + (binding == null ? " · 키 없음" : " · [" + binding.label() + "] 키")
         );
     }
 }

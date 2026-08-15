@@ -3593,8 +3593,8 @@ public record TowerBalanceConfig(
         global.put("bladeDamage", 30.0);
         global.put("bladeAttackIntervalTicks", 12.0);
         global.put("bladeReach", 3.5);
-        // 레인 이탈 방지: 중심에서 이 거리를 넘으면 중앙으로 되돌립니다.
-        global.put("laneLeashRadius", 24.0);
+        // 레인 이탈 방지: lane_path 영역 밖으로 이만큼까지만 나갈 수 있습니다.
+        global.put("laneLeashSlack", 1.5);
         putAbilities(abilities, DemonLordTowers.GLOBAL_CONFIG_ID, global);
 
         for (DemonLordSkill skill : DemonLordSkill.values()) {
@@ -3636,7 +3636,8 @@ public record TowerBalanceConfig(
             }
             case ARCANE_BOMBARDMENT -> {
                 values.put("jumpPower", new double[] {0.9, 0.95, 1.0, 1.1}[index]);
-                values.put("projectileSpeed", new double[] {1.4, 1.5, 1.6, 1.8}[index]);
+                // 솟아오른 뒤 정점에서 발사할 때까지의 대기 시간입니다.
+                values.put("castDelayTicks", new double[] {10.0, 10.0, 9.0, 8.0}[index]);
                 values.put("projectileRange", new double[] {18.0, 20.0, 22.0, 25.0}[index]);
                 values.put("blastRadius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
                 values.put("damage", new double[] {70.0, 110.0, 155.0, 210.0}[index]);
@@ -3644,6 +3645,53 @@ public record TowerBalanceConfig(
             case DEMON_BARRIER -> {
                 values.put("shieldRatio", new double[] {0.25, 0.32, 0.40, 0.50}[index]);
                 values.put("shieldDurationTicks", new double[] {160.0, 180.0, 200.0, 240.0}[index]);
+            }
+            case HELLFIRE_BRAND -> {
+                // 시선이 닿는 지점에 깝니다. 길목에 미리 깔거나 뭉친 무리를 노릴 수 있어야 합니다.
+                values.put("placementRange", new double[] {10.0, 11.0, 12.0, 14.0}[index]);
+                values.put("zoneRadius", new double[] {3.5, 4.0, 4.5, 5.0}[index]);
+                values.put("zoneDurationTicks", new double[] {100.0, 120.0, 140.0, 160.0}[index]);
+                values.put("tickIntervalTicks", 20.0);
+                // 장판은 지속으로 여러 번 들어가므로 1회 피해를 낮게 잡습니다.
+                values.put("damage", new double[] {18.0, 28.0, 40.0, 55.0}[index]);
+                values.put("damageTakenBonus", new double[] {0.10, 0.15, 0.20, 0.25}[index]);
+            }
+            case SOUL_DRAIN -> {
+                values.put("range", new double[] {7.0, 8.0, 9.0, 10.0}[index]);
+                values.put("width", new double[] {1.6, 1.8, 2.0, 2.2}[index]);
+                values.put("damage", new double[] {35.0, 55.0, 80.0, 110.0}[index]);
+                values.put("lifeStealRatio", new double[] {0.25, 0.30, 0.35, 0.40}[index]);
+                // 다수를 꿰뚫어도 한 번에 회복할 수 있는 양에 상한을 둡니다.
+                values.put("lifeStealCap", new double[] {0.12, 0.15, 0.18, 0.22}[index]);
+            }
+            case GRIP_OF_DOOM -> {
+                values.put("range", new double[] {9.0, 10.0, 11.0, 12.0}[index]);
+                // 처형 임계값. 대상 최대 체력의 이 비율 이하면 즉사시킵니다. 1.0 으로 올리면
+                // 체력과 무관하게 무조건 즉사하지만, 상대가 비싸게 산 유닛을 대응 없이 지우게 됩니다.
+                values.put("executeHealthRatio", new double[] {0.50, 0.55, 0.60, 0.70}[index]);
+                // 처형 시 시체가 터집니다. 폭발 피해 = 처형 시점 체력 × 비율 + areaDamage.
+                values.put("explosionHealthRatio", new double[] {0.80, 0.90, 1.00, 1.20}[index]);
+                values.put("explosionRadius", new double[] {4.0, 4.5, 5.0, 6.0}[index]);
+                values.put("areaDamage", new double[] {40.0, 65.0, 95.0, 130.0}[index]);
+                // 임계값 위인 대상에게 들어가는 일반 피해입니다.
+                values.put("damage", new double[] {130.0, 200.0, 285.0, 390.0}[index]);
+                values.put("missingHealthRatio", new double[] {0.10, 0.14, 0.18, 0.24}[index]);
+                values.put("killRefundTicks", new double[] {60.0, 70.0, 80.0, 100.0}[index]);
+                values.put("pullStrength", new double[] {0.5, 0.55, 0.6, 0.7}[index]);
+            }
+            case HELL_GUILLOTINE -> {
+                values.put("range", new double[] {10.0, 12.0, 14.0, 16.0}[index]);
+                values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {60.0, 95.0, 135.0, 185.0}[index]);
+                // 마왕이 잃은 체력 비율에 비례해 피해가 커집니다. 체력 0 에 가까울 때의 최대 증가폭.
+                values.put("missingHealthDamageBonus", new double[] {1.00, 1.20, 1.40, 1.80}[index]);
+            }
+            case ROAR_OF_DREAD -> {
+                values.put("radius", new double[] {5.0, 5.5, 6.0, 7.0}[index]);
+                values.put("damage", new double[] {25.0, 40.0, 58.0, 80.0}[index]);
+                values.put("knockback", new double[] {1.0, 1.1, 1.2, 1.4}[index]);
+                values.put("moveSpeedReduction", new double[] {0.50, 0.58, 0.66, 0.75}[index]);
+                values.put("dreadDurationTicks", new double[] {50.0, 60.0, 70.0, 80.0}[index]);
             }
             default -> {
             }
