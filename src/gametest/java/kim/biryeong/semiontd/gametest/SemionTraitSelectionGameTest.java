@@ -110,7 +110,12 @@ public final class SemionTraitSelectionGameTest {
         if (!assertEquals(context, expectedRedLoadout, game.players().get(redId).traitLoadout(), "The selected loadout should be locked into the match.")) {
             return;
         }
-        if (!assertEquals(context, economy.startingDiamond() + 150L, game.players().get(redId).economy().diamond(), "Gold Spoon should add 150 starting diamond.")) {
+        if (!assertEquals(
+                context,
+                economy.startingDiamond() + TraitEffects.startingMineralBonus(expectedRedLoadout),
+                game.players().get(redId).economy().diamond(),
+                "Gold Spoon should add its configured starting diamond."
+        )) {
             return;
         }
         PlayerLane lane = game.teams().get(TeamId.RED).laneGroup().lane(1).orElseThrow();
@@ -136,12 +141,20 @@ public final class SemionTraitSelectionGameTest {
 
         SemionTowerEntity firstEntity = (SemionTowerEntity) lane.arenaWorld()
                 .getEntity(first.entityId().orElseThrow());
-        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.STRENGTH_IN_NUMBERS_ID, BuiltInTraits.DIVERSITY_ID));
+        TraitLoadout roundTraits = new TraitLoadout(
+                BuiltInTraits.STRENGTH_IN_NUMBERS_ID,
+                BuiltInTraits.DIVERSITY_ID
+        );
+        lane.assignTraitLoadout(roundTraits);
         if (!assertDoubleEquals(context, 0.0, firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "Round traits should wait for wave start.")) {
             return;
         }
         lane.markWaveStarted(2);
-        if (!assertDoubleEquals(context, 0.06, firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "Two same towers and two distinct types should grant 6% total trait damage.")) {
+        double firstWaveBonus = TraitEffects.sameTypeDamageBonus(roundTraits, lane, first)
+                + TraitEffects.diversityDamageBonus(roundTraits, lane, first);
+        if (!assertDoubleEquals(context, firstWaveBonus,
+                firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
+                "Round traits should use the configured same-type and diversity bonuses.")) {
             return;
         }
         if (!assertTrue(context, firstEntity.hasPersistentEffect(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "Round trait damage should be persistent.")) {
@@ -161,22 +174,35 @@ public final class SemionTraitSelectionGameTest {
         if (!assertDoubleEquals(context, 0.0, thirdEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "A mid-wave tower should wait for the next snapshot.")) {
             return;
         }
-        if (!assertDoubleEquals(context, 0.06, firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "The current wave snapshot should remain unchanged.")) {
+        if (!assertDoubleEquals(context, firstWaveBonus,
+                firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
+                "The current wave snapshot should remain unchanged.")) {
             return;
         }
         lane.markWaveStarted(3);
-        if (!assertDoubleEquals(context, 0.08, firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "The next wave should count three same towers and two distinct types.")) {
+        double nextWaveBonus = TraitEffects.sameTypeDamageBonus(roundTraits, lane, first)
+                + TraitEffects.diversityDamageBonus(roundTraits, lane, first);
+        if (!assertDoubleEquals(context, nextWaveBonus,
+                firstEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
+                "The next wave should count the updated tower snapshot.")) {
             return;
         }
-        if (!assertDoubleEquals(context, 0.08, thirdEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS), "The next wave snapshot should include the new tower.")) {
+        if (!assertDoubleEquals(context, nextWaveBonus,
+                thirdEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
+                "The next wave snapshot should include the new tower.")) {
             return;
         }
 
-        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.FORTITUDE_ID, BuiltInTraits.NONE_ID));
-        if (!assertDoubleEquals(context, 60.0, first.currentMaxHealth(), "Fortitude should add 20% max health to a normal tower.")) {
+        TraitLoadout fortitude = new TraitLoadout(BuiltInTraits.FORTITUDE_ID, BuiltInTraits.NONE_ID);
+        lane.assignTraitLoadout(fortitude);
+        double fortifiedMaxHealth = first.type().maxHealth()
+                * (1.0 + TraitEffects.towerMaxHealthBonus(fortitude, first));
+        if (!assertDoubleEquals(context, fortifiedMaxHealth, first.currentMaxHealth(),
+                "Fortitude should add its configured max health to a normal tower.")) {
             return;
         }
-        if (!assertDoubleEquals(context, 60.0, first.health(), "Attaching Fortitude should heal the granted max-health amount.")) {
+        if (!assertDoubleEquals(context, fortifiedMaxHealth, first.health(),
+                "Attaching Fortitude should heal the granted max-health amount.")) {
             return;
         }
 
@@ -231,17 +257,23 @@ public final class SemionTraitSelectionGameTest {
 
         first.recordPlacementEconomy(100L, 1);
         first.markWaveStarted(1);
-        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.NONE_ID, BuiltInTraits.RAPID_DEPLOYMENT_ID));
-        if (!assertEquals(context, 70L, first.sellRefundAmount(), "Secondary Rapid Deployment should refund 70% after wave start.")) {
+        TraitLoadout rapidDeployment = new TraitLoadout(
+                BuiltInTraits.NONE_ID,
+                BuiltInTraits.RAPID_DEPLOYMENT_ID
+        );
+        lane.assignTraitLoadout(rapidDeployment);
+        if (!assertEquals(context, Math.round(100L * TraitEffects.sellRefundRate(rapidDeployment, true)),
+                first.sellRefundAmount(), "Secondary Rapid Deployment should use its configured refund rate.")) {
             return;
         }
-        lane.assignTraitLoadout(new TraitLoadout(BuiltInTraits.OPENING_SALVO_ID, BuiltInTraits.NONE_ID));
+        TraitLoadout openingSalvo = new TraitLoadout(BuiltInTraits.OPENING_SALVO_ID, BuiltInTraits.NONE_ID);
+        lane.assignTraitLoadout(openingSalvo);
         lane.markWaveStarted(4);
         if (!assertDoubleEquals(
                 context,
-                0.15,
+                TraitEffects.openingAttackSpeedBonus(openingSalvo),
                 firstEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS),
-                "Speedrunner should apply a 15% attack-speed effect at wave start."
+                "Speedrunner should apply its configured attack-speed effect at wave start."
         )) {
             return;
         }
@@ -295,7 +327,7 @@ public final class SemionTraitSelectionGameTest {
     }
 
     @GameTest
-    public void transcendenceBuffsLivingTowersAndClonesAtTwentySeconds(GameTestHelper context) {
+    public void transcendenceBuffsLivingTowersAndClonesAtConfiguredDelay(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();
         UUID redId = playerId("transcendence-red");
         UUID blueId = playerId("transcendence-blue");
@@ -367,29 +399,32 @@ public final class SemionTraitSelectionGameTest {
                 .getEntity(dead.entityId().orElseThrow());
         SemionTowerEntity secondaryEntity = (SemionTowerEntity) blueLane.arenaWorld()
                 .getEntity(secondary.entityId().orElseThrow());
+        int activationDelayTicks = TraitEffects.transcendenceActivationDelayTicks();
+        double primaryBonus = TraitEffects.transcendenceDamageBonus(transcendence);
+        double secondaryBonus = TraitEffects.transcendenceDamageBonus(secondaryTranscendence);
         lane.moveTowersToFinalDefense();
         blueLane.moveTowersToFinalDefense();
-        lane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), 399);
-        blueLane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), 399);
+        lane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), activationDelayTicks - 1);
+        blueLane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), activationDelayTicks - 1);
         if (!assertDoubleEquals(
                 context,
                 0.0,
                 livingEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
-                "Transcendence should not activate before tick 400."
+                "Transcendence should not activate before its configured delay."
         )) {
             return;
         }
 
-        lane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), 400);
-        blueLane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), 400);
+        lane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), activationDelayTicks);
+        blueLane.tick(server, null, Map.of(), MonsterScalingConfig.defaultConfig(), activationDelayTicks);
         if (!assertDoubleEquals(
                 context,
-                0.30,
+                primaryBonus,
                 livingEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
-                "A living final-defense tower should gain 30% trait damage."
+                "A living final-defense tower should gain configured trait damage."
         ) || !assertDoubleEquals(
                 context,
-                0.30,
+                primaryBonus,
                 clone.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
                 "A living illusion clone should gain Transcendence."
         ) || !assertDoubleEquals(
@@ -399,17 +434,17 @@ public final class SemionTraitSelectionGameTest {
                 "A dead tower should not gain Transcendence."
         ) || !assertDoubleEquals(
                 context,
-                130.0,
+                100.0 * (1.0 + primaryBonus),
                 livingEntity.applyTraitOutgoingDamage(null, 100.0),
                 "Transcendence should use the shared trait-damage path."
         ) || !assertDoubleEquals(
                 context,
-                0.15,
+                secondaryBonus,
                 secondaryEntity.activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_DAMAGE_BONUS),
-                "Secondary Transcendence should grant 15% trait damage."
+                "Secondary Transcendence should grant half the configured trait damage."
         ) || !assertDoubleEquals(
                 context,
-                115.0,
+                100.0 * (1.0 + secondaryBonus),
                 secondaryEntity.applyTraitOutgoingDamage(null, 100.0),
                 "Secondary Transcendence should use the shared trait-damage path."
         )) {

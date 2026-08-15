@@ -231,6 +231,7 @@ import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
+import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import kim.biryeong.semiontd.trait.TraitSelectionSnapshot;
@@ -5376,6 +5377,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         sourceTower.markWaveStarted(10);
         SemionTowerEntity sourceEntity = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
         sourceEntity.configure(sourceTower, null);
+        double igniteDamage = TraitEffects.igniteDamagePerTick(sourceTower.traitLoadout(), 100.0, 10);
+        double strongerIgniteDamage = TraitEffects.igniteDamagePerTick(sourceTower.traitLoadout(), 200.0, 10);
 
         SemionMonsterEntity fourTickTarget = spawnRoleMonsterEntity(
                 context,
@@ -5392,7 +5395,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (int tick = 0; tick < 80; tick++) {
             fourTickTarget.aiStep();
         }
-        if (!assertClose(context, 962.0, fourTickTarget.runtimeMonster().health(), "Ignite should deal exactly four 9.5-damage ticks.")) {
+        if (!assertClose(context, 1_000.0 - igniteDamage * 4, fourTickTarget.runtimeMonster().health(),
+                "Ignite should deal exactly four configured damage ticks.")) {
             return;
         }
         if (!assertTrue(context, playerId.equals(fourTickTarget.runtimeMonster().lastHitPlayerId().orElse(null)), "Ignite should preserve owner attribution.")) {
@@ -5416,7 +5420,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         sourceEntity.recordAttack(refreshTarget, 50.0, false);
         refreshTarget.aiStep();
-        if (!assertClose(context, 990.5, refreshTarget.runtimeMonster().health(), "A weaker refresh should keep the stronger damage and original tick cadence.")) {
+        if (!assertClose(context, 1_000.0 - igniteDamage, refreshTarget.runtimeMonster().health(),
+                "A weaker refresh should keep the stronger damage and original tick cadence.")) {
             return;
         }
         for (int tick = 0; tick < 10; tick++) {
@@ -5426,11 +5431,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (int tick = 0; tick < 9; tick++) {
             refreshTarget.aiStep();
         }
-        if (!assertClose(context, 990.5, refreshTarget.runtimeMonster().health(), "A stronger refresh must not reset the pending tick.")) {
+        if (!assertClose(context, 1_000.0 - igniteDamage, refreshTarget.runtimeMonster().health(),
+                "A stronger refresh must not reset the pending tick.")) {
             return;
         }
         refreshTarget.aiStep();
-        if (!assertClose(context, 973.5, refreshTarget.runtimeMonster().health(), "The next scheduled tick should use the stronger 17 damage.")) {
+        if (!assertClose(context, 1_000.0 - igniteDamage - strongerIgniteDamage,
+                refreshTarget.runtimeMonster().health(), "The next scheduled tick should use the stronger configured damage.")) {
             return;
         }
 
@@ -5455,7 +5462,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, killTarget.runtimeMonster().lastHitSourceKind() == KillSourceKind.TOWER, "Ignite kills should keep tower kill attribution.")) {
             return;
         }
-        if (!assertClose(context, 84.5, sourceTower.roundMagicDamageDealt(), "Ignite ticks should count as magic damage for the tower that applied the retained ignite.")) {
+        if (!assertClose(context, igniteDamage * 5 + strongerIgniteDamage + 20.0,
+                sourceTower.roundMagicDamageDealt(),
+                "Ignite ticks should count as magic damage for the tower that applied the retained ignite.")) {
             return;
         }
         context.succeed();
@@ -5498,20 +5507,24 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (int tick = 0; tick < 20; tick++) {
             splashTarget.aiStep();
         }
+        double igniteDamage = TraitEffects.igniteDamagePerTick(sourceTower.traitLoadout(), 50.0, 10);
         if (!assertClose(context, 50.0, sourceTower.roundPhysicalDamageDealt(),
                 "Basic-attack splash should remain physical damage.")) {
             return;
         }
-        if (!assertClose(context, 5.75, sourceTower.roundMagicDamageDealt(),
+        if (!assertClose(context, igniteDamage, sourceTower.roundMagicDamageDealt(),
                 "Ignite should merge into the source tower's magic damage.")) {
             return;
         }
         String markup = SemionHudTextService.damageSidebarMarkupFor(playerId, game);
-        if (!assertTrue(context, markup.contains("<#ec8d34>🪓 50</#ec8d34> <dark_gray>|</dark_gray> <#796CFF>🔥 6</#796CFF> <dark_gray>|</dark_gray> <aqua>🛡 0</aqua>"),
+        long roundedIgniteDamage = Math.round(igniteDamage);
+        if (!assertTrue(context, markup.contains("<#ec8d34>🪓 50</#ec8d34> <dark_gray>|</dark_gray> <#796CFF>🔥 "
+                        + roundedIgniteDamage + "</#796CFF> <dark_gray>|</dark_gray> <aqua>🛡 0</aqua>"),
                 "Damage sidebar should show physical and magic totals without a separate ignite subtotal.")) {
             return;
         }
-        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <#ec8d34>🪓 50</#ec8d34> <#796CFF>🔥 6</#796CFF>"),
+        if (!assertTrue(context, markup.contains("Test Direct Tower</white> <#ec8d34>🪓 50</#ec8d34> <#796CFF>🔥 "
+                        + roundedIgniteDamage + "</#796CFF>"),
                 "Tower damage ranking should split physical and magic damage.")) {
             return;
         }
