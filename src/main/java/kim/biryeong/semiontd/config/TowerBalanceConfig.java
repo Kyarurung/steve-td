@@ -48,6 +48,9 @@ import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.queen.PokerHand;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
+import kim.biryeong.semiontd.tower.TowerCapacity;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.plant.PlantSoil;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
@@ -115,6 +118,17 @@ public record TowerBalanceConfig(
     }
 
     public static TowerBalanceConfig defaultConfig() {
+        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, codeDefaults());
+    }
+
+    /**
+     * The numbers this build ships in code, before the bundled resource replaces them.
+     *
+     * <p>{@code BundledBalanceDefaults.load} returns the resource verbatim rather than merging, so a
+     * builder whose values only land here would silently run on fallbacks. Exposing the code-side
+     * config lets tooling diff the two and regenerate the bundled resource.
+     */
+    public static TowerBalanceConfig codeDefaults() {
         LinkedHashMap<String, TowerStats> towers = new LinkedHashMap<>();
         addTower(towers, VillagerTowers.T1_SPLASH_TOWER);
         addTower(towers, VillagerTowers.T2_LIBRARIAN_TOWER);
@@ -224,6 +238,7 @@ public record TowerBalanceConfig(
         addPlantTowers(towers);
         addArmyTowers(towers);
         addThunderTowers(towers);
+        addDemonLordTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -305,6 +320,7 @@ public record TowerBalanceConfig(
         putPlantUpgrades(upgradeCosts);
         putArmyUpgrades(upgradeCosts);
         putThunderUpgrades(upgradeCosts);
+        putDemonLordUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -873,6 +889,7 @@ public record TowerBalanceConfig(
         putPlantAbilities(abilities);
         putArmyAbilities(abilities);
         putThunderAbilities(abilities);
+        putDemonLordAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -881,7 +898,7 @@ public record TowerBalanceConfig(
                 IllusionCloneQueueConfig.defaultConfig(),
                 VillagerAdvConfig.defaultConfig()
         );
-        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, fallback);
+        return fallback;
     }
 
     private static void addPlantTowers(LinkedHashMap<String, TowerStats> towers) {
@@ -3544,6 +3561,93 @@ public record TowerBalanceConfig(
         values.put("petDamageCap", 0.15);
         values.put("awakeningDamage", 75.0);
         values.put("awakeningMoveSpeed", 0.30);
+        return values;
+    }
+
+    private static void addDemonLordTowers(LinkedHashMap<String, TowerStats> towers) {
+        DemonLordTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    /** Upgrade price is the target tier's own diamond cost, so the shop and the tooltip agree. */
+    private static void putDemonLordUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier < DemonLordSkill.MAX_TIER; tier++) {
+                TowerType next = DemonLordTowers.tower(skill, tier + 1);
+                putUpgrade(upgradeCosts, DemonLordTowers.tower(skill, tier), next.id(), next.mineralCost());
+            }
+        }
+    }
+
+    private static void putDemonLordAbilities(LinkedHashMap<String, Map<String, Double>> abilities) {
+        // 마왕 본체. 레벨은 라운드를 넘어 유지되고, 체력 풀은 라운드마다 이 값으로 다시 채워집니다.
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("baseMaxHealth", 600.0);
+        global.put("maxHealthPerLevel", 70.0);
+        global.put("maxLevel", 30.0);
+        // 처치한 몹의 최대 체력에 비례해 경험치를 줍니다. 단단한 적을 잡을수록 크게 성장합니다.
+        global.put("experiencePerMaxHealth", 0.02);
+        global.put("experienceBase", 12.0);
+        global.put("experienceGrowth", 1.25);
+        // 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 만렙에서 2.45배가 됩니다.
+        global.put("damagePerLevel", 0.05);
+        global.put("bladeDamage", 30.0);
+        global.put("bladeAttackIntervalTicks", 12.0);
+        global.put("bladeReach", 3.5);
+        // 레인 이탈 방지: 중심에서 이 거리를 넘으면 중앙으로 되돌립니다.
+        global.put("laneLeashRadius", 24.0);
+        putAbilities(abilities, DemonLordTowers.GLOBAL_CONFIG_ID, global);
+
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+                LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+                // 빌더의 "코스트". 라운드 타워 한도를 이만큼 차지합니다.
+                values.put(TowerCapacity.CONFIG_KEY, (double) skill.slotCost());
+                values.put("cooldownTicks", (double) (skill.cooldownSecondsForTier(tier) * 20));
+                values.putAll(demonLordSkillValues(skill, tier));
+                putAbilities(abilities, skill.towerId(tier), values);
+            }
+        }
+    }
+
+    /** Per-tier skill numbers. Index 0 is tier 1. */
+    private static Map<String, Double> demonLordSkillValues(DemonLordSkill skill, int tier) {
+        int index = tier - 1;
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        switch (skill) {
+            case WAVE_OF_MALICE -> {
+                values.put("coneDegrees", 60.0);
+                values.put("range", new double[] {6.0, 6.5, 7.0, 8.0}[index]);
+                values.put("damage", new double[] {45.0, 70.0, 100.0, 140.0}[index]);
+                values.put("knockback", new double[] {0.8, 0.9, 1.0, 1.2}[index]);
+            }
+            case DEMON_WINGS -> {
+                values.put("leapPower", new double[] {1.0, 1.1, 1.2, 1.3}[index]);
+                values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {30.0, 48.0, 70.0, 95.0}[index]);
+                values.put("knockback", new double[] {0.7, 0.8, 0.9, 1.0}[index]);
+                values.put("healRatio", new double[] {0.10, 0.13, 0.16, 0.20}[index]);
+            }
+            case SKY_BREAKER -> {
+                values.put("dashDistance", new double[] {8.0, 9.0, 10.0, 12.0}[index]);
+                values.put("hitRadius", new double[] {2.0, 2.2, 2.4, 2.6}[index]);
+                values.put("damage", new double[] {90.0, 140.0, 200.0, 275.0}[index]);
+                values.put("liftPower", new double[] {0.8, 0.85, 0.9, 1.0}[index]);
+                values.put("stunTicks", new double[] {40.0, 45.0, 50.0, 60.0}[index]);
+            }
+            case ARCANE_BOMBARDMENT -> {
+                values.put("jumpPower", new double[] {0.9, 0.95, 1.0, 1.1}[index]);
+                values.put("projectileSpeed", new double[] {1.4, 1.5, 1.6, 1.8}[index]);
+                values.put("projectileRange", new double[] {18.0, 20.0, 22.0, 25.0}[index]);
+                values.put("blastRadius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {70.0, 110.0, 155.0, 210.0}[index]);
+            }
+            case DEMON_BARRIER -> {
+                values.put("shieldRatio", new double[] {0.25, 0.32, 0.40, 0.50}[index]);
+                values.put("shieldDurationTicks", new double[] {160.0, 180.0, 200.0, 240.0}[index]);
+            }
+            default -> {
+            }
+        }
         return values;
     }
 

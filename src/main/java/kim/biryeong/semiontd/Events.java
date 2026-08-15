@@ -7,6 +7,7 @@ import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.SemionPlayerProtectionService;
 import kim.biryeong.semiontd.skybox.SemionSkyboxService;
 import kim.biryeong.semiontd.tip.SemionTipService;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -26,6 +27,8 @@ public final class Events {
             CosmeticService cosmeticService
     ) {
         SemionPlayerProtectionService.register(gameManager);
+        // 보호 서비스 뒤에 등록해야 마왕만 예외로 피해를 받고 평타를 넣을 수 있습니다.
+        DemonLordService.register();
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             gameManager.tick(server);

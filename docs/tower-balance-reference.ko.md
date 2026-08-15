@@ -362,6 +362,36 @@
 `PlantTowerCatalogTest`의 `baseDamageStaysAtOrBelowFiftyOnEveryTier`와
 `soilAmplificationStaysWithinTheConservativeCap`도 함께 갱신합니다.
 
+## 마왕 빌더
+
+마왕은 타워가 아니라 플레이어가 싸우므로, `towers`의 전투 수치는 전부 0입니다. 실제 값은 제단별
+`abilities`와 전역 `demon_lord_global`에 있습니다. 제단 id는 `t{1..4}_{스킬키}_tower` 형식이며
+스킬 키는 `wave_of_malice`, `demon_wings`, `sky_breaker`, `arcane_bombardment`, `demon_barrier`입니다.
+
+| config id | 주요 키 | 의미 |
+|---|---|---|
+| 제단 id 전체 | `towerSlotCost` | 빌더의 "코스트". 라운드 타워 한도를 이만큼 차지합니다. 티어가 올라도 바뀌지 않습니다. |
+| 제단 id 전체 | `cooldownTicks` | 스킬 쿨타임입니다. 기본값은 티어마다 1초씩 줄어듭니다. |
+| `demon_lord_global` | `baseMaxHealth`, `maxHealthPerLevel`, `maxLevel` | 마왕 체력 곡선입니다. 기본 600, 레벨당 +70, 만렙 30입니다. |
+| `demon_lord_global` | `experiencePerMaxHealth`, `experienceBase`, `experienceGrowth` | 처치 경험치입니다. 처치 대상 최대 체력에 비례하며, 다음 레벨 요구량은 `experienceBase × experienceGrowth^(레벨-1)`입니다. |
+| `demon_lord_global` | `damagePerLevel` | 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 기본 레벨당 +5%. |
+| `demon_lord_global` | `bladeDamage`, `bladeAttackIntervalTicks`, `bladeReach` | 마검 평타 수치입니다. |
+| `demon_lord_global` | `laneLeashRadius` | 레인 경로에서 이만큼 벗어나면 경로 위로 되돌립니다. 레인을 다 정리하면 적용되지 않습니다. |
+| `..._wave_of_malice_tower` | `coneDegrees`, `range`, `damage`, `knockback` | 전방 부채꼴 각도·거리·피해·넉백입니다. |
+| `..._demon_wings_tower` | `leapPower`, `radius`, `damage`, `knockback`, `healRatio` | 도약력, 광역 반경, 피해, 넉백, 최대 체력 대비 회복량입니다. |
+| `..._sky_breaker_tower` | `dashDistance`, `hitRadius`, `damage`, `liftPower`, `stunTicks` | 돌진 거리, 경로 판정 반경, 피해, 띄우기 세기, 기절 시간입니다. 기절은 이동·공격 속도·공격력을 100% 깎습니다. |
+| `..._arcane_bombardment_tower` | `jumpPower`, `projectileRange`, `blastRadius`, `damage` | 점프력, 착탄 지점까지의 최대 거리, 폭발 반경, 피해입니다. |
+| `..._demon_barrier_tower` | `shieldRatio`, `shieldDurationTicks` | 최대 체력 대비 방어막 비율과 지속 시간입니다. 중첩되지 않고 큰 쪽으로 갱신됩니다. |
+
+스킬 5종을 전부 열면 코스트 합이 16입니다. 이 값을 바꾸면
+`DemonLordTowerCatalogTest`의 `skillCostsMatchTheDesignedValues`와
+`openingEverySkillCostsMoreThanAnEarlyTowerLimit`도 함께 갱신합니다.
+
+> **주의**: `tower_balance.json`은 번들 리소스가 코드 기본값과 **병합되지 않고 통째로 대체**합니다.
+> Java의 `putDemonLordAbilities`만 고치면 런타임에서 값이 폴백으로 떨어지며 컴파일로는 잡히지 않습니다.
+> `src/main/resources/semiontd/balance-defaults/tower_balance.json`도 함께 고쳐야 하며,
+> 어긋나면 `bundledResourceCarriesEveryDemonLordEntryThatCodeDefines` 테스트가 깨집니다.
+
 ## 수정 절차
 
 1. 서버의 `config/semion-td/tower_balance.json`을 백업합니다.

@@ -2760,6 +2760,14 @@
       "attackIntervalTicks": 20,
       "aggroPriority": -5
     },
+    "t1_wave_of_malice_tower": {
+      "mineralCost": 55,
+      "maxHealth": 100.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
     "thunder_armadillo_t1": {
       "mineralCost": 50,
       "maxHealth": 250.0,
@@ -2942,6 +2950,158 @@
       "range": 8.5,
       "damage": 56.0,
       "attackIntervalTicks": 15,
+      "aggroPriority": 0
+    },
+    "t2_wave_of_malice_tower": {
+      "mineralCost": 130,
+      "maxHealth": 200.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t3_wave_of_malice_tower": {
+      "mineralCost": 240,
+      "maxHealth": 350.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t4_wave_of_malice_tower": {
+      "mineralCost": 380,
+      "maxHealth": 550.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t1_demon_wings_tower": {
+      "mineralCost": 40,
+      "maxHealth": 90.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t2_demon_wings_tower": {
+      "mineralCost": 100,
+      "maxHealth": 180.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t3_demon_wings_tower": {
+      "mineralCost": 190,
+      "maxHealth": 320.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t4_demon_wings_tower": {
+      "mineralCost": 300,
+      "maxHealth": 500.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t1_sky_breaker_tower": {
+      "mineralCost": 75,
+      "maxHealth": 110.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t2_sky_breaker_tower": {
+      "mineralCost": 170,
+      "maxHealth": 220.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t3_sky_breaker_tower": {
+      "mineralCost": 300,
+      "maxHealth": 380.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t4_sky_breaker_tower": {
+      "mineralCost": 460,
+      "maxHealth": 600.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t1_arcane_bombardment_tower": {
+      "mineralCost": 75,
+      "maxHealth": 105.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t2_arcane_bombardment_tower": {
+      "mineralCost": 170,
+      "maxHealth": 210.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t3_arcane_bombardment_tower": {
+      "mineralCost": 300,
+      "maxHealth": 360.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t4_arcane_bombardment_tower": {
+      "mineralCost": 460,
+      "maxHealth": 570.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t1_demon_barrier_tower": {
+      "mineralCost": 60,
+      "maxHealth": 120.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t2_demon_barrier_tower": {
+      "mineralCost": 140,
+      "maxHealth": 240.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t3_demon_barrier_tower": {
+      "mineralCost": 250,
+      "maxHealth": 420.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "t4_demon_barrier_tower": {
+      "mineralCost": 390,
+      "maxHealth": 660.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
       "aggroPriority": 0
     }
   },
@@ -3290,7 +3450,22 @@
     "army_recruit_t1->army_specialist_t2": 130,
     "army_recruit_t1->army_gunner_t2": 130,
     "army_specialist_t2->army_platoon_leader_t3": 280,
-    "army_gunner_t2->army_battery_chief_t3": 280
+    "army_gunner_t2->army_battery_chief_t3": 280,
+    "t1_wave_of_malice_tower->t2_wave_of_malice_tower": 130,
+    "t2_wave_of_malice_tower->t3_wave_of_malice_tower": 240,
+    "t3_wave_of_malice_tower->t4_wave_of_malice_tower": 380,
+    "t1_demon_wings_tower->t2_demon_wings_tower": 100,
+    "t2_demon_wings_tower->t3_demon_wings_tower": 190,
+    "t3_demon_wings_tower->t4_demon_wings_tower": 300,
+    "t1_sky_breaker_tower->t2_sky_breaker_tower": 170,
+    "t2_sky_breaker_tower->t3_sky_breaker_tower": 300,
+    "t3_sky_breaker_tower->t4_sky_breaker_tower": 460,
+    "t1_arcane_bombardment_tower->t2_arcane_bombardment_tower": 170,
+    "t2_arcane_bombardment_tower->t3_arcane_bombardment_tower": 300,
+    "t3_arcane_bombardment_tower->t4_arcane_bombardment_tower": 460,
+    "t1_demon_barrier_tower->t2_demon_barrier_tower": 140,
+    "t2_demon_barrier_tower->t3_demon_barrier_tower": 250,
+    "t3_demon_barrier_tower->t4_demon_barrier_tower": 390
   },
   "abilities": {
     "villager_splash_t2": {
@@ -5808,6 +5983,183 @@
     "army_battery_chief_t3": {
       "splashDamageRatio": 0.7,
       "splashRadius": 4.0
+    },
+    "t1_wave_of_malice_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 160.0,
+      "coneDegrees": 60.0,
+      "range": 6.0,
+      "damage": 45.0,
+      "knockback": 0.8
+    },
+    "t2_wave_of_malice_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 140.0,
+      "coneDegrees": 60.0,
+      "range": 6.5,
+      "damage": 70.0,
+      "knockback": 0.9
+    },
+    "t3_wave_of_malice_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 120.0,
+      "coneDegrees": 60.0,
+      "range": 7.0,
+      "damage": 100.0,
+      "knockback": 1.0
+    },
+    "t4_wave_of_malice_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 100.0,
+      "coneDegrees": 60.0,
+      "range": 8.0,
+      "damage": 140.0,
+      "knockback": 1.2
+    },
+    "t1_demon_wings_tower": {
+      "towerSlotCost": 2.0,
+      "cooldownTicks": 120.0,
+      "leapPower": 1.0,
+      "radius": 4.0,
+      "damage": 30.0,
+      "knockback": 0.7,
+      "healRatio": 0.1
+    },
+    "t2_demon_wings_tower": {
+      "towerSlotCost": 2.0,
+      "cooldownTicks": 100.0,
+      "leapPower": 1.1,
+      "radius": 4.5,
+      "damage": 48.0,
+      "knockback": 0.8,
+      "healRatio": 0.13
+    },
+    "t3_demon_wings_tower": {
+      "towerSlotCost": 2.0,
+      "cooldownTicks": 80.0,
+      "leapPower": 1.2,
+      "radius": 5.0,
+      "damage": 70.0,
+      "knockback": 0.9,
+      "healRatio": 0.16
+    },
+    "t4_demon_wings_tower": {
+      "towerSlotCost": 2.0,
+      "cooldownTicks": 60.0,
+      "leapPower": 1.3,
+      "radius": 5.5,
+      "damage": 95.0,
+      "knockback": 1.0,
+      "healRatio": 0.2
+    },
+    "t1_sky_breaker_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 200.0,
+      "dashDistance": 8.0,
+      "hitRadius": 2.0,
+      "damage": 90.0,
+      "liftPower": 0.8,
+      "stunTicks": 40.0
+    },
+    "t2_sky_breaker_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 180.0,
+      "dashDistance": 9.0,
+      "hitRadius": 2.2,
+      "damage": 140.0,
+      "liftPower": 0.85,
+      "stunTicks": 45.0
+    },
+    "t3_sky_breaker_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 160.0,
+      "dashDistance": 10.0,
+      "hitRadius": 2.4,
+      "damage": 200.0,
+      "liftPower": 0.9,
+      "stunTicks": 50.0
+    },
+    "t4_sky_breaker_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 140.0,
+      "dashDistance": 12.0,
+      "hitRadius": 2.6,
+      "damage": 275.0,
+      "liftPower": 1.0,
+      "stunTicks": 60.0
+    },
+    "t1_arcane_bombardment_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 200.0,
+      "jumpPower": 0.9,
+      "projectileSpeed": 1.4,
+      "projectileRange": 18.0,
+      "blastRadius": 4.0,
+      "damage": 70.0
+    },
+    "t2_arcane_bombardment_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 180.0,
+      "jumpPower": 0.95,
+      "projectileSpeed": 1.5,
+      "projectileRange": 20.0,
+      "blastRadius": 4.5,
+      "damage": 110.0
+    },
+    "t3_arcane_bombardment_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 160.0,
+      "jumpPower": 1.0,
+      "projectileSpeed": 1.6,
+      "projectileRange": 22.0,
+      "blastRadius": 5.0,
+      "damage": 155.0
+    },
+    "t4_arcane_bombardment_tower": {
+      "towerSlotCost": 4.0,
+      "cooldownTicks": 140.0,
+      "jumpPower": 1.1,
+      "projectileSpeed": 1.8,
+      "projectileRange": 25.0,
+      "blastRadius": 5.5,
+      "damage": 210.0
+    },
+    "t1_demon_barrier_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 400.0,
+      "shieldRatio": 0.25,
+      "shieldDurationTicks": 160.0
+    },
+    "t2_demon_barrier_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 380.0,
+      "shieldRatio": 0.32,
+      "shieldDurationTicks": 180.0
+    },
+    "t3_demon_barrier_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 360.0,
+      "shieldRatio": 0.4,
+      "shieldDurationTicks": 200.0
+    },
+    "t4_demon_barrier_tower": {
+      "towerSlotCost": 3.0,
+      "cooldownTicks": 340.0,
+      "shieldRatio": 0.5,
+      "shieldDurationTicks": 240.0
+    },
+    "demon_lord_global": {
+      "baseMaxHealth": 600.0,
+      "maxHealthPerLevel": 70.0,
+      "maxLevel": 30.0,
+      "experiencePerMaxHealth": 0.02,
+      "experienceBase": 12.0,
+      "experienceGrowth": 1.25,
+      "damagePerLevel": 0.05,
+      "bladeDamage": 30.0,
+      "bladeAttackIntervalTicks": 12.0,
+      "bladeReach": 3.5,
+      "laneLeashRadius": 24.0
     }
   },
   "illusionCloneQueue": {
