@@ -163,7 +163,7 @@ public final class HeroPartyTowers {
         for (int index = 0; index < 4; index++) {
             int tier = index + 1;
             String id = "hero_party_" + role.id() + "_" + tier;
-            TowerType type = TowerType.builder(id, role.displayName() + " T" + tier)
+            TowerType type = TowerType.builder(id, companionDisplayName(role, tier))
                     .mineralCost(costs[index])
                     .maxHealth(health[index])
                     .range(ranges[index])
@@ -181,6 +181,19 @@ public final class HeroPartyTowers {
             SPECS_BY_ID.put(id, new CompanionSpec(role, tier));
         }
         COMPANIONS.put(role, List.copyOf(types));
+    }
+
+    private static String companionDisplayName(HeroCompanionRole role, int tier) {
+        if (role != HeroCompanionRole.PRIEST) {
+            return role.displayName() + " T" + tier;
+        }
+        return switch (tier) {
+            case 1 -> "견습 사제";
+            case 2 -> "중견 사제";
+            case 3 -> "베테랑 사제";
+            case 4 -> "대사제";
+            default -> role.displayName();
+        };
     }
 
     private record CompanionSpec(HeroCompanionRole role, int tier) {

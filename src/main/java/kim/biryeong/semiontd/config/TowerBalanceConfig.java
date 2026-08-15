@@ -1125,6 +1125,7 @@ public record TowerBalanceConfig(
         validateInsectBalance();
         validateFutureAgencyBalance();
         validateQueenBalance();
+        validateHeroPartyBalance();
         validateAtlantisAbilities();
         validatePlantAbilities();
     }
@@ -1815,6 +1816,7 @@ public record TowerBalanceConfig(
     private static void putEngineerAbilities(Map<String, Map<String, Double>> abilities) {
         LinkedHashMap<String, Double> global = new LinkedHashMap<>();
         global.put("activeTicks", (double) EngineerBalance.ACTIVE_TICKS);
+        global.put("doorActiveTicks", (double) EngineerBalance.DOOR_ACTIVE_TICKS);
         global.put("plateCooldownTicks", (double) EngineerBalance.PLATE_COOLDOWN_TICKS);
         global.put("golemMoveSpeed", EngineerBalance.GOLEM_MOVE_SPEED);
         global.put("pistonImmunityTicks", (double) EngineerBalance.PISTON_IMMUNITY_TICKS);
@@ -1909,7 +1911,12 @@ public record TowerBalanceConfig(
                 Map.entry("armorReduction5", 0.20),
                 Map.entry("adventureDamagePerPoint", 0.0025),
                 Map.entry("adventureHealingPerPoint", 0.0025),
-                Map.entry("adventureHealthPerPoint", 0.0035)
+                Map.entry("adventureHealthPerPoint", 0.0035),
+                Map.entry(
+                        "focusFireDamageReductionPerExtraAttacker",
+                        HeroPartyBalance.FOCUS_FIRE_REDUCTION_PER_EXTRA_ATTACKER
+                ),
+                Map.entry("focusFireDamageReductionCap", HeroPartyBalance.FOCUS_FIRE_REDUCTION_CAP)
         ));
         for (HeroWeapon weapon : HeroWeapon.values()) {
             putAbilities(abilities, weapon.configId(), Map.of(
@@ -2008,8 +2015,8 @@ public record TowerBalanceConfig(
 
     private static void putQueenAbilities(Map<String, Map<String, Double>> abilities) {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("shrinkFactorPerPoint", 0.99);
-        values.put("minimumStatScale", 0.50);
+        values.put("shrinkFactorPerPoint", 0.98);
+        values.put("minimumStatScale", 0.20);
         values.put("minimumVisualScale", 0.50);
         values.put("queenShrinkPoints", 5.0);
         values.put("cardShrinkPoints", 0.75);
@@ -2113,6 +2120,24 @@ public record TowerBalanceConfig(
         }
     }
 
+    private void validateHeroPartyBalance() {
+        Map<String, Double> values = abilities.get(HeroPartyBalance.GLOBAL_CONFIG_ID);
+        if (values == null) {
+            return;
+        }
+        Double perExtraAttacker = values.get("focusFireDamageReductionPerExtraAttacker");
+        Double cap = values.get("focusFireDamageReductionCap");
+        if (perExtraAttacker != null && perExtraAttacker >= 1.0) {
+            throw new IllegalArgumentException("Hero Party focus-fire reduction must be in [0, 1).");
+        }
+        if (cap != null && cap >= 1.0) {
+            throw new IllegalArgumentException("Hero Party focus-fire reduction cap must be in [0, 1).");
+        }
+        if (perExtraAttacker != null && cap != null && perExtraAttacker > cap) {
+            throw new IllegalArgumentException("Hero Party focus-fire reduction must not exceed its cap.");
+        }
+    }
+
     private void validateFutureAgencyBalance() {
         Map<String, Double> values = abilities.get(FutureAgencyBalance.GLOBAL_ID);
         if (values == null) return;
@@ -2183,11 +2208,11 @@ public record TowerBalanceConfig(
         }
         validateEngineerValues(EngineerBalance.GLOBAL_ID, global);
         requireEngineerPositive(global,
-                "activeTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
+                "activeTicks", "doorActiveTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
                 "doorRetargetTicks", "tntFuseTicks", "maxRedstone", "maxPlates", "maxPistons",
                 "dispenserMaxPlateDistance", "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         requireEngineerIntegral(global,
-                "activeTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
+                "activeTicks", "doorActiveTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
                 "maxRedstone", "maxPlates", "maxPistons", "dispenserMaxPlateDistance",
                 "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         double distanceBonus = global.getOrDefault("dispenserDamagePerPlateBlock", -1.0);

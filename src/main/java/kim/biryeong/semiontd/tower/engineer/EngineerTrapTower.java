@@ -177,7 +177,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
         if (powered && !poweredLastTick) {
             activationPlateDistance = plateDistance.getAsInt();
             if (activeTicks > 0) {
-                activeTicks = EngineerBalance.activeTicks();
+                activeTicks = activationDurationTicks();
                 armed = false;
                 updateActiveName(source, true);
                 showActivationVfx(source);
@@ -197,7 +197,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
         if (activeTicks <= 0) {
             return;
         }
-        boolean periodicVfx = activeTicks < EngineerBalance.activeTicks()
+        boolean periodicVfx = activeTicks < activationDurationTicks()
                 && activeTicks % Math.max(1, EngineerBalance.activeVfxIntervalTicks()) == 0;
         if (periodicVfx && kind != EngineerTowers.TrapKind.TNT) {
             showActivationVfx(source);
@@ -221,7 +221,9 @@ public final class EngineerTrapTower extends EntityBackedTower {
     public List<String> runtimeDetailLines() {
         ArrayList<String> lines = new ArrayList<>();
         lines.add("<gold>전력</gold> <white>" + (activeTicks > 0 ? "작동 중" : "대기") + "</white>");
-        lines.add("<yellow>작동 잔여시간</yellow> <white>" + String.format(java.util.Locale.ROOT, "%.1f초", activeTicks / 20.0) + "</white>");
+        lines.add("<yellow>" + (kind == EngineerTowers.TrapKind.DOOR ? "도발" : "작동")
+                + " 잔여시간</yellow> <white>"
+                + String.format(java.util.Locale.ROOT, "%.1f초", activeTicks / 20.0) + "</white>");
         lines.add("<red>재무장</red> <white>" + (armed ? "완료" : "신호 해제 필요") + "</white>");
         if (kind == EngineerTowers.TrapKind.TNT) {
             lines.add("<red>라운드 폭발</red> <white>" + (tntUsed ? "사용함" : "준비됨") + "</white>");
@@ -259,7 +261,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     private void activate(PlayerLane lane, SemionTowerEntity source) {
         armed = false;
-        activeTicks = EngineerBalance.activeTicks();
+        activeTicks = activationDurationTicks();
         actionCooldown = 0;
         updateActiveName(source, true);
         showActivationVfx(source);
@@ -432,6 +434,12 @@ public final class EngineerTrapTower extends EntityBackedTower {
             level.sendParticles(ParticleTypes.FLAME, center.x, center.y + 0.08, center.z,
                     2, 0.05, 0.03, 0.05, 0.005);
         }
+    }
+
+    private int activationDurationTicks() {
+        return kind == EngineerTowers.TrapKind.DOOR
+                ? EngineerBalance.doorActiveTicks()
+                : EngineerBalance.activeTicks();
     }
 
     public boolean showDebugVfx(PlayerLane lane, boolean tnt) {

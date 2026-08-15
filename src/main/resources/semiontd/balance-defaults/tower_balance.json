@@ -4666,6 +4666,7 @@
       "maxPlates": 4.0,
       "golemMoveSpeed": 0.18,
       "activeTicks": 60.0,
+      "doorActiveTicks": 120.0,
       "pistonImmunityTicks": 300.0,
       "doorRetargetTicks": 10.0,
       "maxRedstone": 35.0,
@@ -4848,8 +4849,8 @@
       "damageReduction": 0.25
     },
     "queen_global": {
-      "shrinkFactorPerPoint": 0.99,
-      "minimumStatScale": 0.5,
+      "shrinkFactorPerPoint": 0.98,
+      "minimumStatScale": 0.2,
       "minimumVisualScale": 0.5,
       "queenShrinkPoints": 5.0,
       "cardShrinkPoints": 0.75,
@@ -4891,16 +4892,16 @@
       "card.spade.intervalTicks": 18.0,
       "card.spade.aggro": 80.0,
       "hand.high_card": 0.0,
-      "hand.one_pair": 0.06,
-      "hand.two_pair": 0.1,
-      "hand.three_of_a_kind": 0.14,
-      "hand.straight": 0.18,
-      "hand.flush": 0.22,
-      "hand.full_house": 0.28,
-      "hand.four_of_a_kind": 0.32,
-      "hand.straight_flush": 0.38,
-      "hand.royal_flush": 0.42,
-      "hand.five_of_a_kind": 0.5
+      "hand.one_pair": 0.1,
+      "hand.two_pair": 0.15,
+      "hand.three_of_a_kind": 0.2,
+      "hand.straight": 0.25,
+      "hand.flush": 0.3,
+      "hand.full_house": 0.4,
+      "hand.four_of_a_kind": 0.5,
+      "hand.straight_flush": 0.65,
+      "hand.royal_flush": 0.8,
+      "hand.five_of_a_kind": 1.0
     },
     "hero_party_global": {
       "weaponUpgradeCost1": 80.0,
@@ -4930,7 +4931,9 @@
       "armorReduction5": 0.2,
       "adventureDamagePerPoint": 0.0025,
       "adventureHealingPerPoint": 0.0025,
-      "adventureHealthPerPoint": 0.0035
+      "adventureHealthPerPoint": 0.0035,
+      "focusFireDamageReductionPerExtraAttacker": 0.08,
+      "focusFireDamageReductionCap": 0.4
     },
     "hero_party_weapon_sword": {
       "purchaseCost": 0.0,
