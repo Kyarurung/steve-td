@@ -24,6 +24,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -65,6 +66,8 @@ public final class TowerVfxGameTest {
         assertPalette(OceanTowers.T1_WATER, BuilderPalette.OCEAN);
         assertPalette(AncientCityTowers.CATALYST_T1, BuilderPalette.ANCIENT_CITY);
         assertPalette(AdversaryTowers.FOX, BuilderPalette.ADVERSARY);
+        assertPalette(FutureAgencyTowers.agent(kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole.COMBAT, 5),
+                BuilderPalette.FUTURE_AGENCY);
         assertPalette(PlantTowers.T1_MEADOW_TOWER, BuilderPalette.PLANT);
         context.succeed();
     }
@@ -268,6 +271,19 @@ public final class TowerVfxGameTest {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         for (String effect : List.of("zone", "burst")) {
             String command = "semiontd-debug vfx atlantis " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void futureAgencyDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("carry", "suppression")) {
+            String command = "semiontd-debug vfx future_agency " + effect;
             var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");

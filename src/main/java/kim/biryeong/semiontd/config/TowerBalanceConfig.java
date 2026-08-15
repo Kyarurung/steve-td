@@ -1984,10 +1984,10 @@ public record TowerBalanceConfig(
         }
         putAbilities(abilities, FutureAgencyBalance.GLOBAL_ID, values);
         double[] suppressionRadius = {1.25, 1.5, 1.75, 2.0, 2.5};
-        double[] suppressionTargets = {3, 4, 5, 6, 8};
-        double[] suppressionRatio = {.50, .55, .60, .65, .70};
-        double[] suppressionSlow = {.10, .15, .20, .25, .30};
-        double[] protectionReduction = {.10, .15, .20, .25, .30};
+        double[] suppressionTargets = {3, 4, 5, 6, 7};
+        double[] suppressionRatio = {.40, .45, .50, .55, .60};
+        double[] suppressionSlow = {.08, .12, .16, .20, .25};
+        double[] protectionReduction = {.08, .12, .16, .20, .25};
         for (int index = 0; index < 5; index++) {
             int grade = 5 - index;
             putAbilities(abilities, FutureAgencyTowers.agent(FutureAgencyRole.SUPPRESSION, grade).id(), Map.of(
@@ -2096,14 +2096,32 @@ public record TowerBalanceConfig(
                 throw new IllegalArgumentException("Future agency balance must be finite and non-negative: " + key);
             }
         });
-        for (String key : java.util.List.of("damageReductionCap", "slowCap")) {
+        for (String key : java.util.List.of(
+                "rebuilderDamageBonus", "rebuilderMaxHealthBonus", "commanderDamageBonus",
+                "commanderMaxHealthBonus", "commanderAttackSpeedBonus", "damageReductionCap",
+                "slowCap", "suppressionDenseCap")) {
             double value = values.getOrDefault(key, 0.0);
-            if (value <= 0.0 || value > 1.0) {
-                throw new IllegalArgumentException("Future agency cap must be between 0 and 1: " + key);
+            if (value < 0.0 || value > 1.0) {
+                throw new IllegalArgumentException("Future agency ratio must be between 0 and 1: " + key);
             }
         }
-        if (values.getOrDefault("escortRadius", 0.0) <= 0.0) {
-            throw new IllegalArgumentException("Future agency escortRadius must be positive.");
+        for (FutureAgencyPolicy policy : FutureAgencyPolicy.values()) {
+            if (policy == FutureAgencyPolicy.LONG_RANGE_OPTICS
+                    || policy == FutureAgencyPolicy.AREA_SUPPRESSION
+                    || policy == FutureAgencyPolicy.MULTI_TARGET
+                    || policy == FutureAgencyPolicy.FORCED_TAUNT) continue;
+            double value = values.getOrDefault("policy." + policy.id(), -1.0);
+            if (value < 0.0 || value > 1.0) {
+                throw new IllegalArgumentException("Future agency policy ratio must be between 0 and 1: " + policy.id());
+            }
+        }
+        if (values.getOrDefault("escortRadius", 0.0) <= 0.0
+                || values.getOrDefault("suppressionDenseRadius", 0.0) <= 0.0) {
+            throw new IllegalArgumentException("Future agency radii must be positive.");
+        }
+        if (values.getOrDefault("policy.dense_control", 0.0)
+                > values.getOrDefault("suppressionDenseCap", 0.0)) {
+            throw new IllegalArgumentException("Future agency dense-control bonus exceeds its cap.");
         }
         for (int grade = 5; grade >= 1; grade--) {
             Map<String, Double> suppression = abilities.get(
@@ -2113,10 +2131,11 @@ public record TowerBalanceConfig(
                 if (targetCount <= 0.0 || targetCount != Math.rint(targetCount)) {
                     throw new IllegalArgumentException("Future agency suppression target count must be a positive integer.");
                 }
+                double ratio = suppression.getOrDefault("suppressionDamageRatio", 0.0);
+                double slow = suppression.getOrDefault("suppressionSlow", 0.0);
                 if (suppression.getOrDefault("suppressionRadius", 0.0) <= 0.0
-                        || suppression.getOrDefault("suppressionDamageRatio", 0.0) <= 0.0
-                        || suppression.getOrDefault("suppressionSlow", 0.0) < 0.0
-                        || suppression.getOrDefault("suppressionSlow", 0.0) > 1.0) {
+                        || ratio <= 0.0 || ratio > 1.0 || slow < 0.0 || slow > 1.0
+                        || slow > values.getOrDefault("slowCap", 0.0)) {
                     throw new IllegalArgumentException("Future agency suppression values are invalid.");
                 }
             }
@@ -2124,7 +2143,8 @@ public record TowerBalanceConfig(
                     FutureAgencyTowers.agent(FutureAgencyRole.PROTECTION, grade).id());
             if (protection != null) {
                 double reduction = protection.getOrDefault("damageReduction", -1.0);
-                if (reduction < 0.0 || reduction > 1.0) {
+                if (reduction < 0.0 || reduction > 1.0
+                        || reduction > values.getOrDefault("damageReductionCap", 0.0)) {
                     throw new IllegalArgumentException("Future agency protection reduction must be between 0 and 1.");
                 }
             }

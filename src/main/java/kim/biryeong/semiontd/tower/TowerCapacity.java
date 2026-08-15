@@ -14,4 +14,8 @@ public final class TowerCapacity {
         }
         return Math.max(1, TowerBalanceRuntime.abilityInt(type.id(), CONFIG_KEY, 1));
     }
+
+    public static int slotCost(Tower tower) {
+        return tower == null ? 1 : Math.max(0, tower.slotWeight()) * slotCost(tower.type());
+    }
 }

@@ -115,16 +115,21 @@ final class FutureAgencyTowerCatalogTest {
     void defaultsMergeDescriptionsAndRejectInvalidCap() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         FutureAgencyTowers.all().forEach(type -> assertTrue(defaults.towers().containsKey(type.id())));
-        assertEquals(0.80, defaults.ability(FutureAgencyBalance.GLOBAL_ID,
+        assertEquals(0.65, defaults.ability(FutureAgencyBalance.GLOBAL_ID,
                 "damageReductionCap", -1), 0.0001);
-        assertEquals(0.08, defaults.ability(FutureAgencyBalance.GLOBAL_ID,
+        assertEquals(0.06, defaults.ability(FutureAgencyBalance.GLOBAL_ID,
                 "policy.agency_tactics", -1), 0.0001);
 
-        TowerBalanceConfig merged = new TowerBalanceConfig(Map.of(), Map.of(), Map.of())
+        TowerBalanceConfig merged = new TowerBalanceConfig(Map.of(), Map.of(), Map.of(
+                FutureAgencyBalance.GLOBAL_ID, Map.of("policy.agency_tactics", 0.04)))
                 .withMissingDefaults(defaults);
         assertEquals(150, merged.towers().get(FutureAgencyTowers.ESCAPEE.id()).mineralCost());
         assertEquals(1500, merged.upgradeCost(FutureAgencyTowers.COMMANDER.id(),
                 FutureAgencyLeaderTower.SAVE_WORLD, -1));
+        assertEquals(0.04, merged.ability(FutureAgencyBalance.GLOBAL_ID,
+                "policy.agency_tactics", -1), 0.0001);
+        assertEquals(0.65, merged.ability(FutureAgencyBalance.GLOBAL_ID,
+                "damageReductionCap", -1), 0.0001);
 
         ProductionTowerCatalogs.reloadBuiltIns(defaults);
         FutureAgencyTowers.all().forEach(type -> assertTrue(
@@ -140,6 +145,13 @@ final class FutureAgencyTowerCatalogTest {
                 defaults.towers(), defaults.upgradeCosts(), abilities,
                 defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion());
         assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
+
+        assertInvalidAbility(defaults, FutureAgencyTowers.agent(FutureAgencyRole.SUPPRESSION, 1).id(),
+                "suppressionMaxTargets", 2.5);
+        assertInvalidAbility(defaults, FutureAgencyTowers.agent(FutureAgencyRole.PROTECTION, 1).id(),
+                "damageReduction", 0.70);
+        assertInvalidAbility(defaults, FutureAgencyBalance.GLOBAL_ID,
+                "policy.precision_fire", 1.01);
     }
 
     @Test
@@ -158,7 +170,31 @@ final class FutureAgencyTowerCatalogTest {
         assertTrue(leader.runtimeDetailLines().stream().noneMatch(line -> line.contains("정책 0/10")));
         assertEquals(20.0, FutureAgencyTowers.REBUILDER.damage(), 0.0001);
         assertEquals(7.0, FutureAgencyTowers.REBUILDER.range(), 0.0001);
-        assertEquals(45.0, FutureAgencyTowers.COMMANDER.damage(), 0.0001);
+        assertEquals(32.0, FutureAgencyTowers.COMMANDER.damage(), 0.0001);
+    }
+
+    @Test
+    void futureAgencyDefaultsMatchDpsAndDefenseTargets() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertTower(defaults, FutureAgencyTowers.COMMANDER, 1000, 32, 14);
+        assertTower(defaults, FutureAgencyTowers.agent(FutureAgencyRole.COMBAT, 1), 650, 48, 10);
+        assertTower(defaults, FutureAgencyTowers.agent(FutureAgencyRole.SUPPRESSION, 1), 700, 38, 13);
+        assertTower(defaults, FutureAgencyTowers.agent(FutureAgencyRole.PROTECTION, 1), 1300, 32, 14);
+
+        double combatDps = 48.0 * 20.0 / 10.0;
+        assertEquals(96.0, combatDps, 0.0001);
+        assertEquals(192.0, combatDps * 2.0, 0.0001);
+        double tenAttackPolicies = combatDps * 2.0
+                * (1.0 + 0.12 + 3 * 0.06 + 3 * 0.10 + 0.20)
+                * (1.0 + 0.08 + 3 * 0.07);
+        assertTrue(tenAttackPolicies <= 450.0, "Ten offensive policies must keep the pair below 450 DPS");
+
+        double suppressionDps = 38.0 * 20.0 / 13.0;
+        assertEquals(58.46, suppressionDps, 0.01);
+        assertEquals(128.62, suppressionDps * (1.0 + 2.0 * 0.60), 0.01);
+        assertEquals(198.77, suppressionDps * (1.0 + 4.0 * 0.60), 0.01);
+        assertEquals(0.65, defaults.ability(FutureAgencyBalance.GLOBAL_ID,
+                "damageReductionCap", -1), 0.0001);
     }
 
     @Test
@@ -183,5 +219,26 @@ final class FutureAgencyTowerCatalogTest {
             kim.biryeong.semiontd.tower.TowerType type) {
         return ProductionTowerCatalog.find(type.id()).orElseThrow()
                 .create(OWNER, TeamId.RED, 1, new GridPosition(0, 64, 0));
+    }
+
+    private static void assertTower(TowerBalanceConfig config,
+                                    kim.biryeong.semiontd.tower.TowerType type,
+                                    double health, double damage, int interval) {
+        TowerBalanceConfig.TowerStats stats = config.towers().get(type.id());
+        assertEquals(health, stats.maxHealth(), 0.0001);
+        assertEquals(damage, stats.damage(), 0.0001);
+        assertEquals(interval, stats.attackIntervalTicks());
+    }
+
+    private static void assertInvalidAbility(TowerBalanceConfig defaults, String configId,
+                                             String key, double value) {
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> changed = new LinkedHashMap<>(abilities.get(configId));
+        changed.put(key, value);
+        abilities.put(configId, changed);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion());
+        assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
     }
 }

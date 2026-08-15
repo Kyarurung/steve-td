@@ -672,7 +672,7 @@ public final class PlayerLane {
             return;
         }
 
-        for (Tower tower : towers) {
+        for (Tower tower : List.copyOf(towers)) {
             if (!tower.participatesInFinalDefense()) {
                 tower.moveToFinalDefense(this, tower.position());
                 continue;

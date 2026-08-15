@@ -13,8 +13,8 @@ public final class FutureAgencyTowers {
             "minecraft:wandering_trader", "공격하지 않는 유일 지도자입니다. <gold>미래기관 재건</gold>을 무료로 선택해야 요원을 설치할 수 있습니다.");
     public static final TowerType REBUILDER = leader("future_rebuilder", "기관 재건자", 0, 550, 7, 20, 16,
             "minecraft:villager", "직접 전투하며 모든 <light_purple>요원</light_purple>의 피해·최대 체력을 <green>5%</green> 높입니다. 매 준비 단계에 <gold>정책 3개</gold>가 제시됩니다.");
-    public static final TowerType COMMANDER = leader("future_commander", "기관 최고 지휘자", 0, 1200, 8, 45, 12,
-            "minecraft:illusioner", "직접 전투하며 모든 <light_purple>요원</light_purple>의 피해·최대 체력을 <green>15%</green>, 공격속도를 <green>10%</green> 높입니다.");
+    public static final TowerType COMMANDER = leader("future_commander", "기관 최고 지휘자", 0, 1000, 8, 32, 14,
+            "minecraft:illusioner", "직접 전투하며 모든 <light_purple>요원</light_purple>의 피해·최대 체력을 <green>12%</green>, 공격속도를 <green>8%</green> 높입니다.");
 
     private static final Map<FutureAgencyRole, List<TowerType>> AGENTS = buildAgents();
     private static final List<TowerType> ALL = buildAll();
@@ -56,13 +56,13 @@ public final class FutureAgencyTowers {
         EnumMap<FutureAgencyRole, List<TowerType>> result = new EnumMap<>(FutureAgencyRole.class);
         result.put(FutureAgencyRole.COMBAT, line(FutureAgencyRole.COMBAT,
                 new double[]{85,140,230,380,650}, new double[]{7,7.5,8,8.5,9},
-                new double[]{10,16,27,44,72}, new int[]{14,13,11,9,7}, new int[]{20,25,30,35,40}));
+                new double[]{8,13,21,33,48}, new int[]{16,15,13,11,10}, new int[]{20,25,30,35,40}));
         result.put(FutureAgencyRole.SUPPRESSION, line(FutureAgencyRole.SUPPRESSION,
                 new double[]{100,160,260,430,700}, new double[]{6,6.5,7,7.5,8},
-                new double[]{7,12,20,33,52}, new int[]{18,17,15,13,11}, new int[]{10,15,20,25,30}));
+                new double[]{6,10,16,25,38}, new int[]{20,18,16,14,13}, new int[]{10,15,20,25,30}));
         result.put(FutureAgencyRole.PROTECTION, line(FutureAgencyRole.PROTECTION,
-                new double[]{220,370,620,1000,1650}, new double[]{2.5,2.7,3,3.2,3.5},
-                new double[]{6,10,17,28,45}, new int[]{20,18,16,14,12}, new int[]{70,85,100,115,130}));
+                new double[]{200,330,540,850,1300}, new double[]{2.5,2.7,3,3.2,3.5},
+                new double[]{5,8,13,21,32}, new int[]{22,20,18,16,14}, new int[]{70,85,100,115,130}));
         return Map.copyOf(result);
     }
 
@@ -98,7 +98,7 @@ public final class FutureAgencyTowers {
         };
         return List.of(
                 "<light_purple>" + role.displayName() + " 요원</light_purple> <white>" + grade + "급</white>. " + roleLine,
-                "구원 전 생존하면 현재 위치·체력을 가진 <aqua>추가 생존자</aqua>가 다음 웨이브에 누적됩니다.",
+                "구원 전 생존하면 현재 위치·체력을 잇는 <aqua>연결 생존자</aqua>를 원본당 최대 1기 유지합니다.",
                 "설치 원본은 매 웨이브 원래 위치와 최대 체력으로 다시 출전하며, <red>세계 구원</red> 후에는 일반 중앙 방어 타워가 됩니다."
         );
     }

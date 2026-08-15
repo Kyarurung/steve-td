@@ -43,6 +43,9 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
+import kim.biryeong.semiontd.tower.area.AreaEffectIds;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkinGui;
@@ -513,7 +516,14 @@ public final class SemionCommands {
                                                 context.getSource(), gameManager, AtlantisVfx.DebugKind.ZONE)))
                                 .then(literal("burst")
                                         .executes(context -> debugAtlantisVfx(
-                                                context.getSource(), gameManager, AtlantisVfx.DebugKind.BURST)))))
+                                                context.getSource(), gameManager, AtlantisVfx.DebugKind.BURST))))
+                        .then(literal("future_agency")
+                                .then(literal("carry")
+                                        .executes(context -> debugFutureAgencyVfx(
+                                                context.getSource(), gameManager, false)))
+                                .then(literal("suppression")
+                                        .executes(context -> debugFutureAgencyVfx(
+                                                context.getSource(), gameManager, true)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -639,6 +649,36 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 아틀란티스 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugFutureAgencyVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            boolean suppression
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (!FutureAgencyTowers.isFutureAgencyTower(tower.type()) || !(tower instanceof EntityBackedTower backed)
+                        || backed.entityId().isEmpty()) continue;
+                var entity = lane.arenaWorld().getEntity(backed.entityId().getAsInt());
+                if (!(entity instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity)
+                        || !towerEntity.isAlive()) continue;
+                if (suppression) {
+                    TowerVfxService.showAreaEffect(towerEntity,
+                            AreaEffectIds.tower(tower, "future_suppression"), AreaVfxStyles.DEBUFF,
+                            towerEntity.position(), 2.5, List.of(), 0, 0, 0);
+                } else {
+                    TowerVfxService.showTranscendence(List.of(towerEntity));
+                }
+                success(source, "미래기관 " + (suppression ? "suppression" : "carry") + " VFX를 재생했습니다.");
+                return 1;
+            }
+        }
+        failure(source, "살아 있는 미래기관 타워가 필요합니다.");
         return 0;
     }
 

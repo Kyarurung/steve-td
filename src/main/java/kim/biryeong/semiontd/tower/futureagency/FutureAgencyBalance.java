@@ -6,12 +6,12 @@ public final class FutureAgencyBalance {
     public static final String GLOBAL_ID = "future_agency_global";
     public static final double REBUILDER_DAMAGE = 0.05;
     public static final double REBUILDER_HEALTH = 0.05;
-    public static final double COMMANDER_DAMAGE = 0.15;
-    public static final double COMMANDER_HEALTH = 0.15;
-    public static final double COMMANDER_ATTACK_SPEED = 0.10;
-    public static final double DAMAGE_REDUCTION_CAP = 0.80;
-    public static final double SLOW_CAP = 0.75;
-    public static final double SUPPRESSION_DENSE_CAP = 0.30;
+    public static final double COMMANDER_DAMAGE = 0.12;
+    public static final double COMMANDER_HEALTH = 0.12;
+    public static final double COMMANDER_ATTACK_SPEED = 0.08;
+    public static final double DAMAGE_REDUCTION_CAP = 0.65;
+    public static final double SLOW_CAP = 0.60;
+    public static final double SUPPRESSION_DENSE_CAP = 0.18;
     public static final double SUPPRESSION_DENSE_RADIUS = 2.5;
     public static final double ESCORT_RADIUS = 2.5;
 

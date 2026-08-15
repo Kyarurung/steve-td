@@ -143,6 +143,26 @@ public final class FutureAgencyAgentTower extends ProductionTower {
     }
 
     @Override
+    public void onUpgradeCompleted(PlayerLane lane, Tower previousTower,
+                                   kim.biryeong.semiontd.tower.TowerUpgradeOption option) {
+        if (carriedCopy || lane == null) return;
+        for (FutureAgencyAgentTower survivor : linkedSurvivors(lane)) {
+            FutureAgencyAgentTower replacement = new FutureAgencyAgentTower(
+                    type(), ownerPlayer(), teamId(), laneId(), originalPosition(), survivor.position());
+            replacement.copyFrom(survivor, 0);
+            lane.replaceTower(survivor, replacement);
+        }
+    }
+
+    @Override
+    public void onSold(PlayerLane lane) {
+        if (carriedCopy || lane == null) return;
+        for (FutureAgencyAgentTower survivor : linkedSurvivors(lane)) {
+            lane.removeTower(survivor);
+        }
+    }
+
+    @Override
     public Optional<Vec3> idleMovementTarget(SemionTowerEntity entity) {
         if (!waveActive || lane == null || withdrawn || FutureAgencyTowers.role(type()) == null) return Optional.empty();
         double progress = lane.laneLayout().progressAt(entity.position());
@@ -229,11 +249,11 @@ public final class FutureAgencyAgentTower extends ProductionTower {
         if (FutureAgencyTowers.role(type()) == FutureAgencyRole.PROTECTION) {
             reduction += FutureAgencyBalance.agentAbility(type(), "damageReduction",
                     switch (FutureAgencyTowers.grade(type())) {
-                        case 5 -> .10;
-                        case 4 -> .15;
-                        case 3 -> .20;
-                        case 2 -> .25;
-                        default -> .30;
+                        case 5 -> .08;
+                        case 4 -> .12;
+                        case 3 -> .16;
+                        case 2 -> .20;
+                        default -> .25;
                     });
             reduction += FutureAgencyBalance.stacked(state, FutureAgencyPolicy.SHOCK_ABSORPTION);
             if (health() <= currentMaxHealth() * .35) reduction += FutureAgencyBalance.stacked(state, FutureAgencyPolicy.LAST_BARRIER);
@@ -253,14 +273,14 @@ public final class FutureAgencyAgentTower extends ProductionTower {
                 switch (grade) {case 5 -> 1.25; case 4 -> 1.5; case 3 -> 1.75; case 2 -> 2.0; default -> 2.5;})
                 + FutureAgencyBalance.stacked(state, FutureAgencyPolicy.AREA_SUPPRESSION);
         int cap = (int) Math.round(FutureAgencyBalance.agentAbility(type(), "suppressionMaxTargets",
-                switch (grade) {case 5 -> 3; case 4 -> 4; case 3 -> 5; case 2 -> 6; default -> 8;}))
+                switch (grade) {case 5 -> 3; case 4 -> 4; case 3 -> 5; case 2 -> 6; default -> 7;}))
                 + (int) Math.round(FutureAgencyBalance.stacked(state, FutureAgencyPolicy.MULTI_TARGET));
         double ratio = FutureAgencyBalance.agentAbility(type(), "suppressionDamageRatio",
-                switch (grade) {case 5 -> .50; case 4 -> .55; case 3 -> .60; case 2 -> .65; default -> .70;})
+                switch (grade) {case 5 -> .40; case 4 -> .45; case 3 -> .50; case 2 -> .55; default -> .60;})
                 + FutureAgencyBalance.stacked(state, FutureAgencyPolicy.DISPERSION_WARHEAD);
         double slow = Math.min(FutureAgencyBalance.slowCap(),
                 FutureAgencyBalance.agentAbility(type(), "suppressionSlow",
-                        switch (grade) {case 5 -> .10; case 4 -> .15; case 3 -> .20; case 2 -> .25; default -> .30;})
+                        switch (grade) {case 5 -> .08; case 4 -> .12; case 3 -> .16; case 2 -> .20; default -> .25;})
                         + FutureAgencyBalance.stacked(state, FutureAgencyPolicy.RESTRAINT_ROUNDS));
         applySlow(primary, slow);
         Set<UUID> selected = targets(lane, primary.position(), radius).stream().filter(target -> target != primary)
@@ -286,9 +306,15 @@ public final class FutureAgencyAgentTower extends ProductionTower {
     public List<String> runtimeDetailLines() {
         ArrayList<String> lines = new ArrayList<>();
         lines.add("<light_purple>요원</light_purple> " + FutureAgencyTowers.grade(type()) + "급 " + FutureAgencyTowers.role(type()).displayName());
-        lines.add("<aqua>생존 이월</aqua> " + (carriedCopy ? "<green>이월된 요원</green>"
-                : withdrawn ? "<green>생존자 복제 완료</green>" : "<gray>원본 요원</gray>"));
-        lines.add("<gray>관리 위치</gray> <white>" + originalPosition().x() + ", " + originalPosition().z() + "</white>");
+        if (carriedCopy) {
+            double carryHealth = withdrawn && carriedHealth > 0.0 ? carriedHealth : health();
+            lines.add("<aqua>연결 원본</aqua> <white>" + originalPosition().x() + ", " + originalPosition().z() + "</white>");
+            lines.add("<aqua>이월 체력</aqua> <white>" + oneDecimal(carryHealth) + "/" + oneDecimal(currentMaxHealth()) + "</white>");
+        } else {
+            long linked = lane == null ? 0 : linkedSurvivors(lane).stream().filter(survivor -> !survivor.isDestroyed(lane)).count();
+            lines.add("<aqua>연결 생존자</aqua> <white>" + Math.min(1, linked) + "/1</white>");
+            lines.add("<gray>관리 위치</gray> <white>" + originalPosition().x() + ", " + originalPosition().z() + "</white>");
+        }
         return List.copyOf(lines);
     }
 
@@ -301,13 +327,21 @@ public final class FutureAgencyAgentTower extends ProductionTower {
                 FutureAgencyStates.state(ownerPlayer()), FutureAgencyPolicy.EVAC_MEDICS);
         double survivalHealth = Math.min(currentMaxHealth(), health() + heal);
         if (!carriedCopy && lane != null) {
-            FutureAgencyAgentTower survivor = new FutureAgencyAgentTower(
-                    type(), ownerPlayer(), teamId(), laneId(), survivalPosition, survivalPosition);
-            survivor.carriedCopy = true;
-            survivor.withdrawn = true;
-            survivor.carriedPosition = survivalPosition;
-            survivor.carriedHealth = survivalHealth;
-            lane.addTower(survivor);
+            List<FutureAgencyAgentTower> linked = linkedSurvivors(lane);
+            FutureAgencyAgentTower survivor = linked.stream().filter(candidate -> !candidate.isDestroyed(lane))
+                    .findFirst().orElse(null);
+            for (FutureAgencyAgentTower candidate : linked) {
+                if (candidate != survivor) lane.removeTower(candidate);
+            }
+            if (survivor == null) {
+                survivor = new FutureAgencyAgentTower(
+                        type(), ownerPlayer(), teamId(), laneId(), originalPosition(), survivalPosition);
+                survivor.carriedCopy = true;
+                survivor.withdrawn = true;
+                survivor.carriedPosition = survivalPosition;
+                survivor.carriedHealth = survivalHealth;
+                lane.addTower(survivor);
+            }
         } else {
             carriedPosition = survivalPosition;
             carriedHealth = survivalHealth;
@@ -315,6 +349,17 @@ public final class FutureAgencyAgentTower extends ProductionTower {
         withdrawn = true;
         showCarryVfx(lane);
         super.onRemoved(lane);
+    }
+
+    private List<FutureAgencyAgentTower> linkedSurvivors(PlayerLane lane) {
+        if (lane == null) return List.of();
+        return lane.towers().stream().filter(FutureAgencyAgentTower.class::isInstance)
+                .map(FutureAgencyAgentTower.class::cast)
+                .filter(candidate -> candidate.carriedCopy
+                        && ownerPlayer().equals(candidate.ownerPlayer())
+                        && laneId() == candidate.laneId()
+                        && originalPosition().equals(candidate.originalPosition()))
+                .toList();
     }
 
     private void showCarryVfx(PlayerLane lane) {

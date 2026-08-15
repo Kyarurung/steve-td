@@ -2066,130 +2066,130 @@
     },
     "future_commander": {
       "mineralCost": 0,
-      "maxHealth": 1200.0,
+      "maxHealth": 1000.0,
       "range": 8.0,
-      "damage": 45.0,
-      "attackIntervalTicks": 12,
+      "damage": 32.0,
+      "attackIntervalTicks": 14,
       "aggroPriority": -50
     },
     "future_agent_combat_g5": {
       "mineralCost": 50,
       "maxHealth": 85.0,
       "range": 7.0,
-      "damage": 10.0,
-      "attackIntervalTicks": 14,
+      "damage": 8.0,
+      "attackIntervalTicks": 16,
       "aggroPriority": 20
     },
     "future_agent_combat_g4": {
       "mineralCost": 0,
       "maxHealth": 140.0,
       "range": 7.5,
-      "damage": 16.0,
-      "attackIntervalTicks": 13,
+      "damage": 13.0,
+      "attackIntervalTicks": 15,
       "aggroPriority": 25
     },
     "future_agent_combat_g3": {
       "mineralCost": 0,
       "maxHealth": 230.0,
       "range": 8.0,
-      "damage": 27.0,
-      "attackIntervalTicks": 11,
+      "damage": 21.0,
+      "attackIntervalTicks": 13,
       "aggroPriority": 30
     },
     "future_agent_combat_g2": {
       "mineralCost": 0,
       "maxHealth": 380.0,
       "range": 8.5,
-      "damage": 44.0,
-      "attackIntervalTicks": 9,
+      "damage": 33.0,
+      "attackIntervalTicks": 11,
       "aggroPriority": 35
     },
     "future_agent_combat_g1": {
       "mineralCost": 0,
       "maxHealth": 650.0,
       "range": 9.0,
-      "damage": 72.0,
-      "attackIntervalTicks": 7,
+      "damage": 48.0,
+      "attackIntervalTicks": 10,
       "aggroPriority": 40
     },
     "future_agent_suppression_g5": {
       "mineralCost": 50,
       "maxHealth": 100.0,
       "range": 6.0,
-      "damage": 7.0,
-      "attackIntervalTicks": 18,
+      "damage": 6.0,
+      "attackIntervalTicks": 20,
       "aggroPriority": 10
     },
     "future_agent_suppression_g4": {
       "mineralCost": 0,
       "maxHealth": 160.0,
       "range": 6.5,
-      "damage": 12.0,
-      "attackIntervalTicks": 17,
+      "damage": 10.0,
+      "attackIntervalTicks": 18,
       "aggroPriority": 15
     },
     "future_agent_suppression_g3": {
       "mineralCost": 0,
       "maxHealth": 260.0,
       "range": 7.0,
-      "damage": 20.0,
-      "attackIntervalTicks": 15,
+      "damage": 16.0,
+      "attackIntervalTicks": 16,
       "aggroPriority": 20
     },
     "future_agent_suppression_g2": {
       "mineralCost": 0,
       "maxHealth": 430.0,
       "range": 7.5,
-      "damage": 33.0,
-      "attackIntervalTicks": 13,
+      "damage": 25.0,
+      "attackIntervalTicks": 14,
       "aggroPriority": 25
     },
     "future_agent_suppression_g1": {
       "mineralCost": 0,
       "maxHealth": 700.0,
       "range": 8.0,
-      "damage": 52.0,
-      "attackIntervalTicks": 11,
+      "damage": 38.0,
+      "attackIntervalTicks": 13,
       "aggroPriority": 30
     },
     "future_agent_protection_g5": {
       "mineralCost": 50,
-      "maxHealth": 220.0,
+      "maxHealth": 200.0,
       "range": 2.5,
-      "damage": 6.0,
-      "attackIntervalTicks": 20,
+      "damage": 5.0,
+      "attackIntervalTicks": 22,
       "aggroPriority": 70
     },
     "future_agent_protection_g4": {
       "mineralCost": 0,
-      "maxHealth": 370.0,
+      "maxHealth": 330.0,
       "range": 2.7,
-      "damage": 10.0,
-      "attackIntervalTicks": 18,
+      "damage": 8.0,
+      "attackIntervalTicks": 20,
       "aggroPriority": 85
     },
     "future_agent_protection_g3": {
       "mineralCost": 0,
-      "maxHealth": 620.0,
+      "maxHealth": 540.0,
       "range": 3.0,
-      "damage": 17.0,
-      "attackIntervalTicks": 16,
+      "damage": 13.0,
+      "attackIntervalTicks": 18,
       "aggroPriority": 100
     },
     "future_agent_protection_g2": {
       "mineralCost": 0,
-      "maxHealth": 1000.0,
+      "maxHealth": 850.0,
       "range": 3.2,
-      "damage": 28.0,
-      "attackIntervalTicks": 14,
+      "damage": 21.0,
+      "attackIntervalTicks": 16,
       "aggroPriority": 115
     },
     "future_agent_protection_g1": {
       "mineralCost": 0,
-      "maxHealth": 1650.0,
+      "maxHealth": 1300.0,
       "range": 3.5,
-      "damage": 45.0,
-      "attackIntervalTicks": 12,
+      "damage": 32.0,
+      "attackIntervalTicks": 14,
       "aggroPriority": 130
     },
     "queen": {
@@ -4757,89 +4757,89 @@
     "future_agency_global": {
       "rebuilderDamageBonus": 0.05,
       "rebuilderMaxHealthBonus": 0.05,
-      "commanderDamageBonus": 0.15,
-      "commanderMaxHealthBonus": 0.15,
-      "commanderAttackSpeedBonus": 0.1,
-      "damageReductionCap": 0.8,
-      "slowCap": 0.75,
-      "suppressionDenseCap": 0.3,
+      "commanderDamageBonus": 0.12,
+      "commanderMaxHealthBonus": 0.12,
+      "commanderAttackSpeedBonus": 0.08,
+      "damageReductionCap": 0.65,
+      "slowCap": 0.6,
+      "suppressionDenseCap": 0.18,
       "suppressionDenseRadius": 2.5,
       "escortRadius": 2.5,
-      "policy.agency_tactics": 0.08,
-      "policy.composite_armor": 0.1,
-      "policy.reaction_training": 0.07,
+      "policy.agency_tactics": 0.06,
+      "policy.composite_armor": 0.08,
+      "policy.reaction_training": 0.05,
       "policy.forward_deployment": 0.1,
-      "policy.evac_medics": 0.1,
-      "policy.wave_analysis": 0.12,
-      "policy.income_interception": 0.12,
-      "policy.ranged_armor": 0.15,
-      "policy.melee_training": 0.12,
-      "policy.central_battle": 0.2,
-      "policy.anomaly_department": 0.35,
-      "policy.tank_department": 0.25,
-      "policy.siege_department": 0.25,
-      "policy.swarm_department": 0.2,
-      "policy.professional_agents": 0.1,
-      "policy.precision_fire": 0.15,
-      "policy.fast_reload": 0.1,
+      "policy.evac_medics": 0.08,
+      "policy.wave_analysis": 0.08,
+      "policy.income_interception": 0.08,
+      "policy.ranged_armor": 0.1,
+      "policy.melee_training": 0.1,
+      "policy.central_battle": 0.15,
+      "policy.anomaly_department": 0.25,
+      "policy.tank_department": 0.15,
+      "policy.siege_department": 0.15,
+      "policy.swarm_department": 0.15,
+      "policy.professional_agents": 0.08,
+      "policy.precision_fire": 0.1,
+      "policy.fast_reload": 0.07,
       "policy.long_range_optics": 1.0,
-      "policy.execution_authority": 0.3,
-      "policy.high_value_target": 0.25,
-      "policy.area_suppression": 0.4,
-      "policy.restraint_rounds": 0.075,
+      "policy.execution_authority": 0.2,
+      "policy.high_value_target": 0.15,
+      "policy.area_suppression": 0.3,
+      "policy.restraint_rounds": 0.05,
       "policy.multi_target": 1.0,
-      "policy.dispersion_warhead": 0.1,
-      "policy.dense_control": 0.02,
-      "policy.ceramic_plates": 0.2,
-      "policy.shock_absorption": 0.08,
+      "policy.dispersion_warhead": 0.075,
+      "policy.dense_control": 0.015,
+      "policy.ceramic_plates": 0.15,
+      "policy.shock_absorption": 0.05,
       "policy.forced_taunt": 25.0,
-      "policy.escort_formation": 0.1,
-      "policy.last_barrier": 0.25
+      "policy.escort_formation": 0.08,
+      "policy.last_barrier": 0.15
     },
     "future_agent_suppression_g5": {
       "suppressionMaxTargets": 3.0,
-      "suppressionDamageRatio": 0.5,
-      "suppressionSlow": 0.1,
+      "suppressionDamageRatio": 0.4,
+      "suppressionSlow": 0.08,
       "suppressionRadius": 1.25
     },
     "future_agent_protection_g5": {
-      "damageReduction": 0.1
+      "damageReduction": 0.08
     },
     "future_agent_suppression_g4": {
       "suppressionMaxTargets": 4.0,
-      "suppressionDamageRatio": 0.55,
-      "suppressionSlow": 0.15,
+      "suppressionDamageRatio": 0.45,
+      "suppressionSlow": 0.12,
       "suppressionRadius": 1.5
     },
     "future_agent_protection_g4": {
-      "damageReduction": 0.15
+      "damageReduction": 0.12
     },
     "future_agent_suppression_g3": {
       "suppressionMaxTargets": 5.0,
-      "suppressionDamageRatio": 0.6,
-      "suppressionSlow": 0.2,
+      "suppressionDamageRatio": 0.5,
+      "suppressionSlow": 0.16,
       "suppressionRadius": 1.75
     },
     "future_agent_protection_g3": {
-      "damageReduction": 0.2
+      "damageReduction": 0.16
     },
     "future_agent_suppression_g2": {
       "suppressionMaxTargets": 6.0,
-      "suppressionDamageRatio": 0.65,
-      "suppressionSlow": 0.25,
+      "suppressionDamageRatio": 0.55,
+      "suppressionSlow": 0.2,
       "suppressionRadius": 2.0
     },
     "future_agent_protection_g2": {
-      "damageReduction": 0.25
+      "damageReduction": 0.2
     },
     "future_agent_suppression_g1": {
-      "suppressionMaxTargets": 8.0,
-      "suppressionDamageRatio": 0.7,
-      "suppressionSlow": 0.3,
+      "suppressionMaxTargets": 7.0,
+      "suppressionDamageRatio": 0.6,
+      "suppressionSlow": 0.25,
       "suppressionRadius": 2.5
     },
     "future_agent_protection_g1": {
-      "damageReduction": 0.3
+      "damageReduction": 0.25
     },
     "queen_global": {
       "shrinkFactorPerPoint": 0.98,

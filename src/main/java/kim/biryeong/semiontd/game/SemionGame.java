@@ -508,7 +508,7 @@ public final class SemionGame {
         return playerLane(playerId)
                 .map(lane -> lane.towers().stream()
                         .filter(tower -> tower.ownerPlayer().equals(playerId))
-                        .mapToInt(tower -> TowerCapacity.slotCost(tower.type()))
+                        .mapToInt(TowerCapacity::slotCost)
                         .sum())
                 .orElse(0);
     }

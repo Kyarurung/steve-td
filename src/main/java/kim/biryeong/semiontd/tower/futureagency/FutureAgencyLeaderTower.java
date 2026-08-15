@@ -3,6 +3,8 @@ package kim.biryeong.semiontd.tower.futureagency;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -57,11 +59,13 @@ public final class FutureAgencyLeaderTower extends ProductionTower {
     @Override
     public void onUpgradeApplied(PlayerLane lane, TowerUpgradeOption option) {
         FutureAgencyStates.PlayerState state = FutureAgencyStates.state(ownerPlayer());
+        boolean worldSaved = state.worldSaved();
         if (RECONSTRUCT.equals(option.id())) state.reconstruct();
         else if (PROMOTE_COMMANDER.equals(option.id())) state.promoteCommander();
         else if (SAVE_WORLD.equals(option.id()) && canSaveWorld(state, lane)) state.saveWorld();
         else FutureAgencyPolicy.fromUpgradeId(option.id()).ifPresent(state::choose);
         refreshAgents(lane);
+        if (!worldSaved && state.worldSaved()) showWorldSaveVfx(lane);
     }
 
     @Override
@@ -143,6 +147,19 @@ public final class FutureAgencyLeaderTower extends ProductionTower {
                 agent.onStateChanged(lane);
             }
         }
+    }
+
+    private void showWorldSaveVfx(PlayerLane lane) {
+        if (lane == null) return;
+        List<SemionTowerEntity> towers = lane.towers().stream()
+                .filter(tower -> ownerPlayer().equals(tower.ownerPlayer())
+                        && FutureAgencyTowers.isFutureAgencyTower(tower.type()))
+                .map(tower -> tower instanceof ProductionTower production && production.entityId().isPresent()
+                        ? lane.arenaWorld().getEntity(production.entityId().getAsInt()) : null)
+                .filter(SemionTowerEntity.class::isInstance)
+                .map(SemionTowerEntity.class::cast)
+                .toList();
+        TowerVfxService.showTranscendence(towers);
     }
 
     private static String condition(String label, boolean met) {
