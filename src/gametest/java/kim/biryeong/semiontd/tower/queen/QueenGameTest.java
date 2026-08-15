@@ -23,8 +23,11 @@ import kim.biryeong.semiontd.tower.Tower;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -73,6 +76,14 @@ public final class QueenGameTest {
                             && queenEquipment.getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE)
                             && queenEquipment.getItemBySlot(EquipmentSlot.MAINHAND).is(Items.GOLDEN_SWORD),
                     "The Queen equipment overlay must render the complete equipment set.");
+            var player = context.makeMockServerPlayerInLevel();
+            player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            require(queenEquipment.isMarker() && !queenEquipment.isPickable(),
+                    "The Queen equipment overlay must not intercept player interaction.");
+            require(queenEquipment.interactAt(player, Vec3.ZERO, InteractionHand.MAIN_HAND) == InteractionResult.PASS
+                            && player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()
+                            && queenEquipment.getItemBySlot(EquipmentSlot.MAINHAND).is(Items.GOLDEN_SWORD),
+                    "Players must not take equipment from the Queen overlay.");
 
             monster.syncHealth(40.0);
             target.setHealth(40.0F);
@@ -85,7 +96,9 @@ public final class QueenGameTest {
             SemionTowerEntity cardEntity = (SemionTowerEntity) context.getLevel().getEntity(card.entityId().orElseThrow());
             require(cardEntity.getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE),
                     "Card soldiers must wear suit-colored leather armor.");
-            require(equipmentVisual(context, cardEntity).getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE),
+            ArmorStand cardEquipment = equipmentVisual(context, cardEntity);
+            require(cardEquipment.isMarker()
+                            && cardEquipment.getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE),
                     "Card soldiers must render their suit-colored armor overlay.");
             card.onAttackResolved(cardEntity, target, 0.0, 0.0, 0.0, false);
             require(nearbyMonster.maxHealth() < 80.0,
@@ -93,9 +106,10 @@ public final class QueenGameTest {
             for (int hit = 0; hit < 200; hit++) {
                 QueenShrink.apply(target, QueenBalance.queenShrinkPoints());
             }
-            requireClose(40.0, monster.maxHealth(), "Queen shrink must stop at half maximum health.");
-            requireClose(20.0, monster.health(), "The shrink floor must preserve the current health ratio.");
-            requireClose(10.0, monster.attackDamage(), "Queen shrink must stop at half attack damage.");
+            requireClose(16.0, monster.maxHealth(), "Queen shrink must stop at the configured stat floor.");
+            requireClose(8.0, monster.health(), "The shrink floor must preserve the current health ratio.");
+            requireClose(4.0, monster.attackDamage(), "Queen shrink must stop at the configured attack floor.");
+            requireClose(0.50, monster.visualScale(), "Queen shrink must preserve the separate visual floor.");
             double appliedPoints = QueenShrink.points(target);
             requireClose(Math.log(QueenBalance.minimumStatScale()) / Math.log(QueenBalance.shrinkFactorPerPoint()),
                     appliedPoints, "Only effective shrink points must be recorded.");
@@ -119,7 +133,7 @@ public final class QueenGameTest {
             for (int tick = 0; tick < 80 && monster.isAlive(); tick++) queen.tick(lane);
             require(!monster.isAlive(), "The Giant must execute a contacted enemy below its threshold.");
             requireClose(QueenBalance.giantInitialExecutionHealth()
-                            + 40.0 * QueenBalance.giantExecutionGrowthRatio(), state.executionHealth(),
+                            + 16.0 * QueenBalance.giantExecutionGrowthRatio(), state.executionHealth(),
                     "A successful execution must use the bounded growth formula.");
             require(owner.equals(monster.lastHitPlayerId().orElse(null))
                             && monster.lastHitSourceKind() == KillSourceKind.TOWER,
@@ -226,6 +240,11 @@ public final class QueenGameTest {
             hand.forEach(lane::addTower);
             lane.markWaveStarted(2);
             require(hasDetail(hand.getFirst(), "원 페어"), "Poker hands must be fixed at wave start.");
+            requireClose(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART)
+                            * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR)),
+                    hand.getFirst().currentMaxHealth(), "Poker hands must increase card maximum health.");
+            require(hand.getFirst().adjustAttackInterval(999) == 19,
+                    "One pair must improve the Heart card attack interval.");
             hand.getFirst().assignCard(new QueenCard(QueenCard.Suit.HEART, 3));
             require(hasDetail(hand.getFirst(), "원 페어"), "Card changes during a wave must not change the snapshot.");
             lane.markWaveStarted(3);

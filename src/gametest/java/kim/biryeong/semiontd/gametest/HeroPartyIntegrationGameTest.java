@@ -1,13 +1,22 @@
 package kim.biryeong.semiontd.gametest;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
+import kim.biryeong.semiontd.effect.TimedEffectType;
+import kim.biryeong.semiontd.entity.SemionEntityTypes;
+import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.AssignedParticipant;
+import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.MatchMode;
 import kim.biryeong.semiontd.game.ParticipantSelectionPlan;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -19,18 +28,25 @@ import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.job.HeroPartyTowerJob;
 import kim.biryeong.semiontd.progression.HeroCompanionSkinPreference;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerService;
+import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
+import kim.biryeong.semiontd.tower.hero.HeroCompanionTower;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkins;
 import kim.biryeong.semiontd.tower.hero.HeroPartyState;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.hero.HeroPlayerVisuals;
+import kim.biryeong.semiontd.tower.hero.HeroTower;
 import kim.biryeong.semiontd.tower.hero.HeroWeapon;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 
 public final class HeroPartyIntegrationGameTest {
     @GameTest
@@ -111,9 +127,42 @@ public final class HeroPartyIntegrationGameTest {
             if (!equals(context, 2, activeVisualProfileIds().size(), "Each Hero Party tower should own one fake-player visual.")) {
                 return;
             }
+            for (ServerPlayer fakePlayer : activeFakePlayers()) {
+                var anchor = HeroPlayerVisuals.resolveInteractionAnchor(context.getLevel(), fakePlayer.getId());
+                if (!check(context, anchor != null, "Fake-player interaction IDs must resolve before rotation sync.")) {
+                    return;
+                }
+                anchor.setYHeadRot(73.0F);
+                anchor.setXRot(-18.0F);
+            }
             game.tick(context.getLevel().getServer());
             if (!equals(context, 2, activeVisualProfileIds().size(), "Hero Party visuals must survive the first tower sync tick.")) {
                 return;
+            }
+            List<ServerPlayer> fakePlayers = activeFakePlayers();
+            for (ServerPlayer fakePlayer : fakePlayers) {
+                if (!equals(context, 73.0F, fakePlayer.getYHeadRot(), "Fake players should face their tower's attack target.")) {
+                    return;
+                }
+                if (!equals(context, -18.0F, fakePlayer.getXRot(), "Fake players should copy their tower's vertical aim.")) {
+                    return;
+                }
+            }
+            if (!equals(context, Set.of("용사 타워", "기사 T1 타워"), fakePlayers.stream()
+                    .map(fakePlayer -> fakePlayer.getGameProfile().getName())
+                    .collect(java.util.stream.Collectors.toSet()), "Fake-player names should match their tower names.")) {
+                return;
+            }
+            for (ServerPlayer fakePlayer : fakePlayers) {
+                var packet = ServerboundInteractPacket.createInteractionPacket(
+                        fakePlayer,
+                        false,
+                        InteractionHand.MAIN_HAND
+                );
+                if (!check(context, packet.getTarget(context.getLevel()) != null,
+                        "Right-click packets for fake players must resolve to their tower anchor.")) {
+                    return;
+                }
             }
             for (UUID profileId : activeVisualProfileIds()) {
                 if (!check(context, context.getLevel().getServer().getPlayerList().getPlayer(profileId) == null,
@@ -273,6 +322,114 @@ public final class HeroPartyIntegrationGameTest {
         }
     }
 
+    @GameTest
+    public void focusFireDefenseStacksWithHeroArmorAndKnightReduction(GameTestHelper context) {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        UUID ownerId = UUID.nameUUIDFromBytes("hero-party-focus-defense".getBytes(StandardCharsets.UTF_8));
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+        );
+        ArrayList<SemionMonsterEntity> monsters = new ArrayList<>();
+        try {
+            require(game.selectJob(ownerId, HeroPartyTowerJob.ID), "Hero Party job should be selectable.");
+            require(game.start(context.getLevel().getServer(), new ParticipantSelectionPlan(
+                    MatchMode.NORMAL,
+                    List.of(new AssignedParticipant(ownerId, "hero-focus", TeamId.RED, 1)),
+                    Set.of(),
+                    1
+            )), "Hero Party focus-defense game should start.");
+            PlayerLane lane = game.playerLane(ownerId).orElseThrow();
+            BlockPos heroPos = BlockPos.containing(lane.laneLayout().positionAt(0.30));
+            require(ProductionTowerService.placeTower(game, ownerId, heroPos, HeroPartyTowers.HERO_ID)
+                            == TowerPlacementResult.SUCCESS,
+                    "The Hero must be placeable for the focus-defense test.");
+            HeroTower hero = (HeroTower) lane.towerAt(GridPosition.from(heroPos));
+            SemionTowerEntity heroEntity = towerEntity(context, hero);
+
+            BlockPos knightPos = nearbyPosition(lane, heroPos);
+            HeroCompanionTower knight = (HeroCompanionTower) ProductionTowerCatalog.find(
+                            HeroPartyTowers.companion(HeroCompanionRole.KNIGHT, 4).id())
+                    .orElseThrow()
+                    .create(ownerId, TeamId.RED, 1, GridPosition.from(knightPos));
+            lane.addTower(knight);
+            SemionTowerEntity knightEntity = towerEntity(context, knight);
+
+            for (int index = 0; index < 6; index++) {
+                monsters.add(spawnFocusMonster(context, lane, "hero-focus-" + index,
+                        heroEntity.position().add(index * 0.1, 0.0, 0.0)));
+            }
+            for (int attackers : List.of(1, 2, 4, 6)) {
+                monsters.forEach(monster -> monster.setTarget(null));
+                monsters.subList(0, attackers).forEach(monster -> monster.setTarget(heroEntity));
+                double expected = switch (attackers) {
+                    case 1 -> 100.0;
+                    case 2 -> 92.0;
+                    case 4 -> 76.0;
+                    case 6 -> 60.0;
+                    default -> throw new IllegalStateException();
+                };
+                requireClose(expected, hero.modifyIncomingDamage(
+                        heroEntity, heroEntity.damageSources().generic(), 100.0),
+                        "Focus defense must use the configured attacker curve.");
+            }
+            require(hero.runtimeDetailLines().stream().anyMatch(line -> line.contains("6기")
+                            && line.contains("40.0%")),
+                    "Tower details must show the live attacker count and focus-defense cap.");
+
+            SemionMonsterEntity unregistered = spawnFocusMonster(
+                    context, lane, "hero-focus-unregistered", heroEntity.position()
+            );
+            lane.activeMonsters().remove(unregistered.runtimeMonster());
+            unregistered.setTarget(heroEntity);
+            monsters.add(unregistered);
+            requireClose(60.0, hero.modifyIncomingDamage(
+                    heroEntity, unregistered.damageSources().mobAttack(unregistered), 100.0),
+                    "A live monster outside this lane's active registry must not increase focus defense.");
+            monsters.getFirst().discard();
+            requireClose(68.0, hero.modifyIncomingDamage(
+                    heroEntity, heroEntity.damageSources().generic(), 100.0),
+                    "A removed attacker must stop contributing to focus defense.");
+            SemionMonsterEntity replacement = spawnFocusMonster(
+                    context, lane, "hero-focus-replacement", heroEntity.position()
+            );
+            replacement.setTarget(heroEntity);
+            monsters.set(0, replacement);
+
+            game.players().get(ownerId).economy().addDiamond(2_000);
+            for (int level = 0; level < 5; level++) {
+                require(HeroPartyStates.upgradeArmor(game, ownerId) == HeroPartyStates.ActionResult.SUCCESS,
+                        "Hero armor upgrades must succeed during preparation.");
+            }
+            requireClose(48.0, hero.modifyIncomingDamage(
+                    heroEntity, heroEntity.damageSources().generic(), 100.0),
+                    "Maximum armor and maximum focus defense must reduce damage by 52% multiplicatively.");
+
+            monsters.subList(0, 6).forEach(monster -> monster.setTarget(knightEntity));
+            requireClose(48.0, knight.modifyIncomingDamage(
+                    knightEntity, knightEntity.damageSources().generic(), 100.0),
+                    "T4 Knight reduction and maximum focus defense must reduce damage by 52% multiplicatively.");
+            require(knight.runtimeDetailLines().stream().anyMatch(line -> line.contains("6기")
+                            && line.contains("40.0%")),
+                    "Companion details must show the same live focus-defense state.");
+
+            monsters.subList(0, 6).forEach(monster -> monster.setTarget(heroEntity));
+            heroEntity.applyTimedEffect(TimedEffectType.TOWER_DAMAGE_REDUCTION, 0.10, 60);
+            float healthBefore = heroEntity.getHealth();
+            heroEntity.hurtServer(context.getLevel(), heroEntity.damageSources().generic(), 100.0F);
+            requireClose(43.2, healthBefore - heroEntity.getHealth(),
+                    "Priest-style timed reduction, armor, and focus defense must multiply independently.");
+            context.succeed();
+        } catch (Throwable failure) {
+            context.fail(Component.literal("Hero Party focus defense GameTest failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        } finally {
+            monsters.forEach(SemionMonsterEntity::discard);
+            game.close();
+        }
+    }
+
     private static BlockPos nearbyPosition(PlayerLane lane, BlockPos origin) {
         for (int dx = -4; dx <= 4; dx++) {
             for (int dz = -4; dz <= 4; dz++) {
@@ -285,6 +442,43 @@ public final class HeroPartyIntegrationGameTest {
             }
         }
         throw new IllegalStateException("Could not find a nearby tower position.");
+    }
+
+    private static SemionMonsterEntity spawnFocusMonster(
+            GameTestHelper context,
+            PlayerLane lane,
+            String id,
+            net.minecraft.world.phys.Vec3 position
+    ) {
+        Monster monster = new Monster(
+                id, lane.teamId(), lane.laneId(), Optional.empty(), Optional.empty(),
+                1_000.0, 0.0, 1.0, AttackKind.MELEE, "minecraft:zombie", 0L
+        );
+        SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        entity.configureFrom(monster, lane.laneLayout());
+        entity.setPos(position);
+        require(context.getLevel().addFreshEntity(entity), "A focus-fire attacker must spawn.");
+        monster.markMinecraftEntitySpawned(entity.getId(), position.x, position.y, position.z);
+        lane.activeMonsters().add(monster);
+        return entity;
+    }
+
+    private static SemionTowerEntity towerEntity(GameTestHelper context, Tower tower) {
+        return (SemionTowerEntity) context.getLevel().getEntity(
+                ((kim.biryeong.semiontd.tower.EntityBackedTower) tower).entityId().orElseThrow()
+        );
+    }
+
+    private static void require(boolean condition, String message) {
+        if (!condition) {
+            throw new AssertionError(message);
+        }
+    }
+
+    private static void requireClose(double expected, double actual, String message) {
+        if (Math.abs(expected - actual) > 0.05) {
+            throw new AssertionError(message + " Expected " + expected + ", got " + actual + ".");
+        }
     }
 
     private static boolean check(GameTestHelper context, boolean condition, String message) {
@@ -303,6 +497,17 @@ public final class HeroPartyIntegrationGameTest {
             return (Set<UUID>) method.invoke(null);
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Failed to inspect Hero fake-player visuals.", exception);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<ServerPlayer> activeFakePlayers() {
+        try {
+            var method = HeroPlayerVisuals.class.getDeclaredMethod("activeFakePlayersForTesting");
+            method.setAccessible(true);
+            return (List<ServerPlayer>) method.invoke(null);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Failed to inspect Hero fake players.", exception);
         }
     }
 

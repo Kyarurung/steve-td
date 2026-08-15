@@ -211,7 +211,11 @@ public final class EngineerTowers {
 
     private static List<String> trapDescription(TrapKind kind, String ability) {
         String powered = "<gray><red>레드스톤</red> 상승 신호를 받으면 <gold>"
-                + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "activeTicks", "seconds")
+                + placeholder(
+                        "ability." + EngineerBalance.GLOBAL_ID + ".",
+                        kind == TrapKind.DOOR ? "doorActiveTicks" : "activeTicks",
+                        "seconds"
+                )
                 + "</gold> 동안 작동하는 <yellow>함정</yellow>입니다.</gray>";
         return switch (kind) {
             case DOOR -> List.of(powered, "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 몬스터를 유인합니다.</green>");

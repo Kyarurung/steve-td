@@ -188,8 +188,10 @@ public final class QueenCardTower extends ProductionTower {
         return List.of(
                 "카드: " + value.label() + " (" + value.suit().displayName() + ")",
                 "현재 족보: " + pokerHand.displayName(),
-                "축소 위력: " + oneDecimal(QueenBalance.cardShrinkPoints() * (1.0 + pokerBonus)),
-                "축소 효과: 원본의 " + percentInteger(QueenBalance.minimumStatScale()) + "까지 감소",
+                "축소 위력: " + oneDecimal(QueenBalance.cardShrinkPoints() * (1.0 + pokerBonus))
+                        + "점 (점당 " + percentInteger(1.0 - QueenBalance.shrinkFactorPerPoint()) + " 감소)",
+                "능력치 하한: 원본의 " + percentInteger(QueenBalance.minimumStatScale()),
+                "외형 하한: 원본의 " + percentInteger(QueenBalance.minimumVisualScale()),
                 "족보 보너스: " + percentInteger(pokerBonus)
         );
     }

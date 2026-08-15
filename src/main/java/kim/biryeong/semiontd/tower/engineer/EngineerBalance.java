@@ -6,6 +6,7 @@ public final class EngineerBalance {
     public static final String GLOBAL_ID = "engineer_global";
 
     public static final int ACTIVE_TICKS = 60;
+    public static final int DOOR_ACTIVE_TICKS = 120;
     public static final int PLATE_COOLDOWN_TICKS = 100;
     public static final double GOLEM_MOVE_SPEED = 0.18;
     public static final int PISTON_IMMUNITY_TICKS = 300;
@@ -24,6 +25,10 @@ public final class EngineerBalance {
 
     public static int activeTicks() {
         return TowerBalanceRuntime.abilityTicks(GLOBAL_ID, "activeTicks", ACTIVE_TICKS);
+    }
+
+    public static int doorActiveTicks() {
+        return TowerBalanceRuntime.abilityTicks(GLOBAL_ID, "doorActiveTicks", DOOR_ACTIVE_TICKS);
     }
 
     public static int plateCooldownTicks() {

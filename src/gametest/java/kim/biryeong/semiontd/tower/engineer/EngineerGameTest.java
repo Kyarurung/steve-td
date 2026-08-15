@@ -2,7 +2,12 @@ package kim.biryeong.semiontd.tower.engineer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.entity.SemionEntityTypes;
+import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.visual.BlockDisplayVisual;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -10,6 +15,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.TowerPlacementPositions;
+import kim.biryeong.semiontd.tower.area.AreaEffectLaneIndex;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -284,6 +290,88 @@ public final class EngineerGameTest {
     }
 
     @GameTest
+    public void doorTauntLastsSixSecondsAndRefreshesWithoutAPlateCycleGap(GameTestHelper context) {
+        UUID owner = stableUuid("engineer-door-duration");
+        PlayerLane lane = testLane(context, owner);
+        GridPosition platePosition = floor(context, 6, 2, 7);
+        GridPosition doorPosition = floor(context, 7, 2, 7);
+        GridPosition slimePosition = floor(context, 5, 2, 7);
+        prepareFloor(context, platePosition, doorPosition, slimePosition);
+        EngineerCircuitTower plate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                owner, TeamId.RED, 1, platePosition, platePosition
+        );
+        EngineerTrapTower door = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1),
+                owner, TeamId.RED, 1, doorPosition, doorPosition
+        );
+        EngineerTrapTower slime = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.SLIME, 1),
+                owner, TeamId.RED, 1, slimePosition, slimePosition
+        );
+        SemionMonsterEntity monster = null;
+        try {
+            AreaEffectLaneIndex.register(lane);
+            lane.addTower(plate);
+            lane.addTower(door);
+            lane.addTower(slime);
+            monster = spawnMonster(context, lane, "engineer-door-target",
+                    Vec3.atCenterOf(new BlockPos(doorPosition.x(), doorPosition.y() + 1, doorPosition.z())));
+            SemionTowerEntity doorEntity = (SemionTowerEntity) context.getLevel()
+                    .getEntity(door.entityId().orElseThrow());
+            lane.markWaveStarted(1);
+            require(plate.pressPlate(lane), "The plate must activate both adjacent traps.");
+            door.tick(lane);
+            slime.tick(lane);
+            require(door.activeTicksRemaining() == EngineerBalance.doorActiveTicks() - 1,
+                    "The iron door must latch for six seconds.");
+            require(slime.activeTicksRemaining() == EngineerBalance.activeTicks() - 1,
+                    "Non-door traps must keep the shared three-second duration.");
+            require(monster.getTarget() == doorEntity, "The active door must taunt nearby monsters.");
+
+            unpowerPlate(context, plate);
+            door.tick(lane);
+            slime.tick(lane);
+            for (int tick = 0; tick < 97; tick++) {
+                door.tick(lane);
+                slime.tick(lane);
+            }
+            require(door.activeTicksRemaining() > 0 && monster.getTarget() == doorEntity,
+                    "The six-second taunt must cover the five-second plate cycle without a gap.");
+            require(slime.activeTicksRemaining() == 0,
+                    "The shared trap duration must still expire after three seconds.");
+
+            require(plate.pressPlate(lane), "The next plate pulse must refresh the door.");
+            door.tick(lane);
+            require(door.activeTicksRemaining() == EngineerBalance.doorActiveTicks() - 1,
+                    "A new rising edge must refresh the door to six seconds.");
+            unpowerPlate(context, plate);
+            door.tick(lane);
+            for (int tick = 0; tick < EngineerBalance.doorActiveTicks() - 2; tick++) {
+                door.tick(lane);
+            }
+            require(door.activeTicksRemaining() == 0 && monster.getTarget() == null,
+                    "Door expiry must immediately release its taunted targets.");
+
+            require(plate.pressPlate(lane), "The door must be reusable after expiry.");
+            door.tick(lane);
+            require(monster.getTarget() == doorEntity, "The reused door must taunt again.");
+            require(lane.removeTower(door), "The door must be removable.");
+            require(monster.getTarget() == null, "Selling the door must immediately release its targets.");
+            context.succeed();
+        } catch (Throwable failure) {
+            context.fail(Component.literal("Engineer door duration GameTest failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        } finally {
+            if (monster != null) {
+                monster.discard();
+            }
+            lane.clearTowers();
+            AreaEffectLaneIndex.unregister(lane);
+        }
+    }
+
+    @GameTest
     public void newestConnectedPlateDeterminesDispenserDistance(GameTestHelper context) {
         UUID owner = stableUuid("engineer-newest-plate");
         PlayerLane lane = testLane(context, owner);
@@ -369,6 +457,34 @@ public final class EngineerGameTest {
                     Blocks.AIR.defaultBlockState(), 3
             );
         }
+    }
+
+    private static SemionMonsterEntity spawnMonster(
+            GameTestHelper context,
+            PlayerLane lane,
+            String id,
+            Vec3 position
+    ) {
+        Monster monster = new Monster(
+                id, lane.teamId(), lane.laneId(), Optional.empty(), Optional.empty(),
+                1_000.0, 0.0, 1.0, AttackKind.MELEE, "minecraft:zombie", 0L
+        );
+        SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        entity.configureFrom(monster, lane.laneLayout());
+        entity.setPos(position);
+        require(context.getLevel().addFreshEntity(entity), "The door target must spawn.");
+        monster.markMinecraftEntitySpawned(entity.getId(), position.x, position.y, position.z);
+        lane.activeMonsters().add(monster);
+        return entity;
+    }
+
+    private static void unpowerPlate(GameTestHelper context, EngineerCircuitTower plate) {
+        context.getLevel().setBlock(
+                plate.circuitPosition(),
+                context.getLevel().getBlockState(plate.circuitPosition())
+                        .setValue(BlockStateProperties.POWERED, false),
+                3
+        );
     }
 
     private static BlockPos slimePosition(GridPosition position) {
