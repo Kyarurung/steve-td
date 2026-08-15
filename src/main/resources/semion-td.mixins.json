@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AbstractContainerMenuMixin",
+    "EngineerPressurePlateMixin",
     "BezierInterpolatorMixin",
     "EntityRuntimeSaveMixin",
     "ArmorSlotMixin",
@@ -23,6 +24,7 @@
     "accessor.MushroomCowAccessor",
     "accessor.ParrotAccessor",
     "accessor.PigAccessor",
+    "accessor.PlayerInfoUpdatePacketAccessor",
     "accessor.RabbitAccessor",
     "accessor.RangedAttributeAccessor",
     "accessor.SalmonAccessor",

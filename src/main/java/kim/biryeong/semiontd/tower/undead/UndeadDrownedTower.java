@@ -30,6 +30,19 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
+        return applyLastStand(towerEntity, damageAmount);
+    }
+
+    @Override
+    public double modifyIncomingDamageIgnoringReductions(
+            SemionTowerEntity towerEntity,
+            DamageSource damageSource,
+            double damageAmount
+    ) {
+        return applyLastStand(towerEntity, damageAmount);
+    }
+
+    private double applyLastStand(SemionTowerEntity towerEntity, double damageAmount) {
         if (towerEntity == null || damageAmount <= 0.0) {
             return damageAmount;
         }

@@ -123,8 +123,7 @@ public class WarlockTower extends EntityBackedTower {
             return;
         }
         if (is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
-            double damagedHealthRatio = healthRatio(currentHealth);
-            if (damagedHealthRatio <= ability(RANGED_THRESHOLD)) {
+            if (healthRatio(currentHealth) <= ability(RANGED_THRESHOLD)) {
                 sacrifices.sacrifice(
                         this,
                         towerEntity,
@@ -133,12 +132,11 @@ public class WarlockTower extends EntityBackedTower {
                         Comparator.comparingInt(Tower::aggroPriority)
                 );
             }
-            tryAwaken(currentLane, towerEntity, damagedHealthRatio);
+            tryAwaken(currentLane, towerEntity);
             return;
         }
         if (is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            double damagedHealthRatio = healthRatio(currentHealth);
-            if (damagedHealthRatio <= ability(MELEE_THRESHOLD)) {
+            if (healthRatio(currentHealth) <= ability(MELEE_THRESHOLD)) {
                 sacrifices.sacrifice(
                         this,
                         towerEntity,
@@ -147,13 +145,12 @@ public class WarlockTower extends EntityBackedTower {
                         Comparator.comparingInt(Tower::aggroPriority).reversed()
                 );
             }
-            tryAwaken(currentLane, towerEntity, damagedHealthRatio);
+            tryAwaken(currentLane, towerEntity);
         }
     }
 
-    private void tryAwaken(PlayerLane lane, SemionTowerEntity towerEntity, double damagedHealthRatio) {
+    private void tryAwaken(PlayerLane lane, SemionTowerEntity towerEntity) {
         if (!WarlockConfig.AWAKENING_ENABLED
-                || !WarlockAwakeningProgress.unlocked(ownerPlayer())
                 || (!is(WarlockTowers.RANGED_WARLOCK_TOWER)
                 && !is(WarlockTowers.MELEE_WARLOCK_TOWER))) {
             return;
@@ -162,8 +159,9 @@ public class WarlockTower extends EntityBackedTower {
             return;
         }
         if (!meetsAwakeningConditions(
-                WarlockAwakeningProgress.unlocked(ownerPlayer()),
-                damagedHealthRatio,
+                state.roundSacrificeCount(),
+                abilityInt(AWAKENING_ABSORPTIONS),
+                healthRatio(health()),
                 ability(AWAKENING_THRESHOLD),
                 onlyCoreTowerAlive(lane)
         )) {
@@ -180,11 +178,6 @@ public class WarlockTower extends EntityBackedTower {
             heal(
                     towerEntity,
                     ability(RANGED_AWAKENING_HEAL)
-            );
-        } else if (is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            heal(
-                    towerEntity,
-                    ability(MELEE_AWAKENING_HEAL)
             );
         }
         onStateChanged(lane);
@@ -204,7 +197,6 @@ public class WarlockTower extends EntityBackedTower {
 
     double maximumRegenerationPerSecond() {
         if (!WarlockConfig.AWAKENING_ENABLED
-                || !WarlockAwakeningProgress.unlocked(ownerPlayer())
                 || !is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
             return 0.0;
         }
@@ -254,12 +246,9 @@ public class WarlockTower extends EntityBackedTower {
         return onlyCoreTowerAlive(currentLane);
     }
 
-    double currentHealthRatio() {
-        return healthRatio(health());
-    }
-
     static boolean meetsAwakeningConditions(
-            boolean awakeningUnlocked,
+            int roundAbsorptions,
+            int requiredAbsorptions,
             double currentHealthRatio,
             double healthThreshold,
             boolean onlyCoreAlive
@@ -268,7 +257,7 @@ public class WarlockTower extends EntityBackedTower {
                 || !Double.isFinite(healthThreshold)) {
             return false;
         }
-        return awakeningUnlocked
+        return roundAbsorptions >= Math.max(0, requiredAbsorptions)
                 && onlyCoreAlive
                 && currentHealthRatio > 0.0
                 && currentHealthRatio <= Math.max(0.0, healthThreshold);
@@ -431,7 +420,7 @@ public class WarlockTower extends EntityBackedTower {
         return combat.splashRadius(this);
     }
 
-    public static void refreshWarlockCoreStats(PlayerLane lane) {
+    static void refreshWarlockCoreStats(PlayerLane lane) {
         if (lane == null) {
             return;
         }
@@ -441,34 +430,6 @@ public class WarlockTower extends EntityBackedTower {
                 warlockTower.onStateChanged(lane);
             }
         }
-    }
-
-    public static void onAwakeningUnlocked(PlayerLane lane, UUID ownerPlayer) {
-        if (lane == null || ownerPlayer == null) {
-            return;
-        }
-        for (Tower tower : lane.towers()) {
-            if (tower instanceof WarlockTower warlockTower
-                    && ownerPlayer.equals(warlockTower.ownerPlayer())) {
-                warlockTower.tryAwakenFromCurrentState(lane);
-            }
-        }
-        refreshWarlockCoreStats(lane);
-    }
-
-    private void tryAwakenFromCurrentState(PlayerLane lane) {
-        currentLane = lane;
-        if (lane.arenaWorld() == null) {
-            return;
-        }
-        entityId().ifPresent(id -> {
-            var entity = lane.arenaWorld().getEntity(id);
-            if (!(entity instanceof SemionTowerEntity towerEntity) || !towerEntity.isAlive()) {
-                return;
-            }
-            syncHealth(towerEntity.getHealth());
-            tryAwaken(lane, towerEntity, currentHealthRatio());
-        });
     }
 
     boolean is(TowerType towerType) {
@@ -488,17 +449,14 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     double effectiveDamageBonus() {
-        return scaledDamageBonus(type(), rawDamageBonus());
+        return scaledDamageBonus(rawDamageBonus());
     }
 
-    static double scaledDamageBonus(TowerType type, double rawDamageBonus) {
-        if (!isLogScaled(type)) {
-            return finiteNonNegative(rawDamageBonus);
-        }
+    static double scaledDamageBonus(double rawDamageBonus) {
         return LogarithmicScaling.logarithmicBonus(
                 rawDamageBonus,
-                WarlockConfig.RUNTIME.value(damageThreshold(type)),
-                WarlockConfig.RUNTIME.value(damageScale(type))
+                WarlockConfig.RUNTIME.value(DAMAGE_THRESHOLD),
+                WarlockConfig.RUNTIME.value(DAMAGE_SCALE)
         );
     }
 
@@ -507,67 +465,15 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     double effectiveHealthBonus() {
-        return scaledHealthBonus(type(), rawHealthBonus());
+        return scaledHealthBonus(rawHealthBonus());
     }
 
-    static double scaledHealthBonus(TowerType type, double rawHealthBonus) {
-        if (!isLogScaled(type)) {
-            return finiteNonNegative(rawHealthBonus);
-        }
+    static double scaledHealthBonus(double rawHealthBonus) {
         return LogarithmicScaling.logarithmicBonus(
                 rawHealthBonus,
-                WarlockConfig.RUNTIME.value(healthThreshold(type)),
-                WarlockConfig.RUNTIME.value(healthScale(type))
+                WarlockConfig.RUNTIME.value(HEALTH_THRESHOLD),
+                WarlockConfig.RUNTIME.value(HEALTH_SCALE)
         );
-    }
-
-    private static boolean isLogScaled(TowerType type) {
-        return type != null && (type.id().equals(WarlockTowers.RANGED_WARLOCK_TOWER.id())
-                || type.id().equals(WarlockTowers.MELEE_WARLOCK_TOWER.id()));
-    }
-
-    private static double finiteNonNegative(double value) {
-        return Double.isFinite(value) ? Math.max(0.0, value) : 0.0;
-    }
-
-    private static WarlockConfig.Ability damageThreshold(TowerType type) {
-        if (type.id().equals(WarlockTowers.RANGED_WARLOCK_TOWER.id())) {
-            return RANGED_DAMAGE_THRESHOLD;
-        }
-        if (type.id().equals(WarlockTowers.MELEE_WARLOCK_TOWER.id())) {
-            return MELEE_DAMAGE_THRESHOLD;
-        }
-        throw new IllegalArgumentException("Damage logarithmic scaling is not configured for: " + type.id());
-    }
-
-    private static WarlockConfig.Ability damageScale(TowerType type) {
-        if (type.id().equals(WarlockTowers.RANGED_WARLOCK_TOWER.id())) {
-            return RANGED_DAMAGE_SCALE;
-        }
-        if (type.id().equals(WarlockTowers.MELEE_WARLOCK_TOWER.id())) {
-            return MELEE_DAMAGE_SCALE;
-        }
-        throw new IllegalArgumentException("Damage logarithmic scaling is not configured for: " + type.id());
-    }
-
-    private static WarlockConfig.Ability healthThreshold(TowerType type) {
-        if (type.id().equals(WarlockTowers.RANGED_WARLOCK_TOWER.id())) {
-            return RANGED_HEALTH_THRESHOLD;
-        }
-        if (type.id().equals(WarlockTowers.MELEE_WARLOCK_TOWER.id())) {
-            return MELEE_HEALTH_THRESHOLD;
-        }
-        throw new IllegalArgumentException("Health logarithmic scaling is not configured for: " + type.id());
-    }
-
-    private static WarlockConfig.Ability healthScale(TowerType type) {
-        if (type.id().equals(WarlockTowers.RANGED_WARLOCK_TOWER.id())) {
-            return RANGED_HEALTH_SCALE;
-        }
-        if (type.id().equals(WarlockTowers.MELEE_WARLOCK_TOWER.id())) {
-            return MELEE_HEALTH_SCALE;
-        }
-        throw new IllegalArgumentException("Health logarithmic scaling is not configured for: " + type.id());
     }
 
     double additionalHealth() {

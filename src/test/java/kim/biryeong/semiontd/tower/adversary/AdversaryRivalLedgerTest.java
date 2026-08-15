@@ -70,10 +70,10 @@ class AdversaryRivalLedgerTest {
         assertEquals(0, rival.contributedScore());
 
         assertTrue(AdversaryProgressStates.recordFoxKill(OWNER, proxy, lane));
-        assertEquals(1, rival.contributedScore());
-        assertEquals(1, AdversaryProgressStates.state(OWNER).score(RivalKind.PHANTOM));
+        assertEquals(2, rival.contributedScore());
+        assertEquals(2, AdversaryProgressStates.state(OWNER).score(RivalKind.PHANTOM));
         assertFalse(AdversaryProgressStates.recordFoxKill(OWNER, proxy, lane));
-        assertEquals(1, rival.contributedScore());
+        assertEquals(2, rival.contributedScore());
     }
 
     @Test
@@ -89,10 +89,10 @@ class AdversaryRivalLedgerTest {
         assertTrue(lane.replaceTower(base, enhanced));
 
         assertEquals(logicalId, enhanced.rivalId());
-        assertEquals(1, enhanced.contributedScore());
+        assertEquals(2, enhanced.contributedScore());
         assertTrue(AdversaryProgressStates.recordFoxKill(OWNER, enhanced.createProxy(1), lane));
-        assertEquals(4, enhanced.contributedScore());
-        assertEquals(4, AdversaryProgressStates.state(OWNER).score(RivalKind.BREEZE));
+        assertEquals(5, enhanced.contributedScore());
+        assertEquals(5, AdversaryProgressStates.state(OWNER).score(RivalKind.BREEZE));
     }
 
     @Test

@@ -58,10 +58,14 @@ public final class AcquireLaneDefenseTargetGoal extends Goal {
                                 && entity instanceof LaneDefenseEntity laneDefenseEntity
                                 && entity.isAlive()
                                 && laneDefenseEntity.defendsLane(monster.runtimeMonster().targetLaneId())
+                                && laneDefenseEntity.drawsAggro()
                                 && monster.canTargetDefense(livingEntity)
                 ).stream()
                 .filter(LivingEntity.class::isInstance)
                 .map(LivingEntity.class::cast)
+                .filter(entity -> !(entity instanceof SemionTowerEntity towerEntity)
+                        || towerEntity.runtimeTower() == null
+                        || towerEntity.runtimeTower().targetableByMonsters())
                 .sorted(Comparator
                         .comparingInt((LivingEntity entity) -> ((LaneDefenseEntity) entity).aggroPriority()).reversed()
                         .thenComparingDouble(monster::distanceToSqr))

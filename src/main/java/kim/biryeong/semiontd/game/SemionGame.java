@@ -34,11 +34,16 @@ import kim.biryeong.semiontd.summon.SummonResultType;
 import kim.biryeong.semiontd.summon.SummonShop;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerCapacity;
+import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
+import kim.biryeong.semiontd.tower.mage.MageStates;
+import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
+import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -190,6 +195,10 @@ public final class SemionGame {
         return currentRound;
     }
 
+    public boolean isSandboxMode() {
+        return sandboxMode;
+    }
+
     public int phaseTicks() {
         return phaseTicks;
     }
@@ -232,6 +241,20 @@ public final class SemionGame {
     public void enableSandboxMode() {
         sandboxMode = true;
         enableSelfTargetIncomeSummons();
+    }
+
+    public boolean moveSandboxToRound(MinecraftServer server, int round) {
+        if (!sandboxMode || !rosterLocked || phase == RoundPhase.WAITING || phase == RoundPhase.ENDED || round < 1) {
+            return false;
+        }
+        for (SemionTeam team : livingTeams()) {
+            team.laneGroup().disableMonsters();
+        }
+        currentWaveTeamIds.clear();
+        finalDefenseForcedThisRound = false;
+        currentRound = round;
+        startPreparePhase(server);
+        return true;
     }
 
     public void disableWaveSpawnsForTeam(TeamId teamId) {
@@ -474,14 +497,34 @@ public final class SemionGame {
 
     public int towerCount(UUID playerId) {
         return playerLane(playerId)
-                .map(lane -> (int) lane.towers().stream()
+                .map(lane -> lane.towers().stream()
                         .filter(tower -> tower.ownerPlayer().equals(playerId))
-                        .count())
+                        .mapToInt(tower -> Math.max(0, tower.slotWeight()))
+                        .sum())
+                .orElse(0);
+    }
+
+    public int towerCapacityUsed(UUID playerId) {
+        return playerLane(playerId)
+                .map(lane -> lane.towers().stream()
+                        .filter(tower -> tower.ownerPlayer().equals(playerId))
+                        .mapToInt(TowerCapacity::slotCost)
+                        .sum())
                 .orElse(0);
     }
 
     public boolean canPlaceMoreTowers(UUID playerId) {
-        return towerCount(playerId) < towerLimitForPlayer(playerId);
+        return towerCapacityUsed(playerId) < towerLimitForPlayer(playerId);
+    }
+
+    public boolean canFitTower(UUID playerId, TowerType towerType) {
+        return towerCapacityUsed(playerId) + TowerCapacity.slotCost(towerType) <= towerLimitForPlayer(playerId);
+    }
+
+    public boolean canFitUpgrade(UUID playerId, TowerType currentType, TowerType targetType) {
+        int capacityIncrease = TowerCapacity.slotCost(targetType) - TowerCapacity.slotCost(currentType);
+        return capacityIncrease <= 0
+                || towerCapacityUsed(playerId) + capacityIncrease <= towerLimitForPlayer(playerId);
     }
 
     public boolean rosterLocked() {
@@ -737,16 +780,23 @@ public final class SemionGame {
         for (UUID playerId : players.keySet()) {
             VillagerAdvStates.clear(playerId);
             AncientCityStates.clear(playerId);
-            WarlockAwakeningProgress.clear(playerId);
         }
         for (SemionTeam team : teams.values()) {
             team.closeRuntime();
+        }
+        for (UUID playerId : players.keySet()) {
+            AtlantisStates.clear(playerId);
+            AtlantisPressure.clearPlayer(playerId);
         }
         // Rival tower removal reconciles its installed-score ledger while lanes close,
         // so clear Adversary state after every tower has been detached.
         for (UUID playerId : players.keySet()) {
             AdversaryProgressStates.clear(playerId);
             AdversaryTeamEffects.unregisterPlayer(playerId);
+            MageStates.clear(playerId);
+            kim.biryeong.semiontd.tower.futureagency.FutureAgencyStates.clear(playerId);
+            kim.biryeong.semiontd.tower.queen.QueenStates.clear(playerId);
+            HeroPartyStates.clear(playerId);
         }
         players.clear();
         selectedJobs.clear();
@@ -792,8 +842,12 @@ public final class SemionGame {
         if (!job.canUseSummon(jobContext, type.get())) {
             return SummonResult.failure(SummonResultType.SUMMON_NOT_ALLOWED_BY_JOB, summonId);
         }
-        long gasCost = Math.max(0, job.modifySummonGasCost(jobContext, type.get(), type.get().gasCost()));
-        long incomeGain = Math.max(0, job.modifySummonIncomeGain(jobContext, type.get(), type.get().incomeGain()));
+        long gasCost = sandboxMode
+                ? 0L
+                : Math.max(0, job.modifySummonGasCost(jobContext, type.get(), type.get().gasCost()));
+        long incomeGain = sandboxMode
+                ? 0L
+                : Math.max(0, job.modifySummonIncomeGain(jobContext, type.get(), type.get().incomeGain()));
 
         if (!economyService.spendForSummon(player, gasCost)) {
             return SummonResult.failure(SummonResultType.NOT_ENOUGH_GAS, summonId);
@@ -1440,8 +1494,12 @@ public final class SemionGame {
             player.setGameMode(GameType.ADVENTURE);
             player.teleport(PlayerTeleportTransitions.preservingFacing(teamArena.world(), position, Vec3.ZERO, player));
             SemionSidebarHudService.refreshPlayerHud(player);
-            SemionHotbarService.grantMatchTools(player);
-            if (teams.get(activePlayer.teamId()).hasLeader(activePlayer.uuid())) {
+            if (sandboxMode) {
+                SemionHotbarService.grantSandboxTools(player);
+            } else {
+                SemionHotbarService.grantMatchTools(player);
+            }
+            if (!sandboxMode && teams.get(activePlayer.teamId()).hasLeader(activePlayer.uuid())) {
                 SemionHotbarService.grantLeaderTool(player);
             }
             setFlight(player, true);
