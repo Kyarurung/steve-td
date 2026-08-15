@@ -156,6 +156,18 @@ public final class WarlockTowers {
             )
     );
 
+    private static final List<TowerType> ALL = List.of(
+            BASE_WARLOCK_TOWER,
+            RANGED_WARLOCK_TOWER,
+            MELEE_WARLOCK_TOWER,
+            T1_SLAVE,
+            T2_SLAVE,
+            T3_SLAVE,
+            T1_RANGED_SLAVE,
+            T2_RANGED_SLAVE,
+            T3_RANGED_SLAVE
+    );
+
     static {
         TowerDescriptionRegistry.registerTemplate(BASE_WARLOCK_TOWER, baseWarlockDescription());
         TowerDescriptionRegistry.registerTemplate(RANGED_WARLOCK_TOWER, rangedWarlockDescription());
@@ -227,6 +239,10 @@ public final class WarlockTowers {
 
     public static boolean awakeningEnabled() {
         return WarlockConfig.AWAKENING_ENABLED;
+    }
+
+    public static List<TowerType> all() {
+        return ALL;
     }
 
     public static boolean isWarlockTower(TowerType towerType) {
