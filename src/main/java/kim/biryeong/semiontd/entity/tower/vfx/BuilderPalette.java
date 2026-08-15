@@ -20,6 +20,7 @@ public enum BuilderPalette {
     ADVERSARY(0xF28C28, 0xFFD166, "minecraft:crit", "minecraft:wax_on"),
     FUTURE_AGENCY(0x2DE2E6, 0xFF4FD8, "minecraft:electric_spark", "minecraft:portal"),
     QUEEN(0xC62828, 0xFFD54F, "minecraft:damage_indicator", "minecraft:totem_of_undying"),
+    ENGINEER(0xE53935, 0x39E7FF, "minecraft:damage_indicator", "minecraft:electric_spark"),
     PLANT(0x43A047, 0xF48FB1, "minecraft:spore_blossom_air", "minecraft:cherry_leaves"),
     DEFAULT(0xE0E0E0, 0xFFFFFF, "minecraft:end_rod", "minecraft:crit");
 

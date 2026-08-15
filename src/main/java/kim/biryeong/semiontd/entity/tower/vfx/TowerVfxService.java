@@ -37,6 +37,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
+import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -491,6 +492,9 @@ public final class TowerVfxService {
         }
         if (QueenTowers.isQueenTower(type)) {
             return BuilderPalette.QUEEN;
+        }
+        if (EngineerTowers.isEngineerTower(type)) {
+            return BuilderPalette.ENGINEER;
         }
         if (PlantTowers.isPlantTower(type)) {
             return BuilderPalette.PLANT;

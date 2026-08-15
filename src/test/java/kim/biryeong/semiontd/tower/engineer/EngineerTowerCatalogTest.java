@@ -1,11 +1,15 @@
 package kim.biryeong.semiontd.tower.engineer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonParser;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,13 +115,21 @@ final class EngineerTowerCatalogTest {
         assertEquals(60, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "tntFuseTicks", -1));
         assertEquals(35, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxRedstone", -1));
         assertEquals(4, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxPlates", -1));
-        assertEquals(4, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxPistons", -1));
-        assertEquals(0.20, defaults.ability(
+        assertEquals(3, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxPistons", -1));
+        assertEquals(0.10, defaults.ability(
                 EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", -1), 0.0001);
-        assertEquals(1.2, EngineerBalance.dispenserDamageMultiplier(1), 0.0001);
-        assertEquals(2.0, EngineerBalance.dispenserDamageMultiplier(5), 0.0001);
-        assertEquals(650.0, defaults.ability(
+        assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
+        assertEquals(20, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
+        assertEquals(10, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "tntFuseVfxIntervalTicks", -1));
+        assertEquals(1.1, EngineerBalance.dispenserDamageMultiplier(1), 0.0001);
+        assertEquals(1.5, EngineerBalance.dispenserDamageMultiplier(5), 0.0001);
+        assertEquals(2.0, EngineerBalance.dispenserDamageMultiplier(10), 0.0001);
+        assertEquals(2.0, EngineerBalance.dispenserDamageMultiplier(35), 0.0001);
+        assertEquals(480.0, defaults.ability(
                 EngineerTowers.trap(EngineerTowers.TrapKind.TNT, 3).id(), "damage", -1), 0.0001);
+        assertEquals(850.0, defaults.towers()
+                .get(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 3).id()).maxHealth(), 0.0001);
+        assertDoesNotThrow(defaults::validateForRuntime);
         ProductionTowerCatalogs.reloadBuiltIns(defaults);
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             assertEquals(EngineerTowers.trap(kind, 1).displayName(), EngineerTowers.trap(kind, 2).displayName());
@@ -130,6 +142,8 @@ final class EngineerTowerCatalogTest {
         TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
         assertEquals(80, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeTicks", -1));
         assertEquals(100, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "plateCooldownTicks", -1));
+        assertEquals(10, merged.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
+        assertEquals(20, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
 
         for (var type : EngineerTowers.all()) {
             List<String> description = ProductionTowerCatalog.find(type.id()).orElseThrow().type().description();
@@ -154,7 +168,60 @@ final class EngineerTowerCatalogTest {
     }
 
     @Test
-    void jobLimitsOneGolemThirtyFiveRedstonePartsAndFourPlates() {
+    void tunedDamageRegressionMatchesTheEngineerCeilings() {
+        double t3Shot = EngineerTrapTower.dispenserDamage(3);
+        double shotsPerSecond = 20.0 / EngineerTrapTower.dispenserInterval(3);
+        assertEquals(60.0, t3Shot * shotsPerSecond, 0.0001);
+        assertEquals(90.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(5), 0.0001);
+        assertEquals(120.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(10), 0.0001);
+        assertEquals(120.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(35), 0.0001);
+
+        double tnt = EngineerTrapTower.tntDamage(3);
+        assertEquals(480.0, tnt, 0.0001);
+        assertEquals(1_440.0, tnt * 3, 0.0001);
+        assertEquals(2_400.0, tnt * 5, 0.0001);
+        assertEquals(4_320.0, tnt * EngineerTrapTower.tntMaxTargets(3), 0.0001);
+    }
+
+    @Test
+    void invalidEngineerCapsTicksAndTierOrderAreRejected() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", 36.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", 2.5);
+        assertInvalidAbility(defaults,
+                EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 2).id(), "intervalTicks", 20.0);
+        assertInvalidAbility(defaults,
+                EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 2).id(), "maxTargets", 0.0);
+    }
+
+    @Test
+    void bundledEngineerDefaultsMatchJavaDefaults() throws Exception {
+        try (var input = EngineerTowerCatalogTest.class.getResourceAsStream(
+                "/semiontd/balance-defaults/tower_balance.json")) {
+            var root = JsonParser.parseReader(new InputStreamReader(
+                    java.util.Objects.requireNonNull(input), StandardCharsets.UTF_8)).getAsJsonObject();
+            var bundledAbilities = root.getAsJsonObject("abilities");
+            TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+            for (var entry : defaults.abilities().entrySet()) {
+                if (!entry.getKey().startsWith("engineer_")) {
+                    continue;
+                }
+                var bundled = bundledAbilities.getAsJsonObject(entry.getKey());
+                assertEquals(entry.getValue().keySet(), bundled.keySet(), entry.getKey());
+                entry.getValue().forEach((key, value) ->
+                        assertEquals(value, bundled.get(key).getAsDouble(), 0.0001, entry.getKey() + "." + key));
+            }
+            for (TowerType type : EngineerTowers.all()) {
+                var bundled = root.getAsJsonObject("towers").getAsJsonObject(type.id());
+                assertEquals(defaults.towers().get(type.id()).maxHealth(),
+                        bundled.get("maxHealth").getAsDouble(), 0.0001, type.id());
+            }
+        }
+    }
+
+    @Test
+    void jobLimitsOneGolemThirtyFiveRedstonePartsFourPlatesAndThreePistons() {
         EconomyConfig economy = EconomyConfig.defaultConfig();
         SemionGame game = new SemionGame(economy, WaveConfig.defaultConfig(), new GameArena(Map.of()));
         SemionPlayer player = new SemionPlayer(OWNER, "engineer", TeamId.RED, 1, new PlayerEconomy(economy));
@@ -189,7 +256,7 @@ final class EngineerTowerCatalogTest {
         }
         assertFalse(job.canUseTower(context, EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 1)));
         assertTrue(job.canUseTower(context, EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 2)),
-                "The four-piston limit must not block upgrading an existing piston.");
+                "The three-piston limit must not block upgrading an existing piston.");
     }
 
     @Test
@@ -214,6 +281,23 @@ final class EngineerTowerCatalogTest {
                 List.of(new GridPosition(0, 63, 10))
         );
         return new PlayerLane(TeamId.RED, 1, OWNER, null, layout);
+    }
+
+    private static void assertInvalidAbility(
+            TowerBalanceConfig defaults,
+            String configId,
+            String key,
+            double value
+    ) {
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> invalid = new LinkedHashMap<>(abilities.get(configId));
+        invalid.put(key, value);
+        abilities.put(configId, invalid);
+        TowerBalanceConfig broken = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
+        );
+        assertThrows(IllegalArgumentException.class, broken::validateForRuntime);
     }
 
     private static final class TestTower extends Tower {

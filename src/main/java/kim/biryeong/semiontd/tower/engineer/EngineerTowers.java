@@ -194,7 +194,7 @@ public final class EngineerTowers {
             case SLIME -> tier == 1 ? 50 : 0;
         };
         double health = kind == TrapKind.DOOR
-                ? new double[]{300, 650, 1100}[tier - 1]
+                ? new double[]{220, 500, 850}[tier - 1]
                 : new double[]{150, 300, 500}[tier - 1];
         String ability = "ability." + id(kind, tier) + ".";
         return TowerType.builder(id(kind, tier), kind.displayName)
@@ -217,16 +217,21 @@ public final class EngineerTowers {
             case DOOR -> List.of(powered, "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 몬스터를 유인합니다.</green>");
             case TNT -> List.of(powered, "<red>" + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "tntFuseTicks", "seconds")
                     + " 뒤 최대 " + placeholder(ability, "maxTargets", "integer") + "기에게 피해 "
-                    + placeholder(ability, "damage", "integer") + "을 줍니다.</red>");
+                    + placeholder(ability, "damage", "integer") + "을 줍니다. 라운드당 한 번만 폭발합니다.</red>");
             case DISPENSER -> List.of(
                     powered,
                     "<green>사거리 " + placeholder(ability, "range", "blocks") + "에서 피해 "
                             + placeholder(ability, "damage", "integer") + "을 반복 발사합니다.</green>",
                     "<gold>신호를 보낸 발판까지의 회로 거리 1칸당 피해가 "
                             + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "dispenserDamagePerPlateBlock", "percent")
-                            + " 증가합니다.</gold>"
+                            + " 증가하며 최대 "
+                            + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "dispenserMaxPlateDistance", "integer")
+                            + "칸까지 적용됩니다.</gold>"
             );
-            case PISTON -> List.of(powered, "<aqua>반경 " + placeholder(ability, "radius", "blocks") + "의 최대 " + placeholder(ability, "maxTargets", "integer") + "기를 라인 시작점으로 되돌립니다.</aqua>");
+            case PISTON -> List.of(powered, "<aqua>반경 " + placeholder(ability, "radius", "blocks") + "의 최대 "
+                    + placeholder(ability, "maxTargets", "integer") + "기를 라인 시작점으로 되돌립니다. 같은 적은 "
+                    + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "pistonImmunityTicks", "seconds")
+                    + " 동안 면역입니다.</aqua>");
             case SLIME -> List.of(powered, "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 이동속도를 " + placeholder(ability, "slow", "percent") + " 낮춥니다.</green>");
         };
     }

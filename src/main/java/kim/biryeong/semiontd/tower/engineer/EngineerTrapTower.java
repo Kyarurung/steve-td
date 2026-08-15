@@ -7,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -37,7 +38,6 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -127,6 +127,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     @Override
     public void onRemoved(PlayerLane lane) {
+        disable(lane);
         discardUpperDoorVisual();
         super.onRemoved(lane);
     }
@@ -196,14 +197,16 @@ public final class EngineerTrapTower extends EntityBackedTower {
         if (activeTicks <= 0) {
             return;
         }
-        if (activeTicks % 10 == 0) {
+        boolean periodicVfx = activeTicks < EngineerBalance.activeTicks()
+                && activeTicks % Math.max(1, EngineerBalance.activeVfxIntervalTicks()) == 0;
+        if (periodicVfx && kind != EngineerTowers.TrapKind.TNT) {
             showActivationVfx(source);
         }
         activeTicks--;
         switch (kind) {
             case DOOR -> tickDoor(lane, source);
             case DISPENSER -> tickDispenser(lane, source);
-            case SLIME -> tickSlime(source);
+            case SLIME -> tickSlime(source, periodicVfx);
             case TNT, PISTON -> { }
         }
         if (activeTicks <= 0) {
@@ -222,12 +225,26 @@ public final class EngineerTrapTower extends EntityBackedTower {
         lines.add("<red>재무장</red> <white>" + (armed ? "완료" : "신호 해제 필요") + "</white>");
         if (kind == EngineerTowers.TrapKind.TNT) {
             lines.add("<red>라운드 폭발</red> <white>" + (tntUsed ? "사용함" : "준비됨") + "</white>");
+            if (fuseTicks >= 0) {
+                lines.add("<yellow>점화 잔여시간</yellow> <white>"
+                        + String.format(java.util.Locale.ROOT, "%.1f초", fuseTicks / 20.0) + "</white>");
+            }
         }
         if (kind == EngineerTowers.TrapKind.DISPENSER) {
-            lines.add("<aqua>발판 회로 거리</aqua> <white>" + activationPlateDistance + "칸</white>");
+            int appliedDistance = Math.min(activationPlateDistance, EngineerBalance.dispenserMaxPlateDistance());
+            lines.add("<aqua>적용 회로 거리</aqua> <white>" + appliedDistance + "/"
+                    + EngineerBalance.dispenserMaxPlateDistance() + "칸</white>"
+                    + (activationPlateDistance > appliedDistance
+                    ? " <gray>(실제 " + activationPlateDistance + "칸)</gray>" : ""));
             lines.add("<gold>거리 피해 보너스</gold> <green>+"
                     + Math.round((EngineerBalance.dispenserDamageMultiplier(activationPlateDistance) - 1.0) * 100.0)
                     + "%</green>");
+        }
+        if (kind == EngineerTowers.TrapKind.PISTON) {
+            lines.add("<aqua>설치 제한</aqua> <white>플레이어당 " + EngineerBalance.maxPistons() + "기</white>");
+            lines.add("<yellow>대상 면역</yellow> <white>"
+                    + String.format(java.util.Locale.ROOT, "%.1f초", EngineerBalance.pistonImmunityTicks() / 20.0)
+                    + "</white>");
         }
         return List.copyOf(lines);
     }
@@ -256,7 +273,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
             case PISTON -> firePiston(lane, source);
             case DOOR -> tickDoor(lane, source);
             case DISPENSER -> tickDispenser(lane, source);
-            case SLIME -> tickSlime(source);
+            case SLIME -> tickSlime(source, false);
         }
     }
 
@@ -266,11 +283,19 @@ public final class EngineerTrapTower extends EntityBackedTower {
         }
         actionCooldown = Math.max(1, EngineerBalance.doorRetargetTicks()) - 1;
         double radius = ability("radius", doorRadius(tier));
-        for (SemionMonsterEntity target : liveMonsters(lane)) {
-            if (target.position().distanceToSqr(source.position()) <= radius * radius) {
+        MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
+                AreaEffectIds.tower(this, "door_taunt"),
+                source,
+                radius,
+                AreaVfxSpec.onTrigger(AreaVfxStyles.DEBUFF)
+        );
+        SemionTdApi.areaEffects().applyToMonsters(request, target -> {
+            if (target.getTarget() != source) {
                 target.setTarget(source);
+                return AreaEffectOutcome.APPLIED;
             }
-        }
+            return AreaEffectOutcome.UNCHANGED;
+        });
     }
 
     private void tickDispenser(PlayerLane lane, SemionTowerEntity source) {
@@ -293,11 +318,12 @@ public final class EngineerTrapTower extends EntityBackedTower {
                 });
     }
 
-    private void tickSlime(SemionTowerEntity source) {
+    private void tickSlime(SemionTowerEntity source, boolean showVfx) {
         double radius = ability("radius", slimeRadius(tier));
         double slow = ability("slow", slimeSlow(tier));
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
-                AreaEffectIds.tower(this, "slime"), source, radius, AreaVfxSpec.none()
+                AreaEffectIds.tower(this, "slime"), source, radius,
+                showVfx ? AreaVfxSpec.onTrigger(AreaVfxStyles.DEBUFF) : AreaVfxSpec.none()
         );
         SemionTdApi.areaEffects().applyToMonsters(request, target -> {
             target.applyTimedEffect(TimedEffectType.MONSTER_MOVE_SPEED_REDUCTION, slow, 3);
@@ -326,7 +352,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     private void firePiston(PlayerLane lane, SemionTowerEntity source) {
         double radius = ability("radius", pistonRadius(tier));
-        int cap = intAbility("maxTargets", tier);
+        int cap = intAbility("maxTargets", pistonMaxTargets(tier));
         long now = lane.arenaWorld().getGameTime();
         Vec3 start = lane.laneLayout().positionAt(0.0);
         liveMonsters(lane).stream()
@@ -379,53 +405,46 @@ public final class EngineerTrapTower extends EntityBackedTower {
                 0,
                 0
         );
-        if (source.level() instanceof ServerLevel level) {
-            DustParticleOptions power = new DustParticleOptions(0x39E7FF, 0.72F);
-            Vec3 center = source.position().add(0.0, 0.18, 0.0);
-            for (int index = 0; index < 18; index++) {
-                double angle = Math.PI * 2.0 * index / 18.0;
-                level.sendParticles(
-                        power,
-                        center.x + Math.cos(angle) * 0.85,
-                        center.y,
-                        center.z + Math.sin(angle) * 0.85,
-                        1, 0.0, 0.0, 0.0, 0.0
-                );
-            }
-        }
     }
 
     private void showTntFuseVfx(SemionTowerEntity source) {
-        if (kind != EngineerTowers.TrapKind.TNT || fuseTicks < 0 || fuseTicks % 2 != 0
-                || !(source.level() instanceof ServerLevel level)) {
+        if (kind != EngineerTowers.TrapKind.TNT || fuseTicks < 0
+                || fuseTicks % Math.max(1, EngineerBalance.tntFuseVfxIntervalTicks()) != 0) {
             return;
         }
         int total = Math.max(1, EngineerBalance.tntFuseTicks());
         double progress = 1.0 - Math.min(total, fuseTicks) / (double) total;
-        int green = Math.max(20, (int) Math.round(190.0 * (1.0 - progress)));
-        DustParticleOptions dust = new DustParticleOptions((255 << 16) | (green << 8) | 20, 0.85F);
+        showTntFusePulse(source, progress);
+    }
+
+    private void showTntFusePulse(SemionTowerEntity source, double progress) {
         Vec3 center = source.position().add(0.0, 0.22, 0.0);
-        double phase = progress * Math.PI * 8.0;
-        int points = fuseTicks <= 6 ? 24 : 10;
-        double arc = fuseTicks <= 6 ? Math.PI * 2.0 : Math.PI * 1.55;
-        for (int index = 0; index < points; index++) {
-            double angle = phase + arc * index / points;
-            level.sendParticles(
-                    dust,
-                    center.x + Math.cos(angle) * 0.72,
-                    center.y,
-                    center.z + Math.sin(angle) * 0.72,
-                    1, 0.0, 0.0, 0.0, 0.0
-            );
-        }
-        double head = phase + arc;
-        level.sendParticles(
-                progress > 0.7 ? ParticleTypes.FLAME : ParticleTypes.SMALL_FLAME,
-                center.x + Math.cos(head) * 0.72,
-                center.y + 0.05,
-                center.z + Math.sin(head) * 0.72,
-                2, 0.03, 0.03, 0.03, 0.005
+        TowerVfxService.showAreaEffect(
+                source,
+                AreaEffectIds.tower(this, "tnt_fuse"),
+                AreaVfxStyles.PULSE,
+                center,
+                0.45 + Math.max(0.0, Math.min(1.0, progress)) * 0.4,
+                List.of(),
+                0, 0, 0
         );
+        if (progress >= 0.8 && source.level() instanceof ServerLevel level) {
+            level.sendParticles(ParticleTypes.FLAME, center.x, center.y + 0.08, center.z,
+                    2, 0.05, 0.03, 0.05, 0.005);
+        }
+    }
+
+    public boolean showDebugVfx(PlayerLane lane, boolean tnt) {
+        SemionTowerEntity source = source(lane);
+        if (source == null || (tnt && kind != EngineerTowers.TrapKind.TNT)) {
+            return false;
+        }
+        if (tnt) {
+            showTntFusePulse(source, 0.75);
+        } else {
+            showActivationVfx(source);
+        }
+        return true;
     }
 
     private void updateActiveName(SemionTowerEntity source, boolean active) {
@@ -488,7 +507,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
         return new BlockPos(originalPosition().x(), originalPosition().y() + 1, originalPosition().z());
     }
 
-    private OptionalInt recentPlateDistance(PlayerLane lane) {
+    OptionalInt recentPlateDistance(PlayerLane lane) {
         long now = lane.arenaWorld().getGameTime();
         long oldestAccepted = now - EngineerBalance.activeTicks();
         Map<BlockPos, EngineerCircuitTower> circuits = new HashMap<>();
@@ -497,29 +516,60 @@ public final class EngineerTrapTower extends EntityBackedTower {
                 circuits.put(circuit.circuitPosition(), circuit);
             }
         }
+        return circuits.values().stream()
+                .filter(circuit -> circuit.plateKind() != null)
+                .filter(circuit -> circuit.lastPressedGameTime() >= oldestAccepted
+                        && circuit.lastPressedGameTime() <= now)
+                .map(circuit -> new PlatePath(
+                        circuit.lastPressedGameTime(),
+                        shortestDirectedDistance(circuits, circuit.circuitPosition()),
+                        circuit.circuitPosition()
+                ))
+                .filter(path -> path.distance() > 0)
+                .sorted(Comparator.comparingLong(PlatePath::pressedAt).reversed()
+                        .thenComparingInt(PlatePath::distance)
+                        .thenComparingInt(path -> path.position().getX())
+                        .thenComparingInt(path -> path.position().getY())
+                        .thenComparingInt(path -> path.position().getZ()))
+                .mapToInt(PlatePath::distance)
+                .findFirst();
+    }
+
+    private int shortestDirectedDistance(Map<BlockPos, EngineerCircuitTower> circuits, BlockPos start) {
         ArrayDeque<CircuitStep> pending = new ArrayDeque<>();
-        Set<BlockPos> visited = new java.util.HashSet<>();
-        for (Direction direction : Direction.values()) {
-            BlockPos adjacent = signalPosition().relative(direction);
-            if (circuits.containsKey(adjacent) && visited.add(adjacent)) {
-                pending.addLast(new CircuitStep(adjacent, 1));
-            }
-        }
+        Set<BlockPos> visited = new HashSet<>();
+        pending.addLast(new CircuitStep(start, 1));
+        visited.add(start);
         while (!pending.isEmpty()) {
             CircuitStep step = pending.removeFirst();
-            EngineerCircuitTower circuit = circuits.get(step.position());
-            if (circuit.plateKind() != null && circuit.lastPressedGameTime() >= oldestAccepted
-                    && circuit.lastPressedGameTime() <= now) {
-                return OptionalInt.of(step.distance());
-            }
-            for (Direction direction : Direction.values()) {
+            EngineerCircuitTower current = circuits.get(step.position());
+            for (Direction direction : Direction.Plane.HORIZONTAL) {
+                if (!canLeave(current, direction)) {
+                    continue;
+                }
                 BlockPos adjacent = step.position().relative(direction);
-                if (circuits.containsKey(adjacent) && visited.add(adjacent)) {
+                if (adjacent.equals(signalPosition())) {
+                    return step.distance();
+                }
+                EngineerCircuitTower next = circuits.get(adjacent);
+                if (next != null && canEnter(next, direction) && visited.add(adjacent)) {
                     pending.addLast(new CircuitStep(adjacent, step.distance() + 1));
                 }
             }
         }
-        return OptionalInt.empty();
+        return -1;
+    }
+
+    private static boolean canLeave(EngineerCircuitTower circuit, Direction direction) {
+        return circuit != null && EngineerTowers.repeaterDirection(circuit.type())
+                .map(direction::equals)
+                .orElse(true);
+    }
+
+    private static boolean canEnter(EngineerCircuitTower circuit, Direction travelDirection) {
+        return EngineerTowers.repeaterDirection(circuit.type())
+                .map(travelDirection::equals)
+                .orElse(true);
     }
 
     int activationPlateDistance() {
@@ -527,6 +577,9 @@ public final class EngineerTrapTower extends EntityBackedTower {
     }
 
     private record CircuitStep(BlockPos position, int distance) {
+    }
+
+    private record PlatePath(long pressedAt, int distance, BlockPos position) {
     }
 
     private double ability(String key, double fallback) {
@@ -537,16 +590,17 @@ public final class EngineerTrapTower extends EntityBackedTower {
         return TowerBalanceRuntime.abilityInt(type().id(), key, fallback);
     }
 
-    public static double doorRadius(int tier) { return new double[]{6.0, 8.0, 10.0}[tier - 1]; }
-    public static double tntDamage(int tier) { return new double[]{180.0, 360.0, 650.0}[tier - 1]; }
+    public static double doorRadius(int tier) { return new double[]{4.0, 5.5, 7.0}[tier - 1]; }
+    public static double tntDamage(int tier) { return new double[]{120.0, 260.0, 480.0}[tier - 1]; }
     public static double tntRadius(int tier) { return new double[]{2.5, 3.25, 4.0}[tier - 1]; }
-    public static int tntMaxTargets(int tier) { return new int[]{6, 9, 12}[tier - 1]; }
-    public static double dispenserDamage(int tier) { return new double[]{18.0, 30.0, 48.0}[tier - 1]; }
-    public static int dispenserInterval(int tier) { return new int[]{12, 8, 5}[tier - 1]; }
+    public static int tntMaxTargets(int tier) { return new int[]{5, 7, 9}[tier - 1]; }
+    public static double dispenserDamage(int tier) { return new double[]{12.0, 20.0, 30.0}[tier - 1]; }
+    public static int dispenserInterval(int tier) { return new int[]{16, 13, 10}[tier - 1]; }
     public static double dispenserRange(int tier) { return new double[]{7.0, 9.0, 11.0}[tier - 1]; }
     public static double pistonRadius(int tier) { return new double[]{2.5, 3.0, 3.5}[tier - 1]; }
+    public static int pistonMaxTargets(int tier) { return new int[]{1, 1, 2}[tier - 1]; }
     public static double slimeRadius(int tier) { return new double[]{2.5, 3.0, 3.5}[tier - 1]; }
-    public static double slimeSlow(int tier) { return new double[]{0.55, 0.70, 0.85}[tier - 1]; }
+    public static double slimeSlow(int tier) { return new double[]{0.30, 0.42, 0.55}[tier - 1]; }
 
     @Override
     protected boolean execute(PlayerLane lane) {

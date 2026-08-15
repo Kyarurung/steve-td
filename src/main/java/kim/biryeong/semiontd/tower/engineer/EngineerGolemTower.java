@@ -310,7 +310,7 @@ public final class EngineerGolemTower extends Tower {
                 position.getX() + 0.5,
                 position.getY() + 0.18,
                 position.getZ() + 0.5,
-                14,
+                8,
                 0.35,
                 0.08,
                 0.35,

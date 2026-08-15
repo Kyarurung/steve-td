@@ -1813,18 +1813,21 @@ public record TowerBalanceConfig(
     }
 
     private static void putEngineerAbilities(Map<String, Map<String, Double>> abilities) {
-        putAbilities(abilities, EngineerBalance.GLOBAL_ID, Map.of(
-                "activeTicks", (double) EngineerBalance.ACTIVE_TICKS,
-                "plateCooldownTicks", (double) EngineerBalance.PLATE_COOLDOWN_TICKS,
-                "golemMoveSpeed", EngineerBalance.GOLEM_MOVE_SPEED,
-                "pistonImmunityTicks", (double) EngineerBalance.PISTON_IMMUNITY_TICKS,
-                "doorRetargetTicks", (double) EngineerBalance.DOOR_RETARGET_TICKS,
-                "tntFuseTicks", (double) EngineerBalance.TNT_FUSE_TICKS,
-                "maxRedstone", (double) EngineerBalance.MAX_REDSTONE,
-                "maxPlates", (double) EngineerBalance.MAX_PLATES,
-                "maxPistons", (double) EngineerBalance.MAX_PISTONS,
-                "dispenserDamagePerPlateBlock", EngineerBalance.DISPENSER_DAMAGE_PER_PLATE_BLOCK
-        ));
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("activeTicks", (double) EngineerBalance.ACTIVE_TICKS);
+        global.put("plateCooldownTicks", (double) EngineerBalance.PLATE_COOLDOWN_TICKS);
+        global.put("golemMoveSpeed", EngineerBalance.GOLEM_MOVE_SPEED);
+        global.put("pistonImmunityTicks", (double) EngineerBalance.PISTON_IMMUNITY_TICKS);
+        global.put("doorRetargetTicks", (double) EngineerBalance.DOOR_RETARGET_TICKS);
+        global.put("tntFuseTicks", (double) EngineerBalance.TNT_FUSE_TICKS);
+        global.put("maxRedstone", (double) EngineerBalance.MAX_REDSTONE);
+        global.put("maxPlates", (double) EngineerBalance.MAX_PLATES);
+        global.put("maxPistons", (double) EngineerBalance.MAX_PISTONS);
+        global.put("dispenserDamagePerPlateBlock", EngineerBalance.DISPENSER_DAMAGE_PER_PLATE_BLOCK);
+        global.put("dispenserMaxPlateDistance", (double) EngineerBalance.DISPENSER_MAX_PLATE_DISTANCE);
+        global.put("activeVfxIntervalTicks", (double) EngineerBalance.ACTIVE_VFX_INTERVAL_TICKS);
+        global.put("tntFuseVfxIntervalTicks", (double) EngineerBalance.TNT_FUSE_VFX_INTERVAL_TICKS);
+        putAbilities(abilities, EngineerBalance.GLOBAL_ID, global);
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 LinkedHashMap<String, Double> values = new LinkedHashMap<>();
@@ -1842,7 +1845,7 @@ public record TowerBalanceConfig(
                     }
                     case PISTON -> {
                         values.put("radius", EngineerTrapTower.pistonRadius(tier));
-                        values.put("maxTargets", (double) tier);
+                        values.put("maxTargets", (double) EngineerTrapTower.pistonMaxTargets(tier));
                     }
                     case SLIME -> {
                         values.put("radius", EngineerTrapTower.slimeRadius(tier));
@@ -2181,10 +2184,19 @@ public record TowerBalanceConfig(
         requireEngineerPositive(global,
                 "activeTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
                 "doorRetargetTicks", "tntFuseTicks", "maxRedstone", "maxPlates", "maxPistons",
-                "dispenserDamagePerPlateBlock");
+                "dispenserMaxPlateDistance", "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         requireEngineerIntegral(global,
                 "activeTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
-                "maxRedstone", "maxPlates", "maxPistons");
+                "maxRedstone", "maxPlates", "maxPistons", "dispenserMaxPlateDistance",
+                "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
+        double distanceBonus = global.getOrDefault("dispenserDamagePerPlateBlock", -1.0);
+        if (distanceBonus < 0.0 || distanceBonus > 1.0) {
+            throw new IllegalArgumentException("Engineer dispenser distance bonus must be in [0, 1].");
+        }
+        if (global.getOrDefault("dispenserMaxPlateDistance", 0.0)
+                > global.getOrDefault("maxRedstone", 0.0)) {
+            throw new IllegalArgumentException("Engineer dispenser distance cap must not exceed maxRedstone.");
+        }
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 String id = EngineerTowers.trap(kind, tier).id();
@@ -2194,7 +2206,7 @@ public record TowerBalanceConfig(
                 }
                 validateEngineerValues(id, values);
                 values.forEach((key, value) -> {
-                    if (value <= 0.0) {
+                    if (!key.equals("slow") && value <= 0.0) {
                         throw new IllegalArgumentException("Engineer balance ability must be positive: " + id + "." + key);
                     }
                 });
@@ -2204,10 +2216,46 @@ public record TowerBalanceConfig(
                 if (values.containsKey("intervalTicks")) {
                     requireEngineerIntegral(values, "intervalTicks");
                 }
-                if (values.containsKey("slow") && values.get("slow") > 1.0) {
-                    throw new IllegalArgumentException("Engineer slow ratio must not exceed 1: " + id);
+                if (values.containsKey("slow") && values.get("slow") >= 1.0) {
+                    throw new IllegalArgumentException("Engineer slow ratio must be in [0, 1): " + id);
                 }
             }
+        }
+        validateEngineerTierOrder(EngineerTowers.TrapKind.DOOR, "radius", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.TNT, "damage", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.TNT, "radius", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.TNT, "maxTargets", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.DISPENSER, "damage", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.DISPENSER, "range", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.DISPENSER, "intervalTicks", false);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.PISTON, "radius", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.PISTON, "maxTargets", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.SLIME, "radius", true);
+        validateEngineerTierOrder(EngineerTowers.TrapKind.SLIME, "slow", true);
+
+        Double previousHealth = null;
+        for (int tier = 1; tier <= 3; tier++) {
+            TowerStats stats = towers.get(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, tier).id());
+            if (stats != null && stats.maxHealth() != null) {
+                if (previousHealth != null && stats.maxHealth() < previousHealth) {
+                    throw new IllegalArgumentException("Engineer door health must not decrease by tier.");
+                }
+                previousHealth = stats.maxHealth();
+            }
+        }
+    }
+
+    private void validateEngineerTierOrder(EngineerTowers.TrapKind kind, String key, boolean nondecreasing) {
+        Double previous = null;
+        for (int tier = 1; tier <= 3; tier++) {
+            Double current = configuredAbility(EngineerTowers.trap(kind, tier).id(), key);
+            if (current == null) {
+                continue;
+            }
+            if (previous != null && (nondecreasing ? current < previous : current > previous)) {
+                throw new IllegalArgumentException("Engineer " + kind + "." + key + " tier order is invalid.");
+            }
+            previous = current;
         }
     }
 

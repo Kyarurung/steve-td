@@ -8,13 +8,16 @@ public final class EngineerBalance {
     public static final int ACTIVE_TICKS = 60;
     public static final int PLATE_COOLDOWN_TICKS = 100;
     public static final double GOLEM_MOVE_SPEED = 0.18;
-    public static final int PISTON_IMMUNITY_TICKS = 200;
+    public static final int PISTON_IMMUNITY_TICKS = 300;
     public static final int DOOR_RETARGET_TICKS = 10;
     public static final int TNT_FUSE_TICKS = 60;
     public static final int MAX_REDSTONE = 35;
     public static final int MAX_PLATES = 4;
-    public static final int MAX_PISTONS = 4;
-    public static final double DISPENSER_DAMAGE_PER_PLATE_BLOCK = 0.20;
+    public static final int MAX_PISTONS = 3;
+    public static final double DISPENSER_DAMAGE_PER_PLATE_BLOCK = 0.10;
+    public static final int DISPENSER_MAX_PLATE_DISTANCE = 10;
+    public static final int ACTIVE_VFX_INTERVAL_TICKS = 20;
+    public static final int TNT_FUSE_VFX_INTERVAL_TICKS = 10;
 
     private EngineerBalance() {
     }
@@ -55,8 +58,32 @@ public final class EngineerBalance {
         return TowerBalanceRuntime.abilityInt(GLOBAL_ID, "maxPistons", MAX_PISTONS);
     }
 
+    public static int dispenserMaxPlateDistance() {
+        return TowerBalanceRuntime.abilityInt(
+                GLOBAL_ID,
+                "dispenserMaxPlateDistance",
+                DISPENSER_MAX_PLATE_DISTANCE
+        );
+    }
+
+    public static int activeVfxIntervalTicks() {
+        return TowerBalanceRuntime.abilityTicks(
+                GLOBAL_ID,
+                "activeVfxIntervalTicks",
+                ACTIVE_VFX_INTERVAL_TICKS
+        );
+    }
+
+    public static int tntFuseVfxIntervalTicks() {
+        return TowerBalanceRuntime.abilityTicks(
+                GLOBAL_ID,
+                "tntFuseVfxIntervalTicks",
+                TNT_FUSE_VFX_INTERVAL_TICKS
+        );
+    }
+
     public static double dispenserDamageMultiplier(int plateDistance) {
-        return 1.0 + Math.max(0, plateDistance)
+        return 1.0 + Math.min(Math.max(0, plateDistance), dispenserMaxPlateDistance())
                 * TowerBalanceRuntime.ability(
                         GLOBAL_ID,
                         "dispenserDamagePerPlateBlock",

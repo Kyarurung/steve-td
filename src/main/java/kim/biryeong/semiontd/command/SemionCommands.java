@@ -45,6 +45,7 @@ import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
+import kim.biryeong.semiontd.tower.engineer.EngineerTrapTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
@@ -532,6 +533,13 @@ public final class SemionCommands {
                                                 context.getSource(), gameManager, false)))
                                 .then(literal("giant")
                                         .executes(context -> debugQueenVfx(
+                                                context.getSource(), gameManager, true))))
+                        .then(literal("engineer")
+                                .then(literal("power")
+                                        .executes(context -> debugEngineerVfx(
+                                                context.getSource(), gameManager, false)))
+                                .then(literal("tnt")
+                                        .executes(context -> debugEngineerVfx(
                                                 context.getSource(), gameManager, true)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
@@ -719,6 +727,26 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 붉은 여왕 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugEngineerVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            boolean tnt
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (tower instanceof EngineerTrapTower trap && trap.showDebugVfx(lane, tnt)) {
+                    success(source, "기술자 " + (tnt ? "TNT" : "전력") + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, tnt ? "살아 있는 기술자 TNT 함정이 필요합니다." : "살아 있는 기술자 함정이 필요합니다.");
         return 0;
     }
 

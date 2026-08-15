@@ -225,6 +225,122 @@ public final class EngineerGameTest {
         }
     }
 
+    @GameTest
+    public void repeaterDirectionAndOwnerControlAuthorizedCircuitPaths(GameTestHelper context) {
+        UUID owner = stableUuid("engineer-directed-circuit");
+        UUID other = stableUuid("engineer-directed-circuit-other");
+        PlayerLane lane = testLane(context, owner);
+        GridPosition platePosition = floor(context, 2, 2, 5);
+        GridPosition repeaterPosition = floor(context, 3, 2, 5);
+        GridPosition trapPosition = floor(context, 4, 2, 5);
+        prepareFloor(context, platePosition, repeaterPosition, trapPosition);
+
+        EngineerCircuitTower plate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                owner, TeamId.RED, 1, platePosition, platePosition
+        );
+        EngineerCircuitTower backwards = new EngineerCircuitTower(
+                EngineerTowers.repeater(Direction.WEST),
+                owner, TeamId.RED, 1, repeaterPosition, repeaterPosition
+        );
+        EngineerTrapTower trap = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 1),
+                owner, TeamId.RED, 1, trapPosition, trapPosition
+        );
+        try {
+            lane.addTower(plate);
+            lane.addTower(backwards);
+            lane.addTower(trap);
+            require(plate.pressPlate(lane), "The source plate must be pressable.");
+            require(trap.recentPlateDistance(lane).isEmpty(),
+                    "A backwards repeater must not authorize the trap.");
+
+            require(lane.removeTower(backwards), "The backwards repeater must be removable.");
+            EngineerCircuitTower forwards = new EngineerCircuitTower(
+                    EngineerTowers.repeater(Direction.EAST),
+                    owner, TeamId.RED, 1, repeaterPosition, repeaterPosition
+            );
+            lane.addTower(forwards);
+            require(plate.pressPlate(lane), "The plate must refresh its authorized press time.");
+            require(trap.recentPlateDistance(lane).orElse(-1) == 2,
+                    "A forward repeater must report a two-block circuit path.");
+
+            require(lane.removeTower(plate), "The owner plate must be removable.");
+            EngineerCircuitTower foreignPlate = new EngineerCircuitTower(
+                    EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                    other, TeamId.RED, 1, platePosition, platePosition
+            );
+            lane.addTower(foreignPlate);
+            require(foreignPlate.pressPlate(lane), "The foreign plate must be physically pressable.");
+            require(trap.recentPlateDistance(lane).isEmpty(),
+                    "Another owner's plate must not authorize the trap.");
+            context.succeed();
+        } catch (Throwable failure) {
+            context.fail(Component.literal("Engineer directed circuit GameTest failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        } finally {
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest
+    public void newestConnectedPlateDeterminesDispenserDistance(GameTestHelper context) {
+        UUID owner = stableUuid("engineer-newest-plate");
+        PlayerLane lane = testLane(context, owner);
+        GridPosition trapPosition = floor(context, 7, 2, 7);
+        GridPosition nearPlatePosition = floor(context, 6, 2, 7);
+        GridPosition farPlatePosition = floor(context, 7, 2, 4);
+        GridPosition dustOnePosition = floor(context, 7, 2, 5);
+        GridPosition dustTwoPosition = floor(context, 7, 2, 6);
+        prepareFloor(context, trapPosition, nearPlatePosition, farPlatePosition, dustOnePosition, dustTwoPosition);
+
+        EngineerTrapTower trap = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 1),
+                owner, TeamId.RED, 1, trapPosition, trapPosition
+        );
+        EngineerCircuitTower nearPlate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                owner, TeamId.RED, 1, nearPlatePosition, nearPlatePosition
+        );
+        EngineerCircuitTower farPlate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.STONE),
+                owner, TeamId.RED, 1, farPlatePosition, farPlatePosition
+        );
+        EngineerCircuitTower dustOne = new EngineerCircuitTower(
+                EngineerTowers.REDSTONE_DUST, owner, TeamId.RED, 1, dustOnePosition, dustOnePosition
+        );
+        EngineerCircuitTower dustTwo = new EngineerCircuitTower(
+                EngineerTowers.REDSTONE_DUST, owner, TeamId.RED, 1, dustTwoPosition, dustTwoPosition
+        );
+        lane.addTower(trap);
+        lane.addTower(nearPlate);
+        lane.addTower(farPlate);
+        lane.addTower(dustOne);
+        lane.addTower(dustTwo);
+        try {
+            require(nearPlate.pressPlate(lane), "The near plate must be pressable.");
+            require(trap.recentPlateDistance(lane).orElse(-1) == 1,
+                    "The initial direct plate must report distance one.");
+            context.runAfterDelay(2, () -> {
+                try {
+                    require(farPlate.pressPlate(lane), "The far plate must be pressable.");
+                    require(trap.recentPlateDistance(lane).orElse(-1) == 3,
+                            "The newest connected plate must win even when its path is longer.");
+                    context.succeed();
+                } catch (Throwable failure) {
+                    context.fail(Component.literal("Engineer newest plate GameTest failed: "
+                            + failure.getClass().getName() + ": " + failure.getMessage()));
+                } finally {
+                    lane.clearTowers();
+                }
+            });
+        } catch (Throwable failure) {
+            lane.clearTowers();
+            context.fail(Component.literal("Engineer newest plate setup failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        }
+    }
+
     private static PlayerLane testLane(GameTestHelper context, UUID owner) {
         BlockPos min = context.absolutePos(new BlockPos(0, 1, 0));
         BlockPos max = context.absolutePos(new BlockPos(14, 6, 14));
