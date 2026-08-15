@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -736,6 +737,7 @@ public final class SemionGame {
         for (UUID playerId : players.keySet()) {
             VillagerAdvStates.clear(playerId);
             AncientCityStates.clear(playerId);
+            WarlockAwakeningProgress.clear(playerId);
         }
         for (SemionTeam team : teams.values()) {
             team.closeRuntime();
