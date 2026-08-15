@@ -133,7 +133,7 @@ public class WarlockTower extends EntityBackedTower {
                         Comparator.comparingInt(Tower::aggroPriority)
                 );
             }
-            tryAwaken(currentLane, towerEntity, damagedHealthRatio);
+            tryAwaken(currentLane, towerEntity);
             return;
         }
         if (is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
@@ -147,12 +147,13 @@ public class WarlockTower extends EntityBackedTower {
                         Comparator.comparingInt(Tower::aggroPriority).reversed()
                 );
             }
-            tryAwaken(currentLane, towerEntity, damagedHealthRatio);
+            tryAwaken(currentLane, towerEntity);
         }
     }
 
-    private void tryAwaken(PlayerLane lane, SemionTowerEntity towerEntity, double damagedHealthRatio) {
+    private void tryAwaken(PlayerLane lane, SemionTowerEntity towerEntity) {
         if (!WarlockConfig.AWAKENING_ENABLED
+                || towerEntity == null
                 || !WarlockAwakeningProgress.unlocked(ownerPlayer())
                 || (!is(WarlockTowers.RANGED_WARLOCK_TOWER)
                 && !is(WarlockTowers.MELEE_WARLOCK_TOWER))) {
@@ -161,9 +162,10 @@ public class WarlockTower extends EntityBackedTower {
         if (state.awakenedThisRound()) {
             return;
         }
+        syncHealth(towerEntity.getHealth());
         if (!meetsAwakeningConditions(
                 WarlockAwakeningProgress.unlocked(ownerPlayer()),
-                damagedHealthRatio,
+                currentHealthRatio(),
                 ability(AWAKENING_THRESHOLD),
                 onlyCoreTowerAlive(lane)
         )) {
@@ -466,8 +468,7 @@ public class WarlockTower extends EntityBackedTower {
             if (!(entity instanceof SemionTowerEntity towerEntity) || !towerEntity.isAlive()) {
                 return;
             }
-            syncHealth(towerEntity.getHealth());
-            tryAwaken(lane, towerEntity, currentHealthRatio());
+            tryAwaken(lane, towerEntity);
         });
     }
 

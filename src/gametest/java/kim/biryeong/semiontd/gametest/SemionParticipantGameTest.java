@@ -11952,6 +11952,54 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void rangedWarlockUsesPostSacrificeHealthForAwakening(GameTestHelper context) {
+        UUID playerId = stableUuid("warlock-post-sacrifice-awakening-owner");
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
+        for (int kill = 0; kill < 1350; kill++) {
+            WarlockAwakeningProgress.recordKill(playerId);
+        }
+        PlayerLane lane = redLane(game, 1);
+        BlockPos corePos = towerPlacementPos(lane);
+        WarlockTower core = new WarlockTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(corePos)
+        );
+        WarlockSacrificeTower sacrifice = new WarlockSacrificeTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.T1_RANGED_SLAVE),
+                playerId,
+                TeamId.RED,
+                1,
+                GridPosition.from(nearbyTowerPlacementPos(lane, corePos))
+        );
+        lane.addTower(core);
+        lane.addTower(sacrifice);
+
+        SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
+        core.syncHealth(40.0);
+        coreEntity.setHealth(40.0F);
+        core.onDamaged(coreEntity, null, 1.0, 41.0, 40.0);
+
+        if (!assertTrue(context, sacrifice.health() <= 0.0, "Low health should still trigger the ranged sacrifice.")) {
+            return;
+        }
+        double postSacrificeHealthRatio = core.health() / core.currentMaxHealth();
+        if (!assertTrue(context, postSacrificeHealthRatio > 0.40, "Sacrifice recovery should raise the current health ratio above the awakening threshold.")) {
+            return;
+        }
+        String details = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        if (!assertTrue(context, !details.contains("각성 상태: 각성 완료"), "Awakening must use post-sacrifice health instead of the stale damaged ratio.")) {
+            return;
+        }
+        if (!assertTrue(context, !coreEntity.isCurrentlyGlowing(), "A warlock above the post-sacrifice health threshold must not enter awakening VFX.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void meleeWarlockAwakeningCreatesRoundBurstAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-melee-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);

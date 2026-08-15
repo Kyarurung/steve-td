@@ -402,6 +402,19 @@ class WarlockTowerBalanceTest {
         assertTrue(description.contains("근거리는 라운드 흡수"));
         assertTrue(description.contains("1350킬에 도달하면 각성을 습득"));
         assertFalse(description.contains("비활성화"));
+
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> global = new LinkedHashMap<>(abilities.get(WarlockTowers.CONFIG_ID));
+        global.put("awakeningKills", 42.0);
+        abilities.put(WarlockTowers.CONFIG_ID, global);
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+
+        String configuredDescription = new WarlockTowerJob().description().stream()
+                .map(component -> component.getString())
+                .collect(java.util.stream.Collectors.joining("\n"));
+        assertTrue(configuredDescription.contains("42킬에 도달하면 각성을 습득"));
+        assertFalse(configuredDescription.contains("1350킬에 도달하면 각성을 습득"));
     }
 
     @Test
