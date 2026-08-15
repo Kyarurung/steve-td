@@ -2327,6 +2327,7 @@ public record TowerBalanceConfig(
         values.put("archmageCasts", (double) MageBalance.ARCHMAGE_CASTS);
         values.put("intermediateDamageMultiplier", MageBalance.INTERMEDIATE_DAMAGE_MULTIPLIER);
         values.put("archmageDamageMultiplier", MageBalance.ARCHMAGE_DAMAGE_MULTIPLIER);
+        values.put("maxSpellDamageMultiplier", MageBalance.MAX_SPELL_DAMAGE_MULTIPLIER);
         values.put("manaRetryTicks", (double) MageBalance.MANA_RETRY_TICKS);
         for (MageSpell spell : MageSpell.values()) {
             values.put(spell.id() + "ManaCost", (double) spell.defaultManaCost());
@@ -2338,6 +2339,7 @@ public record TowerBalanceConfig(
         values.put("missileIntervalTicks", (double) MageBalance.MISSILE_INTERVAL_TICKS);
         values.put("windCutterDamage", MageBalance.WIND_CUTTER_DAMAGE);
         values.put("windCutterWidth", MageBalance.WIND_CUTTER_WIDTH);
+        values.put("windCutterMaxTargets", (double) MageBalance.WIND_CUTTER_MAX_TARGETS);
         values.put("manaBombDamage", MageBalance.MANA_BOMB_DAMAGE);
         values.put("manaBombRadius", MageBalance.MANA_BOMB_RADIUS);
         values.put("manaBombMaxTargets", (double) MageBalance.MANA_BOMB_MAX_TARGETS);
@@ -2369,17 +2371,19 @@ public record TowerBalanceConfig(
         });
         requireMagePositive(values,
                 "manaCapacity", "supportRadius", "intermediateCasts", "archmageCasts",
-                "intermediateDamageMultiplier", "archmageDamageMultiplier", "manaRetryTicks",
+                "intermediateDamageMultiplier", "archmageDamageMultiplier", "maxSpellDamageMultiplier", "manaRetryTicks",
                 "missileCount", "missileIntervalTicks",
-                "windCutterWidth", "manaBombRadius", "manaBombMaxTargets", "manaBombDelayTicks",
+                "windCutterWidth", "windCutterMaxTargets", "manaBombRadius", "manaBombMaxTargets", "manaBombDelayTicks",
                 "chainJumpRange", "frostWaveRadius", "frostWaveMaxTargets", "frostWaveDurationTicks",
                 "collapseRadius", "collapseDelayTicks", "missileDamage", "windCutterDamage",
                 "manaBombDamage", "chainDamage1", "chainDamage2", "chainDamage3", "chainDamage4",
                 "chainDamage5", "chainDamage6", "frostWaveDamage", "collapseDamage");
-        requireMageRatio(values, "rangedBarrierReduction", "frostWaveSlow", "coreBreakManaLossRatio");
+        requireMageRatio(values, "amplificationBonus", "manaDamageBonusAtCapacity",
+                "rangedBarrierReduction", "frostWaveSlow", "coreBreakManaLossRatio");
         requireMageIntegral(values,
                 "manaCapacity", "startingMana", "idleWizardMana", "prophetMana", "coreMana", "prophecyReward",
-                "intermediateCasts", "archmageCasts", "manaRetryTicks", "missileCount", "missileIntervalTicks", "manaBombMaxTargets",
+                "intermediateCasts", "archmageCasts", "manaRetryTicks", "missileCount", "missileIntervalTicks",
+                "windCutterMaxTargets", "manaBombMaxTargets",
                 "manaBombDelayTicks", "frostWaveMaxTargets", "frostWaveDurationTicks", "collapseDelayTicks");
         for (MageSpell spell : MageSpell.values()) {
             requireMagePositive(values, spell.id() + "ManaCost");
@@ -2392,6 +2396,10 @@ public record TowerBalanceConfig(
         }
         if (values.get("archmageDamageMultiplier") < values.get("intermediateDamageMultiplier")) {
             throw new IllegalArgumentException("Mage rank damage multipliers must not decrease");
+        }
+        if (values.get("intermediateDamageMultiplier") < 1.0
+                || values.get("archmageDamageMultiplier") > values.get("maxSpellDamageMultiplier")) {
+            throw new IllegalArgumentException("Mage rank damage multipliers must stay between 1 and the spell cap");
         }
         for (int index = 2; index <= MageBalance.CHAIN_LIGHTNING_DAMAGE.length; index++) {
             if (values.get("chainDamage" + index) > values.get("chainDamage" + (index - 1))) {

@@ -47,6 +47,8 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.tower.engineer.EngineerTrapTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.mage.MageProphetTower;
+import kim.biryeong.semiontd.tower.mage.MageWizardTower;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
@@ -540,6 +542,13 @@ public final class SemionCommands {
                                                 context.getSource(), gameManager, false)))
                                 .then(literal("tnt")
                                         .executes(context -> debugEngineerVfx(
+                                                context.getSource(), gameManager, true))))
+                        .then(literal("mage")
+                                .then(literal("spell")
+                                        .executes(context -> debugMageVfx(
+                                                context.getSource(), gameManager, false)))
+                                .then(literal("prophecy")
+                                        .executes(context -> debugMageVfx(
                                                 context.getSource(), gameManager, true)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
@@ -747,6 +756,43 @@ public final class SemionCommands {
             }
         }
         failure(source, tnt ? "살아 있는 기술자 TNT 함정이 필요합니다." : "살아 있는 기술자 함정이 필요합니다.");
+        return 0;
+    }
+
+    private static int debugMageVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            boolean prophecy
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane == null) {
+            failure(source, "마도사 VFX를 재생할 샌드박스 또는 경기 라인이 없습니다.");
+            return 0;
+        }
+        for (Tower tower : lane.towers()) {
+            if ((prophecy && !(tower instanceof MageProphetTower))
+                    || (!prophecy && !(tower instanceof MageWizardTower))
+                    || !(tower instanceof EntityBackedTower backed)
+                    || backed.entityId().isEmpty()) {
+                continue;
+            }
+            var entity = lane.arenaWorld().getEntity(backed.entityId().getAsInt());
+            if (!(entity instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity)
+                    || !towerEntity.isAlive()) {
+                continue;
+            }
+            var impact = towerEntity.position().add(4.0, 0.5, 0.0);
+            if (prophecy) {
+                TowerVfxService.showProphecyLightning(towerEntity, impact);
+            } else {
+                TowerVfxService.showSecondaryAttack(towerEntity, impact);
+            }
+            success(source, "마도사 " + (prophecy ? "예언" : "주문") + " VFX를 재생했습니다.");
+            return 1;
+        }
+        failure(source, "살아 있는 " + (prophecy ? "예언가" : "마법사") + " 타워가 필요합니다.");
         return 0;
     }
 

@@ -154,6 +154,8 @@
 | `/semiontd-debug vfx transcendence` | 플레이어 전방에 초월 발동 VFX를 재생합니다. |
 | `/semiontd-debug vfx engineer power` | 설치된 기술자 함정의 전력 VFX를 재생합니다. |
 | `/semiontd-debug vfx engineer tnt` | 설치된 기술자 TNT 함정의 점화 VFX를 재생합니다. |
+| `/semiontd-debug vfx mage spell` | 설치된 마법사의 주문 VFX를 재생합니다. |
+| `/semiontd-debug vfx mage prophecy` | 설치된 예언가의 성공 VFX를 재생합니다. |
 | `/semiontd-debug summonui [page]` | 디버그 소환 UI를 엽니다. |
 | `/semiontd-debug summon ui [page]` | 디버그 소환 UI를 엽니다. |
 | `/semiontd-debug give diamond <amount> [player]` | 다이아를 지급합니다. |

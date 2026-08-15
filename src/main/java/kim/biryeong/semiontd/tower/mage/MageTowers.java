@@ -51,7 +51,7 @@ public final class MageTowers {
                     "<green>최초 설치 시 마나 {ability.mage_global.startingMana:integer}을 얻습니다.</green>",
                     "<green>살아 있으면 라운드 종료 시 마나 {ability.mage_global.coreMana:integer}을 생산합니다.</green>",
                     "<red>파괴되면 현재 마나의 {ability.mage_global.coreBreakManaLossRatio:percent}를 잃습니다.</red>",
-                    "<red>판매하면 모든 마나를 잃고 예약된 주문과 예언이 취소됩니다.</red>"
+                    "<red>판매하면 모든 마나를 잃고 선택한 주문과 예언이 초기화됩니다.</red>"
             ))
             .build();
 
@@ -123,7 +123,7 @@ public final class MageTowers {
         for (MageSpell spell : MageSpell.values()) {
             result.put(spell, wizardType(
                     "mage_spell_" + spell.id(),
-                    spell.displayName() + " 예약",
+                    spell.displayName() + " 선택",
                     0,
                     spellDescription(spell)
             ));
@@ -142,7 +142,7 @@ public final class MageTowers {
                         List.of(
                                 "<gray><light_purple>" + definition.displayName() + "</light_purple> 인컴을 예언했습니다.</gray>",
                                 "<green>첫 일치 인컴을 즉사시키고 마나 {ability.mage_global.prophecyReward:integer}을 얻습니다.</green>",
-                                "<red>한 기도 오지 않으면 다음 라운드에 마나폭주 상태가 됩니다.</red>"
+                                "<red>한 기도 오지 않으면 이번 라운드의 자연 마나를 생산하지 못합니다.</red>"
                         )
                 )));
         return Collections.unmodifiableMap(result);
@@ -188,35 +188,35 @@ public final class MageTowers {
         String cost = "<aqua>마나 {ability.mage_global." + spell.id() + "ManaCost:integer}</aqua>";
         return switch (spell) {
             case MANA_MISSILE -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 " + cost + "를 사용해 반복 시전합니다.</gray>",
                     "<light_purple>피해 {ability.mage_global.missileDamage:integer}의 미사일을 {ability.mage_global.missileCount:integer}회 발사하며 매번 재조준합니다.</light_purple>"
             );
             case WIND_CUTTER -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
-                    "<light_purple>직선상의 모든 적에게 피해 {ability.mage_global.windCutterDamage:integer}을 줍니다.</light_purple>"
+                    "<gray>선택 후 매 웨이브 " + cost + "를 사용해 반복 시전합니다.</gray>",
+                    "<light_purple>직선상의 최대 {ability.mage_global.windCutterMaxTargets:integer}기에게 피해 {ability.mage_global.windCutterDamage:integer}을 줍니다.</light_purple>"
             );
             case MANA_BOMB -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 " + cost + "를 사용해 반복 시전합니다.</gray>",
                     "<light_purple>{ability.mage_global.manaBombDelayTicks:seconds} 뒤 반경 {ability.mage_global.manaBombRadius:blocks}의 최대 {ability.mage_global.manaBombMaxTargets:integer}기에게 피해 {ability.mage_global.manaBombDamage:integer}을 줍니다.</light_purple>"
             );
             case CHAIN_LIGHTNING -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 " + cost + "를 사용해 반복 시전합니다.</gray>",
                     "<light_purple>최대 6기를 {ability.mage_global.chainDamage1:integer}/{ability.mage_global.chainDamage2:integer}/{ability.mage_global.chainDamage3:integer}/{ability.mage_global.chainDamage4:integer}/{ability.mage_global.chainDamage5:integer}/{ability.mage_global.chainDamage6:integer} 피해로 연쇄 공격합니다.</light_purple>"
             );
             case FROST_WAVE -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 " + cost + "를 사용해 반복 시전합니다.</gray>",
                     "<light_purple>최대 {ability.mage_global.frostWaveMaxTargets:integer}기에게 피해 {ability.mage_global.frostWaveDamage:integer}과 {ability.mage_global.frostWaveSlow:percent} 감속을 부여합니다.</light_purple>"
             );
             case DIMENSIONAL_COLLAPSE -> List.of(
-                    "<gray>다음 웨이브에 <gold>" + cost + "</gold>를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 <gold>" + cost + "</gold>를 사용해 반복 시전합니다.</gray>",
                     "<gold>첫 적 출현 후 {ability.mage_global.collapseDelayTicks:seconds} 뒤 자기 라인 모든 적에게 피해 {ability.mage_global.collapseDamage:integer}을 줍니다.</gold>"
             );
             case MAGIC_AMPLIFICATION -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 " + cost + "를 한 번 사용합니다.</gray>",
                     "<green>자기 포함 반경 {ability.mage_global.supportRadius:blocks}의 내 마법사 주문 피해를 {ability.mage_global.amplificationBonus:percent} 높입니다.</green>"
             );
             case PROJECTILE_BARRIER -> List.of(
-                    "<gray>다음 웨이브에 " + cost + "를 사용합니다.</gray>",
+                    "<gray>선택 후 매 웨이브 " + cost + "를 한 번 사용합니다.</gray>",
                     "<green>자기 포함 반경 {ability.mage_global.supportRadius:blocks}의 내 마법사가 받는 일반 원거리 피해를 {ability.mage_global.rangedBarrierReduction:percent} 줄입니다.</green>"
             );
         };

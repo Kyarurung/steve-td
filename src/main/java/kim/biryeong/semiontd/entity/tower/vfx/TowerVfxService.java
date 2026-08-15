@@ -41,12 +41,14 @@ import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.mage.MageTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
 import kim.biryeong.semiontd.tower.area.AreaVfxStyleRegistryImpl;
+import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -183,9 +185,16 @@ public final class TowerVfxService {
         if (!config.enabled() || tower == null || target == null) {
             return;
         }
-        EventContext context = context(tower, targetCenter(target));
+        showSecondaryAttack(tower, targetCenter(target));
+    }
+
+    public static void showSecondaryAttack(SemionTowerEntity tower, Vec3 impact) {
+        if (!config.enabled() || tower == null || impact == null) {
+            return;
+        }
+        EventContext context = context(tower, impact);
         if (context != null) {
-            enqueue(new AttackEvent(context, towerCenter(tower), targetCenter(target), visualKind(tower.attackRange()), true));
+            enqueue(new AttackEvent(context, towerCenter(tower), impact, visualKind(tower.attackRange()), true));
         }
     }
 
@@ -201,11 +210,16 @@ public final class TowerVfxService {
     }
 
     public static void showProphecyLightning(SemionTowerEntity tower, SemionMonsterEntity target) {
-        if (!config.enabled() || tower == null || target == null
+        if (target != null) {
+            showProphecyLightning(tower, target.position());
+        }
+    }
+
+    public static void showProphecyLightning(SemionTowerEntity tower, Vec3 impact) {
+        if (!config.enabled() || tower == null || impact == null
                 || !(tower.level() instanceof ServerLevel level)) {
             return;
         }
-        Vec3 impact = target.position();
         Consumer<Vec3> observer = prophecyLightningTestObserver;
         if (observer != null) {
             observer.accept(impact);
@@ -216,6 +230,17 @@ public final class TowerVfxService {
             lightning.setPos(impact.x, impact.y, impact.z);
             level.addFreshEntity(lightning);
         }
+        showAreaEffect(
+                tower,
+                AreaEffectIds.tower(tower.runtimeTower(), "prophecy"),
+                AreaVfxStyles.PULSE,
+                impact,
+                2.0,
+                List.of(impact),
+                1,
+                1,
+                1
+        );
     }
 
     public static void showNetherTransition(SemionTowerEntity tower) {
@@ -495,6 +520,9 @@ public final class TowerVfxService {
         }
         if (EngineerTowers.isEngineerTower(type)) {
             return BuilderPalette.ENGINEER;
+        }
+        if (MageTowers.isMageTower(type)) {
+            return BuilderPalette.MAGE;
         }
         if (PlantTowers.isPlantTower(type)) {
             return BuilderPalette.PLANT;

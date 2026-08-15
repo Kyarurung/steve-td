@@ -41,7 +41,6 @@ public final class MageWizardTower extends ProductionTower {
     private int bombTicks = -1;
     private Vec3 bombCenter;
     private int collapseTicks = -1;
-    private boolean finalDefenseBonusAvailable;
 
     public MageWizardTower(TowerType type, UUID owner, TeamId team, int laneId, GridPosition position) {
         super(type, owner, team, laneId, position);
@@ -114,19 +113,6 @@ public final class MageWizardTower extends ProductionTower {
         bombTicks = -1;
         bombCenter = null;
         collapseTicks = -1;
-        finalDefenseBonusAvailable = false;
-    }
-
-    @Override
-    public void moveToFinalDefense(PlayerLane lane, GridPosition position) {
-        super.moveToFinalDefense(lane, position);
-        finalDefenseBonusAvailable = true;
-        castCooldown = 0;
-        manaRetryCooldown = 0;
-        if (spell().filter(value -> value == MageSpell.MAGIC_AMPLIFICATION
-                || value == MageSpell.PROJECTILE_BARRIER).isPresent()) {
-            spellUsed = false;
-        }
     }
 
     @Override
@@ -236,14 +222,25 @@ public final class MageWizardTower extends ProductionTower {
         Vec3 normalized = direction.scale(1.0 / length);
         double maxRange = spellRange(MageSpell.WIND_CUTTER);
         double width = ability("windCutterWidth", MageBalance.WIND_CUTTER_WIDTH);
-        for (SemionMonsterEntity target : MageTowerRuntime.prioritizedMonsters(currentLane)) {
-            Vec3 offset = target.position().subtract(start);
-            double projection = offset.dot(normalized);
-            if (projection >= 0.0 && projection <= maxRange
-                    && offset.subtract(normalized.scale(projection)).lengthSqr() <= width * width) {
-                damageOne(source, target, ability("windCutterDamage", MageBalance.WIND_CUTTER_DAMAGE));
-            }
-        }
+        int cap = intAbility("windCutterMaxTargets", MageBalance.WIND_CUTTER_MAX_TARGETS);
+        List<SemionMonsterEntity> selected = MageTowerRuntime.prioritizedMonsters(currentLane).stream()
+                .filter(target -> {
+                    Vec3 offset = target.position().subtract(start);
+                    double projection = offset.dot(normalized);
+                    return projection >= 0.0 && projection <= maxRange
+                            && offset.subtract(normalized.scale(projection)).lengthSqr() <= width * width;
+                })
+                .limit(cap)
+                .toList();
+        Set<UUID> ids = MageTowerRuntime.ids(selected);
+        MonsterAreaEffectRequest request = new MonsterAreaEffectRequest(
+                AreaEffectIds.tower(this, "wind_cutter"), source, start.add(normalized.scale(maxRange * 0.5)),
+                maxRange, Set.of(), target -> ids.contains(target.getUUID()), AreaVfxSpec.none()
+        );
+        TowerAreaDamage.apply(this, source, request,
+                ignored -> spellDamage(ability("windCutterDamage", MageBalance.WIND_CUTTER_DAMAGE)), true,
+                (target, damage, killed) -> {}, DamageType.MAGIC);
+        TowerVfxService.showSecondaryAttack(source, primary);
     }
 
     private void castChainLightning(SemionTowerEntity source, SemionMonsterEntity primary) {
@@ -341,19 +338,63 @@ public final class MageWizardTower extends ProductionTower {
         if (currentLane == null) {
             return base;
         }
+        return Math.max(0.0, base * currentSpellDamageMultiplier());
+    }
+
+    double currentSpellDamageMultiplier() {
         double radius = ability("supportRadius", MageBalance.SUPPORT_RADIUS);
         boolean amplified = MageTowerRuntime.nearbyWizards(currentLane, this, radius).stream()
                 .anyMatch(MageWizardTower::activeAmplification);
         MageStates.PlayerState state = MageStates.state(ownerPlayer());
         double manaRatio = state.capacity() <= 0 ? 0.0 : state.mana() / (double) state.capacity();
-        double modifier = Math.max(0.0, Math.min(1.0, manaRatio))
-                * ability("manaDamageBonusAtCapacity", MageBalance.MANA_DAMAGE_BONUS_AT_CAPACITY)
-                + (amplified ? ability("amplificationBonus", MageBalance.AMPLIFICATION_BONUS) : 0.0);
-        return Math.max(0.0, base * (1.0 + modifier) * rankDamageMultiplier());
+        return spellDamageMultiplier(
+                manaRatio,
+                ability("manaDamageBonusAtCapacity", MageBalance.MANA_DAMAGE_BONUS_AT_CAPACITY),
+                amplified,
+                ability("amplificationBonus", MageBalance.AMPLIFICATION_BONUS),
+                rankDamageMultiplier(),
+                ability("maxSpellDamageMultiplier", MageBalance.MAX_SPELL_DAMAGE_MULTIPLIER)
+        );
+    }
+
+    static double spellDamageMultiplier(
+            double manaRatio,
+            double manaBonus,
+            boolean amplified,
+            double amplificationBonus,
+            double rankMultiplier,
+            double maximum
+    ) {
+        double ratio = Math.max(0.0, Math.min(1.0, manaRatio));
+        return Math.min(maximum, (1.0 + ratio * manaBonus + (amplified ? amplificationBonus : 0.0)) * rankMultiplier);
     }
 
     boolean activeAmplification() {
         return spell().orElse(null) == MageSpell.MAGIC_AMPLIFICATION && spellUsed;
+    }
+
+    private void showSupportVfx(MageSpell selected) {
+        SemionTowerEntity source = MageTowerRuntime.entity(currentLane, this);
+        if (source == null) {
+            return;
+        }
+        double radius = ability("supportRadius", MageBalance.SUPPORT_RADIUS);
+        List<Vec3> targets = MageTowerRuntime.nearbyWizards(currentLane, this, radius).stream()
+                .map(tower -> MageTowerRuntime.entity(currentLane, tower))
+                .filter(java.util.Objects::nonNull)
+                .map(SemionTowerEntity::position)
+                .toList();
+        TowerVfxService.showAreaEffect(
+                source,
+                AreaEffectIds.tower(this, selected.id()),
+                AreaVfxStyles.BUFF,
+                source.position(),
+                radius,
+                targets,
+                targets.size(),
+                targets.size(),
+                0
+        );
     }
 
     private boolean activeBarrierNear() {
@@ -382,23 +423,21 @@ public final class MageWizardTower extends ProductionTower {
         resetSpellState();
     }
 
-    private boolean tryBeginCast(MageSpell selected) {
+    boolean tryBeginCast(MageSpell selected) {
         if (!MageStates.state(ownerPlayer()).spend(manaCost(selected))) {
             manaRetryCooldown = intAbility("manaRetryTicks", MageBalance.MANA_RETRY_TICKS);
             return false;
         }
         spellUsed = true;
         spellCasts++;
-        finalDefenseBonusAvailable = false;
         updateEntityName(MageTowerRuntime.entity(currentLane, this));
+        if (selected == MageSpell.MAGIC_AMPLIFICATION || selected == MageSpell.PROJECTILE_BARRIER) {
+            showSupportVfx(selected);
+        }
         return true;
     }
 
     private void beginCooldown(MageSpell selected) {
-        if (finalDefenseBonusAvailable) {
-            castCooldown = 0;
-            return;
-        }
         castCooldown = Math.max(1, ticks(
                 selected.id() + "CooldownTicks", selected.defaultCooldownTicks()
         ));
@@ -437,7 +476,6 @@ public final class MageWizardTower extends ProductionTower {
         bombTicks = -1;
         bombCenter = null;
         collapseTicks = -1;
-        finalDefenseBonusAvailable = false;
     }
 
     @Override
@@ -455,6 +493,16 @@ public final class MageWizardTower extends ProductionTower {
                         * 100.0
         );
         lines.add("<aqua>저장 마나 주문 피해</aqua> <green>+" + manaDamagePercent + "%</green>");
+        lines.add("<light_purple>현재 주문 배율</light_purple> <white>" + format(currentSpellDamageMultiplier())
+                + "배</white> <gray>· 상한 "
+                + format(ability("maxSpellDamageMultiplier", MageBalance.MAX_SPELL_DAMAGE_MULTIPLIER)) + "배</gray>");
+        int nextRank = spellCasts < intAbility("intermediateCasts", MageBalance.INTERMEDIATE_CASTS)
+                ? intAbility("intermediateCasts", MageBalance.INTERMEDIATE_CASTS)
+                : intAbility("archmageCasts", MageBalance.ARCHMAGE_CASTS);
+        lines.add(spellCasts >= intAbility("archmageCasts", MageBalance.ARCHMAGE_CASTS)
+                ? "<gold>최고 등급 달성</gold>"
+                : "<gold>다음 등급</gold> <white>" + (nextRank - spellCasts) + "회 남음</white>");
+        spell().ifPresent(value -> lines.add("<yellow>대상 상한</yellow> <white>" + targetLimit(value) + "</white>"));
         if (waveActive && spell().isPresent()) {
             lines.add(MageStates.state(ownerPlayer()).canSpend(manaCost(spell().orElseThrow()))
                     ? "<green>시전 가능</green> <gray>· 재사용 " + castCooldown + "tick</gray>"
@@ -462,6 +510,18 @@ public final class MageWizardTower extends ProductionTower {
         }
         lines.add("<green>예상 자연 생산</green> <white>+" + naturalManaProduction() + "</white>");
         return List.copyOf(lines);
+    }
+
+    private String targetLimit(MageSpell spell) {
+        return switch (spell) {
+            case MANA_MISSILE -> "발사당 1기";
+            case WIND_CUTTER -> intAbility("windCutterMaxTargets", MageBalance.WIND_CUTTER_MAX_TARGETS) + "기";
+            case MANA_BOMB -> intAbility("manaBombMaxTargets", MageBalance.MANA_BOMB_MAX_TARGETS) + "기";
+            case CHAIN_LIGHTNING -> MageBalance.CHAIN_LIGHTNING_DAMAGE.length + "기";
+            case FROST_WAVE -> intAbility("frostWaveMaxTargets", MageBalance.FROST_WAVE_MAX_TARGETS) + "기";
+            case DIMENSIONAL_COLLAPSE -> "자기 라인 전체";
+            case MAGIC_AMPLIFICATION, PROJECTILE_BARRIER -> "지원 반경 내 마법사";
+        };
     }
 
     private static int manaCost(MageSpell spell) {

@@ -17,9 +17,11 @@ public final class MageTowerLifecycle {
                 continue;
             }
             if (tower instanceof MageWizardTower wizard) {
-                naturalMana += wizard.naturalManaProduction();
+                if (!tower.isDestroyed(lane)) {
+                    naturalMana += wizard.naturalManaProduction();
+                }
                 wizard.finishRound();
-            } else if (tower instanceof MageProphetTower prophet) {
+            } else if (tower instanceof MageProphetTower prophet && !tower.isDestroyed(lane)) {
                 naturalMana += prophet.naturalManaProduction();
             }
         }

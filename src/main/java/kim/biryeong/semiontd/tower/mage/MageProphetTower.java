@@ -64,17 +64,14 @@ public final class MageProphetTower extends ProductionTower {
     @Override
     public void onWaveStarted(PlayerLane lane, int round) {
         currentLane = lane;
-        armed = prediction().isPresent();
+        armed = prediction().isPresent() && !isDestroyed(lane);
         succeeded = false;
-        if (armed) {
-            lane.killTower(this);
-        }
     }
 
     @Override
     public void tick(PlayerLane lane) {
         currentLane = lane;
-        if (!armed || succeeded) {
+        if (!armed || succeeded || isDestroyed(lane) || !MageTowerRuntime.hasCore(lane, ownerPlayer())) {
             super.tick(lane);
             return;
         }
@@ -84,7 +81,7 @@ public final class MageProphetTower extends ProductionTower {
                 .filter(entity -> expected.equals(entity.runtimeMonster().id()))
                 .findFirst()
                 .orElse(null);
-        SemionTowerEntity source = MageTowerRuntime.livingSource(lane, ownerPlayer());
+        SemionTowerEntity source = MageTowerRuntime.entity(lane, this);
         if (target == null || source == null) {
             return;
         }

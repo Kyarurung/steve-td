@@ -16,6 +16,7 @@
       "kim.biryeong.semiontd.tower.adversary.AdversaryIntegrationGameTest",
       "kim.biryeong.semiontd.tower.adversary.AdversaryRivalGameTest",
       "kim.biryeong.semiontd.tower.engineer.EngineerGameTest",
+      "kim.biryeong.semiontd.tower.mage.MageGameTest",
       "kim.biryeong.semiontd.tower.insect.InsectGameTest",
       "kim.biryeong.semiontd.tower.futureagency.FutureAgencyGameTest",
       "kim.biryeong.semiontd.tower.queen.QueenGameTest",

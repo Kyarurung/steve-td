@@ -64,21 +64,6 @@ final class MageTowerRuntime {
                 .orElse(null);
     }
 
-    static SemionTowerEntity livingSource(PlayerLane lane, UUID owner) {
-        if (lane == null) {
-            return null;
-        }
-        for (Tower tower : lane.towers()) {
-            if (owner.equals(tower.ownerPlayer()) && MageTowers.isMageTower(tower.type())) {
-                SemionTowerEntity entity = entity(lane, tower);
-                if (entity != null) {
-                    return entity;
-                }
-            }
-        }
-        return null;
-    }
-
     static List<MageWizardTower> nearbyWizards(PlayerLane lane, MageWizardTower source, double radius) {
         if (lane == null || source == null) {
             return List.of();
@@ -119,7 +104,24 @@ final class MageTowerRuntime {
     }
 
     static void cancelReservations(PlayerLane lane, UUID owner) {
-        restoreTemporaryTowers(lane, owner);
+        if (lane == null) {
+            return;
+        }
+        for (Tower old : new ArrayList<>(lane.towers())) {
+            if (!owner.equals(old.ownerPlayer()) || (!MageTowers.isWizard(old.type()) && !MageTowers.isProphet(old.type()))) {
+                continue;
+            }
+            var baseType = MageTowers.isWizard(old.type()) ? MageTowers.WIZARD : MageTowers.PROPHET;
+            Optional<ProductionTowerCatalog.CatalogEntry> entry = ProductionTowerCatalog.find(baseType.id());
+            if (entry.isEmpty()) {
+                continue;
+            }
+            Tower replacement = entry.get().create(
+                    old.ownerPlayer(), old.teamId(), old.laneId(), old.originalPosition(), old.position()
+            );
+            replacement.copyFrom(old, 0);
+            lane.replaceTower(old, replacement);
+        }
     }
 
     private static double distanceSqr(Tower first, Tower second) {
