@@ -110,17 +110,22 @@ import kim.biryeong.semiontd.job.AncientCityTowerJob;
 import kim.biryeong.semiontd.job.AdversaryTowerJob;
 import kim.biryeong.semiontd.job.AtlantisTowerJob;
 import kim.biryeong.semiontd.job.EndTowerJob;
+import kim.biryeong.semiontd.job.EngineerTowerJob;
+import kim.biryeong.semiontd.job.FutureAgencyTowerJob;
 import kim.biryeong.semiontd.job.HeroPartyTowerJob;
 import kim.biryeong.semiontd.job.IllagerTowerJob;
 import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.job.LegionTowerJob;
+import kim.biryeong.semiontd.job.MageTowerJob;
 import kim.biryeong.semiontd.job.NetherTowerJob;
 import kim.biryeong.semiontd.job.OceanTowerJob;
 import kim.biryeong.semiontd.job.PlantTowerJob;
+import kim.biryeong.semiontd.job.QueenTowerJob;
 import kim.biryeong.semiontd.job.ResonanceTowerJob;
 import kim.biryeong.semiontd.job.SemionJob;
 import kim.biryeong.semiontd.job.UndeadTowerJob;
+import kim.biryeong.semiontd.job.InsectTowerJob;
 import kim.biryeong.semiontd.job.VillagerTowerJob;
 import kim.biryeong.semiontd.job.WarlockTowerJob;
 import kim.biryeong.semiontd.map.ArenaLayout;
@@ -10243,6 +10248,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(AdversaryTowerJob.ID), "Built-in reload should register the adversary tower job.")) {
             return;
         }
+        if (!assertPresent(context, JobRegistry.find(MageTowerJob.ID), "Built-in reload should register the mage tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(EngineerTowerJob.ID), "Built-in reload should register the engineer tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(InsectTowerJob.ID), "Built-in reload should register the insect tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(FutureAgencyTowerJob.ID), "Built-in reload should register the future-agency tower job.")) {
+            return;
+        }
+        if (!assertPresent(context, JobRegistry.find(QueenTowerJob.ID), "Built-in reload should register the queen tower job.")) {
+            return;
+        }
         if (!assertPresent(context, JobRegistry.find(HeroPartyTowerJob.ID), "Built-in reload should register the hero-party tower job.")) {
             return;
         }
@@ -10252,7 +10272,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(PlantTowerJob.ID), "Built-in reload should register the plant tower job.")) {
             return;
         }
-        if (!assertEquals(context, 73L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family including Hero Party, Atlantis, and Plant.")) {
+        if (!assertEquals(context, 94L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
             return;
         }
         context.succeed();
