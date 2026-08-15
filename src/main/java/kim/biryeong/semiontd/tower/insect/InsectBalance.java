@@ -4,11 +4,12 @@ import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 
 public final class InsectBalance {
     public static final String GLOBAL_ID = "insect_global";
-    public static final double FRESH_POWER_MULTIPLIER = 2.5;
+    public static final double FRESH_POWER_MULTIPLIER = 1.75;
     public static final double FRESH_POWER_SCALE = 1.2;
-    public static final int REVIVE_BASE_TICKS = 60;
-    public static final int REVIVE_INCREMENT_TICKS = 40;
-    public static final double DEATH_DAMAGE_TAKEN_PER_STACK = 0.15;
+    public static final int REVIVE_BASE_TICKS = 80;
+    public static final int REVIVE_INCREMENT_TICKS = 60;
+    public static final int RADIUS_VFX_INTERVAL_TICKS = 80;
+    public static final double DEATH_DAMAGE_TAKEN_PER_STACK = 0.20;
     public static final double SPAWNER_RADIUS = 6.0;
 
     private InsectBalance() {
@@ -28,6 +29,11 @@ public final class InsectBalance {
 
     public static int reviveIncrementTicks() {
         return TowerBalanceRuntime.abilityTicks(GLOBAL_ID, "reviveIncrementTicks", REVIVE_INCREMENT_TICKS);
+    }
+
+    public static int radiusVfxIntervalTicks() {
+        return TowerBalanceRuntime.abilityTicks(
+                GLOBAL_ID, "radiusVfxIntervalTicks", RADIUS_VFX_INTERVAL_TICKS);
     }
 
     public static double deathDamageTakenPerStack() {

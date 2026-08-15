@@ -9,38 +9,38 @@ import net.minecraft.world.level.block.Blocks;
 
 public final class InsectTowers {
     public static final TowerType SILVERFISH = unit(
-            "insect_silverfish_t1", "좀벌레", 30, 90, 2.5, 8, 14, 35,
+            "insect_silverfish_t1", "좀벌레", 30, 90, 2.5, 7, 15, 35,
             EntityVisual.vanilla("minecraft:silverfish"), 1, UnitLine.SILVERFISH);
     public static final TowerType ENDERMITE = unit(
-            "insect_endermite_t2", "엔더마이트", 0, 180, 2.7, 18, 12, 40,
+            "insect_endermite_t2", "엔더마이트", 0, 170, 2.7, 14, 13, 40,
             EntityVisual.vanilla("minecraft:endermite"), 2, UnitLine.SILVERFISH);
     public static final TowerType ENHANCED_ENDERMITE = unit(
-            "insect_endermite_t3", "강화 엔더마이트", 0, 340, 3, 34, 10, 45,
-            EntityVisual.builder("minecraft:endermite").scale(1.35).build(), 3, UnitLine.SILVERFISH);
+            "insect_endermite_t3", "강화 엔더마이트", 0, 300, 3, 26, 11, 45,
+            EntityVisual.builder("minecraft:endermite").scale(1.20).build(), 3, UnitLine.SILVERFISH);
 
     public static final TowerType CAVE_SPIDER = unit(
-            "insect_cave_spider_t1", "동굴거미", 40, 160, 2.4, 4, 18, 80,
+            "insect_cave_spider_t1", "동굴거미", 40, 150, 2.4, 4, 20, 80,
             EntityVisual.vanilla("minecraft:cave_spider"), 1, UnitLine.SPIDER);
     public static final TowerType SPIDER = unit(
-            "insect_spider_t2", "거미", 0, 320, 2.5, 8, 17, 100,
+            "insect_spider_t2", "거미", 0, 300, 2.5, 7, 18, 100,
             EntityVisual.vanilla("minecraft:spider"), 2, UnitLine.SPIDER);
     public static final TowerType ENHANCED_SPIDER = unit(
-            "insect_spider_t3", "강화 거미", 0, 620, 2.7, 15, 16, 120,
-            EntityVisual.builder("minecraft:spider").scale(1.3).build(), 3, UnitLine.SPIDER);
+            "insect_spider_t3", "강화 거미", 0, 540, 2.7, 12, 16, 120,
+            EntityVisual.builder("minecraft:spider").scale(1.20).build(), 3, UnitLine.SPIDER);
 
     public static final TowerType BEE = unit(
-            "insect_bee_t1", "벌", 40, 55, 7, 8, 15, 0,
-            EntityVisual.vanilla("minecraft:bee"), 1, UnitLine.BEE);
+            "insect_bee_t1", "벌", 40, 50, 7, 7, 16, 0,
+            EntityVisual.builder("minecraft:bee").scale(0.75).build(), 1, UnitLine.BEE);
     public static final TowerType ENHANCED_BEE = unit(
-            "insect_bee_t2", "강화 벌", 0, 100, 8, 13, 12, 0,
-            EntityVisual.builder("minecraft:bee").scale(1.15).build(), 2, UnitLine.BEE);
+            "insect_bee_t2", "강화 벌", 0, 90, 8, 12, 13, 0,
+            EntityVisual.builder("minecraft:bee").scale(0.95).build(), 2, UnitLine.BEE);
     public static final TowerType QUEEN_BEE = unit(
-            "insect_bee_t3", "여왕벌", 0, 170, 9, 24, 9, 0,
-            EntityVisual.builder("minecraft:bee").scale(1.45).build(), 3, UnitLine.BEE);
+            "insect_bee_t3", "여왕벌", 0, 150, 9, 21, 10, 0,
+            EntityVisual.builder("minecraft:bee").scale(1.20).build(), 3, UnitLine.BEE);
 
     public static final TowerType SPAWNER = TowerType.builder("insect_spawner", "스포너")
             .mineralCost(45)
-            .maxHealth(400)
+            .maxHealth(280)
             .range(0)
             .damage(0)
             .attackIntervalTicks(20)

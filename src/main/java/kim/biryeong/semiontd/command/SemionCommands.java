@@ -47,6 +47,8 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.tower.engineer.EngineerTrapTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.insect.InsectSpawnerTower;
+import kim.biryeong.semiontd.tower.insect.InsectUnitTower;
 import kim.biryeong.semiontd.tower.mage.MageProphetTower;
 import kim.biryeong.semiontd.tower.mage.MageWizardTower;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
@@ -549,6 +551,13 @@ public final class SemionCommands {
                                                 context.getSource(), gameManager, false)))
                                 .then(literal("prophecy")
                                         .executes(context -> debugMageVfx(
+                                                context.getSource(), gameManager, true))))
+                        .then(literal("insect")
+                                .then(literal("radius")
+                                        .executes(context -> debugInsectVfx(
+                                                context.getSource(), gameManager, false)))
+                                .then(literal("revive")
+                                        .executes(context -> debugInsectVfx(
                                                 context.getSource(), gameManager, true)))))
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
@@ -793,6 +802,32 @@ public final class SemionCommands {
             return 1;
         }
         failure(source, "살아 있는 " + (prophecy ? "예언가" : "마법사") + " 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugInsectVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            boolean revive
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                boolean shown = revive && tower instanceof InsectUnitTower unit
+                        ? unit.showDebugRevivalVfx(lane)
+                        : !revive && tower instanceof InsectSpawnerTower spawner
+                        && spawner.showDebugRadiusVfx(lane);
+                if (shown) {
+                    success(source, "벌레 " + (revive ? "부활" : "스포너 반경") + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, revive
+                ? "살아 있고 스포너에 연결된 벌레 타워가 필요합니다."
+                : "살아 있는 벌레 스포너가 필요합니다.");
         return 0;
     }
 

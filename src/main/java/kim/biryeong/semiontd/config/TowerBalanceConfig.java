@@ -1863,6 +1863,7 @@ public record TowerBalanceConfig(
                 "freshPowerScale", InsectBalance.FRESH_POWER_SCALE,
                 "reviveBaseTicks", (double) InsectBalance.REVIVE_BASE_TICKS,
                 "reviveIncrementTicks", (double) InsectBalance.REVIVE_INCREMENT_TICKS,
+                "radiusVfxIntervalTicks", (double) InsectBalance.RADIUS_VFX_INTERVAL_TICKS,
                 "deathDamageTakenPerStack", InsectBalance.DEATH_DAMAGE_TAKEN_PER_STACK
         ));
         putAbilities(abilities, InsectTowers.SPAWNER.id(), Map.of(
@@ -1871,9 +1872,9 @@ public record TowerBalanceConfig(
         for (int tier = 1; tier <= 3; tier++) {
             putAbilities(abilities, InsectTowers.spider(tier).id(), Map.of(
                     "damageReduction", switch (tier) {
-                        case 1 -> 0.10;
-                        case 2 -> 0.20;
-                        default -> 0.30;
+                        case 1 -> 0.08;
+                        case 2 -> 0.16;
+                        default -> 0.25;
                     }
             ));
         }
@@ -2265,13 +2266,21 @@ public record TowerBalanceConfig(
             validateEngineerValues(InsectBalance.GLOBAL_ID, global);
             requireEngineerPositive(global,
                     "freshPowerMultiplier", "freshPowerScale", "reviveBaseTicks", "reviveIncrementTicks",
-                    "deathDamageTakenPerStack");
-            requireEngineerIntegral(global, "reviveBaseTicks", "reviveIncrementTicks");
+                    "radiusVfxIntervalTicks");
+            requireEngineerIntegral(global, "reviveBaseTicks", "reviveIncrementTicks", "radiusVfxIntervalTicks");
+            double power = global.getOrDefault("freshPowerMultiplier", 0.0);
+            double scale = global.getOrDefault("freshPowerScale", 0.0);
+            double vulnerability = global.getOrDefault("deathDamageTakenPerStack", -1.0);
+            if (power < 1.0 || scale < 1.0 || scale > 1.25 || vulnerability < 0.0 || vulnerability > 1.0) {
+                throw new IllegalArgumentException("Insect global multipliers are outside their supported range.");
+            }
         }
         Map<String, Double> spawner = abilities.get(InsectTowers.SPAWNER.id());
-        if (spawner != null && spawner.getOrDefault("reviveRadius", 0.0) <= 0.0) {
-            throw new IllegalArgumentException("Insect spawner radius must be positive.");
+        if (spawner != null) {
+            validateEngineerValues(InsectTowers.SPAWNER.id(), spawner);
+            requireEngineerPositive(spawner, "reviveRadius");
         }
+        Double previousReduction = null;
         for (int tier = 1; tier <= 3; tier++) {
             String id = InsectTowers.spider(tier).id();
             Map<String, Double> values = abilities.get(id);
@@ -2281,6 +2290,30 @@ public record TowerBalanceConfig(
             double reduction = values.getOrDefault("damageReduction", -1.0);
             if (!Double.isFinite(reduction) || reduction < 0.0 || reduction >= 1.0) {
                 throw new IllegalArgumentException("Insect spider damage reduction must be in [0, 1): " + id);
+            }
+            if (previousReduction != null && reduction < previousReduction) {
+                throw new IllegalArgumentException("Insect spider damage reduction must not decrease by tier.");
+            }
+            previousReduction = reduction;
+        }
+        validateInsectTierOrder(List.of(InsectTowers.SILVERFISH, InsectTowers.ENDERMITE, InsectTowers.ENHANCED_ENDERMITE));
+        validateInsectTierOrder(List.of(InsectTowers.CAVE_SPIDER, InsectTowers.SPIDER, InsectTowers.ENHANCED_SPIDER));
+        validateInsectTierOrder(List.of(InsectTowers.BEE, InsectTowers.ENHANCED_BEE, InsectTowers.QUEEN_BEE));
+    }
+
+    private void validateInsectTierOrder(List<TowerType> types) {
+        TowerStats previous = null;
+        for (TowerType type : types) {
+            TowerStats current = towers.get(type.id());
+            if (current != null && previous != null
+                    && (current.maxHealth() < previous.maxHealth()
+                    || current.damage() < previous.damage()
+                    || current.range() < previous.range()
+                    || current.attackIntervalTicks() > previous.attackIntervalTicks())) {
+                throw new IllegalArgumentException("Insect tower stats must improve by tier: " + type.id());
+            }
+            if (current != null) {
+                previous = current;
             }
         }
     }

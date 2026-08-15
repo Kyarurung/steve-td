@@ -35,12 +35,12 @@ public final class InsectGameTest {
             lane.addTower(unit);
             lane.markWaveStarted(1);
             require(unit.freshPowerActive(), "A newly placed T1 unit must receive first-wave power.");
-            require(close(unit.currentMaxHealth(), 225.0), "Fresh Silverfish must have 250% max health.");
+            require(close(unit.currentMaxHealth(), 157.5), "Fresh Silverfish must have 175% max health.");
 
             towerEntity(context, unit).setHealth(0.0f);
             require(!unit.isDestroyed(lane), "A valid nearby spawner must suppress permanent death.");
-            require(unit.reviveTicksRemaining() == 60, "First revival must take exactly three seconds.");
-            for (int tick = 0; tick < 60; tick++) {
+            require(unit.reviveTicksRemaining() == 80, "First revival must take exactly four seconds.");
+            for (int tick = 0; tick < 80; tick++) {
                 unit.tick(lane);
             }
             require(unit.health() == unit.currentMaxHealth(), "Revival must restore full current-tier health.");
@@ -51,6 +51,79 @@ public final class InsectGameTest {
             require(!unit.isDestroyed(lane), "Second death must initially schedule another revival.");
             towerEntity(context, spawner).setHealth(0.0f);
             require(unit.isDestroyed(lane), "Destroying every linked spawner must cancel pending revival.");
+            context.succeed();
+        } finally {
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest
+    public void linkedSpawnersSurviveFinalDefenseWithoutSpeedingRevival(GameTestHelper context) {
+        UUID owner = UUID.nameUUIDFromBytes("insect-final-defense".getBytes(StandardCharsets.UTF_8));
+        PlayerLane lane = testLane(context, owner);
+        GridPosition firstSpawnerPosition = floor(context, 3, 2, 4);
+        GridPosition secondSpawnerPosition = floor(context, 4, 2, 4);
+        GridPosition unitPosition = floor(context, 5, 2, 4);
+        prepareFloor(context, firstSpawnerPosition, secondSpawnerPosition, unitPosition);
+
+        ProductionTower firstSpawner = new InsectSpawnerTower(
+                InsectTowers.SPAWNER, owner, TeamId.RED, 1, firstSpawnerPosition, firstSpawnerPosition);
+        ProductionTower secondSpawner = new InsectSpawnerTower(
+                InsectTowers.SPAWNER, owner, TeamId.RED, 1, secondSpawnerPosition, secondSpawnerPosition);
+        InsectUnitTower unit = new InsectUnitTower(
+                InsectTowers.SILVERFISH, owner, TeamId.RED, 1, unitPosition, unitPosition);
+        try {
+            lane.addTower(firstSpawner);
+            lane.addTower(secondSpawner);
+            lane.addTower(unit);
+            lane.markWaveStarted(1);
+            towerEntity(context, unit).setHealth(0.0f);
+            require(!unit.isDestroyed(lane), "Either linked spawner must allow revival.");
+            require(unit.reviveTicksRemaining() == 80, "Overlapping spawners must not shorten revival.");
+
+            lane.moveTowersToFinalDefense();
+            GridPosition finalPosition = unit.position();
+            require(!finalPosition.equals(unitPosition), "Final defense must assign a new revival position.");
+            require(!unit.isDestroyed(lane), "Original spawner links must survive final-defense movement.");
+            for (int tick = 0; tick < 80; tick++) {
+                unit.tick(lane);
+            }
+            require(unit.position().equals(finalPosition), "Revival must use the assigned final-defense slot.");
+            require(towerEntity(context, unit).isAlive(), "Final-defense revival must respawn the unit.");
+
+            towerEntity(context, unit).setHealth(0.0f);
+            require(!unit.isDestroyed(lane), "The revived unit must retain unlimited revival identity.");
+            unit.resetForRound(lane);
+            require(unit.deathsThisRound() == 0 && unit.reviveTicksRemaining() == -1,
+                    "Round reset must clear revival wait and death vulnerability.");
+            require(close(unit.modifyIncomingDamage(null, null, 100.0), 100.0),
+                    "Round reset must clear accumulated incoming-damage vulnerability.");
+            context.succeed();
+        } finally {
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest
+    public void spawnersAreIsolatedByOwner(GameTestHelper context) {
+        UUID owner = UUID.nameUUIDFromBytes("insect-owner-a".getBytes(StandardCharsets.UTF_8));
+        UUID otherOwner = UUID.nameUUIDFromBytes("insect-owner-b".getBytes(StandardCharsets.UTF_8));
+        PlayerLane lane = testLane(context, owner);
+        GridPosition spawnerPosition = floor(context, 3, 2, 4);
+        GridPosition unitPosition = floor(context, 5, 2, 4);
+        prepareFloor(context, spawnerPosition, unitPosition);
+
+        InsectSpawnerTower foreignSpawner = new InsectSpawnerTower(
+                InsectTowers.SPAWNER, otherOwner, TeamId.RED, 1, spawnerPosition, spawnerPosition);
+        InsectUnitTower unit = new InsectUnitTower(
+                InsectTowers.SILVERFISH, owner, TeamId.RED, 1, unitPosition, unitPosition);
+        try {
+            lane.addTower(foreignSpawner);
+            lane.addTower(unit);
+            lane.markWaveStarted(1);
+            towerEntity(context, unit).setHealth(0.0f);
+            require(unit.isDestroyed(lane), "Another owner's spawner must not grant revival.");
+            require(!unit.showDebugRevivalVfx(lane), "Cancelled or unlinked revival must not emit success VFX.");
             context.succeed();
         } finally {
             lane.clearTowers();
