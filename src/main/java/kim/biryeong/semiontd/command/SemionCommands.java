@@ -238,7 +238,11 @@ public final class SemionCommands {
                                                 ResourceLocationArgument.getId(context, "id").toString()
                                         ))))
                         .then(literal("ui")
-                                .executes(context -> jobDialog(context.getSource(), gameManager)))
+                                .executes(context -> jobDialog(context.getSource(), gameManager))
+                                .then(literal("official")
+                                        .executes(context -> jobDialog(context.getSource(), gameManager, true)))
+                                .then(literal("creative")
+                                        .executes(context -> jobDialog(context.getSource(), gameManager, false))))
                         .then(literal("current")
                                 .executes(context -> currentJob(context.getSource(), gameManager)))
                         .then(literal("select")
@@ -2325,14 +2329,20 @@ public final class SemionCommands {
     }
 
     private static int listJobs(CommandSourceStack source) {
-        success(source, "직업 목록:");
-        for (SemionJob job : JobRegistry.all()) {
-            success(source, " - " + job.id() + " => " + job.displayName().getString());
-            for (Component line : job.description()) {
-                success(source, "   " + line.getString());
-            }
-        }
+        success(source, "기본값:");
+        printJob(source, JobRegistry.defaultJob());
+        success(source, "공식 빌더 (" + JobRegistry.officialBuilders().size() + "):");
+        JobRegistry.officialBuilders().forEach(job -> printJob(source, job));
+        success(source, "창작 빌더 (" + JobRegistry.creativeBuilders().size() + "):");
+        JobRegistry.creativeBuilders().forEach(job -> printJob(source, job));
         return JobRegistry.all().size();
+    }
+
+    private static void printJob(CommandSourceStack source, SemionJob job) {
+        success(source, " - " + job.id() + " => " + job.displayName().getString());
+        for (Component line : job.description()) {
+            success(source, "   " + line.getString());
+        }
     }
 
     private static int currentJob(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
@@ -2355,12 +2365,25 @@ public final class SemionCommands {
     }
 
     private static int jobDialog(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        return jobDialog(source, gameManager, null);
+    }
+
+    private static int jobDialog(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            Boolean official
+    ) throws CommandSyntaxException {
         SemionGame game = gameManager.activeGame().orElse(null);
         if (game == null) {
             failure(source, "열린 로비가 없습니다. 관리자에게 /semiontd create 실행을 요청하세요.");
             return 0;
         }
-        gameManager.dialogService().showJobSelection(source.getPlayerOrException(), game);
+        ServerPlayer player = source.getPlayerOrException();
+        if (official == null) {
+            gameManager.dialogService().showJobSelection(player, game);
+        } else {
+            gameManager.dialogService().showJobSelection(player, game, official);
+        }
         success(source, "직업 선택 창을 열었습니다.");
         return 1;
     }

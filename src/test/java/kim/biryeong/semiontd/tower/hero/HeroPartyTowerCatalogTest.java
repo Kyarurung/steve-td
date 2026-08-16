@@ -68,7 +68,9 @@ class HeroPartyTowerCatalogTest {
 
         assertEquals("용사 빌더", job.displayName().getString());
         assertEquals(3, job.description().size());
-        assertTrue(job.description().stream().allMatch(line -> line.getString().length() <= 42));
+        assertEquals(List.of("시작", "운영", "주의"), job.description().stream()
+                .map(line -> line.getString().split(" ", 2)[0])
+                .toList());
         assertEquals(25, HeroPartyTowers.all().size());
         assertEquals(25, ProductionTowerCatalog.all().stream()
                 .filter(entry -> job.includesTowerInCatalog(entry.type()))

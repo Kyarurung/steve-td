@@ -2,13 +2,29 @@ package kim.biryeong.semiontd.job;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
 
 public final class JobRegistry {
     private static final Map<ResourceLocation, SemionJob> JOBS = new LinkedHashMap<>();
+    private static final Set<ResourceLocation> OFFICIAL_BUILDER_IDS = Set.of(
+            VillagerTowerJob.ID,
+            VillagerAdvTowerJob.ID,
+            UndeadTowerJob.ID,
+            AnimalTowerJob.ID,
+            WarlockTowerJob.ID,
+            LegionTowerJob.ID,
+            ResonanceTowerJob.ID,
+            IllagerTowerJob.ID,
+            NetherTowerJob.ID,
+            OceanTowerJob.ID,
+            AncientCityTowerJob.ID,
+            HeroPartyTowerJob.ID
+    );
     private static final SemionJob DEFAULT_JOB = register(new DefaultJob());
 
     static {
@@ -68,6 +84,18 @@ public final class JobRegistry {
     }
 
     public static synchronized Collection<SemionJob> all() {
-        return java.util.List.copyOf(JOBS.values());
+        return List.copyOf(JOBS.values());
+    }
+
+    public static synchronized List<SemionJob> officialBuilders() {
+        return JOBS.values().stream()
+                .filter(job -> OFFICIAL_BUILDER_IDS.contains(job.id()))
+                .toList();
+    }
+
+    public static synchronized List<SemionJob> creativeBuilders() {
+        return JOBS.values().stream()
+                .filter(job -> job != DEFAULT_JOB && !OFFICIAL_BUILDER_IDS.contains(job.id()))
+                .toList();
     }
 }

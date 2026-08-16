@@ -230,13 +230,37 @@ public final class SemionDialogService {
         SemionJob currentJob = game.selectedJobOrDefault(player.getUUID());
         String body = "<gradient:#67e8f9:#a78bfa><bold>직업 선택</bold></gradient>\n"
                 + "<gray>현재 선택</gray> <yellow>" + currentJob.displayName().getString() + "</yellow>\n"
-                + "<gray>버튼에 마우스를 올려 직업 특성을 확인하세요.</gray>";
-        ArrayList<ActionButton> actions = new ArrayList<>();
-        for (SemionJob job : JobRegistry.all()) {
-            actions.add(jobButton(job, currentJob.id().equals(job.id())));
-        }
+                + "<gray>살펴볼 빌더 분류를 선택하세요.</gray>";
+        List<ActionButton> actions = List.of(
+                actionButton(
+                        "공식 빌더 (" + JobRegistry.officialBuilders().size() + ")",
+                        "/semiontd job ui official",
+                        "세미온 TD의 기본 플레이를 담은 빌더입니다."
+                ),
+                actionButton(
+                        "창작 빌더 (" + JobRegistry.creativeBuilders().size() + ")",
+                        "/semiontd job ui creative",
+                        "색다른 규칙과 운영을 담은 빌더입니다."
+                )
+        );
 
         showActions(player, "세미온 TD 직업", body, actions, 2);
+    }
+
+    public void showJobSelection(ServerPlayer player, SemionGame game, boolean official) {
+        SemionJob currentJob = game.selectedJobOrDefault(player.getUUID());
+        String category = official ? "공식 빌더" : "창작 빌더";
+        String body = "<gradient:#67e8f9:#a78bfa><bold>" + category + "</bold></gradient>\n"
+                + "<gray>현재 선택</gray> <yellow>" + currentJob.displayName().getString() + "</yellow>\n"
+                + "<gray>버튼에 마우스를 올려 운영 방법을 확인하세요.</gray>";
+        ArrayList<ActionButton> actions = new ArrayList<>();
+        List<SemionJob> jobs = official ? JobRegistry.officialBuilders() : JobRegistry.creativeBuilders();
+        for (SemionJob job : jobs) {
+            actions.add(jobButton(job, currentJob.id().equals(job.id())));
+        }
+        actions.add(actionButton("← 분류 선택", "/semiontd job ui", "빌더 분류 화면으로 돌아갑니다."));
+
+        showActions(player, "세미온 TD " + category, body, actions, 2);
     }
 
     public void showJobStatistics(

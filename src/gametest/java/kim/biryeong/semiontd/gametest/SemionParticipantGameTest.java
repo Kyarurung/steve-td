@@ -2485,7 +2485,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 WaveConfig.defaultConfig(),
                 testArena(context)
         );
-        new SemionDialogService().showJobSelection(player, game);
+        SemionDialogService dialogService = new SemionDialogService();
+        dialogService.showJobSelection(player, game);
+        dialogService.showJobSelection(player, game, true);
+        dialogService.showJobSelection(player, game, false);
         ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
                 MatchMode.NORMAL,
                 List.of(new AssignedParticipant(player.getUUID(), player.getGameProfile().getName(), TeamId.RED, 1)),
@@ -2495,7 +2498,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Dialog test game should start.")) {
             return;
         }
-        SemionDialogService dialogService = new SemionDialogService();
         dialogService.showTowerControl(player, game);
         dialogService.showSummonShop(player, game);
         dialogService.showSummonShop(player, game, 2);

@@ -17,16 +17,11 @@ public final class ArmyTowerJob extends SemionJob {
         super(
                 ID,
                 Component.literal("군대 빌더"),
-                List.of(SemionText.mini("<gray>짬이 차면 공격을 덜 하고 대신 후임을 강하게 만드는 빌더입니다.</gray>"))
-        );
-    }
-
-    @Override
-    public List<Component> description() {
-        return List.of(
-                SemionText.mini("<gray>전투 타워는 웨이브를 넘길 때마다 <yellow>진급</yellow>합니다. 계급이 오르면 공격력이 줄고 대신 반경 안의 <green>후임</green>을 강화합니다.</gray>"),
-                SemionText.mini("<aqua>고참을 중심으로 신병을 계속 보충해 지휘 피라미드를 유지해야 합니다.</aqua>"),
-                SemionText.mini("<red>복무를 마치면 자동 전역합니다. 전역하면 <yellow>훈장</yellow>이 남아 라인 전체가 영구히 강해집니다.</red>")
+                List.of(
+                        SemionText.mini("<green><bold>시작</bold></green> <gray>전투 타워를 먼저 놓고 같은 종류의 신병을 계속 보충하세요.</gray>"),
+                        SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>웨이브를 넘긴 고참은 공격력이 낮아지지만 주변 후임을 강화합니다.</gray>"),
+                        SemionText.mini("<yellow><bold>주의</bold></yellow> <gray>복무를 마친 타워는 자동 전역하고, 남긴 훈장은 모든 군대 타워를 영구 강화합니다.</gray>")
+                )
         );
     }
 
