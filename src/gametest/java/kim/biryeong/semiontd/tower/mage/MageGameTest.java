@@ -133,7 +133,14 @@ public final class MageGameTest {
             require(MageStates.state(owner).mana() == afterSupport,
                     "Final-defense movement must not recast or recharge a support spell.");
 
+            int beforeCoreBreak = MageStates.state(owner).mana();
             require(lane.killTower(core), "The magic core must enter the normal destroyed lifecycle.");
+            int expectedAfterBreak = (int) Math.floor(
+                    beforeCoreBreak * (1.0 - MageBalance.coreBreakManaLossRatio())
+            );
+            require(MageStates.state(owner).mana() == expectedAfterBreak,
+                    "Core destruction must apply only the configured mana loss, before="
+                            + beforeCoreBreak + ", after=" + MageStates.state(owner).mana() + '.');
             before = MageStates.state(owner).mana();
             MageTowerLifecycle.finishRound(lane, owner);
             int after = MageStates.state(owner).mana();

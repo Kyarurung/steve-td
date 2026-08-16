@@ -6,12 +6,12 @@ public final class MageBalance {
     public static final String GLOBAL_ID = "mage_global";
 
     public static final int MANA_CAPACITY = 1_000;
-    public static final int STARTING_MANA = 30;
-    public static final int IDLE_WIZARD_MANA = 8;
-    public static final int PROPHET_MANA = 15;
-    public static final int CORE_MANA = 50;
-    public static final double CORE_BREAK_MANA_LOSS_RATIO = 0.20;
-    public static final int PROPHECY_REWARD = 80;
+    public static final int STARTING_MANA = 45;
+    public static final int IDLE_WIZARD_MANA = 12;
+    public static final int PROPHET_MANA = 23;
+    public static final int CORE_MANA = 75;
+    public static final double CORE_BREAK_MANA_LOSS_RATIO = 0.05;
+    public static final int PROPHECY_REWARD = 120;
     public static final double SUPPORT_RADIUS = 1.5;
     public static final double AMPLIFICATION_BONUS = 0.60;
     public static final double MANA_DAMAGE_BONUS_AT_CAPACITY = 0.70;

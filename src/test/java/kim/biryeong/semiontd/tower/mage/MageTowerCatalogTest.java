@@ -79,11 +79,11 @@ final class MageTowerCatalogTest {
     }
 
     @Test
-    void manaStartsOnceCapsAtOneThousandAndCoreBreakPreservesIt() {
+    void manaStartsOnceCapsAtOneThousandAndCoreBreakPreservesMostOfIt() {
         MageStates.PlayerState state = MageStates.state(OWNER);
         state.grantStartingMana();
         state.grantStartingMana();
-        assertEquals(30, state.mana());
+        assertEquals(45, state.mana());
 
         state.addMana(5_000);
         assertEquals(1_000, state.mana());
@@ -91,7 +91,7 @@ final class MageTowerCatalogTest {
                 MageTowers.MAGIC_CORE, OWNER, TeamId.RED, 1, new GridPosition(0, 64, 0)
         );
         core.onDeath(null);
-        assertEquals(800, state.mana());
+        assertEquals(950, state.mana());
         state.clearMana();
         state.grantStartingMana();
         assertEquals(0, state.mana(), "Reinstalling the core must not grant starting mana twice.");
@@ -107,9 +107,9 @@ final class MageTowerCatalogTest {
         );
         support.onPlaced(null);
         support.onWaveStarted(null, 1);
-        assertEquals(30, state.mana());
+        assertEquals(45, state.mana());
         assertFalse(support.spellUsed());
-        assertEquals(8, support.naturalManaProduction());
+        assertEquals(12, support.naturalManaProduction());
 
         MageStates.clear(OWNER);
         state = MageStates.state(OWNER);
@@ -120,13 +120,13 @@ final class MageTowerCatalogTest {
         );
         unusedAttack.onPlaced(null);
         unusedAttack.onWaveStarted(null, 1);
-        assertEquals(30, state.mana());
+        assertEquals(45, state.mana());
         assertFalse(unusedAttack.spellUsed());
-        assertEquals(8, unusedAttack.naturalManaProduction());
+        assertEquals(12, unusedAttack.naturalManaProduction());
     }
 
     @Test
-    void livingCoreProducesFiftyManaAtRoundEnd() {
+    void livingCoreProducesSeventyFiveManaAtRoundEnd() {
         MageStates.PlayerState state = MageStates.state(OWNER);
         PlayerLane lane = testLane();
         MageCoreTower core = new MageCoreTower(
@@ -134,11 +134,11 @@ final class MageTowerCatalogTest {
                 new GridPosition(0, 64, 0), new GridPosition(0, 64, 0)
         );
         lane.addTower(core);
-        assertEquals(30, state.mana());
+        assertEquals(45, state.mana());
 
         MageTowerLifecycle.finishRound(lane, OWNER);
 
-        assertEquals(80, state.mana());
+        assertEquals(120, state.mana());
     }
 
     @Test
@@ -146,8 +146,12 @@ final class MageTowerCatalogTest {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         assertTrue(MageTowers.all().stream().allMatch(type -> defaults.towers().containsKey(type.id())));
         assertEquals(1_000.0, defaults.ability(MageBalance.GLOBAL_ID, "manaCapacity", -1), 0.0001);
-        assertEquals(50.0, defaults.ability(MageBalance.GLOBAL_ID, "coreMana", -1), 0.0001);
-        assertEquals(0.20, defaults.ability(MageBalance.GLOBAL_ID, "coreBreakManaLossRatio", -1), 0.0001);
+        assertEquals(45.0, defaults.ability(MageBalance.GLOBAL_ID, "startingMana", -1), 0.0001);
+        assertEquals(12.0, defaults.ability(MageBalance.GLOBAL_ID, "idleWizardMana", -1), 0.0001);
+        assertEquals(23.0, defaults.ability(MageBalance.GLOBAL_ID, "prophetMana", -1), 0.0001);
+        assertEquals(75.0, defaults.ability(MageBalance.GLOBAL_ID, "coreMana", -1), 0.0001);
+        assertEquals(0.05, defaults.ability(MageBalance.GLOBAL_ID, "coreBreakManaLossRatio", -1), 0.0001);
+        assertEquals(120.0, defaults.ability(MageBalance.GLOBAL_ID, "prophecyReward", -1), 0.0001);
         assertEquals(400.0, defaults.ability(MageBalance.GLOBAL_ID, "dimensional_collapseManaCost", -1), 0.0001);
         assertEquals(0.65, defaults.ability(MageBalance.GLOBAL_ID, "rangedBarrierReduction", -1), 0.0001);
         assertEquals(0.6, defaults.ability(MageBalance.GLOBAL_ID, "amplificationBonus", -1), 0.0001);
@@ -171,7 +175,7 @@ final class MageTowerCatalogTest {
         );
         TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
         assertEquals(777.0, merged.ability(MageBalance.GLOBAL_ID, "manaCapacity", -1), 0.0001);
-        assertEquals(80.0, merged.ability(MageBalance.GLOBAL_ID, "prophecyReward", -1), 0.0001);
+        assertEquals(120.0, merged.ability(MageBalance.GLOBAL_ID, "prophecyReward", -1), 0.0001);
         assertEquals(3.0, merged.ability(MageBalance.GLOBAL_ID, "maxSpellDamageMultiplier", -1), 0.0001);
         assertEquals(10, merged.abilityInt(MageBalance.GLOBAL_ID, "windCutterMaxTargets", -1));
 
@@ -199,7 +203,7 @@ final class MageTowerCatalogTest {
         }
         int before = state.mana();
         MageTowerLifecycle.finishRound(wizardLane, OWNER);
-        assertEquals(74, state.mana() - before);
+        assertEquals(111, state.mana() - before);
 
         MageStates.clear(OWNER);
         PlayerLane prophetLane = testLane();
@@ -213,7 +217,7 @@ final class MageTowerCatalogTest {
         }
         before = state.mana();
         MageTowerLifecycle.finishRound(prophetLane, OWNER);
-        assertEquals(95, state.mana() - before);
+        assertEquals(144, state.mana() - before);
 
         MageStates.clear(OWNER);
         PlayerLane deadLane = testLane();
@@ -234,7 +238,7 @@ final class MageTowerCatalogTest {
         deadLane.addTower(deadProphet);
         before = state.mana();
         MageTowerLifecycle.finishRound(deadLane, OWNER);
-        assertEquals(50, state.mana() - before);
+        assertEquals(75, state.mana() - before);
         core.syncHealth(0.0);
         before = state.mana();
         MageTowerLifecycle.finishRound(deadLane, OWNER);
