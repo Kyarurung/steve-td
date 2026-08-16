@@ -66,15 +66,15 @@ public final class HeroPartyBalance {
     }
 
     public static double partyDamageMultiplier(int adventurePoints) {
-        return 1.0 + Math.max(0, adventurePoints) * global("adventureDamagePerPoint", 0.0025);
+        return 1.0 + Math.max(0, adventurePoints) * global("adventureDamagePerPoint", 0.0030);
     }
 
     public static double partyHealingMultiplier(int adventurePoints) {
-        return 1.0 + Math.max(0, adventurePoints) * global("adventureHealingPerPoint", 0.0025);
+        return 1.0 + Math.max(0, adventurePoints) * global("adventureHealingPerPoint", 0.0030);
     }
 
     public static double partyHealthMultiplier(int adventurePoints) {
-        return 1.0 + Math.max(0, adventurePoints) * global("adventureHealthPerPoint", 0.0035);
+        return 1.0 + Math.max(0, adventurePoints) * global("adventureHealthPerPoint", 0.0045);
     }
 
     public static double focusFireReductionPerExtraAttacker() {

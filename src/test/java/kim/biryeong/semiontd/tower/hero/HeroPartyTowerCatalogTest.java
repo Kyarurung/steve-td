@@ -218,6 +218,7 @@ class HeroPartyTowerCatalogTest {
 
     @Test
     void equipmentAndQuestNumbersMatchTheApprovedProgression() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         HeroPartyState state = HeroPartyStates.state(OWNER);
         assertTrue(state.owns(HeroWeapon.SWORD));
         assertTrue(state.addWeapon(HeroWeapon.LONGBOW));
@@ -241,26 +242,29 @@ class HeroPartyTowerCatalogTest {
         assertTrue(state.toggleArmorVisibility());
         assertEquals(5, HeroPlayerVisuals.displayedArmorLevel(hero));
 
-        assertEquals(2, HeroPartyState.questReward(1));
-        assertEquals(3, HeroPartyState.questReward(5));
-        assertEquals(4, HeroPartyState.questReward(10));
-        assertEquals(6, HeroPartyState.questReward(20));
-        assertEquals(9, HeroPartyState.questReward(41));
+        assertEquals(5, HeroPartyState.questReward(1));
+        assertEquals(10, HeroPartyState.questReward(5));
+        assertEquals(15, HeroPartyState.questReward(10));
+        assertEquals(21, HeroPartyState.questReward(20));
+        assertEquals(24, HeroPartyState.questReward(41));
         assertEquals(2.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_KILLS, 1, 8, 1000, 500));
         assertEquals(3.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_KILLS, 20, 10, 1000, 500));
-        assertEquals(3.0, HeroPartyState.questTarget(HeroQuestKind.HERO_KILLS, 20, 10, 1000, 500));
-        assertEquals(250.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_DAMAGE, 20, 10, 1000, 500));
-        assertEquals(250.0, HeroPartyState.questTarget(HeroQuestKind.LONGBOW_MARK_DAMAGE, 20, 10, 1000, 500));
-        assertEquals(350.0, HeroPartyState.questTarget(HeroQuestKind.TOME_HEALING, 20, 10, 1000, 500));
+        assertEquals(5.0, HeroPartyState.questTarget(HeroQuestKind.HERO_KILLS, 20, 20, 1000, 500));
+        assertEquals(175.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_DAMAGE, 20, 10, 1000, 500));
+        assertEquals(175.0, HeroPartyState.questTarget(HeroQuestKind.LONGBOW_MARK_DAMAGE, 20, 10, 1000, 500));
+        assertEquals(245.0, HeroPartyState.questTarget(HeroQuestKind.TOME_HEALING, 20, 10, 1000, 500));
         assertEquals(20, HeroQuestKind.values().length);
         assertEquals(1.0, HeroPartyState.questTarget(HeroQuestKind.PARTY_SURVIVAL, 20, 10, 1000, 500));
-        assertEquals(5.0, HeroPartyState.questTarget(HeroQuestKind.COMPANION_KILLS, 20, 10, 1000, 500));
-        assertEquals(400.0, HeroPartyState.questTarget(HeroQuestKind.PARTY_DAMAGE, 20, 10, 1000, 500));
-        assertEquals(350.0, HeroPartyState.questTarget(HeroQuestKind.PRIEST_HEALING, 20, 10, 1000, 500));
+        assertEquals(4.0, HeroPartyState.questTarget(HeroQuestKind.COMPANION_KILLS, 20, 10, 1000, 500));
+        assertEquals(280.0, HeroPartyState.questTarget(HeroQuestKind.PARTY_DAMAGE, 20, 10, 1000, 500));
+        assertEquals(245.0, HeroPartyState.questTarget(HeroQuestKind.PRIEST_HEALING, 20, 10, 1000, 500));
         assertEquals(10.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 1, 1, 100, 100));
         assertEquals(10.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 1, 100, 10000, 100));
-        assertEquals(50.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 1, 100, 100));
-        assertEquals(50.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 100, 10000, 100));
+        assertEquals(35.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 1, 100, 100));
+        assertEquals(35.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 100, 10000, 100));
+        assertEquals(1.30, HeroPartyBalance.partyDamageMultiplier(100), 0.0001);
+        assertEquals(1.30, HeroPartyBalance.partyHealingMultiplier(100), 0.0001);
+        assertEquals(1.45, HeroPartyBalance.partyHealthMultiplier(100), 0.0001);
     }
 
     @Test
@@ -488,7 +492,7 @@ class HeroPartyTowerCatalogTest {
     @Test
     void heroShopShowsEffectiveDamageAndEverySkillUnlock() {
         assertEquals(12.0, HeroShopGui.effectiveWeaponDamage(HeroWeapon.SWORD, 0, 0));
-        assertEquals(24.24, HeroShopGui.effectiveWeaponDamage(HeroWeapon.SWORD, 5, 4), 0.0001);
+        assertEquals(24.288, HeroShopGui.effectiveWeaponDamage(HeroWeapon.SWORD, 5, 4), 0.0001);
         assertEquals(HeroShopGui.WeaponStatus.EQUIPPED,
                 HeroShopGui.weaponStatus(true, true, true, 0, 0));
         assertEquals(HeroShopGui.WeaponStatus.OWNED,

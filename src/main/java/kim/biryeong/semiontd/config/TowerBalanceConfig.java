@@ -2166,9 +2166,9 @@ public record TowerBalanceConfig(
                 Map.entry("armorReduction3", 0.12),
                 Map.entry("armorReduction4", 0.16),
                 Map.entry("armorReduction5", 0.20),
-                Map.entry("adventureDamagePerPoint", 0.0025),
-                Map.entry("adventureHealingPerPoint", 0.0025),
-                Map.entry("adventureHealthPerPoint", 0.0035),
+                Map.entry("adventureDamagePerPoint", 0.0030),
+                Map.entry("adventureHealingPerPoint", 0.0030),
+                Map.entry("adventureHealthPerPoint", 0.0045),
                 Map.entry(
                         "focusFireDamageReductionPerExtraAttacker",
                         HeroPartyBalance.FOCUS_FIRE_REDUCTION_PER_EXTRA_ATTACKER

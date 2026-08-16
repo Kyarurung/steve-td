@@ -5162,9 +5162,9 @@
       "armorReduction3": 0.12,
       "armorReduction4": 0.16,
       "armorReduction5": 0.2,
-      "adventureDamagePerPoint": 0.0025,
-      "adventureHealingPerPoint": 0.0025,
-      "adventureHealthPerPoint": 0.0035,
+      "adventureDamagePerPoint": 0.003,
+      "adventureHealingPerPoint": 0.003,
+      "adventureHealthPerPoint": 0.0045,
       "focusFireDamageReductionPerExtraAttacker": 0.08,
       "focusFireDamageReductionCap": 0.4
     },
