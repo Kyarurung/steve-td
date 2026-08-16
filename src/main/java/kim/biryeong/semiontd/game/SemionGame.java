@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
+import kim.biryeong.semiontd.tower.mage.MageStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
@@ -496,9 +497,10 @@ public final class SemionGame {
 
     public int towerCount(UUID playerId) {
         return playerLane(playerId)
-                .map(lane -> (int) lane.towers().stream()
+                .map(lane -> lane.towers().stream()
                         .filter(tower -> tower.ownerPlayer().equals(playerId))
-                        .count())
+                        .mapToInt(tower -> Math.max(0, tower.slotWeight()))
+                        .sum())
                 .orElse(0);
     }
 
@@ -506,7 +508,7 @@ public final class SemionGame {
         return playerLane(playerId)
                 .map(lane -> lane.towers().stream()
                         .filter(tower -> tower.ownerPlayer().equals(playerId))
-                        .mapToInt(tower -> TowerCapacity.slotCost(tower.type()))
+                        .mapToInt(TowerCapacity::slotCost)
                         .sum())
                 .orElse(0);
     }
@@ -791,6 +793,9 @@ public final class SemionGame {
         for (UUID playerId : players.keySet()) {
             AdversaryProgressStates.clear(playerId);
             AdversaryTeamEffects.unregisterPlayer(playerId);
+            MageStates.clear(playerId);
+            kim.biryeong.semiontd.tower.futureagency.FutureAgencyStates.clear(playerId);
+            kim.biryeong.semiontd.tower.queen.QueenStates.clear(playerId);
             HeroPartyStates.clear(playerId);
         }
         players.clear();

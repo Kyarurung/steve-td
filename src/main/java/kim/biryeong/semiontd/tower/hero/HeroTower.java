@@ -88,7 +88,8 @@ public final class HeroTower extends HeroPartyTower {
                 ? 0.0
                 : towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION);
         double beforeGuard = guardReduction >= 0.95 ? damageAmount : damageAmount / Math.max(0.05, 1.0 - guardReduction);
-        double resolved = damageAmount * (1.0 - armorReduction);
+        double resolved = super.modifyIncomingDamage(towerEntity, damageSource, damageAmount)
+                * (1.0 - armorReduction);
         if (weapon() == HeroWeapon.SWORD && state().weaponLevel(HeroWeapon.SWORD) >= 3) {
             state().recordSpecial(
                     HeroQuestKind.SWORD_DAMAGE_PREVENTED,

@@ -77,11 +77,14 @@ import kim.biryeong.semiontd.statistics.JobStatisticsSnapshot;
 import kim.biryeong.semiontd.statistics.JobStatisticsState;
 import kim.biryeong.semiontd.summon.IncomeSummons;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
+import kim.biryeong.semiontd.tower.engineer.EngineerRedstoneBossBarService;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkins;
 import kim.biryeong.semiontd.tower.hero.HeroPlayerVisuals;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidBossBarService;
 import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
+import kim.biryeong.semiontd.tower.mage.MageManaBossBarService;
+import kim.biryeong.semiontd.tower.queen.QueenBossBarService;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvReputationBossBarService;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitRegistry;
@@ -145,6 +148,9 @@ public final class SemionGameManager {
     private final SemionSidebarHudService sidebarHudService = new SemionSidebarHudService();
     private final IllagerRaidBossBarService illagerRaidBossBarService = new IllagerRaidBossBarService();
     private final VillagerAdvReputationBossBarService villagerAdvReputationBossBarService = new VillagerAdvReputationBossBarService();
+    private final EngineerRedstoneBossBarService engineerRedstoneBossBarService = new EngineerRedstoneBossBarService();
+    private final MageManaBossBarService mageManaBossBarService = new MageManaBossBarService();
+    private final QueenBossBarService queenBossBarService = new QueenBossBarService();
     private final BuildGuideService buildGuideService = new BuildGuideService(null);
     private MatchMode matchMode = MatchMode.NORMAL;
     private SemionGame activeGame;
@@ -987,6 +993,9 @@ public final class SemionGameManager {
             sidebarHudService.clear(server);
             illagerRaidBossBarService.clear(server);
             villagerAdvReputationBossBarService.clear(server);
+            engineerRedstoneBossBarService.clear(server);
+            mageManaBossBarService.clear(server);
+            queenBossBarService.clear(server);
             sendAllPlayersToLobby(server);
             closeActiveGameSafely(activeGame, "replacing active game during create");
         }
@@ -1012,6 +1021,9 @@ public final class SemionGameManager {
         sidebarHudService.clear(server);
         illagerRaidBossBarService.clear(server);
         villagerAdvReputationBossBarService.clear(server);
+        engineerRedstoneBossBarService.clear(server);
+        mageManaBossBarService.clear(server);
+        queenBossBarService.clear(server);
         sendAllPlayersToLobby(server);
         if (activeGame != null) {
             finalizeBuildGuideRecording(activeGame, activeGame.matchResult());
@@ -1025,6 +1037,9 @@ public final class SemionGameManager {
         sidebarHudService.clear(server);
         illagerRaidBossBarService.clear(server);
         villagerAdvReputationBossBarService.clear(server);
+        engineerRedstoneBossBarService.clear(server);
+        mageManaBossBarService.clear(server);
+        queenBossBarService.clear(server);
         return hadActiveGame;
     }
 
@@ -1243,6 +1258,9 @@ public final class SemionGameManager {
         }
         illagerRaidBossBarService.removePlayer(playerId);
         villagerAdvReputationBossBarService.removePlayer(playerId);
+        engineerRedstoneBossBarService.removePlayer(playerId);
+        mageManaBossBarService.removePlayer(playerId);
+        queenBossBarService.removePlayer(playerId);
         try {
             existing.close();
         } catch (RuntimeException exception) {
@@ -1325,6 +1343,9 @@ public final class SemionGameManager {
             sidebarHudService.refreshPlayersNow(server, sandbox, MatchMode.TEST, viewers);
             illagerRaidBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
             villagerAdvReputationBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
+            engineerRedstoneBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
+            mageManaBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
+            queenBossBarService.refreshPlayersNow(server, sandbox, Set.of(entry.getKey()));
         }
     }
 
@@ -1532,6 +1553,9 @@ public final class SemionGameManager {
             Set<UUID> sandboxViewerIds = sandboxViewerIds();
             illagerRaidBossBarService.clearExcept(sandboxViewerIds);
             villagerAdvReputationBossBarService.clearExcept(sandboxViewerIds);
+            engineerRedstoneBossBarService.clearExcept(sandboxViewerIds);
+            mageManaBossBarService.clearExcept(sandboxViewerIds);
+            queenBossBarService.clearExcept(sandboxViewerIds);
             return;
         }
 
@@ -1565,6 +1589,9 @@ public final class SemionGameManager {
             Set<UUID> sandboxViewerIds = sandboxViewerIds();
             illagerRaidBossBarService.tick(server, activeGame, sandboxViewerIds);
             villagerAdvReputationBossBarService.tick(server, activeGame, sandboxViewerIds);
+            engineerRedstoneBossBarService.tick(server, activeGame, sandboxViewerIds);
+            mageManaBossBarService.tick(server, activeGame, sandboxViewerIds);
+            queenBossBarService.tick(server, activeGame, sandboxViewerIds);
             sidebarHudService.tick(server, activeGame, matchMode, sandboxViewerIds);
         }
     }
@@ -1624,6 +1651,9 @@ public final class SemionGameManager {
         sidebarHudService.remove(player);
         illagerRaidBossBarService.removePlayer(player.getUUID());
         villagerAdvReputationBossBarService.removePlayer(player.getUUID());
+        engineerRedstoneBossBarService.removePlayer(player.getUUID());
+        mageManaBossBarService.removePlayer(player.getUUID());
+        queenBossBarService.removePlayer(player.getUUID());
         releaseSandboxSpectator(player.getUUID());
         stopSandbox(player.getServer(), player.getUUID());
     }
@@ -2058,6 +2088,9 @@ public final class SemionGameManager {
         sidebarHudService.clear(server);
         illagerRaidBossBarService.clear(server);
         villagerAdvReputationBossBarService.clear(server);
+        engineerRedstoneBossBarService.clear(server);
+        mageManaBossBarService.clear(server);
+        queenBossBarService.clear(server);
         server.getPlayerList().broadcastSystemMessage(
                 SemionText.prefixedMini("<gold>경기 종료.</gold> 결과를 집계하는 중입니다..."),
                 false
@@ -2078,6 +2111,9 @@ public final class SemionGameManager {
         sidebarHudService.clear(server);
         illagerRaidBossBarService.clear(server);
         villagerAdvReputationBossBarService.clear(server);
+        engineerRedstoneBossBarService.clear(server);
+        mageManaBossBarService.clear(server);
+        queenBossBarService.clear(server);
         Optional<MatchResult> result = finishedGame.matchResult();
         Optional<RatingMatchResult> ratingResult = Optional.empty();
         if (result.isPresent()) {

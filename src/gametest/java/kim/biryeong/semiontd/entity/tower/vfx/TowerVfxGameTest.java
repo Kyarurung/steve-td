@@ -24,15 +24,21 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
+import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
+import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
+import kim.biryeong.semiontd.tower.insect.InsectTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
+import kim.biryeong.semiontd.tower.mage.MageTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTower;
 import kim.biryeong.semiontd.tower.nether.NetherTowerState;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
+import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
+import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -65,7 +71,16 @@ public final class TowerVfxGameTest {
         assertPalette(OceanTowers.T1_WATER, BuilderPalette.OCEAN);
         assertPalette(AncientCityTowers.CATALYST_T1, BuilderPalette.ANCIENT_CITY);
         assertPalette(AdversaryTowers.FOX, BuilderPalette.ADVERSARY);
+        assertPalette(FutureAgencyTowers.agent(kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole.COMBAT, 5),
+                BuilderPalette.FUTURE_AGENCY);
         assertPalette(PlantTowers.T1_MEADOW_TOWER, BuilderPalette.PLANT);
+        assertPalette(QueenTowers.QUEEN, BuilderPalette.QUEEN);
+        assertPalette(QueenTowers.RANDOM_CARD_SOLDIER, BuilderPalette.QUEEN);
+        assertPalette(EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 3), BuilderPalette.ENGINEER);
+        assertPalette(MageTowers.WIZARD, BuilderPalette.MAGE);
+        assertPalette(InsectTowers.SILVERFISH, BuilderPalette.INSECT);
+        assertPalette(InsectTowers.SPAWNER, BuilderPalette.INSECT);
+        assertPalette(ThunderTowers.SQUIRREL_T3, BuilderPalette.THUNDER);
         context.succeed();
     }
 
@@ -268,6 +283,84 @@ public final class TowerVfxGameTest {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         for (String effect : List.of("zone", "burst")) {
             String command = "semiontd-debug vfx atlantis " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void futureAgencyDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("carry", "suppression")) {
+            String command = "semiontd-debug vfx future_agency " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void queenDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("shrink", "giant")) {
+            String command = "semiontd-debug vfx queen " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void engineerDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("power", "tnt")) {
+            String command = "semiontd-debug vfx engineer " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void mageDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("spell", "prophecy")) {
+            String command = "semiontd-debug vfx mage " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void insectDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("radius", "revive")) {
+            String command = "semiontd-debug vfx insect " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void thunderDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("arc", "discharge")) {
+            String command = "semiontd-debug vfx thunder " + effect;
             var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");
