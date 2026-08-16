@@ -242,6 +242,7 @@ public final class SemionCommands {
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                                 JobRegistry.all().stream()
                                                         .filter(job -> job != JobRegistry.defaultJob())
+                                                        .filter(job -> !JobRegistry.isEnabled(job))
                                                         .map(job -> job.id().toString()),
                                                 builder
                                         ))
@@ -257,6 +258,7 @@ public final class SemionCommands {
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                                 JobRegistry.all().stream()
                                                         .filter(job -> job != JobRegistry.defaultJob())
+                                                        .filter(JobRegistry::isEnabled)
                                                         .map(job -> job.id().toString()),
                                                 builder
                                         ))
