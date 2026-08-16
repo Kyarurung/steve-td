@@ -202,7 +202,7 @@ public final class MageGameTest {
             long damaged = targets.stream().filter(target -> target.runtime().health() < 200.0).count();
             require(damaged == MageBalance.WIND_CUTTER_MAX_TARGETS,
                     "Wind Cutter must stop at its ten-target cap, damaged=" + damaged + '.');
-            requireClose(900.0, wind.roundMagicDamageDealt(),
+            requireClose(1_350.0, wind.roundMagicDamageDealt(),
                     "Wind Cutter must use the common magic damage path at the capped multiplier.");
             require(targets.stream().noneMatch(target -> !target.runtime().isAlive()),
                     "The target-cap check should damage, not kill, its test targets.");

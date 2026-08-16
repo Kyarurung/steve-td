@@ -23,24 +23,24 @@ public final class MageBalance {
     public static final double MAX_SPELL_DAMAGE_MULTIPLIER = 3.00;
     public static final int MANA_RETRY_TICKS = 20;
 
-    public static final double MISSILE_DAMAGE = 10.0;
+    public static final double MISSILE_DAMAGE = 15.0;
     public static final int MISSILE_COUNT = 6;
     public static final int MISSILE_INTERVAL_TICKS = 2;
-    public static final double WIND_CUTTER_DAMAGE = 30.0;
+    public static final double WIND_CUTTER_DAMAGE = 45.0;
     public static final double WIND_CUTTER_WIDTH = 0.75;
     public static final int WIND_CUTTER_MAX_TARGETS = 10;
-    public static final double MANA_BOMB_DAMAGE = 105.0;
+    public static final double MANA_BOMB_DAMAGE = 160.0;
     public static final double MANA_BOMB_RADIUS = 2.5;
     public static final int MANA_BOMB_MAX_TARGETS = 7;
     public static final int MANA_BOMB_DELAY_TICKS = 20;
-    public static final double[] CHAIN_LIGHTNING_DAMAGE = {90.0, 70.0, 50.0, 35.0, 25.0, 15.0};
+    public static final double[] CHAIN_LIGHTNING_DAMAGE = {135.0, 105.0, 75.0, 55.0, 40.0, 25.0};
     public static final double CHAIN_LIGHTNING_JUMP_RANGE = 4.0;
-    public static final double FROST_WAVE_DAMAGE = 60.0;
+    public static final double FROST_WAVE_DAMAGE = 90.0;
     public static final double FROST_WAVE_RADIUS = 8.0;
     public static final int FROST_WAVE_MAX_TARGETS = 10;
     public static final double FROST_WAVE_SLOW = 0.45;
     public static final int FROST_WAVE_DURATION_TICKS = 80;
-    public static final double DIMENSIONAL_COLLAPSE_DAMAGE = 380.0;
+    public static final double DIMENSIONAL_COLLAPSE_DAMAGE = 570.0;
     public static final double DIMENSIONAL_COLLAPSE_RADIUS = 256.0;
     public static final int DIMENSIONAL_COLLAPSE_DELAY_TICKS = 40;
 
