@@ -91,6 +91,10 @@ public final class PlantIntegrationGameTest {
                     "Plant environment ticks must not pay continuous income.");
 
             lane.moveTowersToFinalDefense();
+            require(PlantSoilStates.soilAt(owner, dandelion.position()) == null,
+                    "The final-defense slot must be bare ground for this regression test.");
+            require(dandelion.bloomBonus() > 0.0,
+                    "A plant at final defense must keep its family terrain effect.");
             new PlantTowerJob().onRoundEnded(new JobContext(game, game.players().get(owner)), 1);
             require(game.players().get(owner).economy().mineral() == beforeSettlement + 3,
                     "A surviving T1 dandelion must pay three diamonds exactly once at settlement.");

@@ -525,7 +525,7 @@ public class PlantCombatTower extends ProductionTower {
     }
 
     private PlantSoil standingSoil() {
-        return PlantSoilStates.soilAt(ownerPlayer(), position());
+        return deployedAtFinalDefense() ? family() : PlantSoilStates.soilAt(ownerPlayer(), position());
     }
 
     private boolean standsOn(PlantSoil soil) {
