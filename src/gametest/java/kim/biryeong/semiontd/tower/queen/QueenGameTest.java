@@ -165,8 +165,10 @@ public final class QueenGameTest {
             requireClose(68.0, queen.currentMaxHealth(),
                     "The Queen must gain a fixed amount of maximum health each round.");
             requireClose(68.0, queen.health(), "Round health growth must heal the gained maximum health.");
-            queen.tick(lane);
             Vec3 boss = finalDefenseLane.laneLayout().bossPosition();
+            group.spawnBossEntity(context.getLevel(), boss);
+            double teamBossHealth = group.boss().health();
+            queen.tick(lane);
             require(state.runnerActive() && state.runner().position().distanceToSqr(boss) < 0.01,
                     "Final-defense Giants must start at the boss.");
             Vec3 finalWaypoint = finalDefenseLane.laneLayout().waypoints().getLast();
@@ -183,6 +185,9 @@ public final class QueenGameTest {
             require(lastRunnerPosition.distanceTo(finalDefenseLane.laneLayout().spawn())
                             <= QueenBalance.giantSpeed() + 0.01,
                     "The final-defense Giant must run to the end of lane 5.");
+            require(group.boss().isAlive(), "The final-defense Giant must not kill its own team's boss.");
+            requireClose(teamBossHealth, group.boss().health(),
+                    "The final-defense Giant must not damage its own team's boss.");
             context.succeed();
         } finally {
             group.closeRuntime();
