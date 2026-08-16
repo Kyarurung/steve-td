@@ -942,6 +942,7 @@ public record TowerBalanceConfig(
         global.put("sergeantAttackMultiplier", ArmyBalance.SERGEANT_ATTACK_MULTIPLIER);
         global.put("sergeantDamageBuff", ArmyBalance.SERGEANT_DAMAGE_BUFF);
         global.put("staffSergeantService", (double) ArmyBalance.STAFF_SERGEANT_SERVICE);
+        global.put("staffSergeantAttackMultiplier", ArmyBalance.STAFF_SERGEANT_ATTACK_MULTIPLIER);
         global.put("staffSergeantDamageBuff", ArmyBalance.STAFF_SERGEANT_DAMAGE_BUFF);
         global.put("staffSergeantAttackSpeedBuff", ArmyBalance.STAFF_SERGEANT_ATTACK_SPEED_BUFF);
         global.put("dischargeService", (double) ArmyBalance.DISCHARGE_SERVICE);
@@ -1322,7 +1323,7 @@ public record TowerBalanceConfig(
         validateRatios(global,
                 "dischargeRefundRatio", "medalDamageBonus", "corporalAttackMultiplier",
                 "corporalDamageBuff", "sergeantAttackMultiplier", "sergeantDamageBuff",
-                "staffSergeantDamageBuff", "staffSergeantAttackSpeedBuff");
+                "staffSergeantAttackMultiplier", "staffSergeantDamageBuff", "staffSergeantAttackSpeedBuff");
         validatePositive(global,
                 "commandRadius", "maxCommandBonus", "maxMedals", "corporalService", "sergeantService",
                 "staffSergeantService", "dischargeService");

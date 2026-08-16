@@ -3,12 +3,11 @@ package kim.biryeong.semiontd.tower.army;
 /**
  * The one number the 군대 builder runs on.
  *
- * <p>Rank is earned by surviving waves, never by spending minerals, which makes it orthogonal to
- * tier: a T3 이등병 is a fresh heavy hitter and a T3 병장 is a commander that no longer fires at all.
+ * <p>Rank is earned by participating in waves, never by spending minerals, which makes it
+ * orthogonal to tier: a T3 이등병 is a fresh heavy hitter and a T3 병장은 a veteran commander.
  *
- * <p>The attack multipliers fall to zero on purpose. A tower that keeps some damage at the top rank
- * would let a player stack 고참 without paying for it, and the whole builder is the trade between
- * shooting now and making everyone else shoot harder.
+ * <p>The attack multipliers fall as service grows, but the top rank keeps part of its own firepower
+ * so a same-wave roster never shuts down completely before discharge.
  *
  * <p>The live balance config owns thresholds and multipliers so reloading the server cannot leave
  * rank behavior out of sync with player-facing descriptions.
@@ -18,7 +17,7 @@ public enum ArmyRank {
     PRIVATE,
     CORPORAL,
     SERGEANT,
-    /** Stops firing entirely and carries the family's real output on its buff. */
+    /** Keeps reduced firepower while carrying the family's strongest command buff. */
     STAFF_SERGEANT;
 
     public int requiredService() {
@@ -36,7 +35,7 @@ public enum ArmyRank {
             case PRIVATE -> 1.0;
             case CORPORAL -> ArmyBalance.corporalAttackMultiplier();
             case SERGEANT -> ArmyBalance.sergeantAttackMultiplier();
-            case STAFF_SERGEANT -> 0.0;
+            case STAFF_SERGEANT -> ArmyBalance.staffSergeantAttackMultiplier();
         };
     }
 

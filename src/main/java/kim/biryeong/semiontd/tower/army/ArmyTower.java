@@ -145,17 +145,17 @@ public class ArmyTower extends ProductionTower {
         pendingServiceGain = serviceGainThisWave(lane);
     }
 
-    /** Applies the wave-start snapshot only after this tower survives the round. */
+    /** Applies the wave-start snapshot after the round, even if this lane or tower fell in combat. */
     public void completeServiceWave(PlayerLane lane) {
         int gain = pendingServiceGain;
         pendingServiceGain = 0;
-        if (!ranks() || isDestroyed(lane)) {
+        if (!ranks()) {
             return;
         }
         ArmyRank before = rank();
         service = Math.max(0, service + gain);
         dischargePending = service >= ArmyBalance.dischargeService();
-        if (rank() != before) {
+        if (rank() != before && !isDestroyed(lane)) {
             entity(lane).ifPresent(this::applyAppearance);
             onStateChanged(lane);
             playRankVfx(lane, AreaVfxStyles.BUFF, "promotion");

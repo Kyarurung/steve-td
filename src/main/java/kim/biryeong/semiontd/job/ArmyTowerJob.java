@@ -19,7 +19,7 @@ public final class ArmyTowerJob extends SemionJob {
                 Component.literal("군대 빌더"),
                 List.of(
                         SemionText.mini("<green><bold>시작</bold></green> <gray>전투 타워를 먼저 놓고 같은 종류의 신병을 계속 보충하세요.</gray>"),
-                        SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>웨이브를 넘긴 고참은 공격력이 낮아지지만 주변 후임을 강화합니다.</gray>"),
+                        SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>웨이브에 참가한 고참은 공격력이 낮아지지만 주변 후임을 강화합니다.</gray>"),
                         SemionText.mini("<yellow><bold>주의</bold></yellow> <gray>복무를 마친 타워는 자동 전역하고, 남긴 훈장은 모든 군대 타워를 영구 강화합니다.</gray>")
                 )
         );

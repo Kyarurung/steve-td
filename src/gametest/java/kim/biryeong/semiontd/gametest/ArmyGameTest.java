@@ -66,7 +66,7 @@ public final class ArmyGameTest {
             lane.markWaveStarted(1);
             require(recruit.service() == 0, "Wave start must snapshot service without applying it before combat.");
             new ArmyTowerJob().onRoundEnded(new JobContext(game, game.players().get(owner)), 1);
-            require(recruit.service() == 1, "A surviving recruit must gain service after the round.");
+            require(recruit.service() == 1, "A participating recruit must gain service after the round.");
 
             require(ProductionTowerService.upgradeTower(
                     game, owner, GridPosition.from(position), ArmyTowers.SPECIALIST.id())
@@ -131,7 +131,7 @@ public final class ArmyGameTest {
     }
 
     @GameTest
-    public void thirteenthWaveDischargesOnceDeathDoesNotRewardAndCloseClearsState(GameTestHelper context) {
+    public void thirteenthWaveDischargesOnceEvenAfterLaneFailureAndCloseClearsState(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         UUID owner = stableUuid("army-discharge-owner");
         TowerBalanceRuntime.apply(defaults);
@@ -169,9 +169,18 @@ public final class ArmyGameTest {
             }
             lane.markWaveStarted(ArmyBalance.dischargeService());
             require(lane.killTower(casualty), "The casualty must die before service is applied.");
+            long beforeFailedLaneRefund = game.players().get(owner).economy().mineral();
             job.onRoundEnded(new JobContext(game, game.players().get(owner)), ArmyBalance.dischargeService());
-            require(close(ArmyStates.medalBonus(owner), earnedBonus),
-                    "Death and its removal hook must never award a discharge medal.");
+            require(!lane.towers().contains(casualty),
+                    "A tower that participated in the failed lane must still discharge at service 13.");
+            require(game.players().get(owner).economy().mineral() - beforeFailedLaneRefund == 45,
+                    "A failed-lane discharge without a quartermaster must refund 45 diamonds.");
+            double failedLaneBonus = earnedBonus + ArmyBalance.medalDamageBonus();
+            require(close(ArmyStates.medalBonus(owner), failedLaneBonus),
+                    "A failed-lane discharge must still award exactly one medal.");
+            require(!casualty.completeDischarge(lane)
+                            && close(ArmyStates.medalBonus(owner), failedLaneBonus),
+                    "A failed-lane discharge must remain idempotent.");
 
             game.close();
             game = null;
@@ -185,7 +194,7 @@ public final class ArmyGameTest {
     }
 
     @GameTest
-    public void medalsReachGuardsArtilleryUsesResolvedDamageOnceAndTopRankStops(GameTestHelper context) {
+    public void medalsReachGuardsArtilleryUsesResolvedDamageOnceAndTopRankKeepsAttacking(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         UUID owner = stableUuid("army-combat-owner");
         TowerBalanceRuntime.apply(defaults);
@@ -218,8 +227,8 @@ public final class ArmyGameTest {
                 senior.onWaveStarted(lane, round);
                 senior.completeServiceWave(lane);
             }
-            require(close(senior.adjustAttackRange(senior.type().range()), 0.0),
-                    "Top-rank combat towers must have zero attack range and emit no empty attacks.");
+            require(close(senior.adjustAttackRange(senior.type().range()), senior.type().range()),
+                    "Top-rank combat towers must retain their attack range.");
             context.succeed();
         } finally {
             if (primary != null) primary.discard();

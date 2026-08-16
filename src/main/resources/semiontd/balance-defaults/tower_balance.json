@@ -2874,7 +2874,7 @@
     },
     "army_military_police_t2": {
       "mineralCost": 105,
-      "maxHealth": 420.0,
+      "maxHealth": 630.0,
       "range": 2.6,
       "damage": 11.0,
       "attackIntervalTicks": 19,
@@ -2882,7 +2882,7 @@
     },
     "army_mp_commander_t3": {
       "mineralCost": 220,
-      "maxHealth": 650.0,
+      "maxHealth": 975.0,
       "range": 2.8,
       "damage": 20.0,
       "attackIntervalTicks": 18,
@@ -2890,7 +2890,7 @@
     },
     "army_gop_sentry_t2": {
       "mineralCost": 100,
-      "maxHealth": 300.0,
+      "maxHealth": 450.0,
       "range": 2.6,
       "damage": 10.0,
       "attackIntervalTicks": 19,
@@ -2898,7 +2898,7 @@
     },
     "army_outpost_chief_t3": {
       "mineralCost": 215,
-      "maxHealth": 540.0,
+      "maxHealth": 810.0,
       "range": 2.8,
       "damage": 18.0,
       "attackIntervalTicks": 18,
@@ -2916,7 +2916,7 @@
       "mineralCost": 130,
       "maxHealth": 140.0,
       "range": 6.5,
-      "damage": 21.0,
+      "damage": 30.0,
       "attackIntervalTicks": 12,
       "aggroPriority": 0
     },
@@ -2924,7 +2924,7 @@
       "mineralCost": 280,
       "maxHealth": 190.0,
       "range": 7.0,
-      "damage": 43.0,
+      "damage": 60.0,
       "attackIntervalTicks": 11,
       "aggroPriority": 0
     },
@@ -2932,7 +2932,7 @@
       "mineralCost": 130,
       "maxHealth": 110.0,
       "range": 7.5,
-      "damage": 21.0,
+      "damage": 30.0,
       "attackIntervalTicks": 16,
       "aggroPriority": 0
     },
@@ -2940,7 +2940,7 @@
       "mineralCost": 280,
       "maxHealth": 150.0,
       "range": 8.5,
-      "damage": 40.0,
+      "damage": 56.0,
       "attackIntervalTicks": 15,
       "aggroPriority": 0
     }
@@ -5743,9 +5743,10 @@
       "corporalAttackMultiplier": 0.75,
       "corporalDamageBuff": 0.12,
       "sergeantService": 5.0,
-      "sergeantAttackMultiplier": 0.4,
+      "sergeantAttackMultiplier": 0.6,
       "sergeantDamageBuff": 0.28,
       "staffSergeantService": 9.0,
+      "staffSergeantAttackMultiplier": 0.4,
       "staffSergeantDamageBuff": 0.5,
       "staffSergeantAttackSpeedBuff": 0.15,
       "dischargeService": 13.0,

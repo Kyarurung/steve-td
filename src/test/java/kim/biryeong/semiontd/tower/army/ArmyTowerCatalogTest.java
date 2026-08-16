@@ -191,7 +191,7 @@ class ArmyTowerCatalogTest {
     }
 
     @Test
-    void medalsBuffTheGuardLineAndTopRankStopsAttacking() {
+    void medalsBuffTheGuardLineAndTopRankKeepsAttacking() {
         ArmyStates.awardMedal(OWNER, 1.0);
         assertEquals(102.0, tower(ArmyTowers.GUARD).modifyAttackDamage(null, null, 100.0), 1.0E-9);
 
@@ -200,7 +200,7 @@ class ArmyTowerCatalogTest {
             recruit.onWaveStarted(null, wave);
             recruit.completeServiceWave(null);
         }
-        assertEquals(0.0, recruit.adjustAttackRange(recruit.type().range()), 1.0E-9);
+        assertEquals(recruit.type().range(), recruit.adjustAttackRange(recruit.type().range()), 1.0E-9);
     }
 
     @Test
@@ -212,6 +212,8 @@ class ArmyTowerCatalogTest {
         assertEquals(3.0, partial.ability(ArmyBalance.CONFIG_ID, "corporalService", -1.0));
         assertEquals(ArmyBalance.DISCHARGE_SERVICE,
                 partial.ability(ArmyBalance.CONFIG_ID, "dischargeService", -1.0));
+        assertEquals(ArmyBalance.STAFF_SERGEANT_ATTACK_MULTIPLIER,
+                partial.ability(ArmyBalance.CONFIG_ID, "staffSergeantAttackMultiplier", -1.0));
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
         LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(ArmyBalance.CONFIG_ID));
@@ -228,6 +230,19 @@ class ArmyTowerCatalogTest {
                 assertFalse(line.contains("{"), type.id() + " left an unresolved placeholder: " + line);
             }
         }
+    }
+
+    @Test
+    void aggressiveMidLateDamageAndFiftyPercentGuardHealthArePinned() {
+        assertEquals(30.0, ArmyTowers.SPECIALIST.damage());
+        assertEquals(60.0, ArmyTowers.PLATOON_LEADER.damage());
+        assertEquals(30.0, ArmyTowers.GUNNER.damage());
+        assertEquals(56.0, ArmyTowers.BATTERY_CHIEF.damage());
+
+        assertEquals(630.0, ArmyTowers.MILITARY_POLICE.maxHealth());
+        assertEquals(975.0, ArmyTowers.MP_COMMANDER.maxHealth());
+        assertEquals(450.0, ArmyTowers.GOP_SENTRY.maxHealth());
+        assertEquals(810.0, ArmyTowers.OUTPOST_CHIEF.maxHealth());
     }
 
     private static ArmyTower tower(TowerType type) {
