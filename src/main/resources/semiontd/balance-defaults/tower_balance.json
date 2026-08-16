@@ -2612,7 +2612,7 @@
       "mineralCost": 150,
       "maxHealth": 380.0,
       "range": 10.0,
-      "damage": 8.0,
+      "damage": 10.0,
       "attackIntervalTicks": 28,
       "aggroPriority": 35
     },
@@ -2620,7 +2620,7 @@
       "mineralCost": 240,
       "maxHealth": 700.0,
       "range": 12.0,
-      "damage": 14.0,
+      "damage": 20.0,
       "attackIntervalTicks": 28,
       "aggroPriority": 40
     },
@@ -2636,16 +2636,16 @@
       "mineralCost": 175,
       "maxHealth": 440.0,
       "range": 5.0,
-      "damage": 14.0,
+      "damage": 18.0,
       "attackIntervalTicks": 24,
       "aggroPriority": 52
     },
     "t3_meadow_nova_tower": {
       "mineralCost": 275,
       "maxHealth": 780.0,
-      "range": 6.0,
-      "damage": 24.0,
-      "attackIntervalTicks": 22,
+      "range": 7.0,
+      "damage": 32.0,
+      "attackIntervalTicks": 20,
       "aggroPriority": 60
     },
     "t1_mycelium_tower": {
@@ -2658,15 +2658,15 @@
     },
     "t2_mycelium_tower": {
       "mineralCost": 110,
-      "maxHealth": 200.0,
+      "maxHealth": 260.0,
       "range": 0.0,
-      "damage": 40.0,
+      "damage": 45.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 40
     },
     "t3_mycelium_tower": {
       "mineralCost": 180,
-      "maxHealth": 340.0,
+      "maxHealth": 460.0,
       "range": 0.0,
       "damage": 50.0,
       "attackIntervalTicks": 20,
@@ -2682,17 +2682,17 @@
     },
     "t2_desert_tower": {
       "mineralCost": 160,
-      "maxHealth": 400.0,
+      "maxHealth": 500.0,
       "range": 0.0,
-      "damage": 15.0,
+      "damage": 20.0,
       "attackIntervalTicks": 22,
       "aggroPriority": 66
     },
     "t3_desert_tower": {
       "mineralCost": 250,
-      "maxHealth": 700.0,
+      "maxHealth": 900.0,
       "range": 0.0,
-      "damage": 24.0,
+      "damage": 32.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 74
     },
@@ -2708,7 +2708,7 @@
       "mineralCost": 170,
       "maxHealth": 130.0,
       "range": 14.0,
-      "damage": 22.0,
+      "damage": 26.0,
       "attackIntervalTicks": 18,
       "aggroPriority": 30
     },
@@ -2716,8 +2716,8 @@
       "mineralCost": 285,
       "maxHealth": 210.0,
       "range": 14.0,
-      "damage": 26.0,
-      "attackIntervalTicks": 20,
+      "damage": 34.0,
+      "attackIntervalTicks": 18,
       "aggroPriority": 35
     },
     "t3_podzol_rose_tower": {
@@ -2732,8 +2732,8 @@
       "mineralCost": 285,
       "maxHealth": 210.0,
       "range": 30.0,
-      "damage": 38.0,
-      "attackIntervalTicks": 45,
+      "damage": 48.0,
+      "attackIntervalTicks": 38,
       "aggroPriority": 35
     },
     "thunder_rod_t1": {
@@ -5540,11 +5540,11 @@
       "terraformRadius": 3.0
     },
     "plant_global": {
-      "bloomDamageCap": 0.4,
+      "bloomDamageCap": 0.6,
       "soilAuraMaxRadius": 6.0,
       "soilAuraMinRadius": 3.0,
       "environmentTickIntervalTicks": 20.0,
-      "bloomDamagePerTile": 0.01,
+      "bloomDamagePerTile": 0.015,
       "soilPulseIntervalTicks": 20.0
     },
     "plant_soil_meadow": {
@@ -5563,13 +5563,13 @@
       "environmentDurationTicks": 60.0
     },
     "plant_soil_desert": {
-      "environmentMaxHealthDamagePerSecond": 0.005,
+      "environmentMaxHealthDamagePerSecond": 0.0075,
       "environmentAttackSpeedReduction": 0.15,
       "auraRadius": 5.0,
       "environmentDurationTicks": 60.0,
       "debuffDurationTicks": 60.0,
       "attackSpeedReduction": 0.25,
-      "thornReflectRatio": 0.25
+      "thornReflectRatio": 0.3
     },
     "plant_soil_podzol": {
       "attackSpeedBonus": 0.25,
@@ -5597,12 +5597,12 @@
     "t2_meadow_nova_tower": {
       "novaRadius": 4.5,
       "soilPower": 1.0,
-      "novaDamageRatio": 0.5
+      "novaDamageRatio": 0.6
     },
     "t3_meadow_nova_tower": {
       "novaRadius": 5.5,
       "soilPower": 1.4,
-      "novaDamageRatio": 0.6
+      "novaDamageRatio": 0.75
     },
     "t1_mycelium_tower": {
       "explosionHealthRatio": 0.25,
@@ -5656,8 +5656,8 @@
       "splashConeDegrees": 130.0,
       "critMultiplier": 2.0,
       "soilPower": 1.2,
-      "splashDamageRatio": 0.35,
-      "splashMissingHealthRatio": 0.02
+      "splashDamageRatio": 0.45,
+      "splashMissingHealthRatio": 0.03
     },
     "t3_podzol_rose_tower": {
       "superCritChance": 0.05,
@@ -5673,7 +5673,7 @@
       "snareDurationTicks": 20.0,
       "critMultiplier": 2.0,
       "soilPower": 1.2,
-      "splashDamageRatio": 0.45
+      "splashDamageRatio": 0.6
     },
     "thunder_global": {
       "basePower": 80.0,

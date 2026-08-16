@@ -997,10 +997,10 @@ public record TowerBalanceConfig(
         for (TowerType type : PlantTowers.TERRAFORM_TOWERS) {
             putAbilities(abilities, type.id(), Map.of("terraformRadius", (double) PlantTowers.tierOf(type)));
         }
-        // 개화: 계열 지형 칸 수에 비례한 피해 증가. 40칸에서 상한(+40%)에 도달합니다.
+        // 개화: T3 테라포머가 만든 7x7 지형에서 상한(+60%)에 도달합니다.
         putAbilities(abilities, PlantTowers.GLOBAL_CONFIG_ID, Map.of(
-                "bloomDamagePerTile", 0.01,
-                "bloomDamageCap", 0.4,
+                "bloomDamagePerTile", 0.015,
+                "bloomDamageCap", 0.6,
                 "soilPulseIntervalTicks", 20.0,
                 // 지형 효과 범위는 사거리를 따라가되, 사거리를 2배로 늘린 뒤에도 장판이 과해지지 않게 상한을 둡니다.
                 "soilAuraMinRadius", 3.0,
@@ -1029,14 +1029,14 @@ public record TowerBalanceConfig(
         ));
         putAbilities(abilities, PlantSoil.DESERT.configId(), Map.of(
                 "environmentAttackSpeedReduction", 0.15,
-                "environmentMaxHealthDamagePerSecond", 0.005,
+                "environmentMaxHealthDamagePerSecond", 0.0075,
                 "environmentDurationTicks", 60.0,
                 // 타워 오라는 지형 자체 값보다 세게 잡아, 겹치면 타워 쪽이 적용됩니다.
                 "attackSpeedReduction", 0.25,
                 "debuffDurationTicks", 60.0,
                 // 사암 계열은 공격을 안 해 사거리가 0 이라 장판 크기를 지형에서 직접 정합니다.
                 "auraRadius", 5.0,
-                "thornReflectRatio", 0.25
+                "thornReflectRatio", 0.30
         ));
         putAbilities(abilities, PlantSoil.PODZOL.configId(), Map.of(
                 "rangeBonus", 4.0,
@@ -1070,12 +1070,12 @@ public record TowerBalanceConfig(
         putAbilities(abilities, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), Map.of(
                 "soilPower", 1.0,
                 "novaRadius", 4.5,
-                "novaDamageRatio", 0.5
+                "novaDamageRatio", 0.6
         ));
         putAbilities(abilities, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), Map.of(
                 "soilPower", 1.4,
                 "novaRadius", 5.5,
-                "novaDamageRatio", 0.6
+                "novaDamageRatio", 0.75
         ));
         // 균사 계열은 소모성 지뢰입니다.
         putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0);
@@ -1102,9 +1102,9 @@ public record TowerBalanceConfig(
                 "critChance", 0.20,
                 "critMultiplier", 2.0,
                 "splashRadius", 5.0,
-                "splashDamageRatio", 0.35,
+                "splashDamageRatio", 0.45,
                 "splashConeDegrees", 130.0,
-                "splashMissingHealthRatio", 0.02
+                "splashMissingHealthRatio", 0.03
         ));
 
         // 장미 덤불: 치명타 특화. 초치명타는 3배입니다.
@@ -1122,7 +1122,7 @@ public record TowerBalanceConfig(
                 "critChance", 0.20,
                 "critMultiplier", 2.0,
                 "splashRadius", 4.0,
-                "splashDamageRatio", 0.45,
+                "splashDamageRatio", 0.60,
                 "snareMoveSpeedReduction", 0.7,
                 // 실효 공격 간격(35틱)보다 짧아야 재장전 사이에 적이 움직일 틈이 생깁니다.
                 "snareDurationTicks", 20.0
