@@ -264,6 +264,20 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
+    void maximumHealthEffectsPreserveHeroArmorBonus() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        assertTrue(HeroPartyStates.state(OWNER).upgradeArmor());
+        HeroPartyTower hero = (HeroPartyTower) hero(testContext(), new GridPosition(1, 64, 1));
+        hero.refreshPartyStats(null);
+
+        assertEquals(220.0, hero.currentMaxHealth());
+        hero.syncEffectMaxHealth(hero.effectBaseMaxHealth() * 1.50, 0.0, false);
+        assertEquals(330.0, hero.currentMaxHealth());
+        hero.syncEffectMaxHealth(hero.effectBaseMaxHealth(), 0.0, false);
+        assertEquals(220.0, hero.currentMaxHealth());
+    }
+
+    @Test
     void focusFireDefenseUsesTheConfiguredPerAttackerReductionAndCap() throws Exception {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         assertEquals(0.08, defaults.ability(
