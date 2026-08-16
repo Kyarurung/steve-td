@@ -4900,6 +4900,7 @@
       "maxRedstone": 35.0,
       "maxPistons": 3.0,
       "plateCooldownTicks": 100.0,
+      "plateDamageBonusPerTier": 0.1,
       "dispenserDamagePerPlateBlock": 0.1,
       "dispenserMaxPlateDistance": 10.0,
       "activeVfxIntervalTicks": 20.0,
@@ -4921,30 +4922,30 @@
     "engineer_tnt_t1": {
       "damage": 120.0,
       "radius": 2.5,
-      "maxTargets": 5.0
+      "maxTargets": 8.0
     },
     "engineer_tnt_t2": {
       "damage": 260.0,
       "radius": 3.25,
-      "maxTargets": 7.0
+      "maxTargets": 12.0
     },
     "engineer_tnt_t3": {
       "damage": 480.0,
       "radius": 4.0,
-      "maxTargets": 9.0
+      "maxTargets": 16.0
     },
     "engineer_dispenser_t1": {
-      "damage": 12.0,
+      "damage": 18.0,
       "intervalTicks": 16.0,
       "range": 7.0
     },
     "engineer_dispenser_t2": {
-      "damage": 20.0,
+      "damage": 30.0,
       "intervalTicks": 13.0,
       "range": 9.0
     },
     "engineer_dispenser_t3": {
-      "damage": 30.0,
+      "damage": 45.0,
       "intervalTicks": 10.0,
       "range": 11.0
     },

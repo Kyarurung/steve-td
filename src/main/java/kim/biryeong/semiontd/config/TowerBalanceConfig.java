@@ -2080,6 +2080,7 @@ public record TowerBalanceConfig(
         global.put("maxRedstone", (double) EngineerBalance.MAX_REDSTONE);
         global.put("maxPlates", (double) EngineerBalance.MAX_PLATES);
         global.put("maxPistons", (double) EngineerBalance.MAX_PISTONS);
+        global.put("plateDamageBonusPerTier", EngineerBalance.PLATE_DAMAGE_BONUS_PER_TIER);
         global.put("dispenserDamagePerPlateBlock", EngineerBalance.DISPENSER_DAMAGE_PER_PLATE_BLOCK);
         global.put("dispenserMaxPlateDistance", (double) EngineerBalance.DISPENSER_MAX_PLATE_DISTANCE);
         global.put("activeVfxIntervalTicks", (double) EngineerBalance.ACTIVE_VFX_INTERVAL_TICKS);
@@ -2615,6 +2616,10 @@ public record TowerBalanceConfig(
         double distanceBonus = global.getOrDefault("dispenserDamagePerPlateBlock", -1.0);
         if (distanceBonus < 0.0 || distanceBonus > 1.0) {
             throw new IllegalArgumentException("Engineer dispenser distance bonus must be in [0, 1].");
+        }
+        double plateBonus = global.getOrDefault("plateDamageBonusPerTier", -1.0);
+        if (plateBonus < 0.0 || plateBonus > 1.0) {
+            throw new IllegalArgumentException("Engineer plate damage bonus must be in [0, 1].");
         }
         if (global.getOrDefault("dispenserMaxPlateDistance", 0.0)
                 > global.getOrDefault("maxRedstone", 0.0)) {
