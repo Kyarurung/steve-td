@@ -40,8 +40,11 @@ public final class QueenGameTest {
         UUID owner = UUID.nameUUIDFromBytes("queen-runtime".getBytes(StandardCharsets.UTF_8));
         QueenStates.clear(owner);
         PlayerLane lane = testLane(context, owner);
+        PlayerLane finalDefenseLane = testFinalDefenseLane(context);
         TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
         group.addLane(lane);
+        group.addLane(finalDefenseLane);
+        QueenStates.begin(owner, group);
         prepareFloor(context);
         QueenTower queen = (QueenTower) ProductionTowerCatalog.find(QueenTowers.QUEEN.id()).orElseThrow()
                 .create(owner, TeamId.RED, 1, GridPosition.from(context.absolutePos(new BlockPos(3, 2, 3))));
@@ -163,11 +166,23 @@ public final class QueenGameTest {
                     "The Queen must gain a fixed amount of maximum health each round.");
             requireClose(68.0, queen.health(), "Round health growth must heal the gained maximum health.");
             queen.tick(lane);
-            Vec3 boss = lane.laneLayout().bossPosition();
-            GridPosition finalSlot = lane.laneLayout().finalDefenseTowerSlots().getFirst();
-            Vec3 expectedFinalStart = new Vec3(finalSlot.x() + 0.5, boss.y, finalSlot.z() + 0.5);
-            require(state.runnerActive() && state.runner().position().distanceToSqr(expectedFinalStart) < 0.01,
-                    "Final-defense Giants must use the final-defense route.");
+            Vec3 boss = finalDefenseLane.laneLayout().bossPosition();
+            require(state.runnerActive() && state.runner().position().distanceToSqr(boss) < 0.01,
+                    "Final-defense Giants must start at the boss.");
+            Vec3 finalWaypoint = finalDefenseLane.laneLayout().waypoints().getLast();
+            Vec3 finalDirection = finalWaypoint.subtract(boss);
+            float expectedFinalYaw = (float) Math.toDegrees(Math.atan2(-finalDirection.x, finalDirection.z));
+            require(angleDifference(state.runner().yaw(), expectedFinalYaw) < 0.1,
+                    "Final-defense Giants must face back along lane 5.");
+            Vec3 lastRunnerPosition = state.runner().position();
+            for (int tick = 0; tick < 200 && state.runnerActive(); tick++) {
+                lastRunnerPosition = state.runner().position();
+                queen.tick(lane);
+            }
+            require(!state.runnerActive(), "The final-defense Giant must finish its lane 5 run.");
+            require(lastRunnerPosition.distanceTo(finalDefenseLane.laneLayout().spawn())
+                            <= QueenBalance.giantSpeed() + 0.01,
+                    "The final-defense Giant must run to the end of lane 5.");
             context.succeed();
         } finally {
             group.closeRuntime();
@@ -368,6 +383,33 @@ public final class QueenGameTest {
                 Vec3.atCenterOf(context.absolutePos(new BlockPos(12, 2, 12))),
                 BlockBounds.of(min, max), List.of(GridPosition.from(context.absolutePos(new BlockPos(10, 2, 11)))), 1);
         return new PlayerLane(TeamId.RED, 1, owner, context.getLevel(), layout);
+    }
+
+    private static PlayerLane testFinalDefenseLane(GameTestHelper context) {
+        BlockPos min = context.absolutePos(new BlockPos(0, 1, 0));
+        BlockPos max = context.absolutePos(new BlockPos(14, 6, 14));
+        Vec3 spawn = Vec3.atCenterOf(context.absolutePos(new BlockPos(13, 2, 2)));
+        Vec3 boss = Vec3.atCenterOf(context.absolutePos(new BlockPos(12, 2, 12)));
+        LaneRegionLayout layout = new LaneRegionLayout(
+                5,
+                spawn,
+                BlockBounds.of(BlockPos.containing(spawn), BlockPos.containing(spawn)),
+                List.of(
+                        Vec3.atCenterOf(context.absolutePos(new BlockPos(13, 2, 7))),
+                        Vec3.atCenterOf(context.absolutePos(new BlockPos(13, 2, 10)))
+                ),
+                boss,
+                BlockBounds.of(min, max),
+                List.of(GridPosition.from(context.absolutePos(new BlockPos(10, 2, 11)))),
+                0
+        );
+        return new PlayerLane(
+                TeamId.RED,
+                5,
+                UUID.nameUUIDFromBytes("queen-final-defense-lane".getBytes(StandardCharsets.UTF_8)),
+                context.getLevel(),
+                layout
+        );
     }
 
     private static void prepareFloor(GameTestHelper context) {
