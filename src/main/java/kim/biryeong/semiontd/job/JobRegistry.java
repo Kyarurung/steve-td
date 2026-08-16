@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import kim.biryeong.semiontd.config.JobAvailabilityConfig;
 import net.minecraft.resources.ResourceLocation;
 
 public final class JobRegistry {
@@ -26,6 +27,7 @@ public final class JobRegistry {
             HeroPartyTowerJob.ID
     );
     private static final SemionJob DEFAULT_JOB = register(new DefaultJob());
+    private static JobAvailabilityConfig availability = JobAvailabilityConfig.defaultConfig();
 
     static {
         registerBuiltIns();
@@ -81,6 +83,18 @@ public final class JobRegistry {
 
     public static synchronized Optional<SemionJob> find(ResourceLocation id) {
         return Optional.ofNullable(JOBS.get(id));
+    }
+
+    public static synchronized void configureAvailability(JobAvailabilityConfig config) {
+        availability = config == null ? JobAvailabilityConfig.defaultConfig() : config;
+    }
+
+    public static synchronized boolean isEnabled(ResourceLocation id) {
+        return DEFAULT_JOB.id().equals(id) || availability.isEnabled(id);
+    }
+
+    public static synchronized boolean isEnabled(SemionJob job) {
+        return job != null && isEnabled(job.id());
     }
 
     public static synchronized Collection<SemionJob> all() {

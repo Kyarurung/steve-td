@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.rating.RatingConfig;
 import kim.biryeong.semiontd.tower.army.ArmyBalance;
@@ -21,6 +22,7 @@ import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.trait.TraitSelectionConfig;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -78,6 +80,68 @@ final class SemionConfigLoaderTest {
 
         assertTrue(Files.exists(tempDir.resolve("web_integration.json")));
         assertFalse(configs.webIntegration().enabled());
+    }
+
+    @Test
+    void jobAvailabilityIsCreatedSavedAndReloaded() {
+        LoadedConfigs defaults = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+        ResourceLocation disabledJob = ResourceLocation.fromNamespaceAndPath("semion-td", "nether");
+        JobAvailabilityConfig updated = defaults.jobAvailability().withEnabled(disabledJob, false);
+
+        assertTrue(Files.exists(tempDir.resolve("jobs.json")));
+        assertTrue(SemionConfigLoader.saveJobAvailability(tempDir, updated, LoggerFactory.getLogger("test")));
+
+        LoadedConfigs reloaded = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+        assertEquals(updated, reloaded.jobAvailability());
+        assertFalse(reloaded.jobAvailability().isEnabled(disabledJob));
+    }
+
+    @Test
+    void invalidJobAvailabilityRetainsLastKnownGood() throws Exception {
+        ResourceLocation disabledJob = ResourceLocation.fromNamespaceAndPath("semion-td", "nether");
+        JobAvailabilityConfig lastKnownGood = JobAvailabilityConfig.defaultConfig()
+                .withEnabled(disabledJob, false);
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("jobs.json"), """
+                {
+                  "disabledJobs": ["invalid job id"]
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(
+                tempDir,
+                LoggerFactory.getLogger("test"),
+                TowerBalanceConfig.defaultConfig(),
+                lastKnownGood
+        );
+
+        assertEquals(lastKnownGood, configs.jobAvailability());
+    }
+
+    @Test
+    void jobAvailabilityPreservesUnknownValidIds() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("jobs.json"), """
+                {
+                  "disabledJobs": ["removed-mod:old_job"]
+                }
+                """);
+
+        LoadedConfigs configs = SemionConfigLoader.load(tempDir, LoggerFactory.getLogger("test"));
+
+        assertEquals(Set.of("removed-mod:old_job"), configs.jobAvailability().disabledJobs());
+    }
+
+    @Test
+    void failedJobAvailabilitySaveReturnsFalse() throws Exception {
+        Path fileInsteadOfDirectory = tempDir.resolve("not-a-directory");
+        Files.writeString(fileInsteadOfDirectory, "occupied");
+
+        assertFalse(SemionConfigLoader.saveJobAvailability(
+                fileInsteadOfDirectory,
+                JobAvailabilityConfig.defaultConfig(),
+                LoggerFactory.getLogger("test")
+        ));
     }
 
     @Test
