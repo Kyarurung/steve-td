@@ -118,8 +118,8 @@ public final class EngineerGameTest {
                     "Dust must place a real redstone wire block.");
             require(context.getLevel().getBlockState(repeater.circuitPosition()).is(Blocks.REPEATER),
                     "Repeater must place a real vanilla repeater block.");
-            require(context.getLevel().getBlockState(repeater.circuitPosition()).getValue(RepeaterBlock.FACING) == Direction.EAST,
-                    "Repeater facing must match the selected direction.");
+            require(context.getLevel().getBlockState(repeater.circuitPosition()).getValue(RepeaterBlock.FACING) == Direction.WEST,
+                    "Repeater input must face opposite the selected signal direction.");
             require(TowerPlacementPositions.resolveGrid(lane, dust.circuitPosition()).orElseThrow().equals(dustPosition),
                     "Clicking the physical wire must resolve to the logical tower below it.");
             require(dust.canBeSold() && repeater.canBeSold() && plate.canBeSold(),
@@ -175,6 +175,53 @@ public final class EngineerGameTest {
         } finally {
             lane.clearTowers();
         }
+    }
+
+    @GameTest
+    public void repeaterPassesPhysicalSignalTowardSelectedDirection(GameTestHelper context) {
+        UUID owner = stableUuid("engineer-repeater-signal");
+        PlayerLane lane = testLane(context, owner);
+        GridPosition platePosition = floor(context, 2, 2, 5);
+        GridPosition repeaterPosition = floor(context, 3, 2, 5);
+        GridPosition trapPosition = floor(context, 4, 2, 5);
+        prepareFloor(context, platePosition, repeaterPosition, trapPosition);
+
+        EngineerCircuitTower plate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                owner, TeamId.RED, 1, platePosition, platePosition
+        );
+        EngineerCircuitTower repeater = new EngineerCircuitTower(
+                EngineerTowers.repeater(Direction.EAST),
+                owner, TeamId.RED, 1, repeaterPosition, repeaterPosition
+        );
+        EngineerTrapTower trap = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 1),
+                owner, TeamId.RED, 1, trapPosition, trapPosition
+        );
+        lane.addTower(plate);
+        lane.addTower(repeater);
+        lane.addTower(trap);
+        lane.markWaveStarted(1);
+        require(plate.pressPlate(lane), "The source plate must be pressable.");
+
+        context.runAfterDelay(4, () -> {
+            try {
+                require(context.getLevel().getBlockState(repeater.circuitPosition())
+                                .getValue(BlockStateProperties.POWERED),
+                        "The repeater must receive the plate signal from behind.");
+                trap.tick(lane);
+                require(trap.activeTicksRemaining() > 0,
+                        "The repeater must physically power the trap in the selected direction.");
+                require(trap.activationPlateDistance() == 2,
+                        "The repeater path must preserve its two-block circuit distance.");
+                context.succeed();
+            } catch (Throwable failure) {
+                context.fail(Component.literal("Engineer repeater signal GameTest failed: "
+                        + failure.getClass().getName() + ": " + failure.getMessage()));
+            } finally {
+                lane.clearTowers();
+            }
+        });
     }
 
     @GameTest
