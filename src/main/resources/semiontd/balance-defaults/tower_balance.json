@@ -5147,6 +5147,7 @@
       "weaponMultiplier3": 1.5,
       "weaponMultiplier4": 1.72,
       "weaponMultiplier5": 2.0,
+      "weaponAttackIntervalReductionPerLevel": 1.0,
       "armorUpgradeCost1": 90.0,
       "armorUpgradeCost2": 150.0,
       "armorUpgradeCost3": 230.0,
@@ -5173,32 +5174,42 @@
       "damage": 12.0,
       "range": 3.5,
       "attackIntervalTicks": 12.0,
+      "maxHealthMultiplier": 1.25,
+      "aggroPriority": 60.0,
       "incomeDamageBonus": 0.35
     },
     "hero_party_weapon_greatsword": {
       "purchaseCost": 100.0,
       "damage": 20.0,
       "range": 3.5,
-      "attackIntervalTicks": 20.0
+      "attackIntervalTicks": 20.0,
+      "maxHealthMultiplier": 1.15,
+      "aggroPriority": 40.0
     },
     "hero_party_weapon_longbow": {
       "purchaseCost": 110.0,
       "damage": 11.0,
       "range": 10.0,
       "attackIntervalTicks": 11.0,
+      "maxHealthMultiplier": 0.85,
+      "aggroPriority": 5.0,
       "incomeDamageBonus": 0.35
     },
     "hero_party_weapon_staff": {
       "purchaseCost": 120.0,
       "damage": 16.0,
       "range": 8.0,
-      "attackIntervalTicks": 16.0
+      "attackIntervalTicks": 16.0,
+      "maxHealthMultiplier": 0.9,
+      "aggroPriority": 0.0
     },
     "hero_party_weapon_tome": {
       "purchaseCost": 100.0,
       "damage": 8.0,
       "range": 7.0,
-      "attackIntervalTicks": 16.0
+      "attackIntervalTicks": 16.0,
+      "maxHealthMultiplier": 1.05,
+      "aggroPriority": -10.0
     },
     "hero_party_hero": {
       "towerSlotCost": 3.0

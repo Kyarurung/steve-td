@@ -53,7 +53,10 @@ public final class HeroShopGui extends SimpleGui {
                             .withStyle(status.color))
                     .addLoreLine(Component.literal("공격력 " + number(currentDamage)
                             + " · 사거리 " + number(HeroPartyBalance.weaponRange(weapon))
-                            + " · " + HeroPartyBalance.weaponAttackInterval(weapon) + "틱"))
+                            + " · " + HeroPartyBalance.weaponAttackInterval(weapon, level) + "틱"))
+                    .addLoreLine(Component.literal("최대 체력 ×" + number(HeroPartyBalance.weaponMaxHealthMultiplier(weapon))
+                            + " · 어그로 " + HeroPartyBalance.weaponAggroPriority(weapon))
+                            .withStyle(ChatFormatting.GRAY))
                     .addLoreLine(Component.literal("강화 배율 " + percent(HeroPartyBalance.weaponMultiplier(level)))
                             .withStyle(ChatFormatting.GRAY))
                     .addLoreLine(Component.literal(equipped ? "착용 중" : owned ? "클릭: 착용" : "구매 " + HeroPartyBalance.weaponPurchaseCost(weapon) + " 다이아")
@@ -96,6 +99,9 @@ public final class HeroShopGui extends SimpleGui {
             } else {
                 double nextDamage = effectiveWeaponDamage(weapon, nextLevel, state.adventurePoints());
                 upgradeButton.addLoreLine(Component.literal("공격력 " + number(currentDamage) + " → " + number(nextDamage)));
+                upgradeButton.addLoreLine(Component.literal("공격 주기 "
+                        + HeroPartyBalance.weaponAttackInterval(weapon, level) + "틱 → "
+                        + HeroPartyBalance.weaponAttackInterval(weapon, nextLevel) + "틱"));
                 upgradeButton.addLoreLine(Component.literal("비용 " + HeroPartyBalance.weaponUpgradeCost(nextLevel) + " 다이아")
                         .withStyle(ChatFormatting.AQUA));
                 String unlockedSkill = skillDescription(weapon, nextLevel);

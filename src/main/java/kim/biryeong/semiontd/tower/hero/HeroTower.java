@@ -50,7 +50,18 @@ public final class HeroTower extends HeroPartyTower {
 
     @Override
     public int adjustAttackInterval(int baseIntervalTicks) {
-        return HeroPartyBalance.weaponAttackInterval(weapon());
+        HeroWeapon weapon = weapon();
+        return HeroPartyBalance.weaponAttackInterval(weapon, state().weaponLevel(weapon));
+    }
+
+    @Override
+    public double effectBaseMaxHealth() {
+        return super.effectBaseMaxHealth() * HeroPartyBalance.weaponMaxHealthMultiplier(weapon());
+    }
+
+    @Override
+    public int aggroPriority() {
+        return HeroPartyBalance.weaponAggroPriority(weapon());
     }
 
     @Override

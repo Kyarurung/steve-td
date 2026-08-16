@@ -268,17 +268,104 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
-    void maximumHealthEffectsPreserveHeroArmorBonus() {
+    void weaponProfilesPreserveHealthRatioAndScaleArmor() {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
-        assertTrue(HeroPartyStates.state(OWNER).upgradeArmor());
-        HeroPartyTower hero = (HeroPartyTower) hero(testContext(), new GridPosition(1, 64, 1));
+        HeroPartyState state = HeroPartyStates.state(OWNER);
+        assertTrue(state.upgradeArmor());
+        HeroTower hero = (HeroTower) hero(testContext(), new GridPosition(1, 64, 1));
         hero.refreshPartyStats(null);
 
-        assertEquals(220.0, hero.currentMaxHealth());
+        assertEquals(275.0, hero.currentMaxHealth(), 0.0001);
+        assertEquals(60, hero.aggroPriority());
+        hero.syncHealth(137.5);
+
+        assertTrue(state.addWeapon(HeroWeapon.LONGBOW));
+        assertTrue(state.equip(HeroWeapon.LONGBOW));
+        hero.refreshPartyStats(null);
+
+        assertEquals(187.0, hero.currentMaxHealth(), 0.0001);
+        assertEquals(93.5, hero.health(), 0.0001);
+        assertEquals(5, hero.aggroPriority());
+        assertEquals(11, hero.adjustAttackInterval(hero.type().attackIntervalTicks()));
+        for (int level = 1; level <= HeroPartyBalance.MAX_WEAPON_LEVEL; level++) {
+            assertTrue(state.upgradeWeapon(HeroWeapon.LONGBOW));
+            assertEquals(11 - level, hero.adjustAttackInterval(hero.type().attackIntervalTicks()));
+        }
+
         hero.syncEffectMaxHealth(hero.effectBaseMaxHealth() * 1.50, 0.0, false);
-        assertEquals(330.0, hero.currentMaxHealth());
+        assertEquals(280.5, hero.currentMaxHealth(), 0.0001);
         hero.syncEffectMaxHealth(hero.effectBaseMaxHealth(), 0.0, false);
-        assertEquals(220.0, hero.currentMaxHealth());
+        assertEquals(187.0, hero.currentMaxHealth(), 0.0001);
+    }
+
+    @Test
+    void weaponBalanceDefaultsMergeValidateAndMatchBundledConfig() throws Exception {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        defaults.validateForRuntime();
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+
+        Map<HeroWeapon, Double> healthMultipliers = Map.of(
+                HeroWeapon.SWORD, 1.25,
+                HeroWeapon.GREATSWORD, 1.15,
+                HeroWeapon.LONGBOW, 0.85,
+                HeroWeapon.STAFF, 0.90,
+                HeroWeapon.TOME, 1.05
+        );
+        Map<HeroWeapon, Integer> aggroPriorities = Map.of(
+                HeroWeapon.SWORD, 60,
+                HeroWeapon.GREATSWORD, 40,
+                HeroWeapon.LONGBOW, 5,
+                HeroWeapon.STAFF, 0,
+                HeroWeapon.TOME, -10
+        );
+        for (HeroWeapon weapon : HeroWeapon.values()) {
+            assertEquals(healthMultipliers.get(weapon), HeroPartyBalance.weaponMaxHealthMultiplier(weapon), 0.0001);
+            assertEquals(aggroPriorities.get(weapon), HeroPartyBalance.weaponAggroPriority(weapon));
+            for (int level = 0; level <= HeroPartyBalance.MAX_WEAPON_LEVEL; level++) {
+                assertEquals(Math.max(1, weapon.defaultAttackIntervalTicks() - level),
+                        HeroPartyBalance.weaponAttackInterval(weapon, level));
+            }
+        }
+
+        TowerBalanceConfig merged = new TowerBalanceConfig(
+                Map.of(),
+                Map.of(),
+                Map.of(
+                        HeroPartyBalance.GLOBAL_CONFIG_ID,
+                        Map.of("weaponAttackIntervalReductionPerLevel", 2.0),
+                        HeroWeapon.SWORD.configId(),
+                        Map.of("maxHealthMultiplier", 1.40, "aggroPriority", 55.0)
+                )
+        ).withMissingDefaults(defaults);
+        merged.validateForRuntime();
+        ProductionTowerCatalogs.reloadBuiltIns(merged);
+        assertEquals(1.40, HeroPartyBalance.weaponMaxHealthMultiplier(HeroWeapon.SWORD), 0.0001);
+        assertEquals(55, HeroPartyBalance.weaponAggroPriority(HeroWeapon.SWORD));
+        assertEquals(10, HeroPartyBalance.weaponAttackInterval(HeroWeapon.SWORD, 1));
+        assertEquals(0.35, merged.ability(HeroWeapon.SWORD.configId(), "incomeDamageBonus", -1.0), 0.0001);
+
+        assertInvalidAbility(defaults, HeroWeapon.SWORD.configId(), "maxHealthMultiplier", 0.0);
+        assertInvalidAbility(defaults, HeroWeapon.TOME.configId(), "aggroPriority", -101.0);
+        assertInvalidAbility(defaults, HeroWeapon.TOME.configId(), "aggroPriority", 1.5);
+        assertInvalidAbility(defaults, HeroPartyBalance.GLOBAL_CONFIG_ID,
+                "weaponAttackIntervalReductionPerLevel", 0.0);
+        assertInvalidAbility(defaults, HeroPartyBalance.GLOBAL_CONFIG_ID,
+                "weaponAttackIntervalReductionPerLevel", 1.5);
+
+        try (var input = HeroPartyTowerCatalogTest.class.getResourceAsStream(
+                "/semiontd/balance-defaults/tower_balance.json")) {
+            var bundledAbilities = JsonParser.parseReader(new InputStreamReader(
+                    java.util.Objects.requireNonNull(input), StandardCharsets.UTF_8))
+                    .getAsJsonObject().getAsJsonObject("abilities");
+            for (HeroWeapon weapon : HeroWeapon.values()) {
+                var bundled = bundledAbilities.getAsJsonObject(weapon.configId());
+                Map<String, Double> javaDefaults = defaults.abilities().get(weapon.configId());
+                assertEquals(javaDefaults.keySet(), bundled.keySet(), weapon.configId());
+                javaDefaults.forEach((key, value) -> assertEquals(
+                        value, bundled.get(key).getAsDouble(), 0.0001, weapon.configId() + "." + key
+                ));
+            }
+        }
     }
 
     @Test

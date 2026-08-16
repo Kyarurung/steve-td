@@ -1203,7 +1203,7 @@ public record TowerBalanceConfig(
             }
         });
         abilities.forEach((configId, values) -> values.forEach((key, value) -> {
-            if (value == null || !Double.isFinite(value) || value < 0.0) {
+            if (!isValidAbilityValue(configId, key, value)) {
                 throw new IllegalArgumentException(
                         "Tower balance ability must be finite and non-negative: " + configId + "." + key
                 );
@@ -1573,8 +1573,8 @@ public record TowerBalanceConfig(
             Map<String, Double> fallbackValues = fallback.abilities.getOrDefault(configId, Map.of());
             LinkedHashMap<String, Double> repairedValues = new LinkedHashMap<>();
             values.forEach((key, value) -> {
-                Double repaired = isNonNegativeFinite(value) ? value : fallbackValues.get(key);
-                if (isNonNegativeFinite(repaired)) {
+                Double repaired = isValidAbilityValue(configId, key, value) ? value : fallbackValues.get(key);
+                if (isValidAbilityValue(configId, key, repaired)) {
                     repairedValues.put(key, repaired);
                 }
             });
@@ -1591,8 +1591,14 @@ public record TowerBalanceConfig(
         );
     }
 
-    private static boolean isNonNegativeFinite(Double value) {
-        return value != null && Double.isFinite(value) && value >= 0.0;
+    private static boolean isValidAbilityValue(String configId, String key, Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            return false;
+        }
+        boolean signedHeroWeaponAggro = "aggroPriority".equals(key)
+                && configId.startsWith("hero_party_weapon_")
+                && HeroWeapon.byId(configId.substring("hero_party_weapon_".length())) != null;
+        return value >= 0.0 || signedHeroWeaponAggro;
     }
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
@@ -2151,6 +2157,8 @@ public record TowerBalanceConfig(
                 Map.entry("weaponMultiplier3", 1.50),
                 Map.entry("weaponMultiplier4", 1.72),
                 Map.entry("weaponMultiplier5", 2.00),
+                Map.entry("weaponAttackIntervalReductionPerLevel",
+                        (double) HeroPartyBalance.WEAPON_ATTACK_INTERVAL_REDUCTION_PER_LEVEL),
                 Map.entry("armorUpgradeCost1", 90.0),
                 Map.entry("armorUpgradeCost2", 150.0),
                 Map.entry("armorUpgradeCost3", 230.0),
@@ -2180,7 +2188,9 @@ public record TowerBalanceConfig(
                     "purchaseCost", (double) weapon.defaultPurchaseCost(),
                     "damage", weapon.defaultDamage(),
                     "range", weapon.defaultRange(),
-                    "attackIntervalTicks", (double) weapon.defaultAttackIntervalTicks()
+                    "attackIntervalTicks", (double) weapon.defaultAttackIntervalTicks(),
+                    "maxHealthMultiplier", weapon.defaultMaxHealthMultiplier(),
+                    "aggroPriority", (double) weapon.defaultAggroPriority()
             ));
             if (weapon == HeroWeapon.SWORD || weapon == HeroWeapon.LONGBOW) {
                 mergeAbilities(abilities, weapon.configId(), Map.of(
@@ -2436,7 +2446,17 @@ public record TowerBalanceConfig(
     private void validateHeroPartyBalance() {
         for (HeroWeapon weapon : HeroWeapon.values()) {
             validateRatios(weapon.configId(), "incomeDamageBonus");
+            validatePositive(weapon.configId(), "maxHealthMultiplier");
+            validateRange(weapon.configId(), "aggroPriority", -100.0, 100.0);
+            Double aggroPriority = configuredAbility(weapon.configId(), "aggroPriority");
+            if (aggroPriority != null && aggroPriority != Math.rint(aggroPriority)) {
+                throw new IllegalArgumentException(
+                        "Hero Party weapon aggro priority must be an integer: " + weapon.configId()
+                );
+            }
         }
+        validateIntegral(HeroPartyBalance.GLOBAL_CONFIG_ID, false,
+                "weaponAttackIntervalReductionPerLevel");
         for (int tier = 1; tier <= 4; tier++) {
             String knight = HeroPartyTowers.companion(HeroCompanionRole.KNIGHT, tier).id();
             validateRatios(knight, "damageReduction", "shieldBashSlow", "guardDamageReduction");

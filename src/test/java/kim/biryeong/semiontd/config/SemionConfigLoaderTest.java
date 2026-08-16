@@ -15,6 +15,7 @@ import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.rating.RatingConfig;
 import kim.biryeong.semiontd.tower.army.ArmyBalance;
 import kim.biryeong.semiontd.tower.end.EndTowers;
+import kim.biryeong.semiontd.tower.hero.HeroWeapon;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -581,6 +582,30 @@ final class SemionConfigLoaderTest {
         String repaired = Files.readString(tempDir.resolve("tower_balance.json"));
         assertFalse(repaired.contains("\"transferTicks\": -1.0"));
         assertTrue(repaired.contains("\"roundDamageRatio\": 1.75"));
+    }
+
+    @Test
+    void loadPreservesSignedHeroWeaponAggro() throws Exception {
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+            {
+              "abilities": {
+                "hero_party_weapon_tome": {
+                  "aggroPriority": -25.0
+                }
+              }
+            }
+            """);
+
+        TowerBalanceConfig balance = SemionConfigLoader.load(
+                tempDir,
+                LoggerFactory.getLogger("test"),
+                TowerBalanceConfig.defaultConfig()
+        ).towerBalance();
+
+        assertEquals(-25.0, balance.ability(HeroWeapon.TOME.configId(), "aggroPriority", 0.0), 0.0001);
+        assertTrue(Files.readString(tempDir.resolve("tower_balance.json"))
+                .contains("\"aggroPriority\": -25.0"));
     }
 
     @Test
