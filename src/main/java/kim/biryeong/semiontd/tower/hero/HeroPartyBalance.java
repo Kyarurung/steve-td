@@ -7,6 +7,7 @@ public final class HeroPartyBalance {
     public static final int MAX_COMPANIONS = 4;
     public static final int MAX_WEAPON_LEVEL = 5;
     public static final int MAX_ARMOR_LEVEL = 5;
+    public static final double INCOME_DAMAGE_BONUS = 0.35;
     public static final double FOCUS_FIRE_REDUCTION_PER_EXTRA_ATTACKER = 0.08;
     public static final double FOCUS_FIRE_REDUCTION_CAP = 0.40;
 
@@ -33,6 +34,10 @@ public final class HeroPartyBalance {
 
     public static int weaponAttackInterval(HeroWeapon weapon) {
         return Math.max(1, integer(weapon.configId(), "attackIntervalTicks", weapon.defaultAttackIntervalTicks()));
+    }
+
+    public static double weaponIncomeDamageBonus(HeroWeapon weapon) {
+        return ratio(value(weapon.configId(), "incomeDamageBonus", 0.0));
     }
 
     public static long weaponUpgradeCost(int level) {

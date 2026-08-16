@@ -39,6 +39,17 @@ public final class QueenTower extends ProductionTower {
     @Override public boolean supportsForcedAttackTargeting() {return true;}
 
     @Override
+    public double effectBaseMaxHealth() {
+        return type().maxHealth() + Math.max(0, currentRound() - 1) * QueenBalance.queenMaxHealthPerRound();
+    }
+
+    @Override
+    protected void refreshMaxHealthAfterTypeChange(PlayerLane lane) {
+        this.lane = lane;
+        refreshRoundHealth(false);
+    }
+
+    @Override
     public Optional<SemionMonsterEntity> selectForcedAttackTarget(SemionTowerEntity source, List<SemionMonsterEntity> candidates) {
         return candidates.stream().filter(target -> target.runtimeMonster() != null)
                 .max(Comparator.comparingDouble(target -> target.runtimeMonster().maxHealth()));
@@ -81,6 +92,7 @@ public final class QueenTower extends ProductionTower {
     public void onWaveStarted(PlayerLane lane, int currentRound) {
         this.lane = lane;
         waveActive = true;
+        refreshRoundHealth(true);
         QueenPoker.snapshot(lane, ownerPlayer());
         showAccelerationRange(lane);
         rangePulseTicks = QueenBalance.rangeVfxIntervalTicks();
@@ -179,5 +191,12 @@ public final class QueenTower extends ProductionTower {
 
     private void syncEquipmentVisual() {
         equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity().orElse(null));
+    }
+
+    private void refreshRoundHealth(boolean healIncrease) {
+        entity().ifPresentOrElse(
+                entity -> entity.refreshMaxHealthEffects(healIncrease),
+                () -> syncMaxHealth(effectBaseMaxHealth(), healIncrease)
+        );
     }
 }

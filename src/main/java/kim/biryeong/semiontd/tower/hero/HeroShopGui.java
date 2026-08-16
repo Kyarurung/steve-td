@@ -65,6 +65,11 @@ public final class HeroShopGui extends SimpleGui {
                         notifyResult(result);
                         refresh();
                     });
+            double incomeDamageBonus = HeroPartyBalance.weaponIncomeDamageBonus(weapon);
+            if (incomeDamageBonus > 0.0) {
+                weaponButton.addLoreLine(Component.literal("인컴/소환 적 피해 +" + percent(incomeDamageBonus))
+                        .withStyle(ChatFormatting.GREEN));
+            }
             weaponButton.glow(equipped);
             addSkillLore(weaponButton, weapon, level);
             if (!editable) {

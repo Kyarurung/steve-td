@@ -27,6 +27,7 @@ import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.insect.InsectTowers;
@@ -79,6 +80,9 @@ public final class TowerVfxGameTest {
         assertPalette(QueenTowers.RANDOM_CARD_SOLDIER, BuilderPalette.QUEEN);
         assertPalette(EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 3), BuilderPalette.ENGINEER);
         assertPalette(MageTowers.WIZARD, BuilderPalette.MAGE);
+        assertPalette(HeroPartyTowers.HERO, BuilderPalette.HERO_PARTY);
+        assertPalette(HeroPartyTowers.companion(kim.biryeong.semiontd.tower.hero.HeroCompanionRole.ARCHER, 3),
+                BuilderPalette.HERO_PARTY);
         assertPalette(InsectTowers.SILVERFISH, BuilderPalette.INSECT);
         assertPalette(InsectTowers.SPAWNER, BuilderPalette.INSECT);
         assertPalette(ArmyTowers.RECRUIT, BuilderPalette.ARMY);

@@ -2178,6 +2178,11 @@ public record TowerBalanceConfig(
                     "range", weapon.defaultRange(),
                     "attackIntervalTicks", (double) weapon.defaultAttackIntervalTicks()
             ));
+            if (weapon == HeroWeapon.SWORD || weapon == HeroWeapon.LONGBOW) {
+                mergeAbilities(abilities, weapon.configId(), Map.of(
+                        "incomeDamageBonus", HeroPartyBalance.INCOME_DAMAGE_BONUS
+                ));
+            }
         }
         putAbilities(abilities, HeroPartyTowers.HERO.id(), Map.of("towerSlotCost", 3.0));
         for (HeroCompanionRole role : HeroCompanionRole.values()) {
@@ -2192,41 +2197,91 @@ public record TowerBalanceConfig(
 
     private static void putHeroCompanionAbilities(Map<String, Map<String, Double>> abilities) {
         double[] knightReduction = {0.0, 0.07, 0.13, 0.20};
+        double[] knightBashEvery = {0.0, 4.0, 4.0, 3.0};
+        double[] knightBashSlow = {0.0, 0.25, 0.25, 0.35};
+        double[] knightBashTicks = {0.0, 40.0, 40.0, 60.0};
+        double[] knightGuardRadius = {0.0, 0.0, 5.0, 6.0};
+        double[] knightGuardReduction = {0.0, 0.0, 0.08, 0.12};
+        double[] knightGuardTicks = {0.0, 0.0, 40.0, 40.0};
         double[] archerBoss = {0.0, 0.12, 0.23, 0.35};
+        double[] archerPierceEvery = {0.0, 4.0, 4.0, 3.0};
+        double[] archerPierceRatio = {0.0, 0.60, 0.60, 0.75};
+        double[] archerMarkBonus = {0.0, 0.0, 0.12, 0.15};
+        double[] archerMarkTicks = {0.0, 0.0, 60.0, 80.0};
         double[] mageRatio = {0.30, 0.40, 0.50, 0.60};
         double[] mageRadius = {2.0, 2.3, 2.6, 3.0};
+        double[] mageSlow = {0.0, 0.20, 0.20, 0.30};
+        double[] mageSlowTicks = {0.0, 40.0, 40.0, 60.0};
+        double[] mageEmpoweredEvery = {0.0, 0.0, 5.0, 4.0};
+        double[] mageEmpoweredMultiplier = {0.0, 0.0, 1.50, 1.75};
+        double[] mageEmpoweredRadius = {0.0, 0.0, 0.50, 0.75};
         double[] priestHeal = {14.0, 21.0, 31.0, 45.0};
         double[] priestInterval = {40.0, 38.0, 34.0, 30.0};
         double[] priestSecond = {0.0, 0.0, 0.50, 1.0};
+        double[] priestGuard = {0.0, 0.08, 0.10, 0.15};
+        double[] priestGuardTicks = {0.0, 60.0, 60.0, 60.0};
         double[] rogueExecute = {0.25, 0.35, 0.47, 0.60};
+        double[] rogueComboEvery = {0.0, 4.0, 4.0, 3.0};
+        double[] rogueComboRatio = {0.0, 0.40, 0.40, 0.60};
+        double[] rogueHaste = {0.0, 0.0, 0.20, 0.30};
+        double[] rogueHasteTicks = {0.0, 0.0, 60.0, 80.0};
         double[] bardSpeed = {0.08, 0.11, 0.14, 0.18};
         double[] bardDamage = {0.0, 0.03, 0.06, 0.10};
         double[] bardRadius = {8.0, 9.0, 10.0, 12.0};
+        double[] bardEncoreEvery = {0.0, 0.0, 5.0, 4.0};
+        double[] bardEncoreBonus = {0.0, 0.0, 0.10, 0.15};
+        double[] bardEncoreTicks = {0.0, 0.0, 40.0, 40.0};
         for (int index = 0; index < 4; index++) {
             int tier = index + 1;
             mergeAbilities(abilities, HeroPartyTowers.companion(HeroCompanionRole.KNIGHT, tier).id(), Map.of(
-                    "damageReduction", knightReduction[index]
+                    "damageReduction", knightReduction[index],
+                    "shieldBashEvery", knightBashEvery[index],
+                    "shieldBashSlow", knightBashSlow[index],
+                    "shieldBashDurationTicks", knightBashTicks[index],
+                    "guardRadius", knightGuardRadius[index],
+                    "guardDamageReduction", knightGuardReduction[index],
+                    "guardDurationTicks", knightGuardTicks[index]
             ));
             mergeAbilities(abilities, HeroPartyTowers.companion(HeroCompanionRole.ARCHER, tier).id(), Map.of(
-                    "bossDamageBonus", archerBoss[index]
+                    "bossDamageBonus", archerBoss[index],
+                    "incomeDamageBonus", HeroPartyBalance.INCOME_DAMAGE_BONUS,
+                    "pierceEvery", archerPierceEvery[index],
+                    "pierceDamageRatio", archerPierceRatio[index],
+                    "markDamageBonus", archerMarkBonus[index],
+                    "markDurationTicks", archerMarkTicks[index]
             ));
             mergeAbilities(abilities, HeroPartyTowers.companion(HeroCompanionRole.MAGE, tier).id(), Map.of(
                     "splashDamageRatio", mageRatio[index],
-                    "splashRadius", mageRadius[index]
+                    "splashRadius", mageRadius[index],
+                    "splashSlow", mageSlow[index],
+                    "splashSlowDurationTicks", mageSlowTicks[index],
+                    "empoweredEvery", mageEmpoweredEvery[index],
+                    "empoweredSplashMultiplier", mageEmpoweredMultiplier[index],
+                    "empoweredRadiusBonus", mageEmpoweredRadius[index]
             ));
             mergeAbilities(abilities, HeroPartyTowers.companion(HeroCompanionRole.PRIEST, tier).id(), Map.of(
                     "healAmount", priestHeal[index],
                     "healIntervalTicks", priestInterval[index],
-                    "secondTargetRatio", priestSecond[index]
+                    "secondTargetRatio", priestSecond[index],
+                    "healGuardReduction", priestGuard[index],
+                    "healGuardDurationTicks", priestGuardTicks[index]
             ));
             mergeAbilities(abilities, HeroPartyTowers.companion(HeroCompanionRole.ROGUE, tier).id(), Map.of(
                     "executeThreshold", 0.30,
-                    "executeDamageBonus", rogueExecute[index]
+                    "executeDamageBonus", rogueExecute[index],
+                    "comboEvery", rogueComboEvery[index],
+                    "comboDamageRatio", rogueComboRatio[index],
+                    "killAttackSpeedBonus", rogueHaste[index],
+                    "killAttackSpeedDurationTicks", rogueHasteTicks[index]
             ));
             mergeAbilities(abilities, HeroPartyTowers.companion(HeroCompanionRole.BARD, tier).id(), Map.of(
                     "attackSpeedBonus", bardSpeed[index],
                     "damageBonus", bardDamage[index],
-                    "auraRadius", bardRadius[index]
+                    "auraRadius", bardRadius[index],
+                    "encoreEveryPulses", bardEncoreEvery[index],
+                    "encoreAttackSpeedBonus", bardEncoreBonus[index],
+                    "encoreDamageBonus", bardEncoreBonus[index],
+                    "encoreDurationTicks", bardEncoreTicks[index]
             ));
         }
     }
@@ -2286,9 +2341,10 @@ public record TowerBalanceConfig(
         values.put("giantChargeTicks", 400.0);
         values.put("giantAccelerationRadius", 6.0);
         values.put("giantAccelerationMemoryTicks", 40.0);
-        values.put("giantInitialExecutionHealth", 50.0);
-        values.put("giantExecutionGrowthRatio", 0.02);
+        values.put("giantInitialExecutionHealth", 5.0);
+        values.put("giantExecutionGrowthRatio", 0.05);
         values.put("giantGrowthTargetCapMultiplier", 4.0);
+        values.put("queenMaxHealthPerRound", 8.0);
         values.put("giantContactRadius", 4.0);
         values.put("giantSpeed", 0.65);
         values.put("giantSlow", 0.55);
@@ -2351,7 +2407,7 @@ public record TowerBalanceConfig(
         }
         for (String key : java.util.List.of("queenShrinkPoints", "cardShrinkPoints", "cardDeathShrinkPoints",
                 "cardDeathRadius", "heartHealAmount", "heartHealRadius", "cardSplashRadius", "spadeRadius", "giantAccelerationRadius",
-                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "giantContactRadius", "giantSpeed",
+                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "queenMaxHealthPerRound", "giantContactRadius", "giantSpeed",
                 "card.heart.maxHealth", "card.heart.range", "card.diamond.maxHealth", "card.diamond.range",
                 "card.club.maxHealth", "card.club.range", "card.spade.maxHealth", "card.spade.range")) {
             if (values.getOrDefault(key, 0.0) <= 0.0) {
@@ -2374,6 +2430,45 @@ public record TowerBalanceConfig(
     }
 
     private void validateHeroPartyBalance() {
+        for (HeroWeapon weapon : HeroWeapon.values()) {
+            validateRatios(weapon.configId(), "incomeDamageBonus");
+        }
+        for (int tier = 1; tier <= 4; tier++) {
+            String knight = HeroPartyTowers.companion(HeroCompanionRole.KNIGHT, tier).id();
+            validateRatios(knight, "damageReduction", "shieldBashSlow", "guardDamageReduction");
+            validateIntegral(knight, true, "shieldBashEvery", "shieldBashDurationTicks", "guardDurationTicks");
+            validateRange(knight, "guardRadius", 0.0, 96.0);
+
+            String archer = HeroPartyTowers.companion(HeroCompanionRole.ARCHER, tier).id();
+            validateRatios(archer,
+                    "bossDamageBonus", "incomeDamageBonus", "pierceDamageRatio", "markDamageBonus");
+            validateIntegral(archer, true, "pierceEvery", "markDurationTicks");
+
+            String mage = HeroPartyTowers.companion(HeroCompanionRole.MAGE, tier).id();
+            validateRatios(mage, "splashDamageRatio", "splashSlow");
+            validateIntegral(mage, true, "splashSlowDurationTicks", "empoweredEvery");
+            validateRange(mage, "empoweredSplashMultiplier", 0.0, 4.0);
+            validateRange(mage, "empoweredRadiusBonus", 0.0, 16.0);
+            if (tier >= 3) {
+                validateAtLeast(mage, 1.0, "empoweredSplashMultiplier");
+            }
+
+            String priest = HeroPartyTowers.companion(HeroCompanionRole.PRIEST, tier).id();
+            validateRatios(priest, "secondTargetRatio", "healGuardReduction");
+            validateIntegral(priest, true, "healGuardDurationTicks");
+
+            String rogue = HeroPartyTowers.companion(HeroCompanionRole.ROGUE, tier).id();
+            validateRatios(rogue,
+                    "executeThreshold", "executeDamageBonus", "comboDamageRatio", "killAttackSpeedBonus");
+            validateIntegral(rogue, true, "comboEvery", "killAttackSpeedDurationTicks");
+
+            String bard = HeroPartyTowers.companion(HeroCompanionRole.BARD, tier).id();
+            validateRatios(bard,
+                    "attackSpeedBonus", "damageBonus", "encoreAttackSpeedBonus", "encoreDamageBonus");
+            validateIntegral(bard, true, "encoreEveryPulses", "encoreDurationTicks");
+            validateRange(bard, "auraRadius", 0.0, 96.0);
+        }
+        validateHeroPartyTierFour();
         Map<String, Double> values = abilities.get(HeroPartyBalance.GLOBAL_CONFIG_ID);
         if (values == null) {
             return;
@@ -2388,6 +2483,52 @@ public record TowerBalanceConfig(
         }
         if (perExtraAttacker != null && cap != null && perExtraAttacker > cap) {
             throw new IllegalArgumentException("Hero Party focus-fire reduction must not exceed its cap.");
+        }
+    }
+
+    private void validateHeroPartyTierFour() {
+        validateTierFourAtLeast(HeroCompanionRole.KNIGHT,
+                "shieldBashSlow", "shieldBashDurationTicks", "guardRadius", "guardDamageReduction",
+                "guardDurationTicks");
+        validateTierFourAtMost(HeroCompanionRole.KNIGHT, "shieldBashEvery");
+        validateTierFourAtLeast(HeroCompanionRole.ARCHER,
+                "pierceDamageRatio", "markDamageBonus", "markDurationTicks");
+        validateTierFourAtMost(HeroCompanionRole.ARCHER, "pierceEvery");
+        validateTierFourAtLeast(HeroCompanionRole.MAGE,
+                "splashDamageRatio", "splashRadius", "splashSlow", "splashSlowDurationTicks",
+                "empoweredSplashMultiplier", "empoweredRadiusBonus");
+        validateTierFourAtMost(HeroCompanionRole.MAGE, "empoweredEvery");
+        validateTierFourAtLeast(HeroCompanionRole.PRIEST,
+                "secondTargetRatio", "healGuardReduction", "healGuardDurationTicks");
+        validateTierFourAtLeast(HeroCompanionRole.ROGUE,
+                "comboDamageRatio", "killAttackSpeedBonus", "killAttackSpeedDurationTicks");
+        validateTierFourAtMost(HeroCompanionRole.ROGUE, "comboEvery");
+        validateTierFourAtLeast(HeroCompanionRole.BARD,
+                "attackSpeedBonus", "damageBonus", "auraRadius",
+                "encoreAttackSpeedBonus", "encoreDamageBonus", "encoreDurationTicks");
+        validateTierFourAtMost(HeroCompanionRole.BARD, "encoreEveryPulses");
+    }
+
+    private void validateTierFourAtLeast(HeroCompanionRole role, String... keys) {
+        for (String key : keys) {
+            Double tierThree = configuredAbility(HeroPartyTowers.companion(role, 3).id(), key);
+            Double tierFour = configuredAbility(HeroPartyTowers.companion(role, 4).id(), key);
+            if (tierThree != null && tierFour != null && tierFour < tierThree) {
+                throw new IllegalArgumentException("Hero Party T4 ability must not be weaker than T3: "
+                        + role.id() + "." + key);
+            }
+        }
+    }
+
+    private void validateTierFourAtMost(HeroCompanionRole role, String... keys) {
+        for (String key : keys) {
+            Double tierThree = configuredAbility(HeroPartyTowers.companion(role, 3).id(), key);
+            Double tierFour = configuredAbility(HeroPartyTowers.companion(role, 4).id(), key);
+            if (tierThree != null && tierFour != null
+                    && (tierFour <= 0.0 || tierFour > tierThree)) {
+                throw new IllegalArgumentException("Hero Party T4 trigger must be at least as frequent as T3: "
+                        + role.id() + "." + key);
+            }
         }
     }
 

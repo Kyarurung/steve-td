@@ -148,6 +148,11 @@ public abstract class HeroPartyTower extends ProductionTower {
                 : source.getServer().getPlayerList().getPlayer(ownerPlayer());
     }
 
+    protected static boolean isIncomeTarget(SemionMonsterEntity target) {
+        Monster monster = target == null ? null : target.runtimeMonster();
+        return monster != null && (monster.ownerPlayer().isPresent() || monster.senderTeam().isPresent());
+    }
+
     protected final SemionTowerEntity towerEntity(PlayerLane lane, Tower tower) {
         if (lane == null || lane.arenaWorld() == null || !(tower instanceof HeroPartyTower heroTower)) {
             return null;

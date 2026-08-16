@@ -40,6 +40,7 @@ import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.insect.InsectTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
@@ -526,6 +527,9 @@ public final class TowerVfxService {
         }
         if (MageTowers.isMageTower(type)) {
             return BuilderPalette.MAGE;
+        }
+        if (HeroPartyTowers.isHeroPartyTower(type)) {
+            return BuilderPalette.HERO_PARTY;
         }
         if (InsectTowers.isInsectTower(type)) {
             return BuilderPalette.INSECT;

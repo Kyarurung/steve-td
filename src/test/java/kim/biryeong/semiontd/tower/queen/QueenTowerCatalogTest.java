@@ -106,9 +106,19 @@ final class QueenTowerCatalogTest {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         QueenStates.PlayerState state = QueenStates.state(OWNER);
         state.growExecutionHealth(10_000.0);
-        assertEquals(54.0, state.executionHealth(), 0.0001);
+        assertEquals(6.0, state.executionHealth(), 0.0001);
         state.growExecutionHealth(100.0);
-        assertEquals(56.0, state.executionHealth(), 0.0001);
+        assertEquals(7.2, state.executionHealth(), 0.0001);
+    }
+
+    @Test
+    void queenStartsFragileAndScalesHealthLinearlyByRound() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        QueenTower queen = (QueenTower) ProductionTowerCatalog.find(QueenTowers.QUEEN.id()).orElseThrow()
+                .create(OWNER, TeamId.RED, 1, new GridPosition(0, 64, 0));
+        assertEquals(60.0, queen.currentMaxHealth(), 0.0001);
+        queen.markWaveStarted(10);
+        assertEquals(132.0, queen.effectBaseMaxHealth(), 0.0001);
     }
 
     @Test
@@ -155,8 +165,12 @@ final class QueenTowerCatalogTest {
         assertEquals(4.0, merged.ability(QueenBalance.GLOBAL_ID, "queenShrinkPoints", -1), 0.0001);
         assertEquals(0.20, merged.ability(QueenBalance.GLOBAL_ID, "minimumStatScale", -1), 0.0001);
         assertEquals(400, merged.abilityInt(QueenBalance.GLOBAL_ID, "giantChargeTicks", -1));
-        assertEquals(50.0, merged.ability(QueenBalance.GLOBAL_ID,
+        assertEquals(5.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "giantInitialExecutionHealth", -1), 0.0001);
+        assertEquals(0.05, merged.ability(QueenBalance.GLOBAL_ID,
+                "giantExecutionGrowthRatio", -1), 0.0001);
+        assertEquals(8.0, merged.ability(QueenBalance.GLOBAL_ID,
+                "queenMaxHealthPerRound", -1), 0.0001);
         assertEquals(4.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "giantGrowthTargetCapMultiplier", -1), 0.0001);
         assertEquals(80, merged.abilityInt(QueenBalance.GLOBAL_ID,
