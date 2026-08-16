@@ -42,6 +42,7 @@ import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
+import kim.biryeong.semiontd.tower.army.ArmyTower;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
@@ -562,6 +563,19 @@ public final class SemionCommands {
                                 .then(literal("revive")
                                         .executes(context -> debugInsectVfx(
                                                 context.getSource(), gameManager, true))))
+                        .then(literal("army")
+                                .then(literal("promotion")
+                                        .executes(context -> debugArmyVfx(
+                                                context.getSource(), gameManager, ArmyTower.DebugVfx.PROMOTION)))
+                                .then(literal("command")
+                                        .executes(context -> debugArmyVfx(
+                                                context.getSource(), gameManager, ArmyTower.DebugVfx.COMMAND)))
+                                .then(literal("barrage")
+                                        .executes(context -> debugArmyVfx(
+                                                context.getSource(), gameManager, ArmyTower.DebugVfx.BARRAGE)))
+                                .then(literal("discharge")
+                                        .executes(context -> debugArmyVfx(
+                                                context.getSource(), gameManager, ArmyTower.DebugVfx.DISCHARGE))))
                         .then(literal("thunder")
                                 .then(literal("arc")
                                         .executes(context -> debugThunderVfx(
@@ -869,6 +883,28 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 " + requiredType.displayName() + " 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugArmyVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            ArmyTower.DebugVfx kind
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (tower instanceof ArmyTower army && army.showDebugVfx(lane, kind)) {
+                    success(source, "군대 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, kind == ArmyTower.DebugVfx.BARRAGE
+                ? "살아 있는 군대 포병 타워가 필요합니다."
+                : "살아 있는 군대 타워가 필요합니다.");
         return 0;
     }
 

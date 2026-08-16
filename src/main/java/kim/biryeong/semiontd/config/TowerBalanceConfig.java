@@ -15,6 +15,8 @@ import kim.biryeong.semiontd.tower.adversary.FoxForm;
 import kim.biryeong.semiontd.tower.adversary.FoxRoute;
 import kim.biryeong.semiontd.tower.adversary.RivalKind;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
+import kim.biryeong.semiontd.tower.army.ArmyBalance;
+import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisBalance;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
@@ -219,6 +221,7 @@ public record TowerBalanceConfig(
         addHeroPartyTowers(towers);
         addAtlantisTowers(towers);
         addPlantTowers(towers);
+        addArmyTowers(towers);
         addThunderTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
@@ -299,6 +302,7 @@ public record TowerBalanceConfig(
         putHeroPartyUpgrades(upgradeCosts);
         putAtlantisUpgrades(upgradeCosts);
         putPlantUpgrades(upgradeCosts);
+        putArmyUpgrades(upgradeCosts);
         putThunderUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
@@ -866,6 +870,7 @@ public record TowerBalanceConfig(
         putHeroPartyAbilities(abilities);
         putAtlantisAbilities(abilities);
         putPlantAbilities(abilities);
+        putArmyAbilities(abilities);
         putThunderAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
@@ -906,6 +911,83 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_LILAC_TOWER.id(), 285);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_ROSE_TOWER.id(), 285);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_PITCHER_TOWER.id(), 285);
+    }
+
+    private static void addArmyTowers(Map<String, TowerStats> towers) {
+        ArmyTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putArmyUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, ArmyTowers.CLERK, ArmyTowers.DRILL_SERGEANT.id(), 75);
+        putUpgrade(upgrades, ArmyTowers.CLERK, ArmyTowers.QUARTERMASTER.id(), 75);
+        putUpgrade(upgrades, ArmyTowers.GUARD, ArmyTowers.MILITARY_POLICE.id(), 105);
+        putUpgrade(upgrades, ArmyTowers.GUARD, ArmyTowers.GOP_SENTRY.id(), 100);
+        putUpgrade(upgrades, ArmyTowers.MILITARY_POLICE, ArmyTowers.MP_COMMANDER.id(), 220);
+        putUpgrade(upgrades, ArmyTowers.GOP_SENTRY, ArmyTowers.OUTPOST_CHIEF.id(), 215);
+        putUpgrade(upgrades, ArmyTowers.RECRUIT, ArmyTowers.SPECIALIST.id(), 130);
+        putUpgrade(upgrades, ArmyTowers.RECRUIT, ArmyTowers.GUNNER.id(), 130);
+        putUpgrade(upgrades, ArmyTowers.SPECIALIST, ArmyTowers.PLATOON_LEADER.id(), 280);
+        putUpgrade(upgrades, ArmyTowers.GUNNER, ArmyTowers.BATTERY_CHIEF.id(), 280);
+    }
+
+    private static void putArmyAbilities(Map<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("commandRadius", ArmyBalance.COMMAND_RADIUS);
+        global.put("maxCommandBonus", ArmyBalance.MAX_COMMAND_BONUS);
+        global.put("dischargeRefundRatio", ArmyBalance.DISCHARGE_REFUND_RATIO);
+        global.put("corporalService", (double) ArmyBalance.CORPORAL_SERVICE);
+        global.put("corporalAttackMultiplier", ArmyBalance.CORPORAL_ATTACK_MULTIPLIER);
+        global.put("corporalDamageBuff", ArmyBalance.CORPORAL_DAMAGE_BUFF);
+        global.put("sergeantService", (double) ArmyBalance.SERGEANT_SERVICE);
+        global.put("sergeantAttackMultiplier", ArmyBalance.SERGEANT_ATTACK_MULTIPLIER);
+        global.put("sergeantDamageBuff", ArmyBalance.SERGEANT_DAMAGE_BUFF);
+        global.put("staffSergeantService", (double) ArmyBalance.STAFF_SERGEANT_SERVICE);
+        global.put("staffSergeantDamageBuff", ArmyBalance.STAFF_SERGEANT_DAMAGE_BUFF);
+        global.put("staffSergeantAttackSpeedBuff", ArmyBalance.STAFF_SERGEANT_ATTACK_SPEED_BUFF);
+        global.put("dischargeService", (double) ArmyBalance.DISCHARGE_SERVICE);
+        global.put("dischargeNoticeWaves", (double) ArmyBalance.DISCHARGE_NOTICE_WAVES);
+        global.put("medalDamageBonus", ArmyBalance.MEDAL_DAMAGE_BONUS);
+        global.put("maxMedals", (double) ArmyBalance.MAX_MEDALS);
+        putAbilities(abilities, ArmyBalance.CONFIG_ID, global);
+
+        // 본부: 진급 속도를 올리는 쪽과, 회전 1회당 수확을 올리는 쪽으로 갈린다.
+        putAbilities(abilities, ArmyTowers.CLERK.id(), Map.of(
+                "serviceRateBonus", 1.0,
+                "serviceRateRadius", 6.0
+        ));
+        putAbilities(abilities, ArmyTowers.DRILL_SERGEANT.id(), Map.of(
+                "serviceRateBonus", 2.0,
+                "serviceRateRadius", 7.0
+        ));
+        putAbilities(abilities, ArmyTowers.QUARTERMASTER.id(), Map.of(
+                "serviceRateBonus", 1.0,
+                "serviceRateRadius", 6.0,
+                "dischargeRefundBonus", 0.4,
+                "medalValueBonus", 0.5
+        ));
+
+        // 경계: 계급 영향을 받지 않는 대신 후임 버프도 주지 않는다.
+        putAbilities(abilities, ArmyTowers.MILITARY_POLICE.id(), Map.of("damageReduction", 0.18));
+        putAbilities(abilities, ArmyTowers.MP_COMMANDER.id(), Map.of("damageReduction", 0.30));
+        // 초소장 계열은 조교의 정확한 반대 손잡이다.
+        putAbilities(abilities, ArmyTowers.GOP_SENTRY.id(), Map.of(
+                "serviceRatePenalty", 1.0,
+                "serviceRateRadius", 6.0
+        ));
+        putAbilities(abilities, ArmyTowers.OUTPOST_CHIEF.id(), Map.of(
+                "serviceRatePenalty", 2.0,
+                "serviceRateRadius", 7.0
+        ));
+
+        // 전투: 광역 분기만 splash 를 가진다.
+        putAbilities(abilities, ArmyTowers.GUNNER.id(), Map.of(
+                "splashDamageRatio", 0.50,
+                "splashRadius", 2.5
+        ));
+        putAbilities(abilities, ArmyTowers.BATTERY_CHIEF.id(), Map.of(
+                "splashDamageRatio", 0.70,
+                "splashRadius", 4.0
+        ));
     }
 
     private static void putPlantAbilities(LinkedHashMap<String, Map<String, Double>> abilities) {
@@ -1133,6 +1215,7 @@ public record TowerBalanceConfig(
         validateHeroPartyBalance();
         validateAtlantisAbilities();
         validatePlantAbilities();
+        validateArmyAbilities();
         validateThunderAbilities();
     }
 
@@ -1231,6 +1314,50 @@ public record TowerBalanceConfig(
             validatePositive(type.id(), "amplifyRadius", "maxStackBonus");
             validateIntegral(type.id(), false, "maxStackBonus");
             validateRatios(type.id(), "waterPressureRatioBonus");
+        }
+    }
+
+    private void validateArmyAbilities() {
+        String global = ArmyBalance.CONFIG_ID;
+        validateRatios(global,
+                "dischargeRefundRatio", "medalDamageBonus", "corporalAttackMultiplier",
+                "corporalDamageBuff", "sergeantAttackMultiplier", "sergeantDamageBuff",
+                "staffSergeantDamageBuff", "staffSergeantAttackSpeedBuff");
+        validatePositive(global,
+                "commandRadius", "maxCommandBonus", "maxMedals", "corporalService", "sergeantService",
+                "staffSergeantService", "dischargeService");
+        validateIntegral(global, false,
+                "maxMedals", "corporalService", "sergeantService", "staffSergeantService",
+                "dischargeService");
+        validateIntegral(global, true, "dischargeNoticeWaves");
+
+        Double corporal = configuredAbility(global, "corporalService");
+        Double sergeant = configuredAbility(global, "sergeantService");
+        Double staffSergeant = configuredAbility(global, "staffSergeantService");
+        Double discharge = configuredAbility(global, "dischargeService");
+        Double notice = configuredAbility(global, "dischargeNoticeWaves");
+        if (corporal != null && sergeant != null && staffSergeant != null && discharge != null
+                && !(corporal < sergeant && sergeant < staffSergeant && staffSergeant < discharge)) {
+            throw new IllegalArgumentException("Army service thresholds must be strictly increasing.");
+        }
+        if (notice != null && discharge != null && notice > discharge) {
+            throw new IllegalArgumentException("Army discharge notice must not exceed total service.");
+        }
+
+        for (TowerType type : ArmyTowers.all()) {
+            String id = type.id();
+            validateRatios(id, "damageReduction", "splashDamageRatio");
+            // Service rate is stored as two non-negative keys; a tower carrying both would make the
+            // 조교 / 초소장 opposition meaningless, so reject it rather than silently netting out.
+            Double bonus = configuredAbility(id, "serviceRateBonus");
+            Double penalty = configuredAbility(id, "serviceRatePenalty");
+            if (bonus != null && penalty != null) {
+                throw new IllegalArgumentException(
+                        "Army tower must not set both serviceRateBonus and serviceRatePenalty: " + id);
+            }
+            if ((bonus != null || penalty != null) && configuredAbility(id, "serviceRateRadius") == null) {
+                throw new IllegalArgumentException("Army service rate change needs a radius: " + id);
+            }
         }
     }
 
