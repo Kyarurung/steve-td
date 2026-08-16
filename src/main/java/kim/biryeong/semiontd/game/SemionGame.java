@@ -601,7 +601,7 @@ public final class SemionGame {
             return false;
         }
         Optional<SemionJob> job = JobRegistry.find(jobId);
-        if (job.isEmpty()) {
+        if (job.isEmpty() || !JobRegistry.isEnabled(job.get())) {
             return false;
         }
         selectedJobs.put(playerId, job.get());
@@ -609,7 +609,8 @@ public final class SemionGame {
     }
 
     public SemionJob selectedJobOrDefault(UUID playerId) {
-        return selectedJobs.getOrDefault(playerId, JobRegistry.defaultJob());
+        SemionJob selected = selectedJobs.get(playerId);
+        return JobRegistry.isEnabled(selected) ? selected : JobRegistry.defaultJob();
     }
 
     public Map<UUID, TraitLoadout> selectedTraitLoadouts() {

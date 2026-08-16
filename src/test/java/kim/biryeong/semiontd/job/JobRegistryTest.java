@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.job;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import kim.biryeong.semiontd.config.JobAvailabilityConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.tower.insect.InsectTowers;
@@ -31,6 +33,22 @@ class JobRegistryTest {
     @AfterEach
     void resetBalance() {
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig());
+    }
+
+    @Test
+    void disablingAJobKeepsItRegisteredButBlocksSelection() {
+        JobAvailabilityConfig disabled = JobAvailabilityConfig.defaultConfig()
+                .withEnabled(NetherTowerJob.ID, false)
+                .withEnabled(JobRegistry.defaultJob().id(), false);
+
+        JobRegistry.configureAvailability(disabled);
+
+        assertTrue(JobRegistry.find(NetherTowerJob.ID).isPresent());
+        assertEquals(24, JobRegistry.all().size());
+        assertTrue(JobRegistry.officialBuilders().stream().anyMatch(job -> job.id().equals(NetherTowerJob.ID)));
+        assertTrue(JobRegistry.isEnabled(JobRegistry.defaultJob()));
+        assertFalse(JobRegistry.isEnabled(NetherTowerJob.ID));
     }
 
     @Test

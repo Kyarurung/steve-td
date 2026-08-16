@@ -229,6 +229,43 @@ public final class SemionCommands {
                 .then(literal("job")
                         .then(literal("list")
                                 .executes(context -> listJobs(context.getSource())))
+                        .then(literal("manage")
+                                .requires(source -> source.hasPermission(2))
+                                .executes(context -> manageJobs(context.getSource(), gameManager, null))
+                                .then(literal("official")
+                                        .executes(context -> manageJobs(context.getSource(), gameManager, true)))
+                                .then(literal("creative")
+                                        .executes(context -> manageJobs(context.getSource(), gameManager, false))))
+                        .then(literal("enable")
+                                .requires(source -> source.hasPermission(2))
+                                .then(argument("id", StringArgumentType.string())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                JobRegistry.all().stream()
+                                                        .filter(job -> job != JobRegistry.defaultJob())
+                                                        .map(job -> job.id().toString()),
+                                                builder
+                                        ))
+                                        .executes(context -> setJobEnabled(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "id"),
+                                                true
+                                        ))))
+                        .then(literal("disable")
+                                .requires(source -> source.hasPermission(2))
+                                .then(argument("id", StringArgumentType.string())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                JobRegistry.all().stream()
+                                                        .filter(job -> job != JobRegistry.defaultJob())
+                                                        .map(job -> job.id().toString()),
+                                                builder
+                                        ))
+                                        .executes(context -> setJobEnabled(
+                                                context.getSource(),
+                                                gameManager,
+                                                StringArgumentType.getString(context, "id"),
+                                                false
+                                        ))))
                         .then(literal("stats")
                                 .executes(context -> jobStatisticsDialog(context.getSource(), gameManager))
                                 .then(argument("id", ResourceLocationArgument.id())
@@ -2331,18 +2368,24 @@ public final class SemionCommands {
     private static int listJobs(CommandSourceStack source) {
         success(source, "기본값:");
         printJob(source, JobRegistry.defaultJob());
-        success(source, "공식 빌더 (" + JobRegistry.officialBuilders().size() + "):");
+        success(source, jobListCategoryLabel("공식 빌더", JobRegistry.officialBuilders()) + ":");
         JobRegistry.officialBuilders().forEach(job -> printJob(source, job));
-        success(source, "창작 빌더 (" + JobRegistry.creativeBuilders().size() + "):");
+        success(source, jobListCategoryLabel("창작 빌더", JobRegistry.creativeBuilders()) + ":");
         JobRegistry.creativeBuilders().forEach(job -> printJob(source, job));
         return JobRegistry.all().size();
     }
 
     private static void printJob(CommandSourceStack source, SemionJob job) {
-        success(source, " - " + job.id() + " => " + job.displayName().getString());
+        String state = JobRegistry.isEnabled(job) ? "활성" : "비활성";
+        success(source, " - [" + state + "] " + job.id() + " => " + job.displayName().getString());
         for (Component line : job.description()) {
             success(source, "   " + line.getString());
         }
+    }
+
+    private static String jobListCategoryLabel(String category, List<SemionJob> jobs) {
+        long enabled = jobs.stream().filter(JobRegistry::isEnabled).count();
+        return category + " (활성 " + enabled + "/" + jobs.size() + ")";
     }
 
     private static int currentJob(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
@@ -2385,6 +2428,55 @@ public final class SemionCommands {
             gameManager.dialogService().showJobSelection(player, game, official);
         }
         success(source, "직업 선택 창을 열었습니다.");
+        return 1;
+    }
+
+    private static int manageJobs(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            Boolean official
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (official == null) {
+            gameManager.dialogService().showJobManagement(player);
+        } else {
+            gameManager.dialogService().showJobManagement(player, official);
+        }
+        return 1;
+    }
+
+    private static int setJobEnabled(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            String rawJobId,
+            boolean enabled
+    ) {
+        ResourceLocation jobId;
+        try {
+            jobId = parseJobId(rawJobId);
+        } catch (IllegalArgumentException exception) {
+            failure(source, exception.getMessage());
+            return 0;
+        }
+        Optional<SemionJob> job = JobRegistry.find(jobId);
+        if (job.isEmpty()) {
+            failure(source, "알 수 없는 직업입니다: " + jobId + ". /semiontd job list를 확인하세요.");
+            return 0;
+        }
+        if (job.get() == JobRegistry.defaultJob()) {
+            failure(source, "무직은 안전한 기본값이므로 킬스위치 대상이 아닙니다.");
+            return 0;
+        }
+        if (!gameManager.setJobEnabled(jobId, enabled)) {
+            failure(source, "직업 상태를 jobs.json에 저장하지 못해 변경을 취소했습니다.");
+            return 0;
+        }
+
+        success(source, job.get().displayName().getString() + " 직업을 " + (enabled ? "활성화" : "비활성화") + "했습니다.");
+        if (source.getEntity() instanceof ServerPlayer player) {
+            boolean official = JobRegistry.officialBuilders().contains(job.get());
+            gameManager.dialogService().showJobManagement(player, official);
+        }
         return 1;
     }
 
@@ -2573,6 +2665,10 @@ public final class SemionCommands {
         Optional<SemionJob> selectedJob = JobRegistry.find(jobId);
         if (selectedJob.isEmpty()) {
             failure(source, "알 수 없는 직업입니다: " + jobId + ". /semiontd job list를 확인하세요.");
+            return 0;
+        }
+        if (!JobRegistry.isEnabled(selectedJob.get())) {
+            failure(source, "관리자에 의해 비활성화된 직업입니다: " + selectedJob.get().displayName().getString());
             return 0;
         }
 

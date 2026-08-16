@@ -41,6 +41,7 @@ import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.CurrencyType;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.IncomeLaneRoutingConfig;
+import kim.biryeong.semiontd.config.JobAvailabilityConfig;
 import kim.biryeong.semiontd.config.LeaderTargetingConfig;
 import kim.biryeong.semiontd.config.MapConfig;
 import kim.biryeong.semiontd.config.MonsterScalingConfig;
@@ -1088,6 +1089,107 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         context.succeed();
+    }
+
+    @GameTest
+    public void jobKillSwitchBlocksWaitingSelectionButKeepsStartedJob(GameTestHelper context) {
+        UUID waitingPlayerId = stableUuid("job-kill-switch-waiting");
+        UUID redId = stableUuid("job-kill-switch-red");
+        UUID blueId = stableUuid("job-kill-switch-blue");
+        JobAvailabilityConfig disabledNether = JobAvailabilityConfig.defaultConfig()
+                .withEnabled(NetherTowerJob.ID, false);
+        try {
+            JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig());
+            SemionGame waitingGame = new SemionGame(
+                    EconomyConfig.defaultConfig(),
+                    new WaveConfig(List.of(), 20, null),
+                    testArena(context)
+            );
+            if (!assertTrue(context, waitingGame.selectJob(waitingPlayerId, NetherTowerJob.ID), "Enabled job should be selectable in a waiting lobby.")) {
+                return;
+            }
+
+            JobRegistry.configureAvailability(disabledNether);
+            if (!assertEquals(context, JobRegistry.defaultJob().id(), waitingGame.selectedJobOrDefault(waitingPlayerId).id(), "Disabled waiting selection should fall back to the default job.")) {
+                return;
+            }
+            if (!assertTrue(context, !waitingGame.selectJob(waitingPlayerId, NetherTowerJob.ID), "Disabled job should reject new waiting-lobby selection.")) {
+                return;
+            }
+
+            JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig());
+            SemionGame startedGame = new SemionGame(
+                    EconomyConfig.defaultConfig(),
+                    new WaveConfig(List.of(), 20, null),
+                    testArena(context)
+            );
+            if (!assertTrue(context, startedGame.selectJob(redId, NetherTowerJob.ID), "Enabled job should be selectable before match start.")) {
+                return;
+            }
+            ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                    MatchMode.NORMAL,
+                    List.of(
+                            new AssignedParticipant(redId, "job-kill-switch-red", TeamId.RED, 1),
+                            new AssignedParticipant(blueId, "job-kill-switch-blue", TeamId.BLUE, 1)
+                    ),
+                    Set.of(),
+                    2
+            );
+            if (!assertTrue(context, startedGame.start(context.getLevel().getServer(), plan), "Kill-switch match should start.")) {
+                return;
+            }
+
+            JobRegistry.configureAvailability(disabledNether);
+            if (!assertEquals(context, NetherTowerJob.ID, startedGame.players().get(redId).job().orElseThrow().id(), "Disabling a job must not replace an active participant's assigned job.")) {
+                return;
+            }
+            context.succeed();
+        } finally {
+            JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig());
+        }
+    }
+
+    @GameTest
+    public void disabledPersistedJobFallsBackInNewLobby(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        MinecraftServer server = context.getLevel().getServer();
+        Path storePath;
+        try {
+            storePath = Files.createTempDirectory("semion-disabled-job-profile-test").resolve("profiles.json");
+        } catch (java.io.IOException exception) {
+            context.fail(Component.literal("Failed to create temporary disabled-job profile path."));
+            return;
+        }
+
+        SemionGameManager manager = new SemionGameManager();
+        try {
+            manager.configure(
+                    EconomyConfig.defaultConfig(),
+                    WaveConfig.defaultConfig(),
+                    MapConfig.defaultConfig(),
+                    ProgressionConfig.defaultConfig(),
+                    storePath
+            );
+            manager.saveSelectedJob(
+                    server,
+                    player.getUUID(),
+                    player.getGameProfile().getName(),
+                    NetherTowerJob.ID
+            );
+            manager.configureJobAvailability(JobAvailabilityConfig.defaultConfig()
+                    .withEnabled(NetherTowerJob.ID, false));
+
+            SemionGame game = manager.createGame(server);
+            if (!assertEquals(context, JobRegistry.defaultJob().id(), game.selectedJobOrDefault(player.getUUID()).id(), "Disabled persisted job should fall back in a new lobby.")) {
+                return;
+            }
+            context.succeed();
+        } catch (Exception exception) {
+            context.fail(Component.literal("Disabled persisted job should not apply: " + exception.getMessage()));
+        } finally {
+            manager.shutdown();
+            JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig());
+        }
     }
 
     @GameTest
@@ -2486,9 +2588,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 testArena(context)
         );
         SemionDialogService dialogService = new SemionDialogService();
-        dialogService.showJobSelection(player, game);
-        dialogService.showJobSelection(player, game, true);
-        dialogService.showJobSelection(player, game, false);
+        JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig().withEnabled(NetherTowerJob.ID, false));
+        try {
+            dialogService.showJobSelection(player, game);
+            dialogService.showJobSelection(player, game, true);
+            dialogService.showJobSelection(player, game, false);
+            dialogService.showJobManagement(player);
+            dialogService.showJobManagement(player, true);
+            dialogService.showJobManagement(player, false);
+        } finally {
+            JobRegistry.configureAvailability(JobAvailabilityConfig.defaultConfig());
+        }
         ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
                 MatchMode.NORMAL,
                 List.of(new AssignedParticipant(player.getUUID(), player.getGameProfile().getName(), TeamId.RED, 1)),
