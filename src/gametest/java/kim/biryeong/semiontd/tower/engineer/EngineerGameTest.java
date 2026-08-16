@@ -121,6 +121,8 @@ public final class EngineerGameTest {
                     "Repeater facing must match the selected direction.");
             require(TowerPlacementPositions.resolveGrid(lane, dust.circuitPosition()).orElseThrow().equals(dustPosition),
                     "Clicking the physical wire must resolve to the logical tower below it.");
+            require(dust.canBeSold() && repeater.canBeSold() && plate.canBeSold(),
+                    "Dust, repeaters, and pressure plates must all expose the sale action.");
             require(door.hasUpperDoorVisual(), "Iron door traps must render both lower and upper halves.");
             require(BlockDisplayVisual.blockState(dispenser.visual()).getValue(DispenserBlock.FACING) == Direction.WEST,
                     "Dispenser front must face the incoming lane spawn.");
@@ -160,6 +162,11 @@ public final class EngineerGameTest {
             lane.moveTowersToFinalDefense();
             require(slime.activeTicksRemaining() == 0, "Forced final defense must stop traps immediately.");
             require(!slime.deployedAtFinalDefense(), "Engineer traps must not consume a final-defense slot.");
+            for (EngineerCircuitTower circuit : List.of(dust, repeater, plate)) {
+                require(lane.removeTower(circuit), "Selling a circuit must remove its logical tower.");
+                require(context.getLevel().getBlockState(circuit.circuitPosition()).isAir(),
+                        "Selling a circuit must remove its physical block.");
+            }
             context.succeed();
         } catch (Throwable failure) {
             context.fail(Component.literal("Engineer circuit GameTest failed: "

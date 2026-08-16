@@ -4906,6 +4906,9 @@
       "tntFuseVfxIntervalTicks": 10.0,
       "tntFuseTicks": 60.0
     },
+    "engineer_redstone_dust": {
+      "towerSlotCost": 0.0
+    },
     "engineer_door_t1": {
       "radius": 4.0
     },

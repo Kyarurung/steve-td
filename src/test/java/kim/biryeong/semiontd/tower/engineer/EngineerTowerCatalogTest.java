@@ -31,6 +31,7 @@ import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -93,9 +94,13 @@ final class EngineerTowerCatalogTest {
         assertEquals(0, create(EngineerTowers.COPPER_GOLEM).slotWeight());
         assertEquals(0, create(EngineerTowers.REDSTONE_DUST).slotWeight());
         assertEquals(0, create(EngineerTowers.repeater(Direction.WEST)).slotWeight());
+        assertEquals(0, TowerCapacity.slotCost(EngineerTowers.REDSTONE_DUST));
         assertEquals(1, create(EngineerTowers.plate(EngineerTowers.PlateKind.WOOD)).slotWeight());
         assertEquals(1, create(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1)).slotWeight());
         assertFalse(create(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1)).participatesInFinalDefense());
+        assertTrue(create(EngineerTowers.REDSTONE_DUST).canBeSold());
+        assertTrue(create(EngineerTowers.repeater(Direction.WEST)).canBeSold());
+        assertTrue(create(EngineerTowers.plate(EngineerTowers.PlateKind.WOOD)).canBeSold());
     }
 
     @Test
@@ -120,6 +125,7 @@ final class EngineerTowerCatalogTest {
         assertEquals(0.10, defaults.ability(
                 EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", -1), 0.0001);
         assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
+        assertEquals(0, defaults.abilityInt(EngineerTowers.REDSTONE_DUST.id(), TowerCapacity.CONFIG_KEY, -1));
         assertEquals(20, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
         assertEquals(10, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "tntFuseVfxIntervalTicks", -1));
         assertEquals(1.1, EngineerBalance.dispenserDamageMultiplier(1), 0.0001);
@@ -188,6 +194,7 @@ final class EngineerTowerCatalogTest {
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 0.0);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 2.5);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", 2.5);
+        assertInvalidAbility(defaults, EngineerTowers.REDSTONE_DUST.id(), TowerCapacity.CONFIG_KEY, 0.5);
         assertInvalidAbility(defaults,
                 EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 2).id(), "intervalTicks", 20.0);
         assertInvalidAbility(defaults,
@@ -256,6 +263,25 @@ final class EngineerTowerCatalogTest {
         assertFalse(job.canUseTower(context, EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 1)));
         assertTrue(job.canUseTower(context, EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 2)),
                 "The three-piston limit must not block upgrading an existing piston.");
+    }
+
+    @Test
+    void redstoneDustCanBePlacedAtTheTowerLimitWithoutUsingCapacity() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        EconomyConfig economy = EconomyConfig.defaultConfig();
+        SemionGame game = new SemionGame(economy, WaveConfig.defaultConfig(), new GameArena(Map.of()));
+        SemionPlayer player = new SemionPlayer(OWNER, "engineer", TeamId.RED, 1, new PlayerEconomy(economy));
+        game.players().put(OWNER, player);
+        game.teams().get(TeamId.RED).activate();
+        PlayerLane lane = testLane();
+        game.teams().get(TeamId.RED).laneGroup().addLane(lane);
+        for (int index = 0; index < game.towerLimitForPlayer(OWNER); index++) {
+            lane.addTower(new TestTower(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1), index));
+        }
+
+        assertEquals(game.towerLimitForPlayer(OWNER), game.towerCapacityUsed(OWNER));
+        assertTrue(game.canFitTower(OWNER, EngineerTowers.REDSTONE_DUST));
+        assertFalse(game.canFitTower(OWNER, EngineerTowers.plate(EngineerTowers.PlateKind.WOOD)));
     }
 
     @Test

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
@@ -2084,6 +2085,7 @@ public record TowerBalanceConfig(
         global.put("activeVfxIntervalTicks", (double) EngineerBalance.ACTIVE_VFX_INTERVAL_TICKS);
         global.put("tntFuseVfxIntervalTicks", (double) EngineerBalance.TNT_FUSE_VFX_INTERVAL_TICKS);
         putAbilities(abilities, EngineerBalance.GLOBAL_ID, global);
+        putAbilities(abilities, EngineerTowers.REDSTONE_DUST.id(), Map.of(TowerCapacity.CONFIG_KEY, 0.0));
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 LinkedHashMap<String, Double> values = new LinkedHashMap<>();
@@ -2618,6 +2620,7 @@ public record TowerBalanceConfig(
                 > global.getOrDefault("maxRedstone", 0.0)) {
             throw new IllegalArgumentException("Engineer dispenser distance cap must not exceed maxRedstone.");
         }
+        validateIntegral(EngineerTowers.REDSTONE_DUST.id(), true, TowerCapacity.CONFIG_KEY);
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 String id = EngineerTowers.trap(kind, tier).id();
