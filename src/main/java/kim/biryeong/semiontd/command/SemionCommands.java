@@ -2474,12 +2474,21 @@ public final class SemionCommands {
             return 0;
         }
 
-        success(source, job.get().displayName().getString() + " 직업을 " + (enabled ? "활성화" : "비활성화") + "했습니다.");
+        Component announcement = jobAvailabilityAnnouncement(job.get(), enabled);
+        source.getServer().getPlayerList().broadcastSystemMessage(announcement, false);
         if (source.getEntity() instanceof ServerPlayer player) {
             boolean official = JobRegistry.officialBuilders().contains(job.get());
             gameManager.dialogService().showJobManagement(player, official);
+        } else {
+            source.sendSuccess(() -> announcement, false);
         }
         return 1;
+    }
+
+    static Component jobAvailabilityAnnouncement(SemionJob job, boolean enabled) {
+        return SemionText.prefixedError(
+                job.displayName().getString() + " 직업이 " + (enabled ? "활성화" : "비활성화") + "되었습니다."
+        );
     }
 
     private static int jobStatisticsDialog(
