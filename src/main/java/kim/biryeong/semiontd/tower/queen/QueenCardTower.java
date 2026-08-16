@@ -16,6 +16,7 @@ import kim.biryeong.semiontd.api.area.TowerAreaEffectRequest;
 import kim.biryeong.semiontd.api.area.TowerAreaTargetMode;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.visual.TowerEquipmentVisual;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -88,13 +89,13 @@ public final class QueenCardTower extends ProductionTower {
         this.lane = lane;
         entity(lane).ifPresent(entity -> {
             applyAppearance(entity);
-            equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity);
+            equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity);
         });
     }
 
     @Override
     public void onRemoved(PlayerLane lane) {
-        QueenEquipmentVisual.remove(equipmentVisual);
+        TowerEquipmentVisual.remove(equipmentVisual);
         equipmentVisual = null;
         super.onRemoved(lane);
     }
@@ -275,7 +276,7 @@ public final class QueenCardTower extends ProductionTower {
     }
 
     private void syncEquipmentVisual() {
-        equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity(lane).orElse(null));
+        equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity(lane).orElse(null));
     }
 
     private static ResourceLocation id(String path) {

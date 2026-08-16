@@ -26,6 +26,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -50,6 +51,7 @@ public final class QueenGameTest {
             card.assignCard(new QueenCard(QueenCard.Suit.DIAMOND, 7));
             lane.addTower(queen);
             lane.addTower(card);
+            requireClose(60.0, queen.currentMaxHealth(), "The Queen must start with reduced early-game health.");
             Monster monster = new Monster("queen-target", TeamId.RED, 1, Optional.empty(), Optional.empty(),
                     80.0, 0.0, 20.0, AttackKind.MELEE, "minecraft:zombie", 5L);
             SemionMonsterEntity target = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
@@ -117,9 +119,12 @@ public final class QueenGameTest {
                     "Shrink at the floor must report no state change.");
             requireClose(appliedPoints, QueenShrink.points(target),
                     "Rejected shrink must not increase the recorded points.");
+            monster.syncHealth(4.0);
+            target.setHealth(4.0F);
 
             QueenStates.PlayerState state = QueenStates.state(owner);
             state.addCharge(QueenBalance.giantChargeTicks());
+            queen.markWaveStarted(1);
             queen.onWaveStarted(lane, 1);
             queen.tick(lane);
             require(state.runnerActive(), "A full gauge must dispatch a Giant.");
@@ -152,7 +157,11 @@ public final class QueenGameTest {
             queen.resetForRound(lane);
             lane.moveTowersToFinalDefense();
             state.addCharge(QueenBalance.giantChargeTicks());
+            queen.markWaveStarted(2);
             queen.onWaveStarted(lane, 2);
+            requireClose(68.0, queen.currentMaxHealth(),
+                    "The Queen must gain a fixed amount of maximum health each round.");
+            requireClose(68.0, queen.health(), "Round health growth must heal the gained maximum health.");
             queen.tick(lane);
             Vec3 boss = lane.laneLayout().bossPosition();
             GridPosition finalSlot = lane.laneLayout().finalDefenseTowerSlots().getFirst();
@@ -163,6 +172,38 @@ public final class QueenGameTest {
         } finally {
             group.closeRuntime();
             QueenStates.clear(owner);
+        }
+    }
+
+    @GameTest(maxTicks = 20)
+    public void equipmentOverlayUsesTheTowerInterpolationAndPose(GameTestHelper context) {
+        UUID owner = UUID.nameUUIDFromBytes("queen-equipment-sync".getBytes(StandardCharsets.UTF_8));
+        PlayerLane lane = testLane(context, owner);
+        prepareFloor(context);
+        QueenTower queen = (QueenTower) ProductionTowerCatalog.find(QueenTowers.QUEEN.id()).orElseThrow()
+                .create(owner, TeamId.RED, 1, GridPosition.from(context.absolutePos(new BlockPos(3, 2, 3))));
+        try {
+            lane.addTower(queen);
+            SemionTowerEntity source = towerEntity(context, queen);
+            ArmorStand equipment = equipmentVisual(context, source);
+            require(SemionEntityTypes.TOWER.updateInterval() == EntityType.ARMOR_STAND.updateInterval(),
+                    "Tower and equipment-overlay packets must use the same interpolation interval.");
+            Vec3 shiftedPosition = source.position().add(0.75, 0.25, -0.5);
+            source.teleportTo(shiftedPosition.x, shiftedPosition.y, shiftedPosition.z);
+            source.setYRot(15.0F);
+            source.setXRot(-25.0F);
+            source.yBodyRot = 35.0F;
+            source.setYHeadRot(55.0F);
+            queen.tick(lane);
+            require(equipment.position().distanceToSqr(shiftedPosition) < 0.0001,
+                    "The equipment overlay must follow the tower position exactly.");
+            requireClose(source.yBodyRot, equipment.getYRot(), "Equipment yaw must match the tower body.");
+            requireClose(source.yBodyRot, equipment.yBodyRot, "Equipment body rotation must match the tower body.");
+            requireClose(source.getXRot(), equipment.getHeadPose().x(), "Equipment head pitch must match the tower.");
+            requireClose(20.0, equipment.getHeadPose().y(), "Equipment head yaw must follow the tower head.");
+            context.succeed();
+        } finally {
+            lane.clearTowers();
         }
     }
 
@@ -210,10 +251,10 @@ public final class QueenGameTest {
             lane.addTower(queen);
             lane.addTower(heart);
             lane.addTower(club);
-            queen.syncHealth(100.0);
+            queen.syncHealth(30.0);
             lane.markWaveStarted(1);
             for (int tick = 0; tick <= QueenBalance.heartHealIntervalTicks(); tick++) heart.tick(lane);
-            requireClose(100.0 + QueenBalance.heartHealAmount(), queen.health(),
+            requireClose(30.0 + QueenBalance.heartHealAmount(), queen.health(),
                     "Heart cards must heal damaged Queen-family towers.");
 
             SemionTowerEntity clubEntity = towerEntity(context, club);

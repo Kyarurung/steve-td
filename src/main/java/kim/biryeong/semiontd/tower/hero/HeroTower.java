@@ -78,6 +78,9 @@ public final class HeroTower extends HeroPartyTower {
             );
             damageAmount += bonus;
         }
+        if ((weapon == HeroWeapon.SWORD || weapon == HeroWeapon.LONGBOW) && isIncomeTarget(target)) {
+            damageAmount *= 1.0 + HeroPartyBalance.weaponIncomeDamageBonus(weapon);
+        }
         return damageAmount;
     }
 
@@ -150,6 +153,10 @@ public final class HeroTower extends HeroPartyTower {
         ArrayList<String> lines = new ArrayList<>(super.runtimeDetailLines());
         HeroPartyState state = state();
         lines.add("장비: " + state.equippedWeapon().displayName() + " +" + state.weaponLevel(state.equippedWeapon()));
+        double incomeDamageBonus = HeroPartyBalance.weaponIncomeDamageBonus(state.equippedWeapon());
+        if (incomeDamageBonus > 0.0) {
+            lines.add("인컴/소환 피해: +" + Math.round(incomeDamageBonus * 100.0) + "%");
+        }
         lines.add("갑옷: +" + state.armorLevel());
         lines.add("확정 동료: " + state.committedCompanions().size() + "/" + HeroPartyBalance.MAX_COMPANIONS);
         HeroPartyState.HeroQuestSnapshot quest = state.quest();

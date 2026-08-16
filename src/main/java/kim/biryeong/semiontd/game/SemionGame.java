@@ -42,6 +42,7 @@ import kim.biryeong.semiontd.tower.mage.MageStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.army.ArmyStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
@@ -601,7 +602,7 @@ public final class SemionGame {
             return false;
         }
         Optional<SemionJob> job = JobRegistry.find(jobId);
-        if (job.isEmpty()) {
+        if (job.isEmpty() || !JobRegistry.isEnabled(job.get())) {
             return false;
         }
         selectedJobs.put(playerId, job.get());
@@ -609,7 +610,8 @@ public final class SemionGame {
     }
 
     public SemionJob selectedJobOrDefault(UUID playerId) {
-        return selectedJobs.getOrDefault(playerId, JobRegistry.defaultJob());
+        SemionJob selected = selectedJobs.get(playerId);
+        return JobRegistry.isEnabled(selected) ? selected : JobRegistry.defaultJob();
     }
 
     public Map<UUID, TraitLoadout> selectedTraitLoadouts() {
@@ -799,6 +801,7 @@ public final class SemionGame {
             kim.biryeong.semiontd.tower.futureagency.FutureAgencyStates.clear(playerId);
             kim.biryeong.semiontd.tower.queen.QueenStates.clear(playerId);
             HeroPartyStates.clear(playerId);
+            ArmyStates.clear(playerId);
         }
         players.clear();
         selectedJobs.clear();

@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
+import kim.biryeong.semiontd.entity.visual.TowerEquipmentVisual;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -36,6 +37,17 @@ public final class QueenTower extends ProductionTower {
 
     @Override public boolean canBeSold() {return false;}
     @Override public boolean supportsForcedAttackTargeting() {return true;}
+
+    @Override
+    public double effectBaseMaxHealth() {
+        return type().maxHealth() + Math.max(0, currentRound() - 1) * QueenBalance.queenMaxHealthPerRound();
+    }
+
+    @Override
+    protected void refreshMaxHealthAfterTypeChange(PlayerLane lane) {
+        this.lane = lane;
+        refreshRoundHealth(false);
+    }
 
     @Override
     public Optional<SemionMonsterEntity> selectForcedAttackTarget(SemionTowerEntity source, List<SemionMonsterEntity> candidates) {
@@ -71,7 +83,7 @@ public final class QueenTower extends ProductionTower {
 
     @Override
     public void onRemoved(PlayerLane lane) {
-        QueenEquipmentVisual.remove(equipmentVisual);
+        TowerEquipmentVisual.remove(equipmentVisual);
         equipmentVisual = null;
         super.onRemoved(lane);
     }
@@ -80,6 +92,7 @@ public final class QueenTower extends ProductionTower {
     public void onWaveStarted(PlayerLane lane, int currentRound) {
         this.lane = lane;
         waveActive = true;
+        refreshRoundHealth(true);
         QueenPoker.snapshot(lane, ownerPlayer());
         showAccelerationRange(lane);
         rangePulseTicks = QueenBalance.rangeVfxIntervalTicks();
@@ -177,6 +190,13 @@ public final class QueenTower extends ProductionTower {
     }
 
     private void syncEquipmentVisual() {
-        equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity().orElse(null));
+        equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity().orElse(null));
+    }
+
+    private void refreshRoundHealth(boolean healIncrease) {
+        entity().ifPresentOrElse(
+                entity -> entity.refreshMaxHealthEffects(healIncrease),
+                () -> syncMaxHealth(effectBaseMaxHealth(), healIncrease)
+        );
     }
 }

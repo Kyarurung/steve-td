@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.config.WaveMonsterEntry;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -37,6 +38,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
+import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
@@ -68,7 +70,9 @@ class HeroPartyTowerCatalogTest {
 
         assertEquals("용사 빌더", job.displayName().getString());
         assertEquals(3, job.description().size());
-        assertTrue(job.description().stream().allMatch(line -> line.getString().length() <= 42));
+        assertEquals(List.of("시작", "운영", "주의"), job.description().stream()
+                .map(line -> line.getString().split(" ", 2)[0])
+                .toList());
         assertEquals(25, HeroPartyTowers.all().size());
         assertEquals(25, ProductionTowerCatalog.all().stream()
                 .filter(entry -> job.includesTowerInCatalog(entry.type()))
@@ -103,6 +107,13 @@ class HeroPartyTowerCatalogTest {
                 }
             }
         }
+    }
+
+    @Test
+    void correctsFakePlayerCombatPitchDownward() {
+        assertEquals(19.5F, HeroPlayerVisuals.correctedPitch(-18.0F, true));
+        assertEquals(-18.0F, HeroPlayerVisuals.correctedPitch(-18.0F, false));
+        assertEquals(90.0F, HeroPlayerVisuals.correctedPitch(80.0F, true));
     }
 
     @Test
@@ -292,6 +303,118 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
+    void swordLongbowAndArchersReceiveConfigurableIncomeDamage() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+
+        assertEquals(0.35, HeroPartyBalance.weaponIncomeDamageBonus(HeroWeapon.SWORD), 0.0001);
+        assertEquals(0.35, HeroPartyBalance.weaponIncomeDamageBonus(HeroWeapon.LONGBOW), 0.0001);
+        assertEquals(0.0, HeroPartyBalance.weaponIncomeDamageBonus(HeroWeapon.STAFF), 0.0001);
+        for (int tier = 1; tier <= 4; tier++) {
+            assertEquals(0.35, defaults.ability(
+                    HeroPartyTowers.companion(HeroCompanionRole.ARCHER, tier).id(),
+                    "incomeDamageBonus",
+                    -1.0
+            ), 0.0001);
+        }
+
+        TowerBalanceConfig partial = new TowerBalanceConfig(
+                Map.of(), Map.of(), Map.of(HeroWeapon.SWORD.configId(), Map.of("incomeDamageBonus", 0.20))
+        );
+        TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
+        assertEquals(0.20, merged.ability(HeroWeapon.SWORD.configId(), "incomeDamageBonus", -1.0), 0.0001);
+        assertEquals(0.35, merged.ability(HeroWeapon.LONGBOW.configId(), "incomeDamageBonus", -1.0), 0.0001);
+
+        LinkedHashMap<String, Map<String, Double>> invalidAbilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> invalidSword = new LinkedHashMap<>(invalidAbilities.get(HeroWeapon.SWORD.configId()));
+        invalidSword.put("incomeDamageBonus", 1.01);
+        invalidAbilities.put(HeroWeapon.SWORD.configId(), invalidSword);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), invalidAbilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
+        );
+        assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
+    }
+
+    @Test
+    void companionDamageAndTierAbilitiesMatchTheApprovedProgression() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<HeroCompanionRole, double[]> expectedDamage = Map.of(
+                HeroCompanionRole.KNIGHT, new double[]{7.2, 10.8, 15.6, 21.6},
+                HeroCompanionRole.ARCHER, new double[]{14.4, 20.4, 28.8, 38.4},
+                HeroCompanionRole.MAGE, new double[]{19.2, 26.4, 37.2, 50.4},
+                HeroCompanionRole.PRIEST, new double[]{4.8, 7.2, 12.0, 16.8},
+                HeroCompanionRole.ROGUE, new double[]{12.0, 16.8, 22.8, 31.2},
+                HeroCompanionRole.BARD, new double[]{4.8, 8.4, 12.0, 16.8}
+        );
+        for (HeroCompanionRole role : HeroCompanionRole.values()) {
+            for (int tier = 1; tier <= 4; tier++) {
+                var type = HeroPartyTowers.companion(role, tier);
+                assertEquals(expectedDamage.get(role)[tier - 1], defaults.statsFor(type).damage(), 0.0001);
+            }
+        }
+
+        assertEquals(0.0, defaults.ability("hero_party_knight_1", "shieldBashEvery", -1.0), 0.0001);
+        assertEquals(4.0, defaults.ability("hero_party_knight_2", "shieldBashEvery", -1.0), 0.0001);
+        assertEquals(0.08, defaults.ability("hero_party_knight_3", "guardDamageReduction", -1.0), 0.0001);
+        assertEquals(0.75, defaults.ability("hero_party_archer_4", "pierceDamageRatio", -1.0), 0.0001);
+        assertEquals(1.50, defaults.ability("hero_party_mage_3", "empoweredSplashMultiplier", -1.0), 0.0001);
+        assertEquals(0.50, defaults.ability("hero_party_priest_3", "secondTargetRatio", -1.0), 0.0001);
+        assertEquals(0.20, defaults.ability("hero_party_rogue_3", "killAttackSpeedBonus", -1.0), 0.0001);
+        assertEquals(4.0, defaults.ability("hero_party_bard_4", "encoreEveryPulses", -1.0), 0.0001);
+
+        TowerBalanceConfig partial = new TowerBalanceConfig(
+                Map.of(),
+                Map.of(),
+                Map.of("hero_party_knight_2", Map.of("shieldBashSlow", 0.30))
+        ).withMissingDefaults(defaults);
+        assertEquals(0.30, partial.ability("hero_party_knight_2", "shieldBashSlow", -1.0), 0.0001);
+        assertEquals(4.0, partial.ability("hero_party_knight_2", "shieldBashEvery", -1.0), 0.0001);
+
+        assertInvalidAbility(defaults, "hero_party_archer_2", "pierceEvery", 3.5);
+        assertInvalidAbility(defaults, "hero_party_archer_4", "pierceDamageRatio", 0.50);
+        assertInvalidAbility(defaults, "hero_party_bard_4", "attackSpeedBonus", 0.12);
+    }
+
+    @Test
+    void companionDescriptionsExposeUnlocksWithoutUnresolvedText() throws Exception {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        try (var input = HeroPartyTowerCatalogTest.class.getResourceAsStream(
+                "/semiontd/balance-defaults/tower_balance.json")) {
+            var bundledAbilities = JsonParser.parseReader(new InputStreamReader(
+                    java.util.Objects.requireNonNull(input), StandardCharsets.UTF_8))
+                    .getAsJsonObject().getAsJsonObject("abilities");
+            for (HeroCompanionRole role : HeroCompanionRole.values()) {
+                for (int tier = 1; tier <= 4; tier++) {
+                    var type = TowerBalanceRuntime.resolve(HeroPartyTowers.companion(role, tier));
+                    List<String> description = TowerDescriptionRegistry.describe(type).orElseThrow();
+                    assertEquals(2, description.size());
+                    assertTrue(description.stream().noneMatch(line -> line.contains("{")), type.id());
+                    if (tier == 1) {
+                        assertTrue(description.get(1).contains(HeroPartyTowers.firstAbilityName(role)));
+                        assertTrue(description.get(1).contains(HeroPartyTowers.secondAbilityName(role)));
+                    } else if (tier < 4) {
+                        String expected = tier == 2
+                                ? HeroPartyTowers.firstAbilityName(role)
+                                : HeroPartyTowers.secondAbilityName(role);
+                        assertTrue(description.get(1).contains("새 능력: " + expected));
+                    } else {
+                        assertTrue(description.get(1).contains("강화"));
+                    }
+
+                    var bundled = bundledAbilities.getAsJsonObject(type.id());
+                    Map<String, Double> javaDefaults = defaults.abilities().get(type.id());
+                    assertEquals(javaDefaults.keySet(), bundled.keySet(), type.id());
+                    javaDefaults.forEach((key, value) -> assertEquals(
+                            value, bundled.get(key).getAsDouble(), 0.0001, type.id() + "." + key
+                    ));
+                }
+            }
+        }
+    }
+
+    @Test
     void questPoolOnlyAddsCompanionQuestsThatThePartyCanComplete() {
         TestContext context = testContext();
         HeroPartyState state = HeroPartyStates.state(OWNER);
@@ -399,10 +522,19 @@ class HeroPartyTowerCatalogTest {
     }
 
     private static void assertInvalidFocusConfig(TowerBalanceConfig defaults, String key, double value) {
+        assertInvalidAbility(defaults, HeroPartyBalance.GLOBAL_CONFIG_ID, key, value);
+    }
+
+    private static void assertInvalidAbility(
+            TowerBalanceConfig defaults,
+            String configId,
+            String key,
+            double value
+    ) {
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
-        LinkedHashMap<String, Double> focus = new LinkedHashMap<>(abilities.get(HeroPartyBalance.GLOBAL_CONFIG_ID));
-        focus.put(key, value);
-        abilities.put(HeroPartyBalance.GLOBAL_CONFIG_ID, focus);
+        LinkedHashMap<String, Double> configured = new LinkedHashMap<>(abilities.get(configId));
+        configured.put(key, value);
+        abilities.put(configId, configured);
         TowerBalanceConfig invalid = new TowerBalanceConfig(
                 defaults.towers(), defaults.upgradeCosts(), abilities,
                 defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
