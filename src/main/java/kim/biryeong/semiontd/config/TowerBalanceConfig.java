@@ -49,6 +49,8 @@ import kim.biryeong.semiontd.tower.plant.PlantSoil;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
+import kim.biryeong.semiontd.tower.thunder.ThunderBalance;
+import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -217,6 +219,7 @@ public record TowerBalanceConfig(
         addHeroPartyTowers(towers);
         addAtlantisTowers(towers);
         addPlantTowers(towers);
+        addThunderTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -296,6 +299,7 @@ public record TowerBalanceConfig(
         putHeroPartyUpgrades(upgradeCosts);
         putAtlantisUpgrades(upgradeCosts);
         putPlantUpgrades(upgradeCosts);
+        putThunderUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -862,6 +866,7 @@ public record TowerBalanceConfig(
         putHeroPartyAbilities(abilities);
         putAtlantisAbilities(abilities);
         putPlantAbilities(abilities);
+        putThunderAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -1129,8 +1134,49 @@ public record TowerBalanceConfig(
         validateInsectBalance();
         validateFutureAgencyBalance();
         validateQueenBalance();
+        validateHeroPartyBalance();
         validateAtlantisAbilities();
         validatePlantAbilities();
+        validateThunderAbilities();
+    }
+
+    private void validateThunderAbilities() {
+        String global = ThunderBalance.CONFIG_ID;
+        validatePositive(global,
+                "basePower", "shortageCeiling", "stunTicks", "stunCooldownTicks",
+                "stunImmunityTicks", "markDurationTicks", "stormWaveInterval");
+        validateIntegral(global, false,
+                "stunTicks", "stunCooldownTicks", "stunImmunityTicks", "markDurationTicks", "stormWaveInterval");
+        validateRange(global, "surplusFloor", 0.0, 1.0);
+        validateRatios(global,
+                "surplusDamageBonus", "shortageDamagePenalty", "shortageAttackSpeedPenalty");
+        Double stunTicks = configuredAbility(global, "stunTicks");
+        Double immunityTicks = configuredAbility(global, "stunImmunityTicks");
+        if (stunTicks != null && immunityTicks != null && immunityTicks < stunTicks) {
+            throw new IllegalArgumentException("Thunder stun immunity must not be shorter than the stun.");
+        }
+        Double shortageCeiling = configuredAbility(global, "shortageCeiling");
+        if (shortageCeiling != null && shortageCeiling <= 1.0) {
+            throw new IllegalArgumentException("Thunder shortage ceiling must be greater than 1.");
+        }
+
+        for (TowerType type : ThunderTowers.all()) {
+            String id = type.id();
+            validateAtLeast(id, 0.0,
+                    "powerOutput", "stormMinOutput", "stormMaxOutput", "powerDraw", "healthToPower",
+                    "dischargeDamage", "dischargeRadius", "chainTargets", "chainRadius", "chainDamageRatio");
+            validateRatios(id, "damageAbsorb", "markAttackReduction", "markDamageBonus", "chainDamageRatio");
+            validateAtLeast(id, 1.0, "surgeMaxMultiplier");
+        }
+
+        Double stormMin = configuredAbility(ThunderTowers.ROD_STORM.id(), "stormMinOutput");
+        Double stormMax = configuredAbility(ThunderTowers.ROD_STORM.id(), "stormMaxOutput");
+        if (stormMin != null && stormMax != null && stormMin > stormMax) {
+            throw new IllegalArgumentException("Thunder storm minimum output must not exceed its maximum output.");
+        }
+        validatePositive(ThunderTowers.ARMADILLO_EARTH.id(), "dischargeDamage", "dischargeRadius");
+        validatePositive(ThunderTowers.SQUIRREL_T3.id(), "chainRadius", "chainDamageRatio");
+        validateIntegral(ThunderTowers.SQUIRREL_T3.id(), false, "chainTargets");
     }
 
     private void validateIntegralAbility(String configId, String key) {
@@ -1548,6 +1594,87 @@ public record TowerBalanceConfig(
         AdversaryTowers.configurableTowers().forEach(type -> addTower(towers, type));
     }
 
+    private static void addThunderTowers(Map<String, TowerStats> towers) {
+        ThunderTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putThunderUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, ThunderTowers.ROD_T1, ThunderTowers.ROD_COPPER.id(), 75);
+        putUpgrade(upgrades, ThunderTowers.ROD_T1, ThunderTowers.ROD_STORM.id(), 75);
+        putUpgrade(upgrades, ThunderTowers.ARMADILLO_T1, ThunderTowers.ARMADILLO_INSULATED.id(), 105);
+        putUpgrade(upgrades, ThunderTowers.ARMADILLO_T1, ThunderTowers.ARMADILLO_GROUNDED.id(), 100);
+        putUpgrade(upgrades, ThunderTowers.ARMADILLO_INSULATED, ThunderTowers.ARMADILLO_RUBBER.id(), 220);
+        putUpgrade(upgrades, ThunderTowers.ARMADILLO_GROUNDED, ThunderTowers.ARMADILLO_EARTH.id(), 215);
+        putUpgrade(upgrades, ThunderTowers.SQUIRREL_T1, ThunderTowers.SQUIRREL_T2.id(), 130);
+        putUpgrade(upgrades, ThunderTowers.SQUIRREL_T1, ThunderTowers.SURGE_T2.id(), 130);
+        putUpgrade(upgrades, ThunderTowers.SQUIRREL_T2, ThunderTowers.SQUIRREL_T3.id(), 280);
+        putUpgrade(upgrades, ThunderTowers.SURGE_T2, ThunderTowers.SURGE_T3.id(), 280);
+    }
+
+    private static void putThunderAbilities(Map<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("basePower", ThunderBalance.BASE_POWER);
+        global.put("surplusFloor", ThunderBalance.SURPLUS_FLOOR);
+        global.put("surplusDamageBonus", ThunderBalance.SURPLUS_DAMAGE_BONUS);
+        global.put("shortageCeiling", ThunderBalance.SHORTAGE_CEILING);
+        global.put("shortageDamagePenalty", ThunderBalance.SHORTAGE_DAMAGE_PENALTY);
+        global.put("shortageAttackSpeedPenalty", ThunderBalance.SHORTAGE_ATTACK_SPEED_PENALTY);
+        global.put("stunTicks", (double) ThunderBalance.STUN_TICKS);
+        global.put("stunCooldownTicks", (double) ThunderBalance.STUN_COOLDOWN_TICKS);
+        global.put("stunImmunityTicks", (double) ThunderBalance.STUN_IMMUNITY_TICKS);
+        global.put("markDurationTicks", (double) ThunderBalance.MARK_DURATION_TICKS);
+        global.put("stormWaveInterval", (double) ThunderBalance.STORM_WAVE_INTERVAL);
+        putAbilities(abilities, ThunderBalance.CONFIG_ID, global);
+
+
+        // 발전: 고정 출력 두 종과, 저점과 고점이 크게 벌어진 변동 출력 한 종.
+        putAbilities(abilities, ThunderTowers.ROD_T1.id(), Map.of("powerOutput", 26.0));
+        putAbilities(abilities, ThunderTowers.ROD_COPPER.id(), Map.of("powerOutput", 75.0));
+        putAbilities(abilities, ThunderTowers.ROD_STORM.id(), Map.of(
+                "stormMinOutput", 18.0,
+                "stormMaxOutput", 135.0
+        ));
+
+        // 절연 루트: 전력을 쓰지 않고, 잃은 체력만큼을 발전으로 돌려준다.
+        putAbilities(abilities, ThunderTowers.ARMADILLO_INSULATED.id(), Map.of("healthToPower", 55.0));
+        putAbilities(abilities, ThunderTowers.ARMADILLO_RUBBER.id(), Map.of("healthToPower", 120.0));
+
+        // 접지 루트: 전력을 쓰는 대신 표식으로 아군 전체의 피해를 키운다.
+        putAbilities(abilities, ThunderTowers.ARMADILLO_GROUNDED.id(), Map.of(
+                "powerDraw", 7.0,
+                "markDamageBonus", 0.30,
+                "markAttackReduction", 0.20,
+                "damageAbsorb", 0.22
+        ));
+        putAbilities(abilities, ThunderTowers.ARMADILLO_EARTH.id(), Map.of(
+                "powerDraw", 10.0,
+                "markDamageBonus", 0.48,
+                "markAttackReduction", 0.30,
+                "damageAbsorb", 0.35,
+                "dischargeDamage", 210.0,
+                "dischargeRadius", 4.0
+        ));
+
+        putAbilities(abilities, ThunderTowers.SQUIRREL_T1.id(), Map.of("powerDraw", 6.0));
+        putAbilities(abilities, ThunderTowers.SQUIRREL_T2.id(), Map.of("powerDraw", 14.0));
+        // 뇌신: 광역 담당. 직선 관통은 실전에서 거의 발동하지 않아 인접 전이로 대체했다.
+        putAbilities(abilities, ThunderTowers.SQUIRREL_T3.id(), Map.of(
+                "powerDraw", 24.0,
+                "chainTargets", 3.0,
+                "chainRadius", 3.5,
+                "chainDamageRatio", 0.48
+        ));
+        // 폭주: 단일 대상 담당. 여유 전력을 그대로 화력으로 환산한다.
+        putAbilities(abilities, ThunderTowers.SURGE_T2.id(), Map.of(
+                "powerDraw", 18.0,
+                "surgeMaxMultiplier", 1.85
+        ));
+        putAbilities(abilities, ThunderTowers.SURGE_T3.id(), Map.of(
+                "powerDraw", 30.0,
+                "surgeMaxMultiplier", 1.50
+        ));
+    }
+
     private static void addMageTowers(Map<String, TowerStats> towers) {
         MageTowers.all().forEach(type -> addTower(towers, type));
     }
@@ -1830,6 +1957,7 @@ public record TowerBalanceConfig(
     private static void putEngineerAbilities(Map<String, Map<String, Double>> abilities) {
         LinkedHashMap<String, Double> global = new LinkedHashMap<>();
         global.put("activeTicks", (double) EngineerBalance.ACTIVE_TICKS);
+        global.put("doorActiveTicks", (double) EngineerBalance.DOOR_ACTIVE_TICKS);
         global.put("plateCooldownTicks", (double) EngineerBalance.PLATE_COOLDOWN_TICKS);
         global.put("golemMoveSpeed", EngineerBalance.GOLEM_MOVE_SPEED);
         global.put("pistonImmunityTicks", (double) EngineerBalance.PISTON_IMMUNITY_TICKS);
@@ -1924,7 +2052,12 @@ public record TowerBalanceConfig(
                 Map.entry("armorReduction5", 0.20),
                 Map.entry("adventureDamagePerPoint", 0.0025),
                 Map.entry("adventureHealingPerPoint", 0.0025),
-                Map.entry("adventureHealthPerPoint", 0.0035)
+                Map.entry("adventureHealthPerPoint", 0.0035),
+                Map.entry(
+                        "focusFireDamageReductionPerExtraAttacker",
+                        HeroPartyBalance.FOCUS_FIRE_REDUCTION_PER_EXTRA_ATTACKER
+                ),
+                Map.entry("focusFireDamageReductionCap", HeroPartyBalance.FOCUS_FIRE_REDUCTION_CAP)
         ));
         for (HeroWeapon weapon : HeroWeapon.values()) {
             putAbilities(abilities, weapon.configId(), Map.of(
@@ -2023,8 +2156,8 @@ public record TowerBalanceConfig(
 
     private static void putQueenAbilities(Map<String, Map<String, Double>> abilities) {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("shrinkFactorPerPoint", 0.99);
-        values.put("minimumStatScale", 0.50);
+        values.put("shrinkFactorPerPoint", 0.98);
+        values.put("minimumStatScale", 0.20);
         values.put("minimumVisualScale", 0.50);
         values.put("queenShrinkPoints", 5.0);
         values.put("cardShrinkPoints", 0.75);
@@ -2128,6 +2261,24 @@ public record TowerBalanceConfig(
         }
     }
 
+    private void validateHeroPartyBalance() {
+        Map<String, Double> values = abilities.get(HeroPartyBalance.GLOBAL_CONFIG_ID);
+        if (values == null) {
+            return;
+        }
+        Double perExtraAttacker = values.get("focusFireDamageReductionPerExtraAttacker");
+        Double cap = values.get("focusFireDamageReductionCap");
+        if (perExtraAttacker != null && perExtraAttacker >= 1.0) {
+            throw new IllegalArgumentException("Hero Party focus-fire reduction must be in [0, 1).");
+        }
+        if (cap != null && cap >= 1.0) {
+            throw new IllegalArgumentException("Hero Party focus-fire reduction cap must be in [0, 1).");
+        }
+        if (perExtraAttacker != null && cap != null && perExtraAttacker > cap) {
+            throw new IllegalArgumentException("Hero Party focus-fire reduction must not exceed its cap.");
+        }
+    }
+
     private void validateFutureAgencyBalance() {
         Map<String, Double> values = abilities.get(FutureAgencyBalance.GLOBAL_ID);
         if (values == null) return;
@@ -2198,11 +2349,11 @@ public record TowerBalanceConfig(
         }
         validateEngineerValues(EngineerBalance.GLOBAL_ID, global);
         requireEngineerPositive(global,
-                "activeTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
+                "activeTicks", "doorActiveTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
                 "doorRetargetTicks", "tntFuseTicks", "maxRedstone", "maxPlates", "maxPistons",
                 "dispenserMaxPlateDistance", "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         requireEngineerIntegral(global,
-                "activeTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
+                "activeTicks", "doorActiveTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
                 "maxRedstone", "maxPlates", "maxPistons", "dispenserMaxPlateDistance",
                 "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         double distanceBonus = global.getOrDefault("dispenserDamagePerPlateBlock", -1.0);

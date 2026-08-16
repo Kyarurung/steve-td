@@ -94,14 +94,15 @@ public final class HeroCompanionTower extends HeroPartyTower {
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
+        double focusAdjusted = super.modifyIncomingDamage(towerEntity, damageSource, damageAmount);
         if (role().orElse(null) != HeroCompanionRole.KNIGHT) {
-            return damageAmount;
+            return focusAdjusted;
         }
-        double resolved = damageAmount * (1.0 - value("damageReduction", KNIGHT_REDUCTION[index()]));
+        double resolved = focusAdjusted * (1.0 - value("damageReduction", KNIGHT_REDUCTION[index()]));
         state().recordSpecial(
                 HeroQuestKind.KNIGHT_GUARD,
                 null,
-                Math.max(0.0, damageAmount - resolved),
+                Math.max(0.0, focusAdjusted - resolved),
                 onlineOwner(towerEntity)
         );
         return resolved;

@@ -131,8 +131,10 @@ public final class QueenTower extends ProductionTower {
         int required = QueenBalance.giantChargeTicks();
         int current = Math.min(required, (int) Math.floor(state.charge()));
         return List.of(
-                "축소 위력: " + oneDecimal(QueenBalance.queenShrinkPoints()),
-                "약체화 하한: 원본의 " + percentInteger(QueenBalance.minimumStatScale()),
+                "축소 위력: " + oneDecimal(QueenBalance.queenShrinkPoints())
+                        + "점 (점당 " + percentInteger(1.0 - QueenBalance.shrinkFactorPerPoint()) + " 감소)",
+                "능력치 하한: 원본의 " + percentInteger(QueenBalance.minimumStatScale()),
+                "외형 하한: 원본의 " + percentInteger(QueenBalance.minimumVisualScale()),
                 "처형선: 현재 체력 " + oneDecimal(state.executionHealth()),
                 "저놈의 목을 쳐라!: " + current + "/" + required,
                 "남은 충전: " + oneDecimal(Math.max(0.0, required - state.charge()) / 20.0) + "초",

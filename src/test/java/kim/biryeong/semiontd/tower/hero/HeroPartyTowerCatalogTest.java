@@ -2,9 +2,14 @@ package kim.biryeong.semiontd.tower.hero;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.JsonParser;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +73,14 @@ class HeroPartyTowerCatalogTest {
         assertEquals(25, ProductionTowerCatalog.all().stream()
                 .filter(entry -> job.includesTowerInCatalog(entry.type()))
                 .count());
+        assertEquals("용사 타워", HeroPlayerVisuals.displayProfileName(HeroPartyTowers.HERO));
+        assertEquals("견습 사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 1).displayName());
+        assertEquals("중견 사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 2).displayName());
+        assertEquals("베테랑 사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 3).displayName());
+        assertEquals("대사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 4).displayName());
+        assertEquals("견습 사제 타워", HeroPlayerVisuals.displayProfileName(
+                HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 1)
+        ));
 
         Set<String> ids = HeroPartyTowers.all().stream().map(type -> type.id()).collect(Collectors.toSet());
         assertTrue(ids.contains(HeroPartyTowers.HERO_ID));
@@ -240,6 +253,45 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
+    void focusFireDefenseUsesTheConfiguredPerAttackerReductionAndCap() throws Exception {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertEquals(0.08, defaults.ability(
+                HeroPartyBalance.GLOBAL_CONFIG_ID, "focusFireDamageReductionPerExtraAttacker", -1), 0.0001);
+        assertEquals(0.40, defaults.ability(
+                HeroPartyBalance.GLOBAL_CONFIG_ID, "focusFireDamageReductionCap", -1), 0.0001);
+        assertEquals(0.0, HeroPartyTower.focusFireDamageReduction(1), 0.0001);
+        assertEquals(0.08, HeroPartyTower.focusFireDamageReduction(2), 0.0001);
+        assertEquals(0.24, HeroPartyTower.focusFireDamageReduction(4), 0.0001);
+        assertEquals(0.40, HeroPartyTower.focusFireDamageReduction(6), 0.0001);
+        assertEquals(0.40, HeroPartyTower.focusFireDamageReduction(100), 0.0001);
+
+        TowerBalanceConfig partial = new TowerBalanceConfig(
+                Map.of(), Map.of(), Map.of(HeroPartyBalance.GLOBAL_CONFIG_ID, Map.of(
+                        "focusFireDamageReductionPerExtraAttacker", 0.10
+                ))
+        );
+        TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
+        assertEquals(0.10, merged.ability(
+                HeroPartyBalance.GLOBAL_CONFIG_ID, "focusFireDamageReductionPerExtraAttacker", -1), 0.0001);
+        assertEquals(0.40, merged.ability(
+                HeroPartyBalance.GLOBAL_CONFIG_ID, "focusFireDamageReductionCap", -1), 0.0001);
+        assertInvalidFocusConfig(defaults, "focusFireDamageReductionCap", 1.0);
+        assertInvalidFocusConfig(defaults, "focusFireDamageReductionPerExtraAttacker", 0.50);
+
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        try (var input = HeroPartyTowerCatalogTest.class.getResourceAsStream(
+                "/semiontd/balance-defaults/tower_balance.json")) {
+            var bundled = JsonParser.parseReader(new InputStreamReader(
+                    java.util.Objects.requireNonNull(input), StandardCharsets.UTF_8))
+                    .getAsJsonObject().getAsJsonObject("abilities")
+                    .getAsJsonObject(HeroPartyBalance.GLOBAL_CONFIG_ID);
+            Map<String, Double> javaDefaults = defaults.abilities().get(HeroPartyBalance.GLOBAL_CONFIG_ID);
+            assertEquals(javaDefaults.keySet(), bundled.keySet());
+            javaDefaults.forEach((key, value) -> assertEquals(value, bundled.get(key).getAsDouble(), 0.0001, key));
+        }
+    }
+
+    @Test
     void questPoolOnlyAddsCompanionQuestsThatThePartyCanComplete() {
         TestContext context = testContext();
         HeroPartyState state = HeroPartyStates.state(OWNER);
@@ -344,6 +396,18 @@ class HeroPartyTowerCatalogTest {
         PlayerLane lane = testLane();
         game.teams().get(TeamId.RED).laneGroup().addLane(lane);
         return new TestContext(game, player, lane);
+    }
+
+    private static void assertInvalidFocusConfig(TowerBalanceConfig defaults, String key, double value) {
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> focus = new LinkedHashMap<>(abilities.get(HeroPartyBalance.GLOBAL_CONFIG_ID));
+        focus.put(key, value);
+        abilities.put(HeroPartyBalance.GLOBAL_CONFIG_ID, focus);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
+        );
+        assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
     }
 
     private static PlayerLane testLane() {

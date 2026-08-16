@@ -108,10 +108,11 @@ final class EngineerTowerCatalogTest {
     }
 
     @Test
-    void defaultsMergeAndDescriptionsResolve() {
+    void defaultsMerge() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         assertTrue(EngineerTowers.all().stream().allMatch(type -> defaults.towers().containsKey(type.id())));
         assertEquals(60, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "activeTicks", -1));
+        assertEquals(120, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "doorActiveTicks", -1));
         assertEquals(60, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "tntFuseTicks", -1));
         assertEquals(35, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxRedstone", -1));
         assertEquals(4, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxPlates", -1));
@@ -141,15 +142,11 @@ final class EngineerTowerCatalogTest {
         );
         TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
         assertEquals(80, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeTicks", -1));
+        assertEquals(120, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "doorActiveTicks", -1));
         assertEquals(100, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "plateCooldownTicks", -1));
         assertEquals(10, merged.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
         assertEquals(20, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
 
-        for (var type : EngineerTowers.all()) {
-            List<String> description = ProductionTowerCatalog.find(type.id()).orElseThrow().type().description();
-            assertFalse(description.isEmpty());
-            assertTrue(description.stream().noneMatch(line -> line.contains("{ability.")), type.id());
-        }
     }
 
     @Test
@@ -188,6 +185,8 @@ final class EngineerTowerCatalogTest {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", 1.1);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", 36.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 0.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 2.5);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", 2.5);
         assertInvalidAbility(defaults,
                 EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 2).id(), "intervalTicks", 20.0);

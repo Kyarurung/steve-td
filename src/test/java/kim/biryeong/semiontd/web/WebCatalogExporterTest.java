@@ -62,6 +62,14 @@ final class WebCatalogExporterTest {
         assertTrue(first.traits().stream().allMatch(trait -> !trait.displayName().equals(trait.id())));
         assertTrue(first.summons().stream().allMatch(summon -> !summon.displayName().equals(summon.id())));
         assertTrue(first.towers().stream().allMatch(tower -> tower.builderId() != null));
+        assertTrue(first.builders().stream().flatMap(entry -> entry.description().stream())
+                .noneMatch(WebCatalogExporterTest::hasUnresolvedPlaceholder));
+        assertTrue(first.towers().stream().flatMap(entry -> entry.description().stream())
+                .noneMatch(WebCatalogExporterTest::hasUnresolvedPlaceholder));
+        assertTrue(first.traits().stream().flatMap(entry -> entry.description().stream())
+                .noneMatch(WebCatalogExporterTest::hasUnresolvedPlaceholder));
+        assertTrue(SummonRegistry.all().stream().flatMap(summon -> summon.description().stream())
+                .noneMatch(WebCatalogExporterTest::hasUnresolvedPlaceholder));
         first.upgrades().forEach(upgrade -> {
             var sourceType = ProductionTowerCatalog.find(upgrade.fromTowerId()).orElseThrow().type();
             var option = ProductionTowerCatalog.upgrade(sourceType, upgrade.id()).orElseThrow();
@@ -99,7 +107,7 @@ final class WebCatalogExporterTest {
     }
 
     @Test
-    void adversaryFamilyExportsWithOneBuilderAndResolvedDescriptions() {
+    void adversaryFamilyExportsWithOneBuilder() {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         IncomeSummons.reloadBuiltIns(SummonConfig.defaultConfig());
 
@@ -118,13 +126,11 @@ final class WebCatalogExporterTest {
                 .toList();
         assertEquals(expectedIds, towers.stream().map(WebCatalogExporter.TowerEntry::id)
                 .collect(java.util.stream.Collectors.toSet()));
-        assertTrue(towers.stream().flatMap(entry -> entry.description().stream())
-                .noneMatch(line -> line.contains("{ability.") || line.contains("{stat.")));
         assertTrue(document.abilities().containsKey(AdversaryBalance.GLOBAL_CONFIG_ID));
     }
 
     @Test
-    void atlantisFamilyExportsWithOneBuilderAndResolvedDescriptions() {
+    void atlantisFamilyExportsWithOneBuilder() {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         IncomeSummons.reloadBuiltIns(SummonConfig.defaultConfig());
 
@@ -143,8 +149,6 @@ final class WebCatalogExporterTest {
                 .toList();
         assertEquals(expectedIds, towers.stream().map(WebCatalogExporter.TowerEntry::id)
                 .collect(java.util.stream.Collectors.toSet()));
-        assertTrue(towers.stream().flatMap(entry -> entry.description().stream())
-                .noneMatch(line -> line.contains("{ability.") || line.contains("{stat.")));
         assertTrue(document.abilities()
                 .containsKey(kim.biryeong.semiontd.tower.atlantis.AtlantisBalance.CONFIG_ID));
     }
@@ -203,7 +207,7 @@ final class WebCatalogExporterTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals(expectedTowerIds, Set.copyOf(builder.towerIds()));
-        assertTrue(builder.description().stream().noneMatch(WebCatalogExporterTest::hasPlaceholder));
+        assertTrue(builder.description().stream().noneMatch(WebCatalogExporterTest::hasUnresolvedPlaceholder));
 
         var towers = document.towers().stream()
                 .filter(entry -> entry.builderId().equals(builderId))
@@ -211,7 +215,7 @@ final class WebCatalogExporterTest {
         assertEquals(expectedTowerIds, towers.stream().map(WebCatalogExporter.TowerEntry::id)
                 .collect(java.util.stream.Collectors.toSet()));
         assertTrue(towers.stream().flatMap(entry -> entry.description().stream())
-                .noneMatch(WebCatalogExporterTest::hasPlaceholder));
+                .noneMatch(WebCatalogExporterTest::hasUnresolvedPlaceholder));
         assertTrue(towers.stream().allMatch(entry -> entry.visual() != null
                 && entry.visual().entityTypeId() != null));
 
@@ -223,11 +227,11 @@ final class WebCatalogExporterTest {
         assertTrue(document.abilities().containsKey(globalAbilityId));
     }
 
-    private static boolean hasPlaceholder(String line) {
-        return line.contains("{ability.") || line.contains("{stat.");
-    }
-
     private static String edge(String fromTowerId, String upgradeId, String toTowerId) {
         return fromTowerId + "|" + upgradeId + "|" + toTowerId;
+    }
+
+    private static boolean hasUnresolvedPlaceholder(String line) {
+        return line.contains("{ability.") || line.contains("{stat.");
     }
 }

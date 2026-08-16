@@ -21,6 +21,8 @@ final class QueenEquipmentVisual {
             visual.setSilent(true);
             visual.setShowArms(true);
             visual.setNoBasePlate(true);
+            visual.getEntityData().set(ArmorStand.DATA_CLIENT_FLAGS,
+                    (byte) (visual.getEntityData().get(ArmorStand.DATA_CLIENT_FLAGS) | ArmorStand.CLIENT_FLAG_MARKER));
             if (!level.addFreshEntity(visual)) return null;
         }
         visual.setItemSlot(EquipmentSlot.HEAD, source.getItemBySlot(EquipmentSlot.HEAD).copy());

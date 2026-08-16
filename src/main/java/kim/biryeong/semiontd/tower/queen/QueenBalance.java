@@ -7,8 +7,8 @@ public final class QueenBalance {
 
     private QueenBalance() {}
 
-    public static double shrinkFactorPerPoint() {return ability("shrinkFactorPerPoint", 0.99);}
-    public static double minimumStatScale() {return ability("minimumStatScale", 0.50);}
+    public static double shrinkFactorPerPoint() {return ability("shrinkFactorPerPoint", 0.98);}
+    public static double minimumStatScale() {return ability("minimumStatScale", 0.20);}
     public static double minimumVisualScale() {return ability("minimumVisualScale", 0.50);}
     public static double queenShrinkPoints() {return ability("queenShrinkPoints", 5.0);}
     public static double cardShrinkPoints() {return ability("cardShrinkPoints", 0.75);}
