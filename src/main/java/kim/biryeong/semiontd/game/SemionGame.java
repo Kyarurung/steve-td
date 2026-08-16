@@ -42,6 +42,7 @@ import kim.biryeong.semiontd.tower.mage.MageStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.army.ArmyStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
@@ -797,6 +798,7 @@ public final class SemionGame {
             kim.biryeong.semiontd.tower.futureagency.FutureAgencyStates.clear(playerId);
             kim.biryeong.semiontd.tower.queen.QueenStates.clear(playerId);
             HeroPartyStates.clear(playerId);
+            ArmyStates.clear(playerId);
         }
         players.clear();
         selectedJobs.clear();

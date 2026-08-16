@@ -935,6 +935,17 @@ public record TowerBalanceConfig(
         global.put("commandRadius", ArmyBalance.COMMAND_RADIUS);
         global.put("maxCommandBonus", ArmyBalance.MAX_COMMAND_BONUS);
         global.put("dischargeRefundRatio", ArmyBalance.DISCHARGE_REFUND_RATIO);
+        global.put("corporalService", (double) ArmyBalance.CORPORAL_SERVICE);
+        global.put("corporalAttackMultiplier", ArmyBalance.CORPORAL_ATTACK_MULTIPLIER);
+        global.put("corporalDamageBuff", ArmyBalance.CORPORAL_DAMAGE_BUFF);
+        global.put("sergeantService", (double) ArmyBalance.SERGEANT_SERVICE);
+        global.put("sergeantAttackMultiplier", ArmyBalance.SERGEANT_ATTACK_MULTIPLIER);
+        global.put("sergeantDamageBuff", ArmyBalance.SERGEANT_DAMAGE_BUFF);
+        global.put("staffSergeantService", (double) ArmyBalance.STAFF_SERGEANT_SERVICE);
+        global.put("staffSergeantDamageBuff", ArmyBalance.STAFF_SERGEANT_DAMAGE_BUFF);
+        global.put("staffSergeantAttackSpeedBuff", ArmyBalance.STAFF_SERGEANT_ATTACK_SPEED_BUFF);
+        global.put("dischargeService", (double) ArmyBalance.DISCHARGE_SERVICE);
+        global.put("dischargeNoticeWaves", (double) ArmyBalance.DISCHARGE_NOTICE_WAVES);
         global.put("medalDamageBonus", ArmyBalance.MEDAL_DAMAGE_BONUS);
         global.put("maxMedals", (double) ArmyBalance.MAX_MEDALS);
         putAbilities(abilities, ArmyBalance.CONFIG_ID, global);
@@ -1308,9 +1319,30 @@ public record TowerBalanceConfig(
 
     private void validateArmyAbilities() {
         String global = ArmyBalance.CONFIG_ID;
-        validateRatios(global, "dischargeRefundRatio", "medalDamageBonus");
-        validatePositive(global, "commandRadius", "maxCommandBonus", "maxMedals");
-        validateIntegral(global, false, "maxMedals");
+        validateRatios(global,
+                "dischargeRefundRatio", "medalDamageBonus", "corporalAttackMultiplier",
+                "corporalDamageBuff", "sergeantAttackMultiplier", "sergeantDamageBuff",
+                "staffSergeantDamageBuff", "staffSergeantAttackSpeedBuff");
+        validatePositive(global,
+                "commandRadius", "maxCommandBonus", "maxMedals", "corporalService", "sergeantService",
+                "staffSergeantService", "dischargeService");
+        validateIntegral(global, false,
+                "maxMedals", "corporalService", "sergeantService", "staffSergeantService",
+                "dischargeService");
+        validateIntegral(global, true, "dischargeNoticeWaves");
+
+        Double corporal = configuredAbility(global, "corporalService");
+        Double sergeant = configuredAbility(global, "sergeantService");
+        Double staffSergeant = configuredAbility(global, "staffSergeantService");
+        Double discharge = configuredAbility(global, "dischargeService");
+        Double notice = configuredAbility(global, "dischargeNoticeWaves");
+        if (corporal != null && sergeant != null && staffSergeant != null && discharge != null
+                && !(corporal < sergeant && sergeant < staffSergeant && staffSergeant < discharge)) {
+            throw new IllegalArgumentException("Army service thresholds must be strictly increasing.");
+        }
+        if (notice != null && discharge != null && notice > discharge) {
+            throw new IllegalArgumentException("Army discharge notice must not exceed total service.");
+        }
 
         for (TowerType type : ArmyTowers.all()) {
             String id = type.id();

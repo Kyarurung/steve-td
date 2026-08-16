@@ -3,8 +3,11 @@ package kim.biryeong.semiontd.tower.army;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -15,6 +18,7 @@ import kim.biryeong.semiontd.job.JobRegistry;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.AfterEach;
@@ -165,6 +169,70 @@ class ArmyTowerCatalogTest {
             assertTrue(type.entityTypeId().startsWith("minecraft:"),
                     type.id() + " must use a vanilla entity: " + type.entityTypeId());
         }
+    }
+
+    @Test
+    void dischargeRefundRecoversOnlyTheRemainingLoss() {
+        assertEquals(0.94, ArmyTower.dischargeRefundRatio(0.90, 0.40), 1.0E-9);
+        assertEquals(1.0, ArmyTower.dischargeRefundRatio(0.90, 1.25), 1.0E-9,
+                "stacked quartermasters must saturate without creating minerals");
+    }
+
+    @Test
+    void completedDischargeAwardsOneMedalOnly() {
+        ArmyTower tower = tower(ArmyTowers.RECRUIT);
+        for (int wave = 1; wave <= ArmyBalance.dischargeService(); wave++) {
+            tower.onWaveStarted(null, wave);
+            tower.completeServiceWave(null);
+        }
+        tower.onSold(null);
+        tower.onSold(null);
+        assertEquals(1, ArmyStates.medalCount(OWNER));
+    }
+
+    @Test
+    void medalsBuffTheGuardLineAndTopRankStopsAttacking() {
+        ArmyStates.awardMedal(OWNER, 1.0);
+        assertEquals(102.0, tower(ArmyTowers.GUARD).modifyAttackDamage(null, null, 100.0), 1.0E-9);
+
+        ArmyTower recruit = tower(ArmyTowers.RECRUIT);
+        for (int wave = 1; wave <= ArmyBalance.staffSergeantService(); wave++) {
+            recruit.onWaveStarted(null, wave);
+            recruit.completeServiceWave(null);
+        }
+        assertEquals(0.0, recruit.adjustAttackRange(recruit.type().range()), 1.0E-9);
+    }
+
+    @Test
+    void partialArmyConfigBackfillsNewKeysAndRejectsInvalidOrder() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig partial = new TowerBalanceConfig(
+                Map.of(), Map.of(), Map.of(ArmyBalance.CONFIG_ID, Map.of("corporalService", 3.0))
+        ).withMissingDefaults(defaults);
+        assertEquals(3.0, partial.ability(ArmyBalance.CONFIG_ID, "corporalService", -1.0));
+        assertEquals(ArmyBalance.DISCHARGE_SERVICE,
+                partial.ability(ArmyBalance.CONFIG_ID, "dischargeService", -1.0));
+
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(ArmyBalance.CONFIG_ID));
+        global.put("sergeantService", 1.0);
+        abilities.put(ArmyBalance.CONFIG_ID, global);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities);
+        assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
+    }
+
+    @Test
+    void armyDescriptionsResolveAllConfiguredNumbers() {
+        for (TowerType type : ArmyTowers.all()) {
+            for (String line : TowerDescriptionRegistry.describe(type).orElseThrow()) {
+                assertFalse(line.contains("{"), type.id() + " left an unresolved placeholder: " + line);
+            }
+        }
+    }
+
+    private static ArmyTower tower(TowerType type) {
+        GridPosition position = new GridPosition(0, 64, 0);
+        return new ArmyTower(type, OWNER, TeamId.RED, 0, position);
     }
 
     private static void assertUpgradeExists(TowerType from, TowerType to) {

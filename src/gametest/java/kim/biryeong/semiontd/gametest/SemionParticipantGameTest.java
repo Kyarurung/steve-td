@@ -106,6 +106,7 @@ import kim.biryeong.semiontd.game.TowerSellResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.game.VanillaTeamBridge;
 import kim.biryeong.semiontd.job.AnimalTowerJob;
+import kim.biryeong.semiontd.job.ArmyTowerJob;
 import kim.biryeong.semiontd.job.AncientCityTowerJob;
 import kim.biryeong.semiontd.job.AdversaryTowerJob;
 import kim.biryeong.semiontd.job.AtlantisTowerJob;
@@ -10067,7 +10068,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(ThunderTowerJob.ID), "Built-in reload should register the thunder tower job.")) {
             return;
         }
-        if (!assertEquals(context, 97L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
+        if (!assertPresent(context, JobRegistry.find(ArmyTowerJob.ID), "Built-in reload should register the army tower job.")) {
+            return;
+        }
+        if (!assertEquals(context, 100L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
             return;
         }
         context.succeed();

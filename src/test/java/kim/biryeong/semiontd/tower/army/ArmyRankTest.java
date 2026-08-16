@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -15,6 +18,12 @@ import org.junit.jupiter.api.Test;
  */
 class ArmyRankTest {
     private static final double EPSILON = 1.0E-9;
+
+    @BeforeAll
+    static void bootstrapMinecraftRegistries() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
 
     @Test
     void serviceMapsToTheExpectedRank() {
@@ -29,7 +38,7 @@ class ArmyRankTest {
 
     @Test
     void rankIsClampedPastTheTop() {
-        assertEquals(ArmyRank.STAFF_SERGEANT, ArmyRank.of(ArmyRank.DISCHARGE_SERVICE));
+        assertEquals(ArmyRank.STAFF_SERGEANT, ArmyRank.of(ArmyBalance.dischargeService()));
         assertEquals(ArmyRank.STAFF_SERGEANT, ArmyRank.of(999));
     }
 
@@ -64,10 +73,10 @@ class ArmyRankTest {
     @Test
     void lifetimeAverageAttackMultiplierIsFortyFivePercent() {
         double total = 0.0;
-        for (int service = 0; service < ArmyRank.DISCHARGE_SERVICE; service++) {
+        for (int service = 0; service < ArmyBalance.dischargeService(); service++) {
             total += ArmyRank.of(service).attackMultiplier();
         }
-        double average = total / ArmyRank.DISCHARGE_SERVICE;
+        double average = total / ArmyBalance.dischargeService();
         assertEquals(0.45, average, 0.005,
                 "family stats assume a 0.45 lifetime average; re-derive them before changing the curve");
     }
@@ -81,9 +90,9 @@ class ArmyRankTest {
 
     @Test
     void dischargeCountdownReachesZeroAndStops() {
-        assertEquals(ArmyRank.DISCHARGE_SERVICE, ArmyRank.wavesUntilDischarge(0));
-        assertEquals(0, ArmyRank.wavesUntilDischarge(ArmyRank.DISCHARGE_SERVICE));
-        assertEquals(0, ArmyRank.wavesUntilDischarge(ArmyRank.DISCHARGE_SERVICE + 5),
+        assertEquals(ArmyBalance.dischargeService(), ArmyRank.wavesUntilDischarge(0));
+        assertEquals(0, ArmyRank.wavesUntilDischarge(ArmyBalance.dischargeService()));
+        assertEquals(0, ArmyRank.wavesUntilDischarge(ArmyBalance.dischargeService() + 5),
                 "an overdue tower must not report a negative countdown");
     }
 

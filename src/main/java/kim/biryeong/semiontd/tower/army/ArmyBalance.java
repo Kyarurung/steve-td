@@ -30,6 +30,18 @@ public final class ArmyBalance {
     /** Refund fraction paid when a tower is discharged rather than sold. */
     public static final double DISCHARGE_REFUND_RATIO = 0.9;
 
+    public static final int CORPORAL_SERVICE = 2;
+    public static final double CORPORAL_ATTACK_MULTIPLIER = 0.75;
+    public static final double CORPORAL_DAMAGE_BUFF = 0.12;
+    public static final int SERGEANT_SERVICE = 5;
+    public static final double SERGEANT_ATTACK_MULTIPLIER = 0.40;
+    public static final double SERGEANT_DAMAGE_BUFF = 0.28;
+    public static final int STAFF_SERGEANT_SERVICE = 9;
+    public static final double STAFF_SERGEANT_DAMAGE_BUFF = 0.50;
+    public static final double STAFF_SERGEANT_ATTACK_SPEED_BUFF = 0.15;
+    public static final int DISCHARGE_SERVICE = 13;
+    public static final int DISCHARGE_NOTICE_WAVES = 2;
+
     /** Permanent lane-wide damage each medal grants. */
     public static final double MEDAL_DAMAGE_BONUS = 0.02;
     public static final int MAX_MEDALS = 10;
@@ -47,6 +59,50 @@ public final class ArmyBalance {
 
     public static double dischargeRefundRatio() {
         return clamp(global("dischargeRefundRatio", DISCHARGE_REFUND_RATIO), 0.0, 1.0);
+    }
+
+    public static int corporalService() {
+        return globalInt("corporalService", CORPORAL_SERVICE);
+    }
+
+    public static double corporalAttackMultiplier() {
+        return global("corporalAttackMultiplier", CORPORAL_ATTACK_MULTIPLIER);
+    }
+
+    public static double corporalDamageBuff() {
+        return global("corporalDamageBuff", CORPORAL_DAMAGE_BUFF);
+    }
+
+    public static int sergeantService() {
+        return globalInt("sergeantService", SERGEANT_SERVICE);
+    }
+
+    public static double sergeantAttackMultiplier() {
+        return global("sergeantAttackMultiplier", SERGEANT_ATTACK_MULTIPLIER);
+    }
+
+    public static double sergeantDamageBuff() {
+        return global("sergeantDamageBuff", SERGEANT_DAMAGE_BUFF);
+    }
+
+    public static int staffSergeantService() {
+        return globalInt("staffSergeantService", STAFF_SERGEANT_SERVICE);
+    }
+
+    public static double staffSergeantDamageBuff() {
+        return global("staffSergeantDamageBuff", STAFF_SERGEANT_DAMAGE_BUFF);
+    }
+
+    public static double staffSergeantAttackSpeedBuff() {
+        return global("staffSergeantAttackSpeedBuff", STAFF_SERGEANT_ATTACK_SPEED_BUFF);
+    }
+
+    public static int dischargeService() {
+        return globalInt("dischargeService", DISCHARGE_SERVICE);
+    }
+
+    public static int dischargeNoticeWaves() {
+        return globalInt("dischargeNoticeWaves", DISCHARGE_NOTICE_WAVES);
     }
 
     public static double medalDamageBonus() {

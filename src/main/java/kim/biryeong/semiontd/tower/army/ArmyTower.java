@@ -16,6 +16,7 @@ import kim.biryeong.semiontd.api.area.TowerAreaTargetMode;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.visual.TowerEquipmentVisual;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -27,6 +28,10 @@ import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * Runtime tower for the 군대 family.
@@ -42,10 +47,13 @@ public class ArmyTower extends ProductionTower {
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "army_command");
 
     private int service;
+    private int pendingServiceGain;
     private boolean dischargePending;
+    private boolean dischargeCompleted;
     private ArmyRank appliedRank;
     private long lastCommandTick = Long.MIN_VALUE;
     private boolean commanded;
+    private transient ArmorStand equipmentVisual;
 
     /**
      * Kept so {@link #sellRefundAmount()} can still see the lane.
@@ -83,16 +91,14 @@ public class ArmyTower extends ProductionTower {
         return ArmyTowers.ranks(type());
     }
 
-    /** Whether this tower is close enough to discharge that the player must be warned. */
-    public boolean dischargeImminent() {
-        return ranks() && ArmyRank.wavesUntilDischarge(service) <= ArmyRank.DISCHARGE_NOTICE_WAVES;
-    }
-
     @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
         super.copyRuntimeStateFrom(previousTower);
         if (previousTower instanceof ArmyTower army) {
             service = army.service;
+            pendingServiceGain = army.pendingServiceGain;
+            dischargePending = army.dischargePending;
+            dischargeCompleted = army.dischargeCompleted;
             appliedRank = army.appliedRank;
         }
     }
@@ -109,6 +115,13 @@ public class ArmyTower extends ProductionTower {
         currentLane = lane;
         appliedRank = null;
         applyAppearance(entity);
+    }
+
+    @Override
+    public void onRemoved(PlayerLane lane) {
+        TowerEquipmentVisual.remove(equipmentVisual);
+        equipmentVisual = null;
+        super.onRemoved(lane);
     }
 
     private Optional<SemionTowerEntity> entity(PlayerLane lane) {
@@ -129,13 +142,22 @@ public class ArmyTower extends ProductionTower {
         if (!ranks()) {
             return;
         }
-        ArmyRank before = rank();
-        service = Math.max(0, service + serviceGainThisWave(lane));
-        if (service >= ArmyRank.DISCHARGE_SERVICE) {
-            dischargePending = true;
+        pendingServiceGain = serviceGainThisWave(lane);
+    }
+
+    /** Applies the wave-start snapshot only after this tower survives the round. */
+    public void completeServiceWave(PlayerLane lane) {
+        int gain = pendingServiceGain;
+        pendingServiceGain = 0;
+        if (!ranks() || isDestroyed(lane)) {
+            return;
         }
-        entity(lane).ifPresent(this::applyAppearance);
+        ArmyRank before = rank();
+        service = Math.max(0, service + gain);
+        dischargePending = service >= ArmyBalance.dischargeService();
         if (rank() != before) {
+            entity(lane).ifPresent(this::applyAppearance);
+            onStateChanged(lane);
             playRankVfx(lane, AreaVfxStyles.BUFF, "promotion");
         }
     }
@@ -187,11 +209,15 @@ public class ArmyTower extends ProductionTower {
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         double damage = super.modifyAttackDamage(towerEntity, target, damageAmount);
-        if (!ranks()) {
-            return damage;
+        if (ranks()) {
+            damage *= rank().attackMultiplier();
         }
-        damage *= rank().attackMultiplier();
         return damage * (1.0 + ArmyStates.medalBonus(ownerPlayer()));
+    }
+
+    @Override
+    public double adjustAttackRange(double baseRange) {
+        return ranks() && rank().attackMultiplier() <= 0.0 ? 0.0 : super.adjustAttackRange(baseRange);
     }
 
     /**
@@ -216,6 +242,7 @@ public class ArmyTower extends ProductionTower {
             return;
         }
         currentLane = lane;
+        equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity(lane).orElse(null));
         long now = lane.arenaWorld().getGameTime();
         if (now - lastCommandTick < ArmyBalance.COMMAND_SCAN_INTERVAL_TICKS) {
             return;
@@ -309,7 +336,8 @@ public class ArmyTower extends ProductionTower {
                 null,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(this, towerEntity, request, monster -> splash, true);
+        TowerAreaDamage.applyResolved(this, towerEntity, request, monster -> splash, true,
+                (monster, damage, killed) -> {});
     }
 
     // ------------------------------------------------------------------ discharge
@@ -323,31 +351,32 @@ public class ArmyTower extends ProductionTower {
      */
     @Override
     public long sellRefundAmount() {
-        if (!ranks() || service < ArmyRank.DISCHARGE_SERVICE) {
+        if (!ranks() || service < ArmyBalance.dischargeService()) {
             return super.sellRefundAmount();
         }
-        double ratio = ArmyBalance.dischargeRefundRatio() * (1.0 + supportBonus(currentLane, true));
+        double ratio = dischargeRefundRatio(ArmyBalance.dischargeRefundRatio(), supportBonus(currentLane, true));
         return Math.max(super.sellRefundAmount(), Math.round(paidMineralCost() * ratio));
+    }
+
+    static double dischargeRefundRatio(double baseRatio, double supportBonus) {
+        double base = Math.max(0.0, Math.min(1.0, baseRatio));
+        return base + (1.0 - base) * Math.max(0.0, Math.min(1.0, supportBonus));
     }
 
     @Override
     public void onSold(PlayerLane lane) {
         super.onSold(lane);
-        awardMedalIfDischarged(lane);
+        completeDischarge(lane);
     }
 
-    @Override
-    public void onRemoved(PlayerLane lane) {
-        super.onRemoved(lane);
-        awardMedalIfDischarged(lane);
-    }
-
-    private void awardMedalIfDischarged(PlayerLane lane) {
-        if (!ranks() || service < ArmyRank.DISCHARGE_SERVICE) {
-            return;
+    /** The only reward path for both an automatic discharge and a normal sale. */
+    public boolean completeDischarge(PlayerLane lane) {
+        if (dischargeCompleted || !ranks() || service < ArmyBalance.dischargeService()) {
+            return false;
         }
-        playRankVfx(lane, AreaVfxStyles.PULSE, "discharge");
+        dischargeCompleted = true;
         ArmyStates.awardMedal(ownerPlayer(), 1.0 + supportBonus(lane, false));
+        return true;
     }
 
     /** Aggregate of every 보급관 bonus currently on the lane. */
@@ -358,6 +387,9 @@ public class ArmyTower extends ProductionTower {
         double total = 0.0;
         for (Tower tower : lane.towers()) {
             if (!ownerPlayer().equals(tower.ownerPlayer())) {
+                continue;
+            }
+            if (tower.isDestroyed(lane)) {
                 continue;
             }
             total += refund
@@ -373,26 +405,49 @@ public class ArmyTower extends ProductionTower {
 
     // ------------------------------------------------------------------ appearance
 
-    /**
-     * Rank on the name plate.
-     *
-     * <p>Equipment was the first choice — leather to diamond helmets read as rank without a legend —
-     * but it never reaches the client. Polymer sends a virtual entity and only forwards gear listed
-     * by {@code PolymerEntity#getPolymerVisibleEquipment}, which {@link SemionTowerEntity} does not
-     * override, so {@code setItemSlot} changed the server copy and nothing else. Tracked data such
-     * as the custom name does go through, so the plate carries the rank on its own.
-     */
+    /** Keeps the rank name and the shared armor-stand equipment overlay in sync. */
     private void applyAppearance(SemionTowerEntity entity) {
-        if (entity == null || !ranks()) {
+        if (entity == null) {
             return;
         }
-        ArmyRank current = rank();
-        if (current == appliedRank) {
+        applyEquipment(entity);
+        if (ranks()) {
+            ArmyRank current = rank();
+            if (current != appliedRank) {
+                appliedRank = current;
+                entity.setCustomName(Component.literal(type().displayName() + " [" + rankTitle(current) + "]"));
+                entity.setCustomNameVisible(true);
+            }
+        }
+        equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity);
+    }
+
+    private void applyEquipment(SemionTowerEntity entity) {
+        entity.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+        entity.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+        entity.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        entity.setItemSlot(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+
+        String id = type().id();
+        if (id.equals(ArmyTowers.CLERK.id())
+                || id.equals(ArmyTowers.DRILL_SERGEANT.id())
+                || id.equals(ArmyTowers.QUARTERMASTER.id())) {
+            entity.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.COMPASS));
             return;
         }
-        appliedRank = current;
-        entity.setCustomName(Component.literal(type().displayName() + " [" + rankTitle(current) + "]"));
-        entity.setCustomNameVisible(true);
+        if (!ranks()) {
+            entity.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+            entity.setItemSlot(EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
+            return;
+        }
+        entity.setItemSlot(EquipmentSlot.HEAD, new ItemStack(switch (rank()) {
+            case PRIVATE -> Items.LEATHER_HELMET;
+            case CORPORAL -> Items.CHAINMAIL_HELMET;
+            case SERGEANT -> Items.IRON_HELMET;
+            case STAFF_SERGEANT -> Items.DIAMOND_HELMET;
+        }));
+        entity.setItemSlot(EquipmentSlot.MAINHAND,
+                new ItemStack(ArmyTowers.isArtillery(type()) ? Items.TNT : Items.CROSSBOW));
     }
 
     /** Rank title on this tower's ladder: 병사 / 부사관 / 장교. */
@@ -407,16 +462,45 @@ public class ArmyTower extends ProductionTower {
      * is only that promotion, command and discharge are visible at all, and the palette already
      * differs per style, so 승진(BUFF, green) and 전역(PULSE) read differently without new art.
      */
-    private void playRankVfx(PlayerLane lane, net.minecraft.resources.ResourceLocation style, String tag) {
-        entity(lane).ifPresent(entity -> SemionTdApi.areaEffects().applyToTowers(
+    private boolean playRankVfx(PlayerLane lane, net.minecraft.resources.ResourceLocation style, String tag) {
+        SemionTowerEntity source = entity(lane).orElse(null);
+        if (source == null || !source.isAlive()) {
+            return false;
+        }
+        SemionTdApi.areaEffects().applyToTowers(
                 TowerAreaEffectRequest.aroundTower(
                         AreaEffectIds.tower(this, tag),
-                        entity,
+                        source,
                         Math.max(1.0, ArmyBalance.commandRadius() * 0.5),
                         TowerAreaTargetMode.REGISTERED,
                         AreaVfxSpec.onTrigger(style)
                 ).withFilter(target -> target.tower() == this),
-                target -> AreaEffectOutcome.APPLIED));
+                target -> AreaEffectOutcome.APPLIED);
+        return true;
+    }
+
+    public boolean showDebugVfx(PlayerLane lane, DebugVfx kind) {
+        if (kind == null || isDestroyed(lane) || (kind == DebugVfx.BARRAGE && !ArmyTowers.isArtillery(type()))) {
+            return false;
+        }
+        return playRankVfx(lane, kind.style(), kind.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    public enum DebugVfx {
+        PROMOTION(AreaVfxStyles.BUFF),
+        COMMAND(AreaVfxStyles.BUFF),
+        BARRAGE(AreaVfxStyles.SPLASH),
+        DISCHARGE(AreaVfxStyles.PULSE);
+
+        private final ResourceLocation style;
+
+        DebugVfx(ResourceLocation style) {
+            this.style = style;
+        }
+
+        private ResourceLocation style() {
+            return style;
+        }
     }
 
 
@@ -438,7 +522,7 @@ public class ArmyTower extends ProductionTower {
 
         int untilPromotion = ArmyRank.wavesUntilPromotion(service);
         int untilDischarge = ArmyRank.wavesUntilDischarge(service);
-        if (untilDischarge <= ArmyRank.DISCHARGE_NOTICE_WAVES) {
+        if (untilDischarge <= ArmyBalance.dischargeNoticeWaves()) {
             lines.add("<red>전역까지 " + untilDischarge + "웨이브</red>");
         } else if (untilPromotion > 0) {
             lines.add("다음 진급까지 " + untilPromotion + "웨이브 · 전역까지 " + untilDischarge + "웨이브");

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.rating.RatingConfig;
+import kim.biryeong.semiontd.tower.army.ArmyBalance;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
@@ -296,6 +297,41 @@ final class SemionConfigLoaderTest {
         assertTrue(written.contains("cloneDamageBonus"));
         assertTrue(written.contains("\"schemaVersion\": 2"));
         assertTrue(written.contains("waterSupplyStopThreshold"));
+    }
+
+    @Test
+    void invalidArmyThresholdOrderRetainsLastKnownGoodBalance() throws Exception {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> army = new LinkedHashMap<>(abilities.get(ArmyBalance.CONFIG_ID));
+        army.put("corporalAttackMultiplier", 0.70);
+        abilities.put(ArmyBalance.CONFIG_ID, army);
+        TowerBalanceConfig lastKnownGood = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities
+        );
+        lastKnownGood.validateForRuntime();
+
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+                {
+                  "schemaVersion": 2,
+                  "towers": {},
+                  "upgradeCosts": {},
+                  "abilities": {
+                    "army_global": {
+                      "corporalService": 6,
+                      "sergeantService": 5
+                    }
+                  }
+                }
+                """);
+
+        TowerBalanceConfig loaded = SemionConfigLoader.load(
+                tempDir, LoggerFactory.getLogger("test"), lastKnownGood
+        ).towerBalance();
+        assertEquals(ArmyBalance.CORPORAL_SERVICE,
+                loaded.ability(ArmyBalance.CONFIG_ID, "corporalService", -1.0));
+        assertEquals(0.70, loaded.ability(ArmyBalance.CONFIG_ID, "corporalAttackMultiplier", -1.0));
     }
 
     @Test

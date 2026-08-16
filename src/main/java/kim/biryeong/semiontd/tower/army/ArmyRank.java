@@ -10,63 +10,48 @@ package kim.biryeong.semiontd.tower.army;
  * would let a player stack 고참 without paying for it, and the whole builder is the trade between
  * shooting now and making everyone else shoot harder.
  *
- * <p>Thresholds are deliberately not configurable. They define the shape of the family rather than
- * its power level — {@link ArmyBalance} tunes the multipliers instead.
+ * <p>The live balance config owns thresholds and multipliers so reloading the server cannot leave
+ * rank behavior out of sync with player-facing descriptions.
  */
 public enum ArmyRank {
     /** Fresh. Full damage, gives nothing. */
-    PRIVATE("이등병", 0, 1.0, 0.0, 0.0),
-    CORPORAL("일병", 2, 0.75, 0.12, 0.0),
-    SERGEANT("상병", 5, 0.40, 0.28, 0.0),
+    PRIVATE,
+    CORPORAL,
+    SERGEANT,
     /** Stops firing entirely and carries the family's real output on its buff. */
-    STAFF_SERGEANT("병장", 9, 0.0, 0.50, 0.15);
-
-    /**
-     * Service length at which a tower is discharged.
-     *
-     * <p>Set from the lifetime-average maths rather than picked: over a full service the damage
-     * multiplier averages {@code (2*1.00 + 3*0.75 + 4*0.40 + 4*0.00) / 13 = 0.45}. Pushing discharge
-     * later stretches the zero-damage tail and drags the family below every other builder's curve.
-     */
-    public static final int DISCHARGE_SERVICE = 13;
-
-    /** Waves of warning before the automatic discharge. */
-    public static final int DISCHARGE_NOTICE_WAVES = 2;
-
-    private final String displayName;
-    private final int requiredService;
-    private final double attackMultiplier;
-    private final double damageBuff;
-    private final double attackSpeedBuff;
-
-    ArmyRank(String displayName, int requiredService, double attackMultiplier, double damageBuff, double attackSpeedBuff) {
-        this.displayName = displayName;
-        this.requiredService = requiredService;
-        this.attackMultiplier = attackMultiplier;
-        this.damageBuff = damageBuff;
-        this.attackSpeedBuff = attackSpeedBuff;
-    }
-
-    public String displayName() {
-        return displayName;
-    }
+    STAFF_SERGEANT;
 
     public int requiredService() {
-        return requiredService;
+        return switch (this) {
+            case PRIVATE -> 0;
+            case CORPORAL -> ArmyBalance.corporalService();
+            case SERGEANT -> ArmyBalance.sergeantService();
+            case STAFF_SERGEANT -> ArmyBalance.staffSergeantService();
+        };
     }
 
     /** What fraction of its listed damage a tower of this rank still deals. */
     public double attackMultiplier() {
-        return attackMultiplier;
+        return switch (this) {
+            case PRIVATE -> 1.0;
+            case CORPORAL -> ArmyBalance.corporalAttackMultiplier();
+            case SERGEANT -> ArmyBalance.sergeantAttackMultiplier();
+            case STAFF_SERGEANT -> 0.0;
+        };
     }
 
     /** Damage bonus this rank grants to each lower-ranked ally in range. */
     public double damageBuff() {
-        return damageBuff;
+        return switch (this) {
+            case PRIVATE -> 0.0;
+            case CORPORAL -> ArmyBalance.corporalDamageBuff();
+            case SERGEANT -> ArmyBalance.sergeantDamageBuff();
+            case STAFF_SERGEANT -> ArmyBalance.staffSergeantDamageBuff();
+        };
     }
 
     public double attackSpeedBuff() {
-        return attackSpeedBuff;
+        return this == STAFF_SERGEANT ? ArmyBalance.staffSergeantAttackSpeedBuff() : 0.0;
     }
 
     public boolean isSuperiorTo(ArmyRank other) {
@@ -77,7 +62,7 @@ public enum ArmyRank {
     public static ArmyRank of(int service) {
         ArmyRank resolved = PRIVATE;
         for (ArmyRank rank : values()) {
-            if (service >= rank.requiredService) {
+            if (service >= rank.requiredService()) {
                 resolved = rank;
             }
         }
@@ -87,8 +72,8 @@ public enum ArmyRank {
     /** Waves until the next promotion, or {@code -1} once the top rank is reached. */
     public static int wavesUntilPromotion(int service) {
         for (ArmyRank rank : values()) {
-            if (service < rank.requiredService) {
-                return rank.requiredService - service;
+            if (service < rank.requiredService()) {
+                return rank.requiredService() - service;
             }
         }
         return -1;
@@ -96,6 +81,6 @@ public enum ArmyRank {
 
     /** Waves until automatic discharge, floored at 0. */
     public static int wavesUntilDischarge(int service) {
-        return Math.max(0, DISCHARGE_SERVICE - service);
+        return Math.max(0, ArmyBalance.dischargeService() - service);
     }
 }

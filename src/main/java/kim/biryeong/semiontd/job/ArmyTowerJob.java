@@ -25,8 +25,8 @@ public final class ArmyTowerJob extends SemionJob {
     public List<Component> description() {
         return List.of(
                 SemionText.mini("<gray>전투 타워는 웨이브를 넘길 때마다 <yellow>진급</yellow>합니다. 계급이 오르면 공격력이 줄고 대신 반경 안의 <green>후임</green>을 강화합니다.</gray>"),
-                SemionText.mini("<aqua>고참 1기는 후임 2기부터 이득입니다. 신병을 계속 넣어 피라미드를 유지해야 합니다.</aqua>"),
-                SemionText.mini("<red>짬 13에 자동 전역합니다. 전역하면 <yellow>훈장</yellow>이 남아 라인 전체가 영구히 강해집니다.</red>")
+                SemionText.mini("<aqua>고참을 중심으로 신병을 계속 보충해 지휘 피라미드를 유지해야 합니다.</aqua>"),
+                SemionText.mini("<red>복무를 마치면 자동 전역합니다. 전역하면 <yellow>훈장</yellow>이 남아 라인 전체가 영구히 강해집니다.</red>")
         );
     }
 
@@ -55,22 +55,26 @@ public final class ArmyTowerJob extends SemionJob {
     @Override
     public void onRoundEnded(JobContext context, int round) {
         context.game().playerLane(context.player().uuid()).ifPresent(lane -> {
-            List<ArmyTower> due = lane.towers().stream()
+            List<ArmyTower> towers = lane.towers().stream()
                     .filter(ArmyTower.class::isInstance)
                     .map(ArmyTower.class::cast)
                     .filter(tower -> context.player().uuid().equals(tower.ownerPlayer()))
+                    .toList();
+            towers.forEach(tower -> tower.completeServiceWave(lane));
+
+            List<ArmyTower> due = towers.stream()
                     .filter(ArmyTower::dischargePending)
                     .toList();
 
             long payout = 0L;
             for (ArmyTower tower : due) {
                 long refund = tower.sellRefundAmount();
+                tower.showDebugVfx(lane, ArmyTower.DebugVfx.DISCHARGE);
                 if (!lane.removeTower(tower)) {
                     continue;
                 }
                 payout += refund;
-                // onRemoved awards the medal; the lane reference is still valid at this point.
-                tower.onRemoved(lane);
+                tower.completeDischarge(lane);
             }
             if (payout > 0L) {
                 context.player().economy().addMineral(payout);

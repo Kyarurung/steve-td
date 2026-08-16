@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
+import kim.biryeong.semiontd.entity.visual.TowerEquipmentVisual;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -71,7 +72,7 @@ public final class QueenTower extends ProductionTower {
 
     @Override
     public void onRemoved(PlayerLane lane) {
-        QueenEquipmentVisual.remove(equipmentVisual);
+        TowerEquipmentVisual.remove(equipmentVisual);
         equipmentVisual = null;
         super.onRemoved(lane);
     }
@@ -177,6 +178,6 @@ public final class QueenTower extends ProductionTower {
     }
 
     private void syncEquipmentVisual() {
-        equipmentVisual = QueenEquipmentVisual.sync(equipmentVisual, entity().orElse(null));
+        equipmentVisual = TowerEquipmentVisual.sync(equipmentVisual, entity().orElse(null));
     }
 }

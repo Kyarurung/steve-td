@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
 
 /**
  * Tower types for the 군대 builder.
@@ -46,7 +47,7 @@ public final class ArmyTowers {
             visual(TRADER, 0.9),
             List.of(
                     "<gray> 공격하지 않고 주변 아군의 복무를 관리하는 비전투 요원입니다. </gray>",
-                    "<aqua> 반경 <yellow>6</yellow> 안의 아군이 웨이브마다 짬을 <yellow>1</yellow> 더 얻습니다. </aqua>",
+                    "<aqua> 반경 <yellow>{ability.serviceRateRadius:blocks}</yellow> 안의 아군이 웨이브마다 짬을 <yellow>{ability.serviceRateBonus:integer}</yellow> 더 얻습니다. </aqua>",
                     "<gray> 진급이 빨라지면 전성기도 빨리 오고, 전역도 빨리 옵니다. </gray>"
             )
     );
@@ -56,7 +57,7 @@ public final class ArmyTowers {
             visual(TRADER, 1.05),
             List.of(
                     "<gray> 굴려서 짬을 채우는 쪽에 특화된 요원입니다. </gray>",
-                    "<aqua> 반경 <yellow>7</yellow> 안의 아군이 웨이브마다 짬을 <yellow>2</yellow> 더 얻습니다. </aqua>",
+                    "<aqua> 반경 <yellow>{ability.serviceRateRadius:blocks}</yellow> 안의 아군이 웨이브마다 짬을 <yellow>{ability.serviceRateBonus:integer}</yellow> 더 얻습니다. </aqua>",
                     "<green> 회전을 빠르게 돌려 <yellow>훈장</yellow>을 많이 모으는 빌드용입니다. </green>",
                     "<red> 전역도 그만큼 빨라지므로 전력 공백에 주의합니다. </red>"
             )
@@ -67,8 +68,8 @@ public final class ArmyTowers {
             visual(TRADER, 1.05),
             List.of(
                     "<gray> 한 번 내보낼 때 많이 챙기는 쪽에 특화된 요원입니다. </gray>",
-                    "<aqua> 반경 <yellow>6</yellow> 안의 아군이 웨이브마다 짬을 <yellow>1</yellow> 더 얻습니다. </aqua>",
-                    "<green> 전역금이 <yellow>40%</yellow>, 훈장 효과가 <yellow>50%</yellow> 증가합니다. </green>",
+                    "<aqua> 반경 <yellow>{ability.serviceRateRadius:blocks}</yellow> 안의 아군이 웨이브마다 짬을 <yellow>{ability.serviceRateBonus:integer}</yellow> 더 얻습니다. </aqua>",
+                    "<green> 전역금의 미환급분을 <yellow>{ability.dischargeRefundBonus:percent}</yellow> 회복하고, 훈장 효과가 <yellow>{ability.medalValueBonus:percent}</yellow> 증가합니다. </green>",
                     "<gray> 적게 돌리고 크게 먹는 빌드용입니다. </gray>"
             )
     );
@@ -90,7 +91,7 @@ public final class ArmyTowers {
             visual(SENTRY, 1.1),
             List.of(
                     "<gray> 방패를 든 정면 방어 계열입니다. </gray>",
-                    "<aqua> 받는 피해의 <yellow>18%</yellow>를 흘려보냅니다. </aqua>",
+                    "<aqua> 받는 피해의 <yellow>{ability.damageReduction:percent}</yellow>를 흘려보냅니다. </aqua>",
                     "<green> 계급 영향을 받지 않습니다. </green>"
             )
     );
@@ -100,7 +101,7 @@ public final class ArmyTowers {
             visual(SENTRY, 1.3),
             List.of(
                     "<gray> 방패 계열의 최종 형태입니다. 계열 최고의 체력으로 버팁니다. </gray>",
-                    "<aqua> 받는 피해의 <yellow>30%</yellow>를 흘려보냅니다. </aqua>",
+                    "<aqua> 받는 피해의 <yellow>{ability.damageReduction:percent}</yellow>를 흘려보냅니다. </aqua>",
                     "<green> 계급 영향을 받지 않습니다. </green>"
             )
     );
@@ -110,7 +111,7 @@ public final class ArmyTowers {
             visual(SENTRY, 1.1),
             List.of(
                     "<gray> 군기를 잡아 주변의 시간을 늦추는 계열입니다. </gray>",
-                    "<light_purple> 반경 <yellow>6</yellow> 안의 아군이 웨이브마다 짬을 <yellow>1</yellow> 덜 얻습니다. </light_purple>",
+                    "<light_purple> 반경 <yellow>{ability.serviceRateRadius:blocks}</yellow> 안의 아군이 웨이브마다 짬을 <yellow>{ability.serviceRatePenalty:integer}</yellow> 덜 얻습니다. </light_purple>",
                     "<gray> 체력은 헌병보다 낮습니다. </gray>",
                     "<green> 계급 영향을 받지 않습니다. </green>"
             )
@@ -121,7 +122,7 @@ public final class ArmyTowers {
             visual(SENTRY, 1.3),
             List.of(
                     "<gray> 군기 계열의 최종 형태입니다. </gray>",
-                    "<light_purple> 반경 <yellow>7</yellow> 안의 아군이 웨이브마다 짬을 <yellow>2</yellow> 덜 얻습니다. </light_purple>",
+                    "<light_purple> 반경 <yellow>{ability.serviceRateRadius:blocks}</yellow> 안의 아군이 웨이브마다 짬을 <yellow>{ability.serviceRatePenalty:integer}</yellow> 덜 얻습니다. </light_purple>",
                     "<green> 효율이 가장 좋은 <yellow>상병</yellow> 구간에 오래 머무르게 하는 것이 목적입니다. </green>",
                     "<red> 조교와 함께 두면 서로 상쇄되므로 한쪽만 고릅니다. </red>"
             )
@@ -153,8 +154,8 @@ public final class ArmyTowers {
             visual(RIFLE, 1.2),
             List.of(
                     "<gray> 단일 계열의 최종 형태입니다. </gray>",
-                    "<green> 병장이 되면 공격을 멈추고 반경 <yellow>5.5</yellow> 안의 후임에게 </green>",
-                    "<green> 공격력 <yellow>+50%</yellow>, 공격 속도 <yellow>+15%</yellow>를 줍니다. </green>",
+                    "<green> 병장이 되면 공격을 멈추고 반경 <yellow>{ability.army_global.commandRadius:blocks}</yellow> 안의 후임에게 </green>",
+                    "<green> 공격력 <yellow>+{ability.army_global.staffSergeantDamageBuff:percent}</yellow>, 공격 속도 <yellow>+{ability.army_global.staffSergeantAttackSpeedBuff:percent}</yellow>를 줍니다. </green>",
                     "<red> 후임이 2기 미만이면 손해입니다. </red>"
             )
     );
@@ -164,7 +165,7 @@ public final class ArmyTowers {
             visual(ARTILLERY, 1.0),
             List.of(
                     "<gray> 사거리가 길고 느린 광역 계열입니다. </gray>",
-                    "<light_purple> 공격이 반경 <yellow>2.5</yellow> 안의 적에게 <yellow>50%</yellow>로 퍼집니다. </light_purple>"
+                    "<light_purple> 공격이 반경 <yellow>{ability.splashRadius:blocks}</yellow> 안의 적에게 <yellow>{ability.splashDamageRatio:percent}</yellow>로 퍼집니다. </light_purple>"
             )
     );
 
@@ -173,7 +174,7 @@ public final class ArmyTowers {
             visual(ARTILLERY, 1.2),
             List.of(
                     "<gray> 광역 계열의 최종 형태입니다. 라인 전체를 덮습니다. </gray>",
-                    "<light_purple> 공격이 반경 <yellow>4.0</yellow> 안의 적에게 <yellow>70%</yellow>로 퍼집니다. </light_purple>",
+                    "<light_purple> 공격이 반경 <yellow>{ability.splashRadius:blocks}</yellow> 안의 적에게 <yellow>{ability.splashDamageRatio:percent}</yellow>로 퍼집니다. </light_purple>",
                     "<green> 병장이 되면 공격을 멈추고 후임을 강화합니다. </green>"
             )
     );
@@ -195,6 +196,10 @@ public final class ArmyTowers {
             RECRUIT, SPECIALIST, PLATOON_LEADER, GUNNER, BATTERY_CHIEF
     );
 
+    static {
+        ALL.forEach(type -> TowerDescriptionRegistry.registerTemplate(type, type.description()));
+    }
+
     private ArmyTowers() {
     }
 
@@ -205,16 +210,6 @@ public final class ArmyTowers {
     public static boolean isArmyTower(TowerType type) {
         return type != null
                 && (HQ_IDS.contains(type.id()) || SENTRY_IDS.contains(type.id()) || COMBAT_IDS.contains(type.id()));
-    }
-
-    /** Headquarters line: never fires, never ranks up, only changes the tempo of everyone else. */
-    public static boolean isHeadquarters(TowerType type) {
-        return type != null && HQ_IDS.contains(type.id());
-    }
-
-    /** Guard line: fires forever at full power and grants nothing. The escape hatch from the family's own penalty. */
-    public static boolean isSentry(TowerType type) {
-        return type != null && SENTRY_IDS.contains(type.id());
     }
 
     /** Combat line: the only towers that gain rank. */
