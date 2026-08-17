@@ -14,6 +14,7 @@ import java.util.Set;
 import kim.biryeong.semiontd.config.SemionConfigLoader.LoadedConfigs;
 import kim.biryeong.semiontd.rating.RatingConfig;
 import kim.biryeong.semiontd.tower.army.ArmyBalance;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.hero.HeroWeapon;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
@@ -397,6 +398,41 @@ final class SemionConfigLoaderTest {
         assertEquals(ArmyBalance.CORPORAL_SERVICE,
                 loaded.ability(ArmyBalance.CONFIG_ID, "corporalService", -1.0));
         assertEquals(0.70, loaded.ability(ArmyBalance.CONFIG_ID, "corporalAttackMultiplier", -1.0));
+    }
+
+    @Test
+    void invalidDemonLordBalanceRetainsLastKnownGoodBalance() throws Exception {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(
+                abilities.get(DemonLordTowers.GLOBAL_CONFIG_ID));
+        global.put("baseMaxHealth", 475.0);
+        abilities.put(DemonLordTowers.GLOBAL_CONFIG_ID, global);
+        TowerBalanceConfig lastKnownGood = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities);
+        lastKnownGood.validateForRuntime();
+
+        Files.createDirectories(tempDir);
+        Files.writeString(tempDir.resolve("tower_balance.json"), """
+                {
+                  "schemaVersion": 2,
+                  "towers": {},
+                  "upgradeCosts": {},
+                  "abilities": {
+                    "demon_lord_global": {
+                      "bladeAttackIntervalTicks": 1.5
+                    }
+                  }
+                }
+                """);
+
+        TowerBalanceConfig loaded = SemionConfigLoader.load(
+                tempDir, LoggerFactory.getLogger("test"), lastKnownGood
+        ).towerBalance();
+        assertEquals(475.0,
+                loaded.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1.0));
+        assertEquals(12.0,
+                loaded.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "bladeAttackIntervalTicks", -1.0));
     }
 
     @Test

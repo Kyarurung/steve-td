@@ -11,7 +11,7 @@ public final class DemonLordTowerCatalogs {
     }
 
     public static void register() {
-        // 스킬 5종 × 4티어. T1 만 상점에 뜨고 나머지는 업그레이드로만 닿습니다.
+        // 스킬 10종 × 4티어. T1만 상점에 뜨고 나머지는 업그레이드로만 닿습니다.
         for (DemonLordSkill skill : DemonLordSkill.values()) {
             for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
                 registerTower(DemonLordTowers.tower(skill, tier), tier);

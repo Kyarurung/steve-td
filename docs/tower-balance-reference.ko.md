@@ -366,16 +366,17 @@
 
 마왕은 타워가 아니라 플레이어가 싸우므로, `towers`의 전투 수치는 전부 0입니다. 실제 값은 제단별
 `abilities`와 전역 `demon_lord_global`에 있습니다. 제단 id는 `t{1..4}_{스킬키}_tower` 형식이며
-스킬 키는 `wave_of_malice`, `demon_wings`, `sky_breaker`, `arcane_bombardment`, `demon_barrier`입니다.
+스킬 키는 `wave_of_malice`, `demon_wings`, `sky_breaker`, `arcane_bombardment`, `demon_barrier`,
+`hellfire_brand`, `soul_drain`, `roar_of_dread`, `grip_of_doom`, `hell_guillotine`입니다.
 
 | config id | 주요 키 | 의미 |
 |---|---|---|
 | 제단 id 전체 | `towerSlotCost` | 빌더의 "코스트". 라운드 타워 한도를 이만큼 차지합니다. 티어가 올라도 바뀌지 않습니다. |
 | 제단 id 전체 | `cooldownTicks` | 스킬 쿨타임입니다. 기본값은 티어마다 1초씩 줄어듭니다. |
-| `demon_lord_global` | `baseMaxHealth`, `maxHealthPerLevel`, `maxLevel` | 마왕 체력 곡선입니다. 기본 600, 레벨당 +70, 만렙 30입니다. |
+| `demon_lord_global` | `baseMaxHealth`, `maxHealthPerLevel`, `maxLevel` | 마왕 체력 곡선입니다. 기본 450, 레벨당 +52.5, 만렙 30입니다. |
 | `demon_lord_global` | `experiencePerMaxHealth`, `experienceBase`, `experienceGrowth` | 처치 경험치입니다. 처치 대상 최대 체력에 비례하며, 다음 레벨 요구량은 `experienceBase × experienceGrowth^(레벨-1)`입니다. |
-| `demon_lord_global` | `damagePerLevel` | 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 기본 레벨당 +5%. |
-| `demon_lord_global` | `bladeDamage`, `bladeAttackIntervalTicks`, `bladeReach` | 마검 평타 수치입니다. `bladeAttackIntervalTicks`는 바닐라와 같은 차지 곡선(`0.2 + 차지² × 0.8`)으로 피해에 곱해집니다. 바닐라 공격 쿨다운은 바닐라 피해 경로에만 걸리므로 직접 계산합니다. |
+| `demon_lord_global` | `damagePerLevel` | 스킬과 평타 모두에 곱해지는 성장 배율입니다. 기본 레벨당 +5%입니다. |
+| `demon_lord_global` | `bladeDamage`, `bladeAttackIntervalTicks` | 마검 평타 수치입니다. 기본 피해는 19입니다. `bladeAttackIntervalTicks`는 바닐라와 같은 차지 곡선(`0.2 + 차지² × 0.8`)으로 피해에 곱해집니다. 바닐라 공격 쿨다운은 바닐라 피해 경로에만 걸리므로 직접 계산합니다. |
 | `demon_lord_global` | `laneLeashSlack` | `lane_path` 영역 밖으로 허용하는 여유 거리(블록)입니다. 레인을 다 정리하면 적용되지 않습니다. |
 | `..._wave_of_malice_tower` | `coneDegrees`, `range`, `damage`, `knockback` | 전방 부채꼴 각도·거리·피해·넉백입니다. |
 | `..._demon_wings_tower` | `leapPower`, `radius`, `damage`, `knockback`, `healRatio` | 도약력, 광역 반경, 피해, 넉백, 최대 체력 대비 회복량입니다. |
@@ -388,13 +389,13 @@
 | `..._soul_drain_tower` | `lifeStealRatio`, `lifeStealCap` | 입힌 피해 대비 회복 비율과, 1회 회복량의 최대 체력 대비 상한입니다. 여럿을 꿰뚫어도 상한을 넘지 않습니다. |
 | `..._roar_of_dread_tower` | `radius`, `damage`, `knockback` | 광역 반경, 피해, 넉백 세기입니다. |
 | `..._roar_of_dread_tower` | `moveSpeedReduction`, `dreadDurationTicks` | 이동 속도 감소율과 지속 시간입니다. 지속 동안 공격도 함께 막힙니다. |
-| `..._grip_of_doom_tower` | `range`, `executeHealthRatio` | 지목 사거리와 처형 임계값입니다. 대상 체력이 최대 체력의 이 비율 이하면 고정 피해로 즉사시킵니다. **1.0 으로 올리면 체력과 무관한 무조건 즉사가 되어 상대가 비싼 유닛을 뽑을 이유가 사라집니다.** |
-| `..._grip_of_doom_tower` | `explosionRadius`, `explosionHealthRatio`, `areaDamage` | 처형 시 시체 폭발입니다. 피해는 `처형 시점 체력 × explosionHealthRatio + areaDamage` 이므로 단단한 적일수록 크게 터집니다. |
+| `..._grip_of_doom_tower` | `range`, `executeHealthRatio` | 지목 사거리와 처형 임계값입니다. 대상 체력이 최대 체력의 이 비율 이하면 고정 피해로 즉사시킵니다. **1.0으로 올리면 체력과 무관한 무조건 즉사가 되어 상대가 비싼 유닛을 뽑을 이유가 사라집니다.** |
+| `..._grip_of_doom_tower` | `explosionRadius`, `explosionHealthRatio`, `areaDamage` | 처형 시 시체 폭발입니다. 피해는 `처형 시점 체력 × explosionHealthRatio + areaDamage`이므로 단단한 적일수록 크게 터집니다. |
 | `..._grip_of_doom_tower` | `damage`, `missingHealthRatio`, `pullStrength`, `killRefundTicks` | 임계값을 넘긴 대상에게 들어가는 일반 피해와 **대상이** 잃은 체력 비례 추가 피해, 끌어당김 세기, 처형 성공 시 쿨타임 환급입니다. |
 | `..._hell_guillotine_tower` | `range`, `radius`, `damage` | 순간이동 사거리, 착지 광역 반경, 기본 피해입니다. |
-| `..._hell_guillotine_tower` | `missingHealthDamageBonus` | **마왕 자신이** 잃은 체력 비율에 곱해지는 최대 피해 증가폭입니다. 빈사에서 `기본 × (1 + 이 값)` 이 됩니다. 손아귀와 달리 시전자 기준인 점에 주의합니다. |
+| `..._hell_guillotine_tower` | `missingHealthDamageBonus` | **마왕 자신이** 잃은 체력 비율에 곱해지는 최대 피해 증가폭입니다. 빈사에서 `기본 × (1 + 이 값)`이 됩니다. 손아귀와 달리 시전자 기준인 점에 주의합니다. |
 
-스킬 5종을 전부 열면 코스트 합이 16입니다. 이 값을 바꾸면
+스킬 10종을 전부 열면 코스트 합이 32입니다. 이 값을 바꾸면
 `DemonLordTowerCatalogTest`의 `skillCostsMatchTheDesignedValues`와
 `openingEverySkillCostsMoreThanAnEarlyTowerLimit`도 함께 갱신합니다.
 

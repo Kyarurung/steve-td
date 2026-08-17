@@ -10,11 +10,14 @@ import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.SemionPlayer;
 import kim.biryeong.semiontd.job.DemonLordTowerJob;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.ui.SemionHotbarService;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -86,10 +89,10 @@ public final class DemonLordService {
                     ? InteractionResult.SUCCESS
                     : InteractionResult.PASS;
         });
-        registerCombatHooks();
+        registerCombatHooks(gameManager);
     }
 
-    private static void registerCombatHooks() {
+    private static void registerCombatHooks(SemionGameManager gameManager) {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayer player)) {
                 return true;
@@ -126,8 +129,14 @@ public final class DemonLordService {
             long now = attacker.level().getGameTime();
             double charge = state.bladeChargeScale(now, interval);
             state.recordBladeAttack(now);
-            dealDamage(attacker, monsterEntity, state.bladeDamage() * (0.2 + charge * charge * 0.8),
-                    DamageType.PHYSICAL);
+            PlayerLane lane = gameManager.playableGame(attacker.getUUID())
+                    .flatMap(game -> game.playerLane(attacker.getUUID()))
+                    .orElse(null);
+            List<DemonLordSkillTower> altars = lane == null
+                    ? List.of()
+                    : orderedAltars(lane, attacker.getUUID());
+            dealDamage(attacker, lane, altars.isEmpty() ? null : altars.getFirst(), monsterEntity,
+                    state.bladeDamage() * (0.2 + charge * charge * 0.8), DamageType.PHYSICAL);
             playSwing(attacker, charge);
             return InteractionResult.SUCCESS;
         });
@@ -141,9 +150,13 @@ public final class DemonLordService {
         UUID owner = lane.ownerPlayer();
         SemionPlayer semionPlayer = owner == null ? null : players.get(owner);
         if (semionPlayer == null || !isDemonLord(semionPlayer)) {
-            // 직업이 바뀌었는데 예전 보스바가 남아 있으면 여기서 걷어냅니다.
-            if (owner != null) {
-                clearBossBar(owner);
+            if (owner != null && DemonLordStates.get(owner) != null) {
+                ServerPlayer player = lane.arenaWorld().getServer().getPlayerList().getPlayer(owner);
+                if (player == null) {
+                    clearPlayerState(owner);
+                } else {
+                    cleanupPlayer(player);
+                }
             }
             return;
         }
@@ -256,6 +269,23 @@ public final class DemonLordService {
         if (bar != null) {
             bar.removeAllPlayers();
         }
+    }
+
+    public static void cleanupPlayer(ServerPlayer player) {
+        if (player == null) {
+            return;
+        }
+        boolean hadState = DemonLordStates.get(player.getUUID()) != null;
+        clearCombatKit(player);
+        if (hadState) {
+            restoreFlight(player);
+        }
+        clearPlayerState(player.getUUID());
+    }
+
+    public static void clearPlayerState(UUID playerId) {
+        clearBossBar(playerId);
+        DemonLordStates.clear(playerId);
     }
 
     // ------------------------------------------------------------- internals
@@ -494,7 +524,7 @@ public final class DemonLordService {
         if (!state.isSkillReady(skill, gameTime)) {
             return true;
         }
-        int refund = DemonLordSkills.cast(player, lane, state, skill, altar.type(), gameTime);
+        int refund = DemonLordSkills.cast(player, lane, state, skill, altar, gameTime);
         int cooldown = Math.max(1, altar.cooldownTicks() - Math.max(0, refund));
         state.startCooldown(skill, gameTime, cooldown);
         player.getCooldowns().addCooldown(new ItemStack(skill.item()), cooldown);
@@ -515,9 +545,10 @@ public final class DemonLordService {
                 .flatMap(game -> game.playerLane(player.getUUID()))
                 .orElse(null);
         if (lane == null || lane.arenaWorld() == null) {
-            return false;
+            return true;
         }
-        return tryCast(player, lane, state, binding, lane.arenaWorld().getGameTime());
+        tryCast(player, lane, state, binding, lane.arenaWorld().getGameTime());
+        return true;
     }
 
     /**
@@ -554,6 +585,13 @@ public final class DemonLordService {
         return index < altars.size() ? altars.get(index) : null;
     }
 
+    static DemonLordSkillTower altarFor(PlayerLane lane, UUID owner, TowerType type) {
+        return orderedAltars(lane, owner).stream()
+                .filter(altar -> altar.type().id().equals(type.id()))
+                .findFirst()
+                .orElse(null);
+    }
+
     /**
      * Rebuilds the bar.
      *
@@ -572,6 +610,7 @@ public final class DemonLordService {
         }
 
         SemionHotbarService.clearMatchTools(player);
+        clearCombatKit(player);
         List<DemonLordSkillTower> altars = orderedAltars(lane, player.getUUID());
         // 타워 정보창이 자기 키를 보여줄 수 있게 배정 결과를 되돌려 씁니다.
         for (int i = 0; i < altars.size(); i++) {
@@ -590,7 +629,7 @@ public final class DemonLordService {
         }
         ItemStack blade = new ItemStack(Items.NETHERITE_SWORD);
         blade.set(DataComponents.CUSTOM_NAME, BLADE_NAME);
-        player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, blade);
+        player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, DemonLordKitItems.mark(blade));
         state.setCombatKitGranted(true);
     }
 
@@ -600,31 +639,48 @@ public final class DemonLordService {
         stack.set(DataComponents.CUSTOM_NAME, Component.literal(
                         "[" + binding.label() + "] " + altar.skill().displayName())
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
-        return stack;
+        return DemonLordKitItems.mark(stack);
     }
 
     private static void clearCombatKit(ServerPlayer player) {
-        for (DemonLordBinding binding : DemonLordBinding.values()) {
-            if (binding.isHotbarSlot()) {
-                player.getInventory().setItem(binding.hotbarSlot(), ItemStack.EMPTY);
-            }
-        }
-        player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, ItemStack.EMPTY);
+        DemonLordKitItems.clear(player.getInventory());
     }
 
     /** Shared damage entry point for the blade and every skill. */
-    static void dealDamage(ServerPlayer attacker, SemionMonsterEntity monsterEntity, double amount, DamageType type) {
+    static Tower.DamageResult dealDamage(
+            ServerPlayer attacker,
+            PlayerLane lane,
+            DemonLordSkillTower altar,
+            SemionMonsterEntity monsterEntity,
+            double amount,
+            DamageType type
+    ) {
         if (amount <= 0.0 || monsterEntity == null || monsterEntity.isRemoved()) {
-            return;
+            return Tower.DamageResult.NONE;
         }
         Monster monster = monsterEntity.runtimeMonster();
         if (monster == null || !monster.isAlive()) {
-            return;
+            return Tower.DamageResult.NONE;
+        }
+        SemionTowerEntity source = altar == null ? null : altar.entity(lane);
+        if (source != null) {
+            Tower.DamageResult result = altar.damageTargetResult(source, monsterEntity, amount, type);
+            if (result.dealtDamage() > 0.0) {
+                TowerVfxService.showAttack(source, monsterEntity, result.killed(), false);
+            }
+            return result;
         }
         double before = monster.health();
-        monsterEntity.applyRuntimeDamage(attacker.damageSources().playerAttack(attacker), amount, type);
-        if (monster.health() < before) {
+        boolean killed = monsterEntity.applyRuntimeDamage(
+                attacker.damageSources().playerAttack(attacker), amount, type);
+        double dealtDamage = Math.max(0.0, before - monster.health());
+        if (dealtDamage > 0.0) {
             monster.recordLastHit(attacker.getUUID(), KillSourceKind.TOWER);
+            DemonLordState state = DemonLordStates.get(attacker.getUUID());
+            if (state != null) {
+                state.recordDamageDealt(dealtDamage, type);
+            }
         }
+        return new Tower.DamageResult(killed, dealtDamage, amount);
     }
 }

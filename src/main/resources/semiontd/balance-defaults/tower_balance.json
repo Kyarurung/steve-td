@@ -6160,16 +6160,15 @@
       "splashRadius": 4.0
     },
     "demon_lord_global": {
-      "baseMaxHealth": 600.0,
-      "maxHealthPerLevel": 70.0,
+      "baseMaxHealth": 450.0,
+      "maxHealthPerLevel": 52.5,
       "maxLevel": 30.0,
       "experiencePerMaxHealth": 0.02,
       "experienceBase": 12.0,
       "experienceGrowth": 1.25,
       "damagePerLevel": 0.05,
-      "bladeDamage": 30.0,
+      "bladeDamage": 19.0,
       "bladeAttackIntervalTicks": 12.0,
-      "bladeReach": 3.5,
       "laneLeashSlack": 1.5
     },
     "t1_wave_of_malice_tower": {
@@ -6177,7 +6176,7 @@
       "cooldownTicks": 160.0,
       "coneDegrees": 60.0,
       "range": 6.0,
-      "damage": 45.0,
+      "damage": 34.0,
       "knockback": 0.8
     },
     "t2_wave_of_malice_tower": {
@@ -6185,7 +6184,7 @@
       "cooldownTicks": 140.0,
       "coneDegrees": 60.0,
       "range": 6.5,
-      "damage": 70.0,
+      "damage": 53.0,
       "knockback": 0.9
     },
     "t3_wave_of_malice_tower": {
@@ -6193,7 +6192,7 @@
       "cooldownTicks": 120.0,
       "coneDegrees": 60.0,
       "range": 7.0,
-      "damage": 100.0,
+      "damage": 75.0,
       "knockback": 1.0
     },
     "t4_wave_of_malice_tower": {
@@ -6201,7 +6200,7 @@
       "cooldownTicks": 100.0,
       "coneDegrees": 60.0,
       "range": 8.0,
-      "damage": 140.0,
+      "damage": 105.0,
       "knockback": 1.2
     },
     "t1_demon_wings_tower": {
@@ -6209,7 +6208,7 @@
       "cooldownTicks": 120.0,
       "leapPower": 1.0,
       "radius": 4.0,
-      "damage": 30.0,
+      "damage": 23.0,
       "knockback": 0.7,
       "healRatio": 0.1
     },
@@ -6218,7 +6217,7 @@
       "cooldownTicks": 100.0,
       "leapPower": 1.1,
       "radius": 4.5,
-      "damage": 48.0,
+      "damage": 36.0,
       "knockback": 0.8,
       "healRatio": 0.13
     },
@@ -6227,7 +6226,7 @@
       "cooldownTicks": 80.0,
       "leapPower": 1.2,
       "radius": 5.0,
-      "damage": 70.0,
+      "damage": 53.0,
       "knockback": 0.9,
       "healRatio": 0.16
     },
@@ -6236,7 +6235,7 @@
       "cooldownTicks": 60.0,
       "leapPower": 1.3,
       "radius": 5.5,
-      "damage": 95.0,
+      "damage": 71.0,
       "knockback": 1.0,
       "healRatio": 0.2
     },
@@ -6245,7 +6244,7 @@
       "cooldownTicks": 200.0,
       "dashDistance": 8.0,
       "hitRadius": 2.0,
-      "damage": 90.0,
+      "damage": 68.0,
       "liftPower": 0.8,
       "stunTicks": 40.0
     },
@@ -6254,7 +6253,7 @@
       "cooldownTicks": 180.0,
       "dashDistance": 9.0,
       "hitRadius": 2.2,
-      "damage": 140.0,
+      "damage": 105.0,
       "liftPower": 0.85,
       "stunTicks": 45.0
     },
@@ -6263,7 +6262,7 @@
       "cooldownTicks": 160.0,
       "dashDistance": 10.0,
       "hitRadius": 2.4,
-      "damage": 200.0,
+      "damage": 150.0,
       "liftPower": 0.9,
       "stunTicks": 50.0
     },
@@ -6272,7 +6271,7 @@
       "cooldownTicks": 140.0,
       "dashDistance": 12.0,
       "hitRadius": 2.6,
-      "damage": 275.0,
+      "damage": 206.0,
       "liftPower": 1.0,
       "stunTicks": 60.0
     },
@@ -6283,7 +6282,7 @@
       "castDelayTicks": 10.0,
       "projectileRange": 18.0,
       "blastRadius": 4.0,
-      "damage": 70.0
+      "damage": 53.0
     },
     "t2_arcane_bombardment_tower": {
       "towerSlotCost": 4.0,
@@ -6292,7 +6291,7 @@
       "castDelayTicks": 10.0,
       "projectileRange": 20.0,
       "blastRadius": 4.5,
-      "damage": 110.0
+      "damage": 83.0
     },
     "t3_arcane_bombardment_tower": {
       "towerSlotCost": 4.0,
@@ -6301,7 +6300,7 @@
       "castDelayTicks": 9.0,
       "projectileRange": 22.0,
       "blastRadius": 5.0,
-      "damage": 155.0
+      "damage": 116.0
     },
     "t4_arcane_bombardment_tower": {
       "towerSlotCost": 4.0,
@@ -6310,7 +6309,7 @@
       "castDelayTicks": 8.0,
       "projectileRange": 25.0,
       "blastRadius": 5.5,
-      "damage": 210.0
+      "damage": 158.0
     },
     "t1_demon_barrier_tower": {
       "towerSlotCost": 3.0,
@@ -6343,7 +6342,7 @@
       "zoneRadius": 3.5,
       "zoneDurationTicks": 100.0,
       "tickIntervalTicks": 20.0,
-      "damage": 18.0,
+      "damage": 14.0,
       "damageTakenBonus": 0.1
     },
     "t2_hellfire_brand_tower": {
@@ -6353,7 +6352,7 @@
       "zoneRadius": 4.0,
       "zoneDurationTicks": 120.0,
       "tickIntervalTicks": 20.0,
-      "damage": 28.0,
+      "damage": 21.0,
       "damageTakenBonus": 0.15
     },
     "t3_hellfire_brand_tower": {
@@ -6363,7 +6362,7 @@
       "zoneRadius": 4.5,
       "zoneDurationTicks": 140.0,
       "tickIntervalTicks": 20.0,
-      "damage": 40.0,
+      "damage": 30.0,
       "damageTakenBonus": 0.2
     },
     "t4_hellfire_brand_tower": {
@@ -6373,7 +6372,7 @@
       "zoneRadius": 5.0,
       "zoneDurationTicks": 160.0,
       "tickIntervalTicks": 20.0,
-      "damage": 55.0,
+      "damage": 41.0,
       "damageTakenBonus": 0.25
     },
     "t1_soul_drain_tower": {
@@ -6381,7 +6380,7 @@
       "cooldownTicks": 180.0,
       "range": 7.0,
       "width": 1.6,
-      "damage": 35.0,
+      "damage": 26.0,
       "lifeStealRatio": 0.25,
       "lifeStealCap": 0.12
     },
@@ -6390,7 +6389,7 @@
       "cooldownTicks": 160.0,
       "range": 8.0,
       "width": 1.8,
-      "damage": 55.0,
+      "damage": 41.0,
       "lifeStealRatio": 0.3,
       "lifeStealCap": 0.15
     },
@@ -6399,7 +6398,7 @@
       "cooldownTicks": 140.0,
       "range": 9.0,
       "width": 2.0,
-      "damage": 80.0,
+      "damage": 60.0,
       "lifeStealRatio": 0.35,
       "lifeStealCap": 0.18
     },
@@ -6408,7 +6407,7 @@
       "cooldownTicks": 120.0,
       "range": 10.0,
       "width": 2.2,
-      "damage": 110.0,
+      "damage": 83.0,
       "lifeStealRatio": 0.4,
       "lifeStealCap": 0.22
     },
@@ -6416,7 +6415,7 @@
       "towerSlotCost": 3.0,
       "cooldownTicks": 280.0,
       "radius": 5.0,
-      "damage": 25.0,
+      "damage": 19.0,
       "knockback": 1.0,
       "moveSpeedReduction": 0.5,
       "dreadDurationTicks": 50.0
@@ -6425,7 +6424,7 @@
       "towerSlotCost": 3.0,
       "cooldownTicks": 260.0,
       "radius": 5.5,
-      "damage": 40.0,
+      "damage": 30.0,
       "knockback": 1.1,
       "moveSpeedReduction": 0.58,
       "dreadDurationTicks": 60.0
@@ -6434,7 +6433,7 @@
       "towerSlotCost": 3.0,
       "cooldownTicks": 240.0,
       "radius": 6.0,
-      "damage": 58.0,
+      "damage": 44.0,
       "knockback": 1.2,
       "moveSpeedReduction": 0.66,
       "dreadDurationTicks": 70.0
@@ -6443,7 +6442,7 @@
       "towerSlotCost": 3.0,
       "cooldownTicks": 220.0,
       "radius": 7.0,
-      "damage": 80.0,
+      "damage": 60.0,
       "knockback": 1.4,
       "moveSpeedReduction": 0.75,
       "dreadDurationTicks": 80.0
@@ -6455,8 +6454,8 @@
       "executeHealthRatio": 0.5,
       "explosionHealthRatio": 0.8,
       "explosionRadius": 4.0,
-      "areaDamage": 40.0,
-      "damage": 130.0,
+      "areaDamage": 30.0,
+      "damage": 98.0,
       "missingHealthRatio": 0.1,
       "killRefundTicks": 60.0,
       "pullStrength": 0.5
@@ -6468,8 +6467,8 @@
       "executeHealthRatio": 0.55,
       "explosionHealthRatio": 0.9,
       "explosionRadius": 4.5,
-      "areaDamage": 65.0,
-      "damage": 200.0,
+      "areaDamage": 49.0,
+      "damage": 150.0,
       "missingHealthRatio": 0.14,
       "killRefundTicks": 70.0,
       "pullStrength": 0.55
@@ -6481,8 +6480,8 @@
       "executeHealthRatio": 0.6,
       "explosionHealthRatio": 1.0,
       "explosionRadius": 5.0,
-      "areaDamage": 95.0,
-      "damage": 285.0,
+      "areaDamage": 71.0,
+      "damage": 214.0,
       "missingHealthRatio": 0.18,
       "killRefundTicks": 80.0,
       "pullStrength": 0.6
@@ -6494,8 +6493,8 @@
       "executeHealthRatio": 0.7,
       "explosionHealthRatio": 1.2,
       "explosionRadius": 6.0,
-      "areaDamage": 130.0,
-      "damage": 390.0,
+      "areaDamage": 98.0,
+      "damage": 293.0,
       "missingHealthRatio": 0.24,
       "killRefundTicks": 100.0,
       "pullStrength": 0.7
@@ -6505,7 +6504,7 @@
       "cooldownTicks": 260.0,
       "range": 10.0,
       "radius": 4.0,
-      "damage": 60.0,
+      "damage": 45.0,
       "missingHealthDamageBonus": 1.0
     },
     "t2_hell_guillotine_tower": {
@@ -6513,7 +6512,7 @@
       "cooldownTicks": 240.0,
       "range": 12.0,
       "radius": 4.5,
-      "damage": 95.0,
+      "damage": 71.0,
       "missingHealthDamageBonus": 1.2
     },
     "t3_hell_guillotine_tower": {
@@ -6521,7 +6520,7 @@
       "cooldownTicks": 220.0,
       "range": 14.0,
       "radius": 5.0,
-      "damage": 135.0,
+      "damage": 101.0,
       "missingHealthDamageBonus": 1.4
     },
     "t4_hell_guillotine_tower": {
@@ -6529,7 +6528,7 @@
       "cooldownTicks": 200.0,
       "range": 16.0,
       "radius": 5.5,
-      "damage": 185.0,
+      "damage": 139.0,
       "missingHealthDamageBonus": 1.8
     }
   },

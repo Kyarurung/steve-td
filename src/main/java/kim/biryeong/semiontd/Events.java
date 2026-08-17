@@ -66,8 +66,7 @@ public final class Events {
                 skyboxService.handlePlayerDisconnect(player);
                 tipService.handlePlayerDisconnect(player);
                 gameManager.handlePlayerDisconnect(player);
-                // 보스바는 명시적으로 지워야 사라집니다. 재접속 시 유령 바가 남지 않게 합니다.
-                DemonLordService.clearBossBar(player.getUUID());
+                DemonLordService.cleanupPlayer(player);
             });
         });
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
@@ -79,7 +78,7 @@ public final class Events {
         });
 
         Stimuli.global().listen(PlayerConsumeHungerEvent.EVENT, ((serverPlayer, i, v, v1) -> EventResult.DENY));
-        // F 키. 마왕이 다섯 번째 스킬로 쓰므로 오프핸드 교체보다 먼저 가로챕니다.
+        // F 키. 마왕이 여섯 번째 스킬로 쓰므로 오프핸드 교체보다 먼저 가로챕니다.
         Stimuli.global().listen(PlayerSwapWithOffhandEvent.EVENT, player -> {
             if (DemonLordService.handleKeyBinding(gameManager, player, DemonLordBinding.OFFHAND)) {
                 return EventResult.DENY;
@@ -89,7 +88,7 @@ public final class Events {
                     : EventResult.PASS;
         });
 
-        // Q 키. 드롭 패킷을 가로채 여섯 번째 스킬로 씁니다.
+        // Q 키. 드롭 패킷을 가로채 일곱 번째 스킬로 씁니다.
         Stimuli.global().listen(PlayerC2SPacketEvent.EVENT, (player, packet) -> {
             if (!(packet instanceof ServerboundPlayerActionPacket action)) {
                 return EventResult.PASS;

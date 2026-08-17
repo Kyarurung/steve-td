@@ -6,16 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.job.DemonLordTowerJob;
@@ -26,6 +30,9 @@ import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -260,13 +267,13 @@ final class DemonLordTowerCatalogTest {
     void levellingRaisesHealthAndDamageTogether() {
         DemonLordState state = new DemonLordState(UUID.randomUUID());
         assertEquals(1, state.level());
-        assertEquals(600.0, state.maxHealth(), EPSILON);
+        assertEquals(450.0, state.maxHealth(), EPSILON);
         assertEquals(1.0, state.damageMultiplier(), EPSILON);
 
         state.enterCombat();
         int gained = state.addExperience(1000.0);
         assertTrue(gained > 0, "A large experience dump should level the demon lord up");
-        assertTrue(state.maxHealth() > 600.0);
+        assertTrue(state.maxHealth() > 450.0);
         assertTrue(state.damageMultiplier() > 1.0);
         assertTrue(state.level() <= state.maxLevel());
     }
@@ -359,7 +366,13 @@ final class DemonLordTowerCatalogTest {
         assertEquals(60.0, defaults.ability(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "coneDegrees", -1), EPSILON);
         assertEquals(0.25, defaults.ability(DemonLordSkill.DEMON_BARRIER.towerId(1), "shieldRatio", -1), EPSILON);
         assertEquals(0.50, defaults.ability(DemonLordSkill.DEMON_BARRIER.towerId(4), "shieldRatio", -1), EPSILON);
-        assertEquals(600.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1), EPSILON);
+        assertEquals(450.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1), EPSILON);
+        assertEquals(52.5, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "maxHealthPerLevel", -1), EPSILON);
+        assertEquals(19.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "bladeDamage", -1), EPSILON);
+        assertEquals(34.0, defaults.ability(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "damage", -1), EPSILON);
+        assertEquals(98.0, defaults.ability(DemonLordSkill.GRIP_OF_DOOM.towerId(1), "damage", -1), EPSILON);
+        assertEquals(30.0, defaults.ability(DemonLordSkill.GRIP_OF_DOOM.towerId(1), "areaDamage", -1), EPSILON);
+        assertFalse(defaults.abilities().get(DemonLordTowers.GLOBAL_CONFIG_ID).containsKey("bladeReach"));
     }
 
     /**
@@ -382,6 +395,8 @@ final class DemonLordTowerCatalogTest {
                 assertEquals(code.ability(id, "cooldownTicks", -1),
                         bundled.ability(id, "cooldownTicks", -2), EPSILON,
                         id + " cooldown drifted between code and the bundled resource");
+                assertEquals(code.abilities().get(id), bundled.abilities().get(id),
+                        id + " abilities drifted between code and the bundled resource");
 
                 if (tier < DemonLordSkill.MAX_TIER) {
                     String next = skill.towerId(tier + 1);
@@ -392,6 +407,68 @@ final class DemonLordTowerCatalogTest {
         }
         assertEquals(code.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1),
                 bundled.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -2), EPSILON);
+        assertEquals(code.abilities().get(DemonLordTowers.GLOBAL_CONFIG_ID),
+                bundled.abilities().get(DemonLordTowers.GLOBAL_CONFIG_ID));
+    }
+
+    @Test
+    void partialDemonLordConfigKeepsNewDefaults() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig merged = new TowerBalanceConfig(
+                Map.of(),
+                Map.of(),
+                Map.of(DemonLordTowers.GLOBAL_CONFIG_ID, Map.of("baseMaxHealth", 500.0))
+        ).withMissingDefaults(defaults);
+
+        assertEquals(500.0, merged.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1), EPSILON);
+        assertEquals(52.5, merged.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "maxHealthPerLevel", -1), EPSILON);
+        assertEquals(19.0, merged.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "bladeDamage", -1), EPSILON);
+        assertEquals(34.0, merged.ability(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "damage", -1), EPSILON);
+    }
+
+    @Test
+    void invalidDemonLordRatiosTicksAndRangesAreRejected() {
+        assertInvalidAbility(DemonLordTowers.GLOBAL_CONFIG_ID, "bladeAttackIntervalTicks", 1.5);
+        assertInvalidAbility(DemonLordTowers.GLOBAL_CONFIG_ID, "experienceGrowth", 0.99);
+        assertInvalidAbility(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "range", 0.0);
+        assertInvalidAbility(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "coneDegrees", 361.0);
+        assertInvalidAbility(DemonLordSkill.DEMON_WINGS.towerId(1), "healRatio", 1.01);
+        assertInvalidAbility(DemonLordSkill.SKY_BREAKER.towerId(1), "stunTicks", 1.5);
+        assertInvalidAbility(DemonLordSkill.GRIP_OF_DOOM.towerId(1), "executeHealthRatio", 1.0);
+    }
+
+    @Test
+    void kitItemsAreMarkedAndClearedFromEveryContainerSlot() {
+        SimpleContainer inventory = new SimpleContainer(6);
+        inventory.setItem(0, DemonLordKitItems.mark(new ItemStack(Items.NETHERITE_SWORD)));
+        inventory.setItem(5, DemonLordKitItems.mark(new ItemStack(Items.BLAZE_POWDER)));
+        inventory.setItem(2, new ItemStack(Items.DIAMOND));
+
+        assertTrue(DemonLordKitItems.isKitItem(inventory.getItem(0)));
+        DemonLordKitItems.clear(inventory);
+
+        assertTrue(inventory.getItem(0).isEmpty());
+        assertTrue(inventory.getItem(5).isEmpty());
+        assertFalse(inventory.getItem(2).isEmpty());
+    }
+
+    @Test
+    void fallbackDamageStatisticsKeepPhysicalAndMagicSeparate() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.recordDamageDealt(12.5, DamageType.PHYSICAL);
+        state.recordDamageDealt(8.0, DamageType.MAGIC);
+
+        assertEquals(12.5, state.roundPhysicalDamageDealt(), EPSILON);
+        assertEquals(8.0, state.roundMagicDamageDealt(), EPSILON);
+        state.enterCombat();
+        assertEquals(0.0, state.roundPhysicalDamageDealt(), EPSILON);
+        assertEquals(0.0, state.roundMagicDamageDealt(), EPSILON);
+    }
+
+    @Test
+    void soulDrainHealingUsesActualDamageAndRespectsTheCap() {
+        assertEquals(10.0, DemonLordSkills.soulDrainHealing(40.0, 450.0, 0.25, 0.12), EPSILON);
+        assertEquals(54.0, DemonLordSkills.soulDrainHealing(1_000.0, 450.0, 0.25, 0.12), EPSILON);
     }
 
     /**
@@ -465,5 +542,16 @@ final class DemonLordTowerCatalogTest {
                 previous = damage;
             }
         }
+    }
+
+    private static void assertInvalidAbility(String configId, String key, double value) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> changed = new LinkedHashMap<>(abilities.get(configId));
+        changed.put(key, value);
+        abilities.put(configId, changed);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities);
+        assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
     }
 }

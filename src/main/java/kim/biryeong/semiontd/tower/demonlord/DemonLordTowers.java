@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * Tower types of the demon lord builder: five skills, four tiers each.
+ * Tower types of the demon lord builder: ten skills, four tiers each.
  *
  * <p>Every one of these towers has zero damage, zero range and zero aggro. They are altars, not
  * guns - the whole point of the builder is that the player fights in person and the towers only
@@ -77,7 +77,7 @@ public final class DemonLordTowers {
                         "<green>경로 반경 <aqua>{ability.hitRadius:blocks}</aqua> 안의 적을 하늘로 띄우고 "
                                 + "<yellow>{ability.damage:number}</yellow> 피해를 줍니다.</green>",
                         "<green>적중한 적은 <aqua>{ability.stunTicks:seconds}</aqua>간 기절해 이동도 공격도 못 합니다.</green>",
-                        "<yellow>단일 대상에게 가장 강한 한 방입니다.</yellow>"
+                        "<yellow>적진을 가르며 여러 적을 띄우는 돌진 광역 제어기입니다.</yellow>"
                 )
         );
         register(
@@ -92,7 +92,7 @@ public final class DemonLordTowers {
                                 + "<aqua>{ability.blastRadius:blocks}</aqua>에 "
                                 + "<yellow>{ability.damage:number}</yellow> 광역 피해를 줍니다.</green>",
                         "<gray>조준은 시전 순간이 아니라 <yellow>발사 순간의 시선</yellow>을 씁니다.</gray>",
-                        "<yellow>거리를 두고 뭉친 무리를 때리는 유일한 원거리 기술입니다.</yellow>"
+                        "<yellow>거리를 두고 뭉친 무리를 때리는 원거리 기술입니다.</yellow>"
                 )
         );
         register(
@@ -119,7 +119,7 @@ public final class DemonLordTowers {
                                 + "<aqua>{ability.tickIntervalTicks:seconds}</aqua>마다 "
                                 + "<yellow>{ability.damage:number}</yellow> 피해를 입습니다.</green>",
                         "<green>낙인 위의 적은 받는 피해가 <aqua>{ability.damageTakenBonus:percent}</aqua> 증가합니다.</green>",
-                        "<yellow>길목에 미리 깔아 두는 유일한 장판입니다.</yellow>"
+                        "<yellow>길목을 미리 막아 두는 지속 장판입니다.</yellow>"
                 )
         );
         register(

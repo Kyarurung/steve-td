@@ -5,6 +5,7 @@ import java.util.UUID;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.TowerType;
 
@@ -43,6 +44,15 @@ public class DemonLordSkillTower extends ProductionTower {
 
     public int cooldownTicks() {
         return DemonLordTowers.cooldownTicks(type());
+    }
+
+    SemionTowerEntity entity(PlayerLane lane) {
+        if (lane == null || entityId().isEmpty()) {
+            return null;
+        }
+        return lane.arenaWorld().getEntity(entityId().getAsInt()) instanceof SemionTowerEntity entity
+                ? entity
+                : null;
     }
 
     /**

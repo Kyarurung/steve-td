@@ -4,6 +4,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.phys.Vec3;
 
@@ -35,6 +36,8 @@ public final class DemonLordState {
     private TowerType pendingBombardment;
     private long pendingBombardmentTick;
     private HellfireZone zone;
+    private double roundPhysicalDamageDealt;
+    private double roundMagicDamageDealt;
 
     public DemonLordState(UUID playerId) {
         this.playerId = playerId;
@@ -51,15 +54,9 @@ public final class DemonLordState {
         return health;
     }
 
-    /**
-     * 600 at level 1 sits just under the toughest tower in the game (780), which is deliberate: the
-     * base value only really matters for the first round or two, because levels carry over between
-     * rounds and quickly dominate. Starting low keeps the kill-fed growth curve meaningful instead
-     * of front-loading it.
-     */
     public double maxHealth() {
-        double base = global("baseMaxHealth", 600.0);
-        double perLevel = global("maxHealthPerLevel", 70.0);
+        double base = global("baseMaxHealth", 450.0);
+        double perLevel = global("maxHealthPerLevel", 52.5);
         return Math.max(1.0, base + perLevel * (level - 1));
     }
 
@@ -175,7 +172,26 @@ public final class DemonLordState {
     }
 
     public double bladeDamage() {
-        return global("bladeDamage", 30.0) * damageMultiplier();
+        return global("bladeDamage", 19.0) * damageMultiplier();
+    }
+
+    public void recordDamageDealt(double amount, DamageType damageType) {
+        if (!Double.isFinite(amount) || amount <= 0.0) {
+            return;
+        }
+        if (damageType == DamageType.MAGIC) {
+            roundMagicDamageDealt += amount;
+        } else {
+            roundPhysicalDamageDealt += amount;
+        }
+    }
+
+    public double roundPhysicalDamageDealt() {
+        return roundPhysicalDamageDealt;
+    }
+
+    public double roundMagicDamageDealt() {
+        return roundMagicDamageDealt;
     }
 
     /**
@@ -232,6 +248,7 @@ public final class DemonLordState {
      * 깔아 피해를 중첩시킬 수 없습니다.
      */
     public record HellfireZone(
+            TowerType altarType,
             Vec3 centre,
             double radius,
             double damage,
@@ -273,6 +290,8 @@ public final class DemonLordState {
         clearShield();
         clearPendingSkills();
         cooldownReadyTick.clear();
+        roundPhysicalDamageDealt = 0.0;
+        roundMagicDamageDealt = 0.0;
         loadoutDirty = true;
     }
 

@@ -6,6 +6,7 @@ import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordState;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordStates;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.ui.SemionText;
@@ -32,12 +33,9 @@ public final class DemonLordTowerJob extends SemionJob {
     @Override
     public List<Component> description() {
         return List.of(
-                SemionText.mini("<gray>타워는 <yellow>스킬을 주는 제단</yellow>일 뿐, 공격도 방어도 어그로도 없습니다.</gray>"),
-                SemionText.mini("<gray>스킬은 <green>종류별로 하나만</green> 지을 수 있고 코스트를 차지합니다.</gray>"),
-                SemionText.mini("<gray>핫바 <aqua>4~8번</aqua>에 스킬이 놓이고, 그 슬롯으로 손을 옮기면 즉시 발동합니다.</gray>"),
-                SemionText.mini("<yellow>라운드가 시작되면 자기 레인 중앙으로 끌려가 [전투 상태]가 됩니다.</yellow>"),
-                SemionText.mini("<red>보스바 체력이 다 닳으면 [전투 제외]가 되어 다음 라운드까지 아무것도 못 합니다.</red>"),
-                SemionText.mini("<green>몹을 처치할수록 레벨이 올라 체력과 피해량이 함께 성장합니다.</green>")
+                SemionText.mini("<gray>시작 타워 대신 마왕이 직접 레인을 지킵니다. 같은 스킬 제단은 하나만 지을 수 있고 타워 한도를 2~4칸 차지합니다.</gray>"),
+                SemionText.mini("<gray>운영 단계에서는 먼저 지은 7개 스킬이 <aqua>1~5번, F, Q</aqua>에 배정됩니다. 5번은 우클릭, 나머지는 키 입력으로 사용하며 마검은 9번에 고정됩니다. 스킬 10종의 총 코스트는 32입니다.</gray>"),
+                SemionText.mini("<green>성장 과정에서 보스바 체력이 0이 되면 해당 라운드에는 공격과 스킬만 막힙니다. 처치로 최대 체력과 피해량을 키우며, 다음 라운드에 최대 체력으로 복귀합니다.</green>")
         );
     }
 
@@ -84,6 +82,6 @@ public final class DemonLordTowerJob extends SemionJob {
 
     @Override
     public void onEliminated(JobContext context) {
-        DemonLordStates.clear(context.player().uuid());
+        DemonLordService.clearPlayerState(context.player().uuid());
     }
 }

@@ -5,7 +5,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
 /**
- * The five demon lord skills.
+ * The ten demon lord skills.
  *
  * <p>Unlike every other builder, a demon lord tower never fights. It exists only to hand its skill
  * to the owning player, who is the actual weapon. Each skill therefore owns a fixed hotbar slot:
@@ -14,7 +14,7 @@ import net.minecraft.world.item.Items;
  *
  * <p>{@link #slotCost()} is the builder's "코스트" and feeds the existing
  * {@code towerSlotCost} capacity system, so the round tower limit decides how many skills can be
- * live at once. All five together cost 16, which is far more than an early limit allows.
+ * live at once. All ten together cost 32, which is far more than an early limit allows.
  */
 public enum DemonLordSkill {
     WAVE_OF_MALICE("wave_of_malice", "악의 파동", 3, 8, Items.BREEZE_ROD),

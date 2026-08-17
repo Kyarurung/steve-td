@@ -48,6 +48,9 @@ import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.tower.engineer.EngineerTrapTower;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordVfx;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.insect.InsectSpawnerTower;
 import kim.biryeong.semiontd.tower.insect.InsectUnitTower;
@@ -630,7 +633,16 @@ public final class SemionCommands {
                                                 context.getSource(), gameManager, ThunderVfx.DebugKind.ARC)))
                                 .then(literal("discharge")
                                         .executes(context -> debugThunderVfx(
-                                                context.getSource(), gameManager, ThunderVfx.DebugKind.DISCHARGE)))))
+                                                context.getSource(), gameManager, ThunderVfx.DebugKind.DISCHARGE))))
+                        .then(literal("demon_lord")
+                                .then(argument("skill", StringArgumentType.word())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                java.util.Arrays.stream(DemonLordSkill.values())
+                                                        .map(DemonLordSkill::key), builder))
+                                        .executes(context -> debugDemonLordVfx(
+                                                context.getSource(), gameManager,
+                                                StringArgumentType.getString(context, "skill")))))
+                )
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -980,6 +992,31 @@ public final class SemionCommands {
         failure(source, kind == ArmyTower.DebugVfx.BARRAGE
                 ? "살아 있는 군대 포병 타워가 필요합니다."
                 : "살아 있는 군대 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugDemonLordVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            String skillKey
+    ) throws CommandSyntaxException {
+        DemonLordSkill skill = DemonLordSkill.fromKey(skillKey);
+        if (skill == null) {
+            failure(source, "알 수 없는 마왕 스킬입니다: " + skillKey);
+            return 0;
+        }
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (var altar : DemonLordService.orderedAltars(lane, player.getUUID())) {
+                if (altar.skill() == skill && DemonLordVfx.showDebug(altar, lane, player.position())) {
+                    success(source, "마왕 " + skill.displayName() + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, "해당 스킬의 살아 있는 마왕 제단이 필요합니다.");
         return 0;
     }
 
