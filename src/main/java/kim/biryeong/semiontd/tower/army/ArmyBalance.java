@@ -37,7 +37,7 @@ public final class ArmyBalance {
     public static final int DISCHARGE_NOTICE_WAVES = 2;
 
     /** Permanent lane-wide damage each medal grants. */
-    public static final double MEDAL_DAMAGE_BONUS = 0.10;
+    public static final double MEDAL_DAMAGE_BONUS = 0.05;
     public static final int MAX_MEDALS = 20;
 
     private ArmyBalance() {

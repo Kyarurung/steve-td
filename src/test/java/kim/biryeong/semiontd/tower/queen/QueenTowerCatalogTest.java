@@ -196,10 +196,14 @@ final class QueenTowerCatalogTest {
                 "rangeVfxIntervalTicks", -1));
         assertEquals(4.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "giantContactRadius", -1), 0.0001);
-        assertEquals(1.25, merged.ability(QueenBalance.GLOBAL_ID,
+        assertEquals(2.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "cardSplashRadius", -1), 0.0001);
-        assertEquals(1, merged.abilityInt(QueenBalance.GLOBAL_ID,
+        assertEquals(2.5, merged.ability(QueenBalance.GLOBAL_ID,
+                "spadeRadius", -1), 0.0001);
+        assertEquals(5, merged.abilityInt(QueenBalance.GLOBAL_ID,
                 "cardSplashExtraTargets", -1));
+        assertEquals(5, merged.abilityInt(QueenBalance.GLOBAL_ID,
+                "spadeExtraTargets", -1));
 
         assertInvalidAbility(defaults, "shrinkFactorPerPoint", 1.0);
         assertInvalidAbility(defaults, "minimumStatScale", 0.0);

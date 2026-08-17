@@ -158,7 +158,7 @@ public final class ArmyGameTest {
             require(refund == 47,
                     "One quartermaster must refund 47 diamonds, got " + refund + ".");
             double earnedBonus = ArmyStates.medalBonus(owner);
-            require(close(earnedBonus, 0.15), "One supported discharge must award exactly 1.5 medals.");
+            require(close(earnedBonus, 0.075), "One supported discharge must award exactly 1.5 medals.");
             require(lane.removeTower(quartermaster), "Quartermaster cleanup must succeed before casualty coverage.");
 
             ArmyTower casualty = tower(ArmyTowers.RECRUIT, owner, emptyPosition(lane, 2));
@@ -205,7 +205,7 @@ public final class ArmyGameTest {
         try {
             ArmyStates.awardMedal(owner, 1.0);
             ArmyTower guard = tower(ArmyTowers.GUARD, owner, emptyPosition(lane, 0));
-            require(close(guard.modifyAttackDamage(null, null, 100.0), 110.0),
+            require(close(guard.modifyAttackDamage(null, null, 100.0), 105.0),
                     "The medal bonus must reach non-ranking Army guards.");
 
             ArmyTower artillery = tower(ArmyTowers.GUNNER, owner, emptyPosition(lane, 1));

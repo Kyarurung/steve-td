@@ -18,10 +18,10 @@ public final class QueenBalance {
     public static double heartHealAmount() {return ability("heartHealAmount", 12.0);}
     public static double heartHealRadius() {return ability("heartHealRadius", 5.0);}
     public static double clubDamageReduction() {return ability("clubDamageReduction", 0.15);}
-    public static double cardSplashRadius() {return ability("cardSplashRadius", 1.25);}
-    public static int cardSplashExtraTargets() {return abilityInt("cardSplashExtraTargets", 1);}
-    public static double spadeRadius() {return ability("spadeRadius", 1.5);}
-    public static int spadeExtraTargets() {return abilityInt("spadeExtraTargets", 3);}
+    public static double cardSplashRadius() {return ability("cardSplashRadius", 2.0);}
+    public static int cardSplashExtraTargets() {return abilityInt("cardSplashExtraTargets", 5);}
+    public static double spadeRadius() {return ability("spadeRadius", 2.5);}
+    public static int spadeExtraTargets() {return abilityInt("spadeExtraTargets", 5);}
     public static int giantChargeTicks() {return abilityInt("giantChargeTicks", 400);}
     public static double giantAccelerationRadius() {return ability("giantAccelerationRadius", 6.0);}
     public static int giantAccelerationMemoryTicks() {return abilityInt("giantAccelerationMemoryTicks", 40);}

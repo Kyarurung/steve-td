@@ -22,7 +22,7 @@ public final class HeroPartyTowers {
     private static final List<TowerType> ALL;
 
     public static final TowerType HERO = TowerType.builder(HERO_ID, "용사")
-            .mineralCost(80)
+            .mineralCost(112)
             .maxHealth(160.0)
             .range(3.5)
             .damage(12.0)
@@ -38,7 +38,7 @@ public final class HeroPartyTowers {
     static {
         register(
                 HeroCompanionRole.KNIGHT,
-                new long[]{60, 90, 140, 220},
+                new long[]{84, 126, 196, 308},
                 new double[]{260, 430, 650, 900},
                 new double[]{3.0, 3.0, 3.0, 3.0},
                 new double[]{7.2, 10.8, 15.6, 21.6},
@@ -49,18 +49,18 @@ public final class HeroPartyTowers {
         );
         register(
                 HeroCompanionRole.ARCHER,
-                new long[]{55, 85, 130, 200},
+                new long[]{77, 119, 182, 280},
                 new double[]{70, 105, 150, 200},
                 new double[]{10.0, 10.0, 10.0, 10.0},
                 new double[]{14.4, 20.4, 28.8, 38.4},
-                new int[]{15, 14, 12, 10},
+                new int[]{15, 13, 10, 7},
                 0,
                 false,
                 "강한 적을 먼저 노리는 원거리 딜러입니다."
         );
         register(
                 HeroCompanionRole.MAGE,
-                new long[]{70, 105, 165, 260},
+                new long[]{98, 147, 231, 364},
                 new double[]{80, 120, 165, 220},
                 new double[]{8.0, 8.0, 8.0, 8.0},
                 new double[]{19.2, 26.4, 37.2, 50.4},
@@ -71,7 +71,7 @@ public final class HeroPartyTowers {
         );
         register(
                 HeroCompanionRole.PRIEST,
-                new long[]{65, 100, 155, 240},
+                new long[]{91, 140, 217, 336},
                 new double[]{100, 145, 205, 280},
                 new double[]{7.0, 7.0, 7.0, 7.0},
                 new double[]{4.8, 7.2, 12, 16.8},
@@ -82,7 +82,7 @@ public final class HeroPartyTowers {
         );
         register(
                 HeroCompanionRole.ROGUE,
-                new long[]{50, 75, 120, 185},
+                new long[]{70, 105, 168, 259},
                 new double[]{65, 95, 135, 180},
                 new double[]{3.5, 3.5, 3.5, 3.5},
                 new double[]{12, 16.8, 22.8, 31.2},
@@ -93,7 +93,7 @@ public final class HeroPartyTowers {
         );
         register(
                 HeroCompanionRole.BARD,
-                new long[]{60, 90, 140, 220},
+                new long[]{84, 126, 196, 308},
                 new double[]{90, 130, 180, 240},
                 new double[]{7.0, 7.0, 7.0, 7.0},
                 new double[]{4.8, 8.4, 12, 16.8},

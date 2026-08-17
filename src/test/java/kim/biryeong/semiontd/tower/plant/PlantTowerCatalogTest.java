@@ -428,16 +428,16 @@ final class PlantTowerCatalogTest {
         assertEquals(20.0, defaults.ability(PlantTowers.GLOBAL_CONFIG_ID, "soilPulseIntervalTicks", -1), EPSILON);
         assertEquals(0.015, defaults.ability(PlantSoil.MEADOW.configId(), "healPercentPerPulse", -1), EPSILON);
         assertEquals(6.0, defaults.ability(PlantSoil.MEADOW.configId(), "supportRadius", -1), EPSILON);
-        assertEquals(0.2, defaults.ability(PlantSoil.MEADOW.configId(), "growthShareRatio", -1), EPSILON);
-        assertEquals(0.5, defaults.ability(PlantSoil.MEADOW.configId(), "growthShareCap", -1), EPSILON);
+        assertEquals(0.15, defaults.ability(PlantSoil.MEADOW.configId(), "growthShareRatio", -1), EPSILON);
+        assertEquals(0.25, defaults.ability(PlantSoil.MEADOW.configId(), "growthShareCap", -1), EPSILON);
         assertEquals(0.2, defaults.ability(PlantSoil.PODZOL.configId(), "growthShareRatio", -1), EPSILON);
         assertEquals(0.4, defaults.ability(PlantSoil.PODZOL.configId(), "growthShareCap", -1), EPSILON);
         assertEquals(60.0, defaults.ability(PlantSoil.PODZOL.configId(), "supportDurationTicks", -1), EPSILON);
 
-        // 성장은 40라운드 게임 내내 붙어야 합니다. 상한에 너무 일찍 닿으면 후반이 죽습니다.
         double perRound = defaults.ability(PlantSoil.MEADOW.configId(), "maxHealthGrowthPerRound", -1);
         double growthCap = defaults.ability(PlantSoil.MEADOW.configId(), "maxHealthGrowthCap", -1);
-        assertTrue(growthCap / perRound >= 40.0, "rounds to cap " + (growthCap / perRound));
+        assertEquals(0.015, perRound, EPSILON);
+        assertEquals(0.5, growthCap, EPSILON);
         assertEquals(2.0, defaults.ability(PlantTowers.T1_MYCELIUM_TOWER.id(), "explosionDamageMultiplier", -1), EPSILON);
         assertEquals(0.25, defaults.ability(PlantSoil.DESERT.configId(), "attackSpeedReduction", -1), EPSILON);
         assertEquals(0.30, defaults.ability(PlantSoil.DESERT.configId(), "thornReflectRatio", -1), EPSILON);

@@ -118,6 +118,20 @@ public final class QueenGameTest {
             require(queen.selectForcedAttackTarget(queenEntity, List.of(target, nearby)).orElseThrow() == nearby,
                     "The Queen must switch targets after preparing one for execution.");
             SemionTowerEntity cardEntity = (SemionTowerEntity) context.getLevel().getEntity(card.entityId().orElseThrow());
+            require(card.selectForcedAttackTarget(cardEntity, List.of(target, nearby)).orElseThrow() == nearby,
+                    "Card soldiers must target an enemy that still needs shrink for Giant execution.");
+            QueenShrink.apply(nearby, QueenBalance.cardShrinkPoints());
+            QueenShrink.apply(unweakened, QueenBalance.cardShrinkPoints());
+            requireClose(nearbyMonster.permanentStatScale(), unweakenedMonster.permanentStatScale(),
+                    "Target-lock regression setup must give both enemies equal shrink.");
+            cardEntity.recordCurrentAttackTarget(nearby);
+            require(card.selectForcedAttackTarget(cardEntity, List.of(unweakened, nearby)).orElseThrow() == nearby,
+                    "Card soldiers must keep their current target when splash creates an equal-shrink tie.");
+            for (int hit = 0; hit < 200 && !QueenGiantRunner.hasRequiredVisualShrink(nearbyMonster); hit++) {
+                QueenShrink.apply(nearby, QueenBalance.cardShrinkPoints());
+            }
+            require(card.selectForcedAttackTarget(cardEntity, List.of(nearby, unweakened)).orElseThrow() == unweakened,
+                    "Card soldiers must switch only after the current target reaches execution shrink.");
             require(cardEntity.getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE),
                     "Card soldiers must wear suit-colored leather armor.");
             ArmorStand cardEquipment = equipmentVisual(context, cardEntity);
@@ -299,13 +313,13 @@ public final class QueenGameTest {
             card.assignCard(new QueenCard(QueenCard.Suit.DIAMOND, 7));
             lane.addTower(card);
             assertShrinkCount(context, lane, card, 1, 1);
-            assertShrinkCount(context, lane, card, 3, 2);
-            assertShrinkCount(context, lane, card, 5, 2);
+            assertShrinkCount(context, lane, card, 3, 3);
+            assertShrinkCount(context, lane, card, 8, 6);
 
             card.assignCard(new QueenCard(QueenCard.Suit.SPADE, 7));
             assertShrinkCount(context, lane, card, 1, 1);
             assertShrinkCount(context, lane, card, 3, 3);
-            assertShrinkCount(context, lane, card, 5, 4);
+            assertShrinkCount(context, lane, card, 8, 6);
             context.succeed();
         } finally {
             group.closeRuntime();
