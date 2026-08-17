@@ -356,7 +356,10 @@ public final class DemonLordState {
     }
 
     /**
-     * Called at round start: full health, no barrier, every cooldown cleared.
+     * Called at wave start: full health, no barrier, every cooldown cleared.
+     *
+     * <p>Wave start, not round start — the prepare phase has to stay non-combat so the shop hotbar
+     * survives, and this doubles as the revive point for anyone knocked out of the last wave.
      *
      * <p>The actual teleport to lane centre is deferred to {@code pendingSpawn}, because jobs run
      * without a {@code ServerPlayer} handle and the service tick has one.
