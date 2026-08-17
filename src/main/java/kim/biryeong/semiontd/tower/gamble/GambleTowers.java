@@ -35,7 +35,7 @@ public final class GambleTowers {
                     "주사위 두 개의 합이 {ability.gamble_global.twoDiceCompoundMinSum:integer} 이상이면 서로 다른 능력치 두 개가 보상을 나눠 받습니다.",
                     "기본 공격은 반경 {ability.gamble_global.baseSplashRadius:blocks} 안의 적에게도 피해를 줍니다.",
                     "좋은 결과가 나오면 {ability.gamble_global.abilityRewardChance:percent} 확률로 손실 보험을 얻습니다.",
-                    "손실 보험은 모든 도박 실패의 감소량을 {ability.gamble_global.lossInsuranceReduction:percent} 줄입니다."
+                    "손실 보험은 능력치 감소량을 {ability.gamble_global.lossInsuranceReduction:percent} 줄입니다."
             )).build();
     public static final TowerType SPECTATOR_T1 = spectator(
             "gamble_spectator_t1", "구경꾼 타워 I", 45, 10, 3.5,
@@ -92,7 +92,6 @@ public final class GambleTowers {
                 .visual(visual).description(List.of(description,
                         "눈 1은 강한 약화, 2는 약화, 3은 강화, 4는 강한 강화입니다.",
                         "눈 5~6은 여러 능력치를 함께 강화하며 6의 효과가 더 강합니다.",
-                        "긍정 효과 배율: {ability.supportPowerMultiplier:number}배",
                         "공격하지 않으며 지원 범위와 이번 라운드 눈금이 타워 머리 위에 표시됩니다."))
                 .build();
     }

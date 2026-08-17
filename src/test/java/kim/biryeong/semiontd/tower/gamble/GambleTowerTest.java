@@ -165,12 +165,14 @@ final class GambleTowerTest {
     }
 
     @Test
-    void lossInsuranceExplainsThatItAppliesToBothBetTypes() {
-        assertTrue(GambleAbility.LOSS_INSURANCE.description().contains("20%"));
-        assertTrue(GambleAbility.LOSS_INSURANCE.description().contains("홀수·짝수"));
-        assertTrue(GambleAbility.LOSS_INSURANCE.description().contains("주사위 두 개"));
+    void lossInsuranceDescriptionStatesOnlyThePlayerFacingEffect() {
+        assertEquals("도박 실패 시 능력치 감소량이 20% 줄어듭니다.",
+                GambleAbility.LOSS_INSURANCE.description());
+        assertFalse(GambleAbility.LOSS_INSURANCE.description().contains("홀수·짝수"));
+        assertFalse(GambleAbility.LOSS_INSURANCE.description().contains("주사위 두 개"));
         assertTrue(GambleTowers.GAMBLER.description().stream().anyMatch(line -> line.contains("손실 보험")));
-        assertTrue(GambleTowers.GAMBLER.description().stream().anyMatch(line -> line.contains("모든 도박 실패")));
+        assertFalse(GambleTowers.GAMBLER.description().stream().anyMatch(line -> line.contains("모든 도박")));
+        assertFalse(GambleTowers.DICE_T3.description().stream().anyMatch(line -> line.contains("효과 배율")));
 
         GamblerTower gambler = new GamblerTower(GambleTowers.GAMBLER, OWNER, TeamId.RED, 1,
                 new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));

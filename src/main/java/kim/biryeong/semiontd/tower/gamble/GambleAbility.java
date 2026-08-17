@@ -15,17 +15,15 @@ public enum GambleAbility {
 
     public String description() {
         return switch (this) {
-            case LOSS_INSURANCE -> "도박 실패로 줄어드는 능력치의 감소량을 "
-                    + percent(GambleBalance.lossInsuranceReduction())
-                    + " 줄이며 홀수·짝수 맞히기와 주사위 두 개 굴리기에 모두 적용됩니다.";
+            case LOSS_INSURANCE -> "도박 실패 시 능력치 감소량이 "
+                    + percent(GambleBalance.lossInsuranceReduction()) + " 줄어듭니다.";
         };
     }
 
     public String defaultDescription() {
         return switch (this) {
-            case LOSS_INSURANCE -> "도박 실패로 줄어드는 능력치의 감소량을 "
-                    + percent(GambleBalance.LOSS_INSURANCE_REDUCTION)
-                    + " 줄이며 홀수·짝수 맞히기와 주사위 두 개 굴리기에 모두 적용됩니다.";
+            case LOSS_INSURANCE -> "도박 실패 시 능력치 감소량이 "
+                    + percent(GambleBalance.LOSS_INSURANCE_REDUCTION) + " 줄어듭니다.";
         };
     }
 
