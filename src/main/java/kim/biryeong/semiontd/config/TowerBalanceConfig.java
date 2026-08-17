@@ -2433,7 +2433,7 @@ public record TowerBalanceConfig(
         values.put("shrinkFactorPerPoint", 0.98);
         values.put("minimumStatScale", 0.20);
         values.put("minimumVisualScale", 0.50);
-        values.put("queenShrinkPoints", 5.0);
+        values.put("queenShrinkPoints", 7.0);
         values.put("cardShrinkPoints", 0.75);
         values.put("cardDeathShrinkPoints", 1.5);
         values.put("cardDeathRadius", 3.0);
@@ -2450,7 +2450,7 @@ public record TowerBalanceConfig(
         values.put("giantAccelerationMemoryTicks", 40.0);
         values.put("giantInitialExecutionHealth", 5.0);
         values.put("giantExecutionGrowthRatio", 0.05);
-        values.put("giantGrowthTargetCapMultiplier", 4.0);
+        values.put("giantGrowthTargetCapMultiplier", 2.0);
         values.put("queenMaxHealthPerRound", 8.0);
         values.put("giantContactRadius", 4.0);
         values.put("giantSpeed", 0.65);

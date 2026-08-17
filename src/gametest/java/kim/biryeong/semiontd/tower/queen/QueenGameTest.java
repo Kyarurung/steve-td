@@ -72,6 +72,16 @@ public final class QueenGameTest {
             require(context.getLevel().addFreshEntity(nearby), "Nearby target monster must spawn.");
             nearbyMonster.markMinecraftEntitySpawned(nearby.getId(), spawn.x + 1.0, spawn.y, spawn.z);
             lane.activeMonsters().add(nearbyMonster);
+            Monster unweakenedMonster = new Monster("queen-unweakened-target", TeamId.RED, 1,
+                    Optional.empty(), Optional.empty(), 80.0, 0.0, 20.0,
+                    AttackKind.MELEE, "minecraft:zombie", 5L);
+            unweakenedMonster.syncHealth(4.0);
+            SemionMonsterEntity unweakened = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+            unweakened.configureFrom(unweakenedMonster, lane.laneLayout());
+            unweakened.setPos(spawn.x + 2.0, spawn.y, spawn.z);
+            require(context.getLevel().addFreshEntity(unweakened), "Unweakened target monster must spawn.");
+            unweakenedMonster.markMinecraftEntitySpawned(unweakened.getId(), spawn.x + 2.0, spawn.y, spawn.z);
+            lane.activeMonsters().add(unweakenedMonster);
             SemionTowerEntity queenEntity = (SemionTowerEntity) context.getLevel().getEntity(queen.entityId().orElseThrow());
             require(queenEntity.getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE)
                             && queenEntity.getItemBySlot(EquipmentSlot.MAINHAND).is(Items.GOLDEN_SWORD),
@@ -98,6 +108,15 @@ public final class QueenGameTest {
             requireClose(40.0 * factor, monster.health(), "Queen shrink must preserve current health ratio.");
             requireClose(20.0 * factor, monster.attackDamage(), "Queen shrink must reduce attack damage.");
             require(monster.isAlive(), "Shrink must never kill its target directly.");
+            require(queen.selectForcedAttackTarget(queenEntity, List.of(target, nearby)).orElseThrow() == target,
+                    "The Queen must keep focusing a partially weakened target.");
+            for (int hit = 1; hit < 3; hit++) {
+                queen.onAttackResolved(queenEntity, target, 0.0, 0.0, 0.0, false);
+            }
+            require(QueenGiantRunner.hasRequiredVisualShrink(monster),
+                    "Three early Queen attacks must make the target 30% smaller for Giant execution.");
+            require(queen.selectForcedAttackTarget(queenEntity, List.of(target, nearby)).orElseThrow() == nearby,
+                    "The Queen must switch targets after preparing one for execution.");
             SemionTowerEntity cardEntity = (SemionTowerEntity) context.getLevel().getEntity(card.entityId().orElseThrow());
             require(cardEntity.getItemBySlot(EquipmentSlot.CHEST).is(Items.LEATHER_CHESTPLATE),
                     "Card soldiers must wear suit-colored leather armor.");
@@ -138,10 +157,15 @@ public final class QueenGameTest {
             float expectedYaw = (float) Math.toDegrees(Math.atan2(-direction.x, direction.z));
             require(angleDifference(state.runner().yaw(), expectedYaw) < 0.1,
                     "The Giant must face the direction it is running.");
-            for (int tick = 0; tick < 80 && monster.isAlive(); tick++) queen.tick(lane);
+            for (int tick = 0; tick < 80; tick++) queen.tick(lane);
             require(!monster.isAlive(), "The Giant must execute a contacted enemy below its threshold.");
+            require(unweakenedMonster.isAlive(),
+                    "The Giant must not execute an enemy that is less than 30% smaller, even below its threshold.");
             requireClose(QueenBalance.giantInitialExecutionHealth()
-                            + 16.0 * QueenBalance.giantExecutionGrowthRatio(), state.executionHealth(),
+                            + Math.max(QueenBalance.giantInitialExecutionHealth(), Math.min(16.0,
+                                    QueenBalance.giantInitialExecutionHealth()
+                                            * QueenBalance.giantGrowthTargetCapMultiplier()))
+                                    * QueenBalance.giantExecutionGrowthRatio(), state.executionHealth(),
                     "A successful execution must use the bounded growth formula.");
             require(owner.equals(monster.lastHitPlayerId().orElse(null))
                             && monster.lastHitSourceKind() == KillSourceKind.TOWER,
@@ -188,6 +212,39 @@ public final class QueenGameTest {
             require(group.boss().isAlive(), "The final-defense Giant must not kill its own team's boss.");
             requireClose(teamBossHealth, group.boss().health(),
                     "The final-defense Giant must not damage its own team's boss.");
+            context.succeed();
+        } finally {
+            group.closeRuntime();
+            QueenStates.clear(owner);
+        }
+    }
+
+    @GameTest(maxTicks = 20)
+    public void giantSpawnsOnMidLaneWithoutPersonalWaypoints(GameTestHelper context) {
+        UUID owner = UUID.nameUUIDFromBytes("queen-mid-lane".getBytes(StandardCharsets.UTF_8));
+        QueenStates.clear(owner);
+        PlayerLane lane = testMidLane(context, owner);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(lane);
+        QueenStates.begin(owner, group);
+        prepareFloor(context);
+        QueenTower queen = (QueenTower) ProductionTowerCatalog.find(QueenTowers.QUEEN.id()).orElseThrow()
+                .create(owner, TeamId.RED, 5, GridPosition.from(context.absolutePos(new BlockPos(3, 2, 3))));
+        try {
+            lane.addTower(queen);
+            lane.activeMonsters().add(new Monster("queen-mid-lane-target", TeamId.RED, 1,
+                    Optional.empty(), Optional.empty(), 80.0, 0.0, 20.0,
+                    AttackKind.MELEE, "minecraft:zombie", 5L));
+            QueenStates.PlayerState state = QueenStates.state(owner);
+            state.addCharge(QueenBalance.giantChargeTicks());
+            queen.markWaveStarted(1);
+            queen.onWaveStarted(lane, 1);
+
+            queen.tick(lane);
+
+            require(state.runnerActive(), "The Giant must spawn on lane 5 without personal waypoints.");
+            require(state.runner().position().distanceToSqr(lane.laneLayout().waypoints().getLast()) < 0.01,
+                    "The lane 5 Giant must start at the boss-side end of the shared path.");
             context.succeed();
         } finally {
             group.closeRuntime();
@@ -391,6 +448,11 @@ public final class QueenGameTest {
     }
 
     private static PlayerLane testFinalDefenseLane(GameTestHelper context) {
+        return testMidLane(context,
+                UUID.nameUUIDFromBytes("queen-final-defense-lane".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private static PlayerLane testMidLane(GameTestHelper context, UUID owner) {
         BlockPos min = context.absolutePos(new BlockPos(0, 1, 0));
         BlockPos max = context.absolutePos(new BlockPos(14, 6, 14));
         Vec3 spawn = Vec3.atCenterOf(context.absolutePos(new BlockPos(13, 2, 2)));
@@ -411,7 +473,7 @@ public final class QueenGameTest {
         return new PlayerLane(
                 TeamId.RED,
                 5,
-                UUID.nameUUIDFromBytes("queen-final-defense-lane".getBytes(StandardCharsets.UTF_8)),
+                owner,
                 context.getLevel(),
                 layout
         );

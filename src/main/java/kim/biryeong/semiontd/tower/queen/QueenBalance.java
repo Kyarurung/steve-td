@@ -10,7 +10,7 @@ public final class QueenBalance {
     public static double shrinkFactorPerPoint() {return ability("shrinkFactorPerPoint", 0.98);}
     public static double minimumStatScale() {return ability("minimumStatScale", 0.20);}
     public static double minimumVisualScale() {return ability("minimumVisualScale", 0.50);}
-    public static double queenShrinkPoints() {return ability("queenShrinkPoints", 5.0);}
+    public static double queenShrinkPoints() {return ability("queenShrinkPoints", 7.0);}
     public static double cardShrinkPoints() {return ability("cardShrinkPoints", 0.75);}
     public static double cardDeathShrinkPoints() {return ability("cardDeathShrinkPoints", 1.5);}
     public static double cardDeathRadius() {return ability("cardDeathRadius", 3.0);}
@@ -27,7 +27,7 @@ public final class QueenBalance {
     public static int giantAccelerationMemoryTicks() {return abilityInt("giantAccelerationMemoryTicks", 40);}
     public static double giantInitialExecutionHealth() {return ability("giantInitialExecutionHealth", 5.0);}
     public static double giantExecutionGrowthRatio() {return ability("giantExecutionGrowthRatio", 0.05);}
-    public static double giantGrowthTargetCapMultiplier() {return ability("giantGrowthTargetCapMultiplier", 4.0);}
+    public static double giantGrowthTargetCapMultiplier() {return ability("giantGrowthTargetCapMultiplier", 2.0);}
     public static double queenMaxHealthPerRound() {return ability("queenMaxHealthPerRound", 8.0);}
     public static double giantContactRadius() {return ability("giantContactRadius", 4.0);}
     public static double giantSpeed() {return ability("giantSpeed", 0.65);}

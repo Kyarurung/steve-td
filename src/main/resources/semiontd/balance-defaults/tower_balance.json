@@ -5434,7 +5434,7 @@
       "shrinkFactorPerPoint": 0.98,
       "minimumStatScale": 0.2,
       "minimumVisualScale": 0.5,
-      "queenShrinkPoints": 5.0,
+      "queenShrinkPoints": 7.0,
       "cardShrinkPoints": 0.75,
       "cardDeathShrinkPoints": 1.5,
       "cardDeathRadius": 3.0,
@@ -5451,7 +5451,7 @@
       "giantAccelerationMemoryTicks": 40.0,
       "giantInitialExecutionHealth": 5.0,
       "giantExecutionGrowthRatio": 0.05,
-      "giantGrowthTargetCapMultiplier": 4.0,
+      "giantGrowthTargetCapMultiplier": 2.0,
       "queenMaxHealthPerRound": 8.0,
       "giantContactRadius": 4.0,
       "giantSpeed": 0.65,
@@ -6120,8 +6120,8 @@
       "staffSergeantAttackSpeedBuff": 0.15,
       "dischargeService": 13.0,
       "dischargeNoticeWaves": 2.0,
-      "medalDamageBonus": 0.02,
-      "maxMedals": 10.0
+      "medalDamageBonus": 0.1,
+      "maxMedals": 20.0
     },
     "army_clerk_t1": {
       "serviceRateBonus": 1.0,
