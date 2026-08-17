@@ -1,9 +1,7 @@
 package kim.biryeong.semiontd.tower.gamble;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.SemionTd;
@@ -12,7 +10,6 @@ import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
-import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.entity.visual.TowerEquipmentVisual;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -41,7 +38,6 @@ public final class GamblerTower extends ProductionTower {
     private transient PlayerLane lane;
     private transient ArmorStand equipmentVisual;
     private double copiedHealthRatio = 1.0;
-    private int attackCount;
 
     public GamblerTower(
             TowerType type, UUID ownerPlayer, TeamId teamId, int laneId,
@@ -90,15 +86,11 @@ public final class GamblerTower extends ProductionTower {
     @Override
     public void onWaveStarted(PlayerLane lane, int currentRound) {
         this.lane = lane;
-        attackCount = 0;
     }
 
     @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
         copiedHealthRatio = previousTower.health() / Math.max(1.0, previousTower.currentMaxHealth());
-        if (previousTower instanceof GamblerTower previous) {
-            attackCount = previous.attackCount;
-        }
     }
 
     @Override
@@ -126,33 +118,11 @@ public final class GamblerTower extends ProductionTower {
     }
 
     @Override
-    public double modifyResolvedOutgoingDamage(
-            SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount
-    ) {
-        return state().has(GambleAbility.LUCKY_STRIKE)
-                ? GambleRolls.luckyStrikeDamage(
-                        damageAmount, towerEntity.getRandom().nextInt(6) + 1,
-                        GambleBalance.luckyStrikeMultiplier())
-                : damageAmount;
-    }
-
-    @Override
     public void onAttackResolved(
             SemionTowerEntity source, SemionMonsterEntity target, double attemptedDamage,
             double resolvedOutgoingDamage, double dealtDamage, boolean killedTarget
     ) {
         applyBasicSplash(source, target, resolvedOutgoingDamage);
-        attackCount++;
-        if (!state().has(GambleAbility.SPREAD_BET)
-                || attackCount % GambleBalance.spreadEveryAttacks() != 0
-                || lane == null || target == null) {
-            return;
-        }
-        nearestExtraTarget(target).ifPresent(extra -> {
-            double outgoing = resolvedOutgoingDamage * GambleBalance.spreadDamageRatio();
-            damageResolvedTargetResult(source, extra, outgoing);
-            TowerVfxService.showSecondaryAttack(source, extra);
-        });
     }
 
     @Override
@@ -170,20 +140,29 @@ public final class GamblerTower extends ProductionTower {
         return GambleBet.fromUpgradeId(option.id()).map(bet -> switch (bet) {
             case ODD -> List.of(
                     "주사위 한 개를 굴려 홀수가 나오면 능력치가 오르고, 짝수가 나오면 내려갑니다.",
-                    "성공하면 체력 +200·공격력 +20·사거리 +2 중 하나를 얻습니다.",
-                    "실패하면 무작위 능력치가 성공 보상의 70%만큼 감소합니다.",
+                    "성공하면 " + statRewardSummary(GambleBalance.oddEvenWinScore()) + " 중 하나를 얻습니다.",
+                    "실패하면 " + statRewardSummary(-GambleBalance.oddEvenLossScore())
+                            + " 중 하나가 적용됩니다.",
+                    "손실 보험 보유 시 실패 수치는 " + statRewardSummary(-GambleBalance.oddEvenLossScore()
+                            * (1.0 - GambleBalance.lossInsuranceReduction())) + "로 완화됩니다.",
                     "비용은 판매 환불가에 포함되지 않습니다."
             );
             case EVEN -> List.of(
                     "주사위 한 개를 굴려 짝수가 나오면 능력치가 오르고, 홀수가 나오면 내려갑니다.",
-                    "성공하면 체력 +200·공격력 +20·사거리 +2 중 하나를 얻습니다.",
-                    "실패하면 무작위 능력치가 성공 보상의 70%만큼 감소합니다.",
+                    "성공하면 " + statRewardSummary(GambleBalance.oddEvenWinScore()) + " 중 하나를 얻습니다.",
+                    "실패하면 " + statRewardSummary(-GambleBalance.oddEvenLossScore())
+                            + " 중 하나가 적용됩니다.",
+                    "손실 보험 보유 시 실패 수치는 " + statRewardSummary(-GambleBalance.oddEvenLossScore()
+                            * (1.0 - GambleBalance.lossInsuranceReduction())) + "로 완화됩니다.",
                     "비용은 판매 환불가에 포함되지 않습니다."
             );
             case TWO_DICE -> List.of(
                     "주사위 두 개를 굴려 눈금의 합에 비례해 유닛을 업그레이드합니다.",
                     "합이 2~5면 능력치가 크게 내려가고, 6~12면 크게 올라갑니다.",
-                    "가장 자주 나오는 합 7은 홀수·짝수 맞히기 성공과 같은 보상입니다.",
+                    "합이 " + GambleBalance.twoDiceCompoundMinSum()
+                            + " 이상이면 보상을 서로 다른 능력치 두 개가 절반씩 나눠 받습니다.",
+                    "가장 자주 나오는 합 7은 " + statRewardSummary(GambleBalance.twoDiceScore(7))
+                            + " 중 하나를 줍니다.",
                     "같은 눈이 나오면 변화량이 두 배가 되며 비용은 판매 환불가에 포함되지 않습니다."
             );
         }).orElseGet(List::of);
@@ -194,6 +173,7 @@ public final class GamblerTower extends ProductionTower {
         GambleState state = state();
         ArrayList<String> lines = new ArrayList<>();
         lines.add("도박 횟수: " + state.totalBets());
+        lines.add("누적 도박 점수: " + signed(state.cumulativeScore()));
         lines.add("최대 체력 변화: " + signed(state.maxHealthDelta()));
         lines.add("공격력 변화: " + signed(state.damageDelta()));
         lines.add("사거리 변화: " + signed(state.rangeDelta()));
@@ -216,6 +196,10 @@ public final class GamblerTower extends ProductionTower {
         return getDataOrDefault(STATE, GambleState.EMPTY);
     }
 
+    double gambleScore() {
+        return state().cumulativeScore();
+    }
+
     private void resolveBet(PlayerLane lane, GambleBet bet) {
         SemionTowerEntity source = GambleRoundEffects.towerEntity(this, lane).orElse(null);
         if (source == null) {
@@ -234,12 +218,26 @@ public final class GamblerTower extends ProductionTower {
             GambleAbility ability = GambleRewards.chooseMissing(
                     before, source.getRandom().nextInt(GambleRewards.missingAbilities(before).size())
             );
-            after = before.recordAbility(ability, bet.displayName() + " " + roll + " → " + ability.detailLine());
+            after = before.recordAbility(
+                    ability, score, bet.displayName() + " " + roll + " → " + ability.detailLine());
         } else {
-            GambleStat stat = GambleRewards.chooseStat(source.getRandom().nextInt(GambleRewards.rollableStatCount()));
-            double delta = GambleRewards.insuredDelta(before, GambleBalance.statDelta(stat, score));
-            String result = bet.displayName() + " " + roll + " → " + stat.displayName() + " " + signed(delta);
-            after = before.recordStat(stat, delta, baseValue(stat), result);
+            List<GambleStat> stats = bet == GambleBet.TWO_DICE
+                    && GambleRolls.twoDiceStatRewardCount(first, second) == 2
+                    ? GambleRewards.chooseDistinctStats(
+                            source.getRandom().nextInt(GambleRewards.rollableStatCount()),
+                            source.getRandom().nextInt(GambleRewards.rollableStatCount() - 1))
+                    : List.of(GambleRewards.chooseStat(
+                            source.getRandom().nextInt(GambleRewards.rollableStatCount())));
+            ArrayList<GambleState.StatChange> changes = new ArrayList<>(stats.size());
+            ArrayList<String> results = new ArrayList<>(stats.size());
+            double scorePerStat = score / stats.size();
+            for (GambleStat stat : stats) {
+                double delta = GambleRewards.insuredDelta(before, GambleBalance.statDelta(stat, scorePerStat));
+                changes.add(new GambleState.StatChange(stat, delta, baseValue(stat)));
+                results.add(stat.displayName() + " " + signed(delta));
+            }
+            String result = bet.displayName() + " " + roll + " → " + String.join(", ", results);
+            after = before.recordStats(changes, score, result);
         }
         setData(STATE, after);
         syncMaxHealth(effectBaseMaxHealth(), false);
@@ -283,19 +281,6 @@ public final class GamblerTower extends ProductionTower {
                 ignored -> resolvedOutgoingDamage * ratio, true, (target, damage, killed) -> {});
     }
 
-    private Optional<SemionMonsterEntity> nearestExtraTarget(SemionMonsterEntity primary) {
-        double radiusSquared = GambleBalance.spreadRadius() * GambleBalance.spreadRadius();
-        return lane.activeMonsters().stream()
-                .filter(monster -> monster.hasMinecraftEntity())
-                .map(monster -> lane.arenaWorld().getEntity(monster.minecraftEntityId()))
-                .filter(SemionMonsterEntity.class::isInstance).map(SemionMonsterEntity.class::cast)
-                .filter(entity -> entity != primary && entity.isAlive() && !entity.isRemoved())
-                .filter(entity -> entity.position().distanceToSqr(primary.position()) <= radiusSquared)
-                .min(Comparator.comparingDouble((SemionMonsterEntity entity) ->
-                                entity.position().distanceToSqr(primary.position()))
-                        .thenComparing(entity -> entity.getUUID().toString()));
-    }
-
     private void showBetResult(SemionTowerEntity source, String result, boolean success) {
         if (source.level() instanceof net.minecraft.server.level.ServerLevel level) {
             level.sendParticles(success ? ParticleTypes.HAPPY_VILLAGER : ParticleTypes.WITCH,
@@ -317,5 +302,11 @@ public final class GamblerTower extends ProductionTower {
 
     private static String signed(double value) {
         return (value >= 0.0 ? "+" : "") + oneDecimal(value);
+    }
+
+    private static String statRewardSummary(double score) {
+        return "체력 " + signed(GambleBalance.statDelta(GambleStat.MAX_HEALTH, score))
+                + "·공격력 " + signed(GambleBalance.statDelta(GambleStat.DAMAGE, score))
+                + "·사거리 " + signed(GambleBalance.statDelta(GambleStat.RANGE, score));
     }
 }

@@ -410,7 +410,7 @@
 
 | 키 | 기본값 | 의미 |
 |---|---:|---|
-| `oddEvenWinScore`, `oddEvenLossScore` | 40, 28 | 홀짝 성공·실패 점수의 절댓값 |
+| `oddEvenWinScore`, `oddEvenLossScore` | 80, 40 | 홀짝 성공·실패 점수의 절댓값 |
 | `maxHealthPerScore` | 5.0 | 점수 1당 최대 체력 변화 |
 | `damagePerScore` | 0.50 | 점수 1당 공격력 변화 |
 | `rangePerScore` | 0.05 | 점수 1당 사거리 블록 변화 |
@@ -418,17 +418,17 @@
 | `baseSplashRadius`, `splashDamageRatio` | 2.5, 0.60 | 고정 기본 공격 범위와 주변 적 피해 비율 |
 | `twoDiceLoss2`~`twoDiceLoss5` | 70, 50, 30, 10 | 주사위 두 개 실패 점수 절댓값 |
 | `twoDiceGain6`~`twoDiceGain12` | 20, 40, 50, 60, 75, 90, 100 | 주사위 두 개 성공 점수 |
+| `twoDiceCompoundMinSum` | 10 | 전체 보상을 서로 다른 능력치 두 개가 절반씩 나눠 받는 최소 합계 |
 | `abilityRewardChance` | 0.25 | 성공 시 미보유 능력으로 바뀔 확률 |
 | `lossInsuranceReduction` | 0.20 | 손실 보험의 음수 고정치 완화율 |
-| `luckyStrikeMultiplier` | 2.0 | 행운의 일격 최종 피해 배율 |
-| `spreadEveryAttacks` | 4 | 분산 배당 발동 공격 횟수 |
-| `spreadDamageRatio`, `spreadRadius` | 0.50, 3.0 | 분산 배당 피해와 탐색 반경 |
 | `supportVfxIntervalTicks` | 40 | 지원 범위와 대상 연결선 재표시 간격 |
-| `supportFace1DamageTaken`, `supportFace2AttackSpeedReduction` | 0.30, 0.15 | 눈 1~2의 받는 피해·공격 속도 약화율 |
-| `supportFace3FlatRangeBonus`, `supportFace4HealthRegenPerSecond` | 0.5, 5 | 눈 3의 고정 사거리와 눈 4의 초당 회복 보너스 |
-| `supportFace5FlatDamageBonus`, `supportFace6FlatMaxHealthBonus` | 5, 50 | 눈 5~6의 고정 공격력·최대 체력 보너스 |
+| `supportPositiveRangeUnit`, `supportNegativeRangeUnit` | 0.25, 0.25 | 사거리 강화·약화 기본 단위 |
+| `supportPositiveRegenUnit`, `supportNegativeHealthLossUnit` | 2.5, 1.0 | 초당 회복·비치명적 초당 체력 감소 기본 단위 |
+| `supportPositiveDamageUnit`, `supportNegativeDamageUnit` | 2.5, 2.5 | 공격력 강화·약화 기본 단위 |
+| `supportPositiveMaxHealthUnit`, `supportNegativeMaxHealthUnit` | 25, 25 | 최대 체력 강화·약화 기본 단위 |
+| `maxSpectatorsPerGambler` | 3 | 한 도박꾼에 연결할 수 있는 구경꾼 수 |
 
-지원 타워 ID별 `minimumRoll`과 `positiveMultiplier`가 구경꾼 티어의 최저 눈과 버프 효과 배율을 정합니다. 각 지원 타워는 라운드마다 한 번만 굴리며, 구경꾼은 도박꾼만 지원합니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
+지원 타워 ID별 `minimumRoll`과 `supportPowerMultiplier`가 최저 눈과 긍정 효과 배율을 정합니다. 기본 배율은 T1/T2/T3 `1.0/1.5/2.5`이고 약화 효과에는 적용되지 않습니다. 주사위 타워는 범위 안의 자기 전투 타워를 모두 지원하고, 구경꾼은 누적 도박 점수가 가장 높은 도박꾼 하나를 지원합니다. 두 지원 계열의 체력은 전 티어 10이며 범위는 `3.5/5/6.5`입니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
 
 ## 수정 절차
 

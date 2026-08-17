@@ -1,13 +1,12 @@
 package kim.biryeong.semiontd.tower.gamble;
 
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
-import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.tower.TowerType;
 
 public final class GambleBalance {
     public static final String GLOBAL_ID = "gamble_global";
-    public static final double ODD_EVEN_WIN_SCORE = 40.0;
-    public static final double ODD_EVEN_LOSS_SCORE = 28.0;
+    public static final double ODD_EVEN_WIN_SCORE = 80.0;
+    public static final double ODD_EVEN_LOSS_SCORE = 40.0;
     public static final double MAX_HEALTH_PER_SCORE = 5.0;
     public static final double DAMAGE_PER_SCORE = 0.50;
     public static final double RANGE_PER_SCORE = 0.05;
@@ -16,11 +15,17 @@ public final class GambleBalance {
     public static final double SPLASH_DAMAGE_RATIO = 0.60;
     public static final double ABILITY_REWARD_CHANCE = 0.25;
     public static final double LOSS_INSURANCE_REDUCTION = 0.20;
-    public static final double LUCKY_STRIKE_MULTIPLIER = 2.0;
-    public static final int SPREAD_EVERY_ATTACKS = 4;
-    public static final double SPREAD_DAMAGE_RATIO = 0.50;
-    public static final double SPREAD_RADIUS = 3.0;
+    public static final int TWO_DICE_COMPOUND_MIN_SUM = 10;
     public static final int SUPPORT_VFX_INTERVAL_TICKS = 40;
+    public static final double SUPPORT_POSITIVE_RANGE_UNIT = 0.25;
+    public static final double SUPPORT_POSITIVE_REGEN_UNIT = 2.5;
+    public static final double SUPPORT_POSITIVE_DAMAGE_UNIT = 2.5;
+    public static final double SUPPORT_POSITIVE_MAX_HEALTH_UNIT = 25.0;
+    public static final double SUPPORT_NEGATIVE_RANGE_UNIT = 0.25;
+    public static final double SUPPORT_NEGATIVE_HEALTH_LOSS_UNIT = 1.0;
+    public static final double SUPPORT_NEGATIVE_DAMAGE_UNIT = 2.5;
+    public static final double SUPPORT_NEGATIVE_MAX_HEALTH_UNIT = 25.0;
+    public static final int MAX_SPECTATORS_PER_GAMBLER = 3;
 
     private GambleBalance() {
     }
@@ -39,24 +44,6 @@ public final class GambleBalance {
 
     public static double lossInsuranceReduction() {
         return global("lossInsuranceReduction", LOSS_INSURANCE_REDUCTION);
-    }
-
-    public static double luckyStrikeMultiplier() {
-        return global("luckyStrikeMultiplier", LUCKY_STRIKE_MULTIPLIER);
-    }
-
-    public static int spreadEveryAttacks() {
-        return Math.max(1, TowerBalanceRuntime.abilityInt(
-                GLOBAL_ID, "spreadEveryAttacks", SPREAD_EVERY_ATTACKS
-        ));
-    }
-
-    public static double spreadDamageRatio() {
-        return global("spreadDamageRatio", SPREAD_DAMAGE_RATIO);
-    }
-
-    public static double spreadRadius() {
-        return global("spreadRadius", SPREAD_RADIUS);
     }
 
     public static double baseSplashRadius() {
@@ -85,6 +72,11 @@ public final class GambleBalance {
         return global("twoDiceGain" + sum, defaults[sum]);
     }
 
+    public static int twoDiceCompoundMinSum() {
+        return Math.max(2, Math.min(12, TowerBalanceRuntime.abilityInt(
+                GLOBAL_ID, "twoDiceCompoundMinSum", TWO_DICE_COMPOUND_MIN_SUM)));
+    }
+
     public static double statDelta(GambleStat stat, double score) {
         double perScore = switch (stat) {
             case MAX_HEALTH -> global("maxHealthPerScore", MAX_HEALTH_PER_SCORE);
@@ -99,33 +91,33 @@ public final class GambleBalance {
         return Math.max(1, Math.min(6, TowerBalanceRuntime.abilityInt(type.id(), "minimumRoll", 1)));
     }
 
-    public static double positiveMultiplier(TowerType type) {
-        return Math.max(0.0, TowerBalanceRuntime.ability(type.id(), "positiveMultiplier", 1.0));
+    public static double supportPowerMultiplier(TowerType type) {
+        return Math.max(0.0, TowerBalanceRuntime.ability(type.id(), "supportPowerMultiplier", 1.0));
     }
 
-    public static TimedEffectType supportEffectType(int face) {
-        return switch (face) {
-            case 1 -> TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS;
-            case 2 -> TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION;
-            case 3 -> TimedEffectType.TOWER_FLAT_RANGE_BONUS;
-            case 4 -> TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND;
-            case 5 -> TimedEffectType.TOWER_FLAT_DAMAGE_BONUS;
-            case 6 -> TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS;
-            default -> throw new IllegalArgumentException("Support die must be between 1 and 6: " + face);
-        };
+    public static int maxSpectatorsPerGambler() {
+        return Math.max(1, TowerBalanceRuntime.abilityInt(
+                GLOBAL_ID, "maxSpectatorsPerGambler", MAX_SPECTATORS_PER_GAMBLER));
     }
 
-    public static double supportMagnitude(int face, double positiveMultiplier) {
-        double base = switch (face) {
-            case 1 -> global("supportFace1DamageTaken", 0.30);
-            case 2 -> global("supportFace2AttackSpeedReduction", 0.15);
-            case 3 -> global("supportFace3FlatRangeBonus", 0.50);
-            case 4 -> global("supportFace4HealthRegenPerSecond", 5.0);
-            case 5 -> global("supportFace5FlatDamageBonus", 5.0);
-            case 6 -> global("supportFace6FlatMaxHealthBonus", 50.0);
-            default -> throw new IllegalArgumentException("Support die must be between 1 and 6: " + face);
+    public static double supportUnit(GambleSupportStat stat, boolean positive) {
+        if (stat == null) {
+            return 0.0;
+        }
+        return switch (stat) {
+            case RANGE -> positive
+                    ? global("supportPositiveRangeUnit", SUPPORT_POSITIVE_RANGE_UNIT)
+                    : global("supportNegativeRangeUnit", SUPPORT_NEGATIVE_RANGE_UNIT);
+            case REGENERATION -> positive
+                    ? global("supportPositiveRegenUnit", SUPPORT_POSITIVE_REGEN_UNIT)
+                    : global("supportNegativeHealthLossUnit", SUPPORT_NEGATIVE_HEALTH_LOSS_UNIT);
+            case DAMAGE -> positive
+                    ? global("supportPositiveDamageUnit", SUPPORT_POSITIVE_DAMAGE_UNIT)
+                    : global("supportNegativeDamageUnit", SUPPORT_NEGATIVE_DAMAGE_UNIT);
+            case MAX_HEALTH -> positive
+                    ? global("supportPositiveMaxHealthUnit", SUPPORT_POSITIVE_MAX_HEALTH_UNIT)
+                    : global("supportNegativeMaxHealthUnit", SUPPORT_NEGATIVE_MAX_HEALTH_UNIT);
         };
-        return face <= 2 ? base : base * Math.max(0.0, positiveMultiplier);
     }
 
     private static double global(String key, double fallback) {

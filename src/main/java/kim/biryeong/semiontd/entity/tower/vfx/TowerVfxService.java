@@ -40,6 +40,7 @@ import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.gamble.GambleTowers;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.insect.InsectTowers;
@@ -546,6 +547,9 @@ public final class TowerVfxService {
         }
         if (DemonLordTowers.isDemonLordTower(type)) {
             return BuilderPalette.DEMON_LORD;
+        }
+        if (GambleTowers.isGambleTower(type)) {
+            return BuilderPalette.GAMBLE;
         }
         return BuilderPalette.DEFAULT;
     }

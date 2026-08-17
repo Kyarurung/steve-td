@@ -3266,24 +3266,24 @@
     },
     "gamble_dice_t1": {
       "mineralCost": 45,
-      "maxHealth": 90.0,
-      "range": 5.0,
+      "maxHealth": 10.0,
+      "range": 3.5,
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": -20
     },
     "gamble_dice_t2": {
       "mineralCost": 0,
-      "maxHealth": 150.0,
-      "range": 7.0,
+      "maxHealth": 10.0,
+      "range": 5.0,
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": -20
     },
     "gamble_dice_t3": {
       "mineralCost": 0,
-      "maxHealth": 240.0,
-      "range": 9.0,
+      "maxHealth": 10.0,
+      "range": 6.5,
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": -20
@@ -3298,15 +3298,15 @@
     },
     "gamble_spectator_t1": {
       "mineralCost": 45,
-      "maxHealth": 80.0,
-      "range": 5.0,
+      "maxHealth": 10.0,
+      "range": 3.5,
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": -20
     },
     "gamble_spectator_t2": {
       "mineralCost": 0,
-      "maxHealth": 135.0,
+      "maxHealth": 10.0,
       "range": 5.0,
       "damage": 0.0,
       "attackIntervalTicks": 20,
@@ -3314,8 +3314,8 @@
     },
     "gamble_spectator_t3": {
       "mineralCost": 0,
-      "maxHealth": 220.0,
-      "range": 5.0,
+      "maxHealth": 10.0,
+      "range": 6.5,
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": -20
@@ -3698,9 +3698,9 @@
     "t2_hell_guillotine_tower->t3_hell_guillotine_tower": 285,
     "t3_hell_guillotine_tower->t4_hell_guillotine_tower": 440,
     "gamble_dice_t1->gamble_dice_t2": 100,
-    "gamble_dice_t2->gamble_dice_t3": 100,
+    "gamble_dice_t2->gamble_dice_t3": 200,
     "gamble_spectator_t1->gamble_spectator_t2": 100,
-    "gamble_spectator_t2->gamble_spectator_t3": 100,
+    "gamble_spectator_t2->gamble_spectator_t3": 200,
     "gamble_gambler->bet_odd": 100,
     "gamble_gambler->bet_even": 100,
     "gamble_gambler->roll_two_dice": 100
@@ -6595,8 +6595,8 @@
       "missingHealthDamageBonus": 1.8
     },
     "gamble_global": {
-      "oddEvenWinScore": 40.0,
-      "oddEvenLossScore": 28.0,
+      "oddEvenWinScore": 80.0,
+      "oddEvenLossScore": 40.0,
       "maxHealthPerScore": 5.0,
       "damagePerScore": 0.5,
       "rangePerScore": 0.05,
@@ -6616,41 +6616,41 @@
       "twoDiceGain12": 100.0,
       "abilityRewardChance": 0.25,
       "lossInsuranceReduction": 0.2,
-      "luckyStrikeMultiplier": 2.0,
-      "spreadEveryAttacks": 4.0,
-      "spreadDamageRatio": 0.5,
-      "spreadRadius": 3.0,
+      "twoDiceCompoundMinSum": 10.0,
       "supportVfxIntervalTicks": 40.0,
-      "supportFace1DamageTaken": 0.3,
-      "supportFace2AttackSpeedReduction": 0.15,
-      "supportFace3FlatRangeBonus": 0.5,
-      "supportFace4HealthRegenPerSecond": 5.0,
-      "supportFace5FlatDamageBonus": 5.0,
-      "supportFace6FlatMaxHealthBonus": 50.0
+      "supportPositiveRangeUnit": 0.25,
+      "supportPositiveRegenUnit": 2.5,
+      "supportPositiveDamageUnit": 2.5,
+      "supportPositiveMaxHealthUnit": 25.0,
+      "supportNegativeRangeUnit": 0.25,
+      "supportNegativeHealthLossUnit": 1.0,
+      "supportNegativeDamageUnit": 2.5,
+      "supportNegativeMaxHealthUnit": 25.0,
+      "maxSpectatorsPerGambler": 3.0
     },
     "gamble_dice_t1": {
       "minimumRoll": 1.0,
-      "positiveMultiplier": 1.0
+      "supportPowerMultiplier": 1.0
     },
     "gamble_dice_t2": {
       "minimumRoll": 1.0,
-      "positiveMultiplier": 1.0
+      "supportPowerMultiplier": 1.5
     },
     "gamble_dice_t3": {
       "minimumRoll": 1.0,
-      "positiveMultiplier": 1.0
+      "supportPowerMultiplier": 2.5
     },
     "gamble_spectator_t1": {
       "minimumRoll": 1.0,
-      "positiveMultiplier": 1.0
+      "supportPowerMultiplier": 1.0
     },
     "gamble_spectator_t2": {
       "minimumRoll": 2.0,
-      "positiveMultiplier": 1.25
+      "supportPowerMultiplier": 1.5
     },
     "gamble_spectator_t3": {
       "minimumRoll": 3.0,
-      "positiveMultiplier": 1.5
+      "supportPowerMultiplier": 2.5
     }
   },
   "illusionCloneQueue": {

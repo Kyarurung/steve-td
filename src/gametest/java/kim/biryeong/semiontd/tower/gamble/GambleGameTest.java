@@ -1,9 +1,9 @@
 package kim.biryeong.semiontd.tower.gamble;
 
 import java.nio.charset.StandardCharsets;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
@@ -32,12 +32,14 @@ import xyz.nucleoid.map_templates.BlockBounds;
 
 public final class GambleGameTest {
     private static final List<TimedEffectType> SUPPORT_EFFECTS = List.of(
-            TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS,
-            TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION,
             TimedEffectType.TOWER_FLAT_RANGE_BONUS,
+            TimedEffectType.TOWER_FLAT_RANGE_REDUCTION,
             TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND,
+            TimedEffectType.TOWER_HEALTH_LOSS_PER_SECOND,
             TimedEffectType.TOWER_FLAT_DAMAGE_BONUS,
-            TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS
+            TimedEffectType.TOWER_FLAT_DAMAGE_REDUCTION,
+            TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS,
+            TimedEffectType.TOWER_FLAT_MAX_HEALTH_REDUCTION
     );
 
     @GameTest(maxTicks = 80)
@@ -98,6 +100,104 @@ public final class GambleGameTest {
         }
     }
 
+    @GameTest(maxTicks = 80)
+    public void negativeSupportUsesFixedStatsAndHealthLossIsNonlethal(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        UUID owner = stableUuid("gamble-negative-support-owner");
+        PlayerLane lane = testLane(context, owner);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(lane);
+        prepareFloor(context);
+        GamblerTower target = gambler(owner, floor(context, 4, 2, 4));
+        try {
+            lane.addTower(target);
+            SemionTowerEntity entity = entity(lane, target);
+            entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_RANGE_REDUCTION,
+                    supportTestSource("range-loss"), 0.25);
+            entity.setPersistentEffect(TimedEffectType.TOWER_HEALTH_LOSS_PER_SECOND,
+                    supportTestSource("health-loss"), 1.0);
+            entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_DAMAGE_REDUCTION,
+                    supportTestSource("damage-loss"), 2.5);
+            entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_MAX_HEALTH_REDUCTION,
+                    supportTestSource("max-health-loss"), 25.0);
+            require(close(entity.attackRange(), 6.25), "Range weakening must subtract exactly 0.25 blocks.");
+            require(close(entity.attackDamageAmount(null), 7.5), "Damage weakening must subtract exactly 2.5.");
+            require(close(target.currentMaxHealth(), 85.0), "Max-health weakening must subtract exactly 25.");
+            target.syncHealth(1.5);
+            entity.setHealth(1.5F);
+            context.runAfterDelay(20, () -> {
+                try {
+                    require(close(target.health(), 1.0),
+                            "Health loss must stop at one health instead of killing the supported tower.");
+                    context.succeed();
+                } catch (Throwable failure) {
+                    context.fail(Component.literal("Gamble negative support GameTest failed: "
+                            + failure.getClass().getName() + ": " + failure.getMessage()));
+                } finally {
+                    group.closeRuntime();
+                    TowerBalanceRuntime.apply(defaults);
+                }
+            });
+        } catch (Throwable failure) {
+            group.closeRuntime();
+            TowerBalanceRuntime.apply(defaults);
+            context.fail(Component.literal("Gamble negative support setup failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        }
+    }
+
+    @GameTest(maxTicks = 80)
+    public void spectatorsChooseTheHighestScoreAndLimitThreeLinksPerGambler(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        UUID owner = stableUuid("gamble-spectator-cap-owner");
+        PlayerLane lane = testLane(context, owner);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(lane);
+        prepareFloor(context);
+        GamblerTower strongest = gambler(owner, floor(context, 5, 2, 6));
+        strongest.setData(GamblerTower.STATE, GambleState.EMPTY.recordStat(
+                GambleStat.DAMAGE, 50, 10, 100, "strongest"));
+        GamblerTower runnerUp = gambler(owner, floor(context, 7, 2, 6));
+        runnerUp.setData(GamblerTower.STATE, GambleState.EMPTY.recordStat(
+                GambleStat.DAMAGE, 25, 10, 50, "runner-up"));
+        List<GambleSupportTower> spectators = List.of(
+                support(GambleTowers.SPECTATOR_T3, owner, floor(context, 3, 2, 3)),
+                support(GambleTowers.SPECTATOR_T3, owner, floor(context, 4, 2, 3)),
+                support(GambleTowers.SPECTATOR_T3, owner, floor(context, 5, 2, 3)),
+                support(GambleTowers.SPECTATOR_T3, owner, floor(context, 6, 2, 3))
+        );
+        try {
+            lane.addTower(strongest);
+            lane.addTower(runnerUp);
+            spectators.forEach(lane::addTower);
+            for (GambleSupportTower spectator : spectators) {
+                require(close(spectator.currentMaxHealth(), 10.0),
+                        "Every spectator tier must stay at ten health.");
+                SemionTowerEntity source = entity(lane, spectator);
+                require(GambleRoundEffects.assignSpectator(
+                        lane, owner, GambleRoundEffects.sourceId(spectator), source, 20.0).isPresent(),
+                        "Every spectator must find an available owned gambler.");
+            }
+            require(GambleRoundEffects.spectatorLinkCount(lane, owner, strongest.originalPosition()) == 3,
+                    "Exactly three spectators must occupy the strongest gambler.");
+            require(GambleRoundEffects.spectatorLinkCount(lane, owner, runnerUp.originalPosition()) == 1,
+                    "The fourth spectator must fall back to the next-highest gamble score.");
+            GambleRoundEffects.clearAll(lane, owner);
+            require(GambleRoundEffects.spectatorLinkCount(lane, owner, strongest.originalPosition()) == 0
+                            && GambleRoundEffects.spectatorLinkCount(
+                            lane, owner, runnerUp.originalPosition()) == 0,
+                    "Round cleanup must release every spectator assignment.");
+            context.succeed();
+        } finally {
+            group.closeRuntime();
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
     @GameTest(maxTicks = 120)
     public void supportRollsAreOwnerFilteredStackBySourceAndLiveUntilRoundCleanup(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
@@ -143,8 +243,9 @@ public final class GambleGameTest {
                     "Each support tower must display its round face above itself.");
             require(GambleRollLabels.count(lane, owner) == 2,
                     "The lane must keep one face label for each support tower.");
-            require(sourceCount(targetEntity, diceSource) == 1 && sourceCount(targetEntity, spectatorSource) == 1,
-                    "The target must retain one independently sourced result from each support.");
+            require(sourceCount(targetEntity, diceSource) == dice.activeEffects().size()
+                            && sourceCount(targetEntity, spectatorSource) == spectator.activeEffects().size(),
+                    "The target must retain every independently sourced stat result from each support.");
             require(sourceCount(diceEntity, diceSource) == 0 && sourceCount(spectatorEntity, spectatorSource) == 0,
                     "Support towers must exclude themselves from their own roll.");
             require(sourceCount(diceEntity, spectatorSource) == 0
@@ -157,12 +258,13 @@ public final class GambleGameTest {
             spectator.onLaneCleared(lane);
             require(GambleRollLabels.count(lane, owner) == 0,
                     "Floating faces must disappear as soon as the owner's lane is cleared.");
-            require(sourceCount(targetEntity, diceSource) == 1 && sourceCount(targetEntity, spectatorSource) == 1,
+            require(sourceCount(targetEntity, diceSource) == dice.activeEffects().size()
+                            && sourceCount(targetEntity, spectatorSource) == spectator.activeEffects().size(),
                     "Clearing the lane must hide the faces without ending surviving support effects early.");
 
             require(lane.killTower(dice), "The dice tower must be destroyable for persistence coverage.");
             require(sourceCount(targetEntity, diceSource) == 0
-                            && sourceCount(targetEntity, spectatorSource) == 1,
+                            && sourceCount(targetEntity, spectatorSource) == spectator.activeEffects().size(),
                     "A destroyed support tower must immediately remove only its own result.");
             GambleRoundEffects.clearAll(lane, owner);
             require(GambleRollLabels.count(lane, owner) == 0,
@@ -173,7 +275,8 @@ public final class GambleGameTest {
             lane.resetForRound();
             lane.markWaveStarted(2);
             SemionTowerEntity nextTarget = entity(lane, target);
-            require(sourceCount(nextTarget, diceSource) == 1 && sourceCount(nextTarget, spectatorSource) == 1,
+            require(sourceCount(nextTarget, diceSource) == dice.activeEffects().size()
+                            && sourceCount(nextTarget, spectatorSource) == spectator.activeEffects().size(),
                     "The next round must produce fresh effects after the destroyed support respawns.");
             GambleRoundEffects.clearAll(lane, owner);
             require(sourceCount(nextTarget, diceSource) == 0 && sourceCount(nextTarget, spectatorSource) == 0,
@@ -186,7 +289,7 @@ public final class GambleGameTest {
     }
 
     @GameTest(maxTicks = 120)
-    public void rolledStatePreservesHealthRatioAndBasicSplashCoexistsWithSpreadBet(GameTestHelper context) {
+    public void rolledStatePreservesHealthRatioAndBasicSplashDamage(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         TowerBalanceRuntime.apply(defaults);
         UUID owner = stableUuid("gamble-combat-owner");
@@ -202,7 +305,7 @@ public final class GambleGameTest {
             lane.addTower(original);
             GambleState upgradedState = new GambleState(
                     50.0, 5.0, 0.5, 0.5,
-                    EnumSet.of(GambleAbility.SPREAD_BET), 4, "능력치 테스트"
+                    120.0, Set.of(), 4, "능력치 테스트"
             );
             original.setData(GamblerTower.STATE, upgradedState);
             original.syncMaxHealth(160.0, false);
@@ -230,16 +333,6 @@ public final class GambleGameTest {
                     "Every basic attack must deal 60% finalized damage inside the fixed splash radius.");
             require(close(secondary.runtimeMonster().health(), 100.0),
                     "A target outside the basic splash radius must not take splash damage.");
-            splashTarget.discard();
-            splashTarget = null;
-            for (int attack = 2; attack <= 3; attack++) {
-                replacement.onAttackResolved(source, primary, 100.0, 100.0, 100.0, false);
-            }
-            require(close(secondary.runtimeMonster().health(), 100.0),
-                    "Spread bet must not trigger before the fourth attack.");
-            replacement.onAttackResolved(source, primary, 100.0, 100.0, 100.0, false);
-            require(close(secondary.runtimeMonster().health(), 50.0),
-                    "The fourth attack must deal 50% of the finalized primary outgoing damage.");
             context.succeed();
         } finally {
             if (primary != null) primary.discard();

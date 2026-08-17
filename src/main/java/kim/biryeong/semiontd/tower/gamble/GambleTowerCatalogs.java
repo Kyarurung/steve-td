@@ -17,8 +17,8 @@ public final class GambleTowerCatalogs {
         register(GambleTowers.SPECTATOR_T2, 2, GambleSupportTower::new);
         register(GambleTowers.SPECTATOR_T3, 3, GambleSupportTower::new);
 
-        link(GambleTowers.DICE_T1, GambleTowers.DICE_T2.id(), "주사위 사거리 강화 II", GambleTowers.DICE_T2);
-        link(GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), "주사위 사거리 강화 III", GambleTowers.DICE_T3);
+        link(GambleTowers.DICE_T1, GambleTowers.DICE_T2.id(), "주사위 지원 강화 II", GambleTowers.DICE_T2);
+        link(GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), "주사위 지원 강화 III", GambleTowers.DICE_T3);
         link(GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2.id(), "구경꾼 강화 II", GambleTowers.SPECTATOR_T2);
         link(GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), "구경꾼 강화 III", GambleTowers.SPECTATOR_T3);
         for (GambleBet bet : GambleBet.values()) {

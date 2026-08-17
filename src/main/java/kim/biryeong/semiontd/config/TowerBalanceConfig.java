@@ -1257,26 +1257,28 @@ public record TowerBalanceConfig(
         validatePositive(global,
                 "oddEvenWinScore", "oddEvenLossScore", "maxHealthPerScore", "damagePerScore",
                 "rangePerScore", "splashRadiusPerScore", "baseSplashRadius",
-                "luckyStrikeMultiplier", "spreadEveryAttacks", "spreadRadius",
                 "supportVfxIntervalTicks",
-                "supportFace3FlatRangeBonus", "supportFace4HealthRegenPerSecond",
-                "supportFace5FlatDamageBonus", "supportFace6FlatMaxHealthBonus",
+                "supportPositiveRangeUnit", "supportPositiveRegenUnit",
+                "supportPositiveDamageUnit", "supportPositiveMaxHealthUnit",
+                "supportNegativeRangeUnit", "supportNegativeHealthLossUnit",
+                "supportNegativeDamageUnit", "supportNegativeMaxHealthUnit",
+                "maxSpectatorsPerGambler",
+                "twoDiceCompoundMinSum",
                 "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
                 "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
                 "twoDiceGain10", "twoDiceGain11", "twoDiceGain12");
         validateRatios(global,
-                "abilityRewardChance", "lossInsuranceReduction", "spreadDamageRatio",
-                "splashDamageRatio",
-                "supportFace1DamageTaken", "supportFace2AttackSpeedReduction");
-        validateIntegral(global, false, "spreadEveryAttacks", "supportVfxIntervalTicks");
-        validateAtLeast(global, 1.0, "luckyStrikeMultiplier");
+                "abilityRewardChance", "lossInsuranceReduction", "splashDamageRatio");
+        validateIntegral(global, false, "supportVfxIntervalTicks", "maxSpectatorsPerGambler");
+        validateRange(global, "twoDiceCompoundMinSum", 2.0, 12.0);
+        validateIntegral(global, false, "twoDiceCompoundMinSum");
 
         for (TowerType type : List.of(
                 GambleTowers.DICE_T1, GambleTowers.DICE_T2, GambleTowers.DICE_T3,
                 GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3)) {
             validateRange(type.id(), "minimumRoll", 1.0, 6.0);
             validateIntegral(type.id(), false, "minimumRoll");
-            validatePositive(type.id(), "positiveMultiplier");
+            validatePositive(type.id(), "supportPowerMultiplier");
         }
         if (configuredGambleExpectedScore() <= 0.0) {
             throw new IllegalArgumentException("Gamble two-dice score must have a positive expectation.");
@@ -3694,9 +3696,9 @@ public record TowerBalanceConfig(
 
     private static void putGambleUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
         putUpgrade(upgradeCosts, GambleTowers.DICE_T1, GambleTowers.DICE_T2.id(), 100);
-        putUpgrade(upgradeCosts, GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), 100);
+        putUpgrade(upgradeCosts, GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), 200);
         putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2.id(), 100);
-        putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), 100);
+        putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), 200);
         for (GambleBet bet : GambleBet.values()) {
             putUpgrade(upgradeCosts, GambleTowers.GAMBLER, bet.upgradeId(), 100);
         }
@@ -3725,36 +3727,36 @@ public record TowerBalanceConfig(
         global.put("twoDiceGain12", 100.0);
         global.put("abilityRewardChance", GambleBalance.ABILITY_REWARD_CHANCE);
         global.put("lossInsuranceReduction", GambleBalance.LOSS_INSURANCE_REDUCTION);
-        global.put("luckyStrikeMultiplier", GambleBalance.LUCKY_STRIKE_MULTIPLIER);
-        global.put("spreadEveryAttacks", (double) GambleBalance.SPREAD_EVERY_ATTACKS);
-        global.put("spreadDamageRatio", GambleBalance.SPREAD_DAMAGE_RATIO);
-        global.put("spreadRadius", GambleBalance.SPREAD_RADIUS);
+        global.put("twoDiceCompoundMinSum", (double) GambleBalance.TWO_DICE_COMPOUND_MIN_SUM);
         global.put("supportVfxIntervalTicks", (double) GambleBalance.SUPPORT_VFX_INTERVAL_TICKS);
-        global.put("supportFace1DamageTaken", 0.30);
-        global.put("supportFace2AttackSpeedReduction", 0.15);
-        global.put("supportFace3FlatRangeBonus", 0.50);
-        global.put("supportFace4HealthRegenPerSecond", 5.0);
-        global.put("supportFace5FlatDamageBonus", 5.0);
-        global.put("supportFace6FlatMaxHealthBonus", 50.0);
+        global.put("supportPositiveRangeUnit", GambleBalance.SUPPORT_POSITIVE_RANGE_UNIT);
+        global.put("supportPositiveRegenUnit", GambleBalance.SUPPORT_POSITIVE_REGEN_UNIT);
+        global.put("supportPositiveDamageUnit", GambleBalance.SUPPORT_POSITIVE_DAMAGE_UNIT);
+        global.put("supportPositiveMaxHealthUnit", GambleBalance.SUPPORT_POSITIVE_MAX_HEALTH_UNIT);
+        global.put("supportNegativeRangeUnit", GambleBalance.SUPPORT_NEGATIVE_RANGE_UNIT);
+        global.put("supportNegativeHealthLossUnit", GambleBalance.SUPPORT_NEGATIVE_HEALTH_LOSS_UNIT);
+        global.put("supportNegativeDamageUnit", GambleBalance.SUPPORT_NEGATIVE_DAMAGE_UNIT);
+        global.put("supportNegativeMaxHealthUnit", GambleBalance.SUPPORT_NEGATIVE_MAX_HEALTH_UNIT);
+        global.put("maxSpectatorsPerGambler", (double) GambleBalance.MAX_SPECTATORS_PER_GAMBLER);
         putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
 
         putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1, 1.0);
-        putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 1, 1.0);
-        putGambleSupportAbilities(abilities, GambleTowers.DICE_T3, 1, 1.0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 1, 1.5);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T3, 1, 2.5);
         putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T1, 1, 1.0);
-        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T2, 2, 1.25);
-        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T3, 3, 1.5);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T2, 2, 1.5);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T3, 3, 2.5);
     }
 
     private static void putGambleSupportAbilities(
             LinkedHashMap<String, Map<String, Double>> abilities,
             TowerType type,
             int minimumRoll,
-            double positiveMultiplier
+            double supportPowerMultiplier
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "minimumRoll", (double) minimumRoll,
-                "positiveMultiplier", positiveMultiplier
+                "supportPowerMultiplier", supportPowerMultiplier
         ));
     }
 

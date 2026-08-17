@@ -28,11 +28,13 @@ import net.minecraft.world.phys.Vec3;
 
 public final class GambleSupportTower extends ProductionTower {
     private final int[] lastRollCounts = new int[6];
-    private final List<Tower> linkedTargets = new ArrayList<>();
+    private final List<GridPosition> linkedTargetPositions = new ArrayList<>();
+    private List<GambleSupportEffect> activeEffects = List.of();
     private int lastFace;
     private int affectedTargets;
     private boolean waveActive;
     private int rangeVfxTicks;
+    private int effectRefreshTicks;
 
     public GambleSupportTower(
             TowerType type, UUID ownerPlayer, TeamId teamId, int laneId,
@@ -65,7 +67,8 @@ public final class GambleSupportTower extends ProductionTower {
     @Override
     public void resetForRound(PlayerLane lane) {
         waveActive = false;
-        linkedTargets.clear();
+        linkedTargetPositions.clear();
+        activeEffects = List.of();
         lastFace = 0;
         super.resetForRound(lane);
     }
@@ -74,9 +77,14 @@ public final class GambleSupportTower extends ProductionTower {
     public void tick(PlayerLane lane) {
         super.tick(lane);
         GambleRollLabels.sync(lane, ownerPlayer(), this);
-        if (isDestroyed(lane) || --rangeVfxTicks > 0) {
+        if (isDestroyed(lane)) {
             return;
         }
+        if (waveActive && --effectRefreshTicks <= 0) {
+            restoreLinkedEffects(lane);
+            effectRefreshTicks = 20;
+        }
+        if (--rangeVfxTicks > 0) return;
         GambleRoundEffects.towerEntity(this, lane).ifPresent(source -> {
             if (waveActive) {
                 showPersistentVfx(source, lane);
@@ -91,7 +99,8 @@ public final class GambleSupportTower extends ProductionTower {
     public void onWaveStarted(PlayerLane lane, int currentRound) {
         waveActive = true;
         Arrays.fill(lastRollCounts, 0);
-        linkedTargets.clear();
+        linkedTargetPositions.clear();
+        activeEffects = List.of();
         lastFace = 0;
         affectedTargets = 0;
         SemionTowerEntity source = GambleRoundEffects.towerEntity(this, lane).orElse(null);
@@ -103,33 +112,32 @@ public final class GambleSupportTower extends ProductionTower {
         GambleRoundEffects.rememberSource(lane, ownerPlayer(), sourceId);
         GambleRoundEffects.clearSource(lane, ownerPlayer(), sourceId);
         int minimum = GambleBalance.minimumRoll(type());
-        double positiveMultiplier = GambleBalance.positiveMultiplier(type());
         int face = minimum + source.getRandom().nextInt(7 - minimum);
-        TimedEffectType effect = GambleBalance.supportEffectType(face);
-        double magnitude = GambleBalance.supportMagnitude(face, positiveMultiplier);
+        activeEffects = GambleSupportRolls.roll(type(), face, source.getRandom());
         lastFace = face;
         lastRollCounts[face - 1] = 1;
         GambleRollLabels.show(lane, ownerPlayer(), this, sourceId, face);
         List<Vec3> positiveHits = new ArrayList<>();
         List<Vec3> negativeHits = new ArrayList<>();
+        Tower spectatorTarget = GambleTowers.isSpectator(type())
+                ? GambleRoundEffects.assignSpectator(
+                        lane, ownerPlayer(), sourceId, source, type().range()).orElse(null)
+                : null;
         TowerAreaEffectRequest request = TowerAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "round_roll"), source, type().range(),
                 TowerAreaTargetMode.REGISTERED, AreaVfxSpec.none()
         ).withFilter(target -> target.tower() != this
                 && ownerPlayer().equals(target.tower().ownerPlayer())
                 && acceptsTarget(target.tower())
+                && (!GambleTowers.isSpectator(type()) || target.tower() == spectatorTarget)
                 && target.entity().isPresent());
 
         SemionTdApi.areaEffects().applyToTowers(request, target -> {
-            boolean changed = target.entity().orElseThrow().setPersistentEffect(effect, sourceId, magnitude);
-            linkedTargets.add(target.tower());
+            boolean changed = applyActiveEffects(target.entity().orElseThrow(), sourceId);
+            linkedTargetPositions.add(target.tower().originalPosition());
             affectedTargets++;
             Vec3 hit = target.entity().orElseThrow().position().add(0.0, 0.7, 0.0);
             (face <= 2 ? negativeHits : positiveHits).add(hit);
-            lane.arenaWorld().sendParticles(
-                    face <= 2 ? ParticleTypes.WITCH : ParticleTypes.HAPPY_VILLAGER,
-                    hit.x, hit.y, hit.z, Math.max(1, face), 0.18, 0.24, 0.18, 0.02
-            );
             return changed ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED;
         });
 
@@ -138,6 +146,7 @@ public final class GambleSupportTower extends ProductionTower {
             showRange(source);
         }
         rangeVfxTicks = GambleBalance.supportVfxIntervalTicks();
+        effectRefreshTicks = 20;
     }
 
     @Override
@@ -149,7 +158,8 @@ public final class GambleSupportTower extends ProductionTower {
     public void onDeath(PlayerLane lane) {
         ResourceLocation sourceId = GambleRoundEffects.sourceId(this);
         GambleRoundEffects.clearSource(lane, ownerPlayer(), sourceId);
-        linkedTargets.clear();
+        linkedTargetPositions.clear();
+        activeEffects = List.of();
         waveActive = false;
         lastFace = 0;
     }
@@ -158,21 +168,24 @@ public final class GambleSupportTower extends ProductionTower {
     protected void copyRuntimeStateFrom(Tower previousTower) {
         if (previousTower instanceof GambleSupportTower previous) {
             System.arraycopy(previous.lastRollCounts, 0, lastRollCounts, 0, lastRollCounts.length);
-            linkedTargets.addAll(previous.linkedTargets);
+            linkedTargetPositions.addAll(previous.linkedTargetPositions);
+            activeEffects = List.copyOf(previous.activeEffects);
             lastFace = previous.lastFace;
             affectedTargets = previous.affectedTargets;
             waveActive = previous.waveActive;
             rangeVfxTicks = previous.rangeVfxTicks;
+            effectRefreshTicks = previous.effectRefreshTicks;
         }
     }
 
     @Override
     public List<String> runtimeDetailLines() {
-        return List.of(
-                "이번 라운드 대상: " + affectedTargets + "기",
-                "이번 라운드 눈: " + (lastFace == 0 ? "아직 굴리지 않음" : Integer.toString(lastFace)),
-                "지원 범위: " + oneDecimal(type().range()) + "칸"
-        );
+        ArrayList<String> lines = new ArrayList<>();
+        lines.add("이번 라운드 대상: " + affectedTargets + "기");
+        lines.add("이번 라운드 눈: " + (lastFace == 0 ? "아직 굴리지 않음" : Integer.toString(lastFace)));
+        activeEffects.forEach(effect -> lines.add("적용 효과: " + effect.displayLine()));
+        lines.add("지원 범위: " + oneDecimal(type().range()) + "칸");
+        return List.copyOf(lines);
     }
 
     int[] lastRollCounts() {
@@ -184,7 +197,11 @@ public final class GambleSupportTower extends ProductionTower {
     }
 
     int linkedTargets() {
-        return linkedTargets.size();
+        return linkedTargetPositions.size();
+    }
+
+    List<GambleSupportEffect> activeEffects() {
+        return activeEffects;
     }
 
     private boolean acceptsTarget(Tower target) {
@@ -197,7 +214,8 @@ public final class GambleSupportTower extends ProductionTower {
     private void showPersistentVfx(SemionTowerEntity source, PlayerLane lane) {
         List<Vec3> positiveHits = new ArrayList<>();
         List<Vec3> negativeHits = new ArrayList<>();
-        linkedTargets.forEach(target -> GambleRoundEffects.towerEntity(target, lane).ifPresent(entity -> {
+        linkedTargetPositions.forEach(position -> linkedTarget(lane, position)
+                .flatMap(target -> GambleRoundEffects.towerEntity(target, lane)).ifPresent(entity -> {
             Vec3 hit = entity.position().add(0.0, 0.7, 0.0);
             (lastFace <= 2 ? negativeHits : positiveHits).add(hit);
         }));
@@ -236,6 +254,28 @@ public final class GambleSupportTower extends ProductionTower {
     private void showRange(SemionTowerEntity source) {
         TowerVfxService.showAreaEffect(source, AreaEffectIds.tower(this, "support_range"),
                 AreaVfxStyles.BUFF, source.position(), type().range(), List.of(), 0, 0, 0);
+    }
+
+    private boolean applyActiveEffects(SemionTowerEntity entity, ResourceLocation sourceId) {
+        boolean changed = false;
+        for (GambleSupportEffect effect : activeEffects) {
+            changed |= entity.setPersistentEffect(effect.type(), sourceId, effect.magnitude());
+        }
+        return changed;
+    }
+
+    private void restoreLinkedEffects(PlayerLane lane) {
+        ResourceLocation sourceId = GambleRoundEffects.sourceId(this);
+        linkedTargetPositions.forEach(position -> linkedTarget(lane, position)
+                .flatMap(target -> GambleRoundEffects.towerEntity(target, lane))
+                .ifPresent(entity -> applyActiveEffects(entity, sourceId)));
+    }
+
+    private java.util.Optional<Tower> linkedTarget(PlayerLane lane, GridPosition position) {
+        return lane.towers().stream()
+                .filter(target -> ownerPlayer().equals(target.ownerPlayer()))
+                .filter(target -> position.equals(target.originalPosition()))
+                .findFirst();
     }
 
 }
