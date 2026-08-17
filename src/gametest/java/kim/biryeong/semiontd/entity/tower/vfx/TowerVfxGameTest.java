@@ -26,6 +26,8 @@ import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
@@ -89,6 +91,7 @@ public final class TowerVfxGameTest {
         assertPalette(ArmyTowers.RECRUIT, BuilderPalette.ARMY);
         assertPalette(ArmyTowers.GUARD, BuilderPalette.ARMY);
         assertPalette(ThunderTowers.SQUIRREL_T3, BuilderPalette.THUNDER);
+        assertPalette(DemonLordTowers.tower(DemonLordSkill.WAVE_OF_MALICE, 1), BuilderPalette.DEMON_LORD);
         context.succeed();
     }
 

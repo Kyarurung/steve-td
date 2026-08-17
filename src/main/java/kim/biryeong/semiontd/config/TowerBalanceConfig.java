@@ -48,6 +48,8 @@ import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.queen.PokerHand;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.plant.PlantSoil;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
@@ -115,6 +117,17 @@ public record TowerBalanceConfig(
     }
 
     public static TowerBalanceConfig defaultConfig() {
+        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, codeDefaults());
+    }
+
+    /**
+     * The numbers this build ships in code, before the bundled resource replaces them.
+     *
+     * <p>{@code BundledBalanceDefaults.load} returns the resource verbatim rather than merging, so a
+     * builder whose values only land here would silently run on fallbacks. Exposing the code-side
+     * config lets tooling diff the two and regenerate the bundled resource.
+     */
+    public static TowerBalanceConfig codeDefaults() {
         LinkedHashMap<String, TowerStats> towers = new LinkedHashMap<>();
         addTower(towers, VillagerTowers.T1_SPLASH_TOWER);
         addTower(towers, VillagerTowers.T2_LIBRARIAN_TOWER);
@@ -224,6 +237,7 @@ public record TowerBalanceConfig(
         addPlantTowers(towers);
         addArmyTowers(towers);
         addThunderTowers(towers);
+        addDemonLordTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -305,6 +319,7 @@ public record TowerBalanceConfig(
         putPlantUpgrades(upgradeCosts);
         putArmyUpgrades(upgradeCosts);
         putThunderUpgrades(upgradeCosts);
+        putDemonLordUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -873,6 +888,7 @@ public record TowerBalanceConfig(
         putPlantAbilities(abilities);
         putArmyAbilities(abilities);
         putThunderAbilities(abilities);
+        putDemonLordAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -881,7 +897,7 @@ public record TowerBalanceConfig(
                 IllusionCloneQueueConfig.defaultConfig(),
                 VillagerAdvConfig.defaultConfig()
         );
-        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, fallback);
+        return fallback;
     }
 
     private static void addPlantTowers(LinkedHashMap<String, TowerStats> towers) {
@@ -1226,6 +1242,74 @@ public record TowerBalanceConfig(
         validatePlantAbilities();
         validateArmyAbilities();
         validateThunderAbilities();
+        validateDemonLordAbilities();
+    }
+
+    private void validateDemonLordAbilities() {
+        String global = DemonLordTowers.GLOBAL_CONFIG_ID;
+        validatePositive(global,
+                "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks");
+        validateAtLeast(global, 0.0,
+                "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage", "laneLeashSlack");
+        validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks");
+        validateAtLeast(global, 1.0, "experienceGrowth");
+
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+                String id = skill.towerId(tier);
+                validatePositive(id, TowerCapacity.CONFIG_KEY, "cooldownTicks");
+                validateIntegral(id, false, TowerCapacity.CONFIG_KEY, "cooldownTicks");
+                switch (skill) {
+                    case WAVE_OF_MALICE -> {
+                        validateRange(id, "coneDegrees", Double.MIN_VALUE, 360.0);
+                        validatePositive(id, "range");
+                    }
+                    case DEMON_WINGS -> {
+                        validatePositive(id, "leapPower", "radius");
+                        validateRatios(id, "healRatio");
+                    }
+                    case SKY_BREAKER -> {
+                        validatePositive(id, "dashDistance", "hitRadius", "liftPower", "stunTicks");
+                        validateIntegral(id, false, "stunTicks");
+                    }
+                    case ARCANE_BOMBARDMENT -> {
+                        validatePositive(id, "jumpPower", "castDelayTicks", "projectileRange", "blastRadius");
+                        validateIntegral(id, false, "castDelayTicks");
+                    }
+                    case DEMON_BARRIER -> {
+                        validateRatios(id, "shieldRatio");
+                        validatePositive(id, "shieldDurationTicks");
+                        validateIntegral(id, false, "shieldDurationTicks");
+                    }
+                    case HELLFIRE_BRAND -> {
+                        validatePositive(id,
+                                "placementRange", "zoneRadius", "zoneDurationTicks", "tickIntervalTicks");
+                        validateIntegral(id, false, "zoneDurationTicks", "tickIntervalTicks");
+                        validateRatios(id, "damageTakenBonus");
+                    }
+                    case SOUL_DRAIN -> {
+                        validatePositive(id, "range", "width");
+                        validateRatios(id, "lifeStealRatio", "lifeStealCap");
+                    }
+                    case ROAR_OF_DREAD -> {
+                        validatePositive(id, "radius", "dreadDurationTicks");
+                        validateIntegral(id, false, "dreadDurationTicks");
+                        validateRatios(id, "moveSpeedReduction");
+                    }
+                    case GRIP_OF_DOOM -> {
+                        validatePositive(id, "range", "explosionRadius");
+                        validateRatios(id, "missingHealthRatio");
+                        validateIntegral(id, true, "killRefundTicks");
+                        Double executeRatio = configuredAbility(id, "executeHealthRatio");
+                        if (executeRatio != null && (executeRatio < 0.0 || executeRatio >= 1.0)) {
+                            throw new IllegalArgumentException(
+                                    "Demon lord execute ratio must be at least 0 and below 1: " + id);
+                        }
+                    }
+                    case HELL_GUILLOTINE -> validatePositive(id, "range", "radius");
+                }
+            }
+        }
     }
 
     private void validateThunderAbilities() {
@@ -3544,6 +3628,140 @@ public record TowerBalanceConfig(
         values.put("petDamageCap", 0.15);
         values.put("awakeningDamage", 75.0);
         values.put("awakeningMoveSpeed", 0.30);
+        return values;
+    }
+
+    private static void addDemonLordTowers(LinkedHashMap<String, TowerStats> towers) {
+        DemonLordTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    /** Upgrade price is the target tier's own diamond cost, so the shop and the tooltip agree. */
+    private static void putDemonLordUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier < DemonLordSkill.MAX_TIER; tier++) {
+                TowerType next = DemonLordTowers.tower(skill, tier + 1);
+                putUpgrade(upgradeCosts, DemonLordTowers.tower(skill, tier), next.id(), next.mineralCost());
+            }
+        }
+    }
+
+    private static void putDemonLordAbilities(LinkedHashMap<String, Map<String, Double>> abilities) {
+        // 마왕 본체. 레벨은 라운드를 넘어 유지되고, 체력 풀은 라운드마다 이 값으로 다시 채워집니다.
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("baseMaxHealth", 450.0);
+        global.put("maxHealthPerLevel", 52.5);
+        global.put("maxLevel", 30.0);
+        // 처치한 몹의 최대 체력에 비례해 경험치를 줍니다. 단단한 적을 잡을수록 크게 성장합니다.
+        global.put("experiencePerMaxHealth", 0.02);
+        global.put("experienceBase", 12.0);
+        global.put("experienceGrowth", 1.25);
+        // 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 만렙에서 2.45배가 됩니다.
+        global.put("damagePerLevel", 0.05);
+        global.put("bladeDamage", 19.0);
+        global.put("bladeAttackIntervalTicks", 12.0);
+        // 레인 이탈 방지: lane_path 영역 밖으로 이만큼까지만 나갈 수 있습니다.
+        global.put("laneLeashSlack", 1.5);
+        putAbilities(abilities, DemonLordTowers.GLOBAL_CONFIG_ID, global);
+
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+                LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+                // 빌더의 "코스트". 라운드 타워 한도를 이만큼 차지합니다.
+                values.put(TowerCapacity.CONFIG_KEY, (double) skill.slotCost());
+                values.put("cooldownTicks", (double) (skill.cooldownSecondsForTier(tier) * 20));
+                values.putAll(demonLordSkillValues(skill, tier));
+                putAbilities(abilities, skill.towerId(tier), values);
+            }
+        }
+    }
+
+    /** Per-tier skill numbers. Index 0 is tier 1. */
+    private static Map<String, Double> demonLordSkillValues(DemonLordSkill skill, int tier) {
+        int index = tier - 1;
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        switch (skill) {
+            case WAVE_OF_MALICE -> {
+                values.put("coneDegrees", 60.0);
+                values.put("range", new double[] {6.0, 6.5, 7.0, 8.0}[index]);
+                values.put("damage", new double[] {34.0, 53.0, 75.0, 105.0}[index]);
+                values.put("knockback", new double[] {0.8, 0.9, 1.0, 1.2}[index]);
+            }
+            case DEMON_WINGS -> {
+                values.put("leapPower", new double[] {1.0, 1.1, 1.2, 1.3}[index]);
+                values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {23.0, 36.0, 53.0, 71.0}[index]);
+                values.put("knockback", new double[] {0.7, 0.8, 0.9, 1.0}[index]);
+                values.put("healRatio", new double[] {0.10, 0.13, 0.16, 0.20}[index]);
+            }
+            case SKY_BREAKER -> {
+                values.put("dashDistance", new double[] {8.0, 9.0, 10.0, 12.0}[index]);
+                values.put("hitRadius", new double[] {2.0, 2.2, 2.4, 2.6}[index]);
+                values.put("damage", new double[] {68.0, 105.0, 150.0, 206.0}[index]);
+                values.put("liftPower", new double[] {0.8, 0.85, 0.9, 1.0}[index]);
+                values.put("stunTicks", new double[] {40.0, 45.0, 50.0, 60.0}[index]);
+            }
+            case ARCANE_BOMBARDMENT -> {
+                values.put("jumpPower", new double[] {0.9, 0.95, 1.0, 1.1}[index]);
+                // 솟아오른 뒤 정점에서 발사할 때까지의 대기 시간입니다.
+                values.put("castDelayTicks", new double[] {10.0, 10.0, 9.0, 8.0}[index]);
+                values.put("projectileRange", new double[] {18.0, 20.0, 22.0, 25.0}[index]);
+                values.put("blastRadius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {53.0, 83.0, 116.0, 158.0}[index]);
+            }
+            case DEMON_BARRIER -> {
+                values.put("shieldRatio", new double[] {0.25, 0.32, 0.40, 0.50}[index]);
+                values.put("shieldDurationTicks", new double[] {160.0, 180.0, 200.0, 240.0}[index]);
+            }
+            case HELLFIRE_BRAND -> {
+                // 시선이 닿는 지점에 깝니다. 길목에 미리 깔거나 뭉친 무리를 노릴 수 있어야 합니다.
+                values.put("placementRange", new double[] {10.0, 11.0, 12.0, 14.0}[index]);
+                values.put("zoneRadius", new double[] {3.5, 4.0, 4.5, 5.0}[index]);
+                values.put("zoneDurationTicks", new double[] {100.0, 120.0, 140.0, 160.0}[index]);
+                values.put("tickIntervalTicks", 20.0);
+                // 장판은 지속으로 여러 번 들어가므로 1회 피해를 낮게 잡습니다.
+                values.put("damage", new double[] {14.0, 21.0, 30.0, 41.0}[index]);
+                values.put("damageTakenBonus", new double[] {0.10, 0.15, 0.20, 0.25}[index]);
+            }
+            case SOUL_DRAIN -> {
+                values.put("range", new double[] {7.0, 8.0, 9.0, 10.0}[index]);
+                values.put("width", new double[] {1.6, 1.8, 2.0, 2.2}[index]);
+                values.put("damage", new double[] {26.0, 41.0, 60.0, 83.0}[index]);
+                values.put("lifeStealRatio", new double[] {0.25, 0.30, 0.35, 0.40}[index]);
+                // 다수를 꿰뚫어도 한 번에 회복할 수 있는 양에 상한을 둡니다.
+                values.put("lifeStealCap", new double[] {0.12, 0.15, 0.18, 0.22}[index]);
+            }
+            case GRIP_OF_DOOM -> {
+                values.put("range", new double[] {9.0, 10.0, 11.0, 12.0}[index]);
+                // 처형 임계값. 대상 최대 체력의 이 비율 이하면 즉사시킵니다. 1.0 으로 올리면
+                // 체력과 무관하게 무조건 즉사하지만, 상대가 비싸게 산 유닛을 대응 없이 지우게 됩니다.
+                values.put("executeHealthRatio", new double[] {0.50, 0.55, 0.60, 0.70}[index]);
+                // 처형 시 시체가 터집니다. 폭발 피해 = 처형 시점 체력 × 비율 + areaDamage.
+                values.put("explosionHealthRatio", new double[] {0.80, 0.90, 1.00, 1.20}[index]);
+                values.put("explosionRadius", new double[] {4.0, 4.5, 5.0, 6.0}[index]);
+                values.put("areaDamage", new double[] {30.0, 49.0, 71.0, 98.0}[index]);
+                // 임계값 위인 대상에게 들어가는 일반 피해입니다.
+                values.put("damage", new double[] {98.0, 150.0, 214.0, 293.0}[index]);
+                values.put("missingHealthRatio", new double[] {0.10, 0.14, 0.18, 0.24}[index]);
+                values.put("killRefundTicks", new double[] {60.0, 70.0, 80.0, 100.0}[index]);
+                values.put("pullStrength", new double[] {0.5, 0.55, 0.6, 0.7}[index]);
+            }
+            case HELL_GUILLOTINE -> {
+                values.put("range", new double[] {10.0, 12.0, 14.0, 16.0}[index]);
+                values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {45.0, 71.0, 101.0, 139.0}[index]);
+                // 마왕이 잃은 체력 비율에 비례해 피해가 커집니다. 체력 0 에 가까울 때의 최대 증가폭.
+                values.put("missingHealthDamageBonus", new double[] {1.00, 1.20, 1.40, 1.80}[index]);
+            }
+            case ROAR_OF_DREAD -> {
+                values.put("radius", new double[] {5.0, 5.5, 6.0, 7.0}[index]);
+                values.put("damage", new double[] {19.0, 30.0, 44.0, 60.0}[index]);
+                values.put("knockback", new double[] {1.0, 1.1, 1.2, 1.4}[index]);
+                values.put("moveSpeedReduction", new double[] {0.50, 0.58, 0.66, 0.75}[index]);
+                values.put("dreadDurationTicks", new double[] {50.0, 60.0, 70.0, 80.0}[index]);
+            }
+            default -> {
+            }
+        }
         return values;
     }
 

@@ -45,6 +45,7 @@ import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.army.ArmyStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -779,6 +780,18 @@ public final class SemionGame {
     }
 
     private void closeRuntimeState() {
+        for (SemionPlayer semionPlayer : players.values()) {
+            ServerPlayer online = arena.teamArena(semionPlayer.teamId())
+                    .map(TeamArena::world)
+                    .map(ServerLevel::getServer)
+                    .map(server -> server.getPlayerList().getPlayer(semionPlayer.uuid()))
+                    .orElse(null);
+            if (online == null) {
+                DemonLordService.clearPlayerState(semionPlayer.uuid());
+            } else {
+                DemonLordService.cleanupPlayer(online);
+            }
+        }
         for (UUID playerId : players.keySet()) {
             VillagerAdvStates.clear(playerId);
             AncientCityStates.clear(playerId);
@@ -1625,6 +1638,7 @@ public final class SemionGame {
             if (player == null) {
                 continue;
             }
+            DemonLordService.cleanupPlayer(player);
             VanillaTeamBridge.assignSpectator(server, player);
             placeSpectatorPlayer(player, spectatorIndex(memberId), team.id());
             player.sendSystemMessage(SemionText.prefixedPlain("소속 팀이 탈락했습니다. 관전 모드로 전환됩니다."));
