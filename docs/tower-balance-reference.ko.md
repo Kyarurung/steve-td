@@ -404,6 +404,27 @@
 > `src/main/resources/semiontd/balance-defaults/tower_balance.json`도 함께 고쳐야 하며,
 > 어긋나면 `bundledResourceCarriesEveryDemonLordEntryThatCodeDefines` 테스트가 깨집니다.
 
+## 겜블 빌더
+
+겜블 빌더의 전역 설정 ID는 `gamble_global`입니다. 도박 능력치는 퍼센트 배율이 아니라 점수를 고정 수치로 환산해 더합니다.
+
+| 키 | 기본값 | 의미 |
+|---|---:|---|
+| `oddEvenWinScore`, `oddEvenLossScore` | 10, 8 | 홀짝 성공·실패 점수의 절댓값 |
+| `maxHealthPerScore` | 1.0 | 점수 1당 고정 최대 체력 |
+| `damagePerScore` | 0.10 | 점수 1당 고정 공격력 |
+| `rangePerScore` | 0.025 | 점수 1당 고정 사거리 블록 |
+| `twoDiceLoss2`~`twoDiceLoss5` | 40, 25, 15, 5 | 2d6 실패 점수 절댓값 |
+| `twoDiceGain6`~`twoDiceGain12` | 2, 4, 7, 11, 16, 24, 40 | 2d6 성공 점수 |
+| `abilityRewardChance` | 0.25 | 성공 시 미보유 능력으로 바뀔 확률 |
+| `lossInsuranceReduction` | 0.20 | 손실 보험의 음수 고정치 완화율 |
+| `luckyStrikeMultiplier` | 2.0 | 행운의 일격 최종 피해 배율 |
+| `spreadEveryAttacks` | 4 | 분산 배당 발동 공격 횟수 |
+| `spreadDamageRatio`, `spreadRadius` | 0.50, 3.0 | 분산 배당 피해와 탐색 반경 |
+| `supportFace1...`~`supportFace6...` | 0.30/0.15/0.05/0.10/0.15/0.25 | 지원 눈별 %p 효과 |
+
+지원 타워 ID별 `minimumRoll`과 `positiveMultiplier`가 구경꾼 티어의 저점과 긍정 효과 배율을 정합니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
+
 ## 수정 절차
 
 1. 서버의 `config/semion-td/tower_balance.json`을 백업합니다.

@@ -1,0 +1,42 @@
+package kim.biryeong.semiontd.tower.gamble;
+
+import java.util.Arrays;
+import java.util.List;
+
+public final class GambleRewards {
+    private GambleRewards() {
+    }
+
+    public static List<GambleAbility> missingAbilities(GambleState state) {
+        GambleState current = state == null ? GambleState.EMPTY : state;
+        return Arrays.stream(GambleAbility.values()).filter(ability -> !current.has(ability)).toList();
+    }
+
+    public static boolean awardsAbility(GambleState state, double score, double chanceRoll) {
+        return score > 0.0
+                && !missingAbilities(state).isEmpty()
+                && Double.isFinite(chanceRoll)
+                && chanceRoll >= 0.0
+                && chanceRoll < GambleBalance.abilityRewardChance();
+    }
+
+    public static GambleAbility chooseMissing(GambleState state, int index) {
+        List<GambleAbility> missing = missingAbilities(state);
+        if (missing.isEmpty()) {
+            throw new IllegalStateException("No unowned gamble ability remains.");
+        }
+        return missing.get(Math.floorMod(index, missing.size()));
+    }
+
+    public static GambleStat chooseStat(int index) {
+        GambleStat[] values = GambleStat.values();
+        return values[Math.floorMod(index, values.length)];
+    }
+
+    public static double insuredDelta(GambleState state, double delta) {
+        if (delta >= 0.0 || state == null || !state.has(GambleAbility.LOSS_INSURANCE)) {
+            return delta;
+        }
+        return delta * Math.max(0.0, 1.0 - GambleBalance.lossInsuranceReduction());
+    }
+}

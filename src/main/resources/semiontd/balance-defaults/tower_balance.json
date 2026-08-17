@@ -3263,6 +3263,62 @@
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 0
+    },
+    "gamble_dice_t1": {
+      "mineralCost": 45,
+      "maxHealth": 90.0,
+      "range": 5.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_dice_t2": {
+      "mineralCost": 0,
+      "maxHealth": 150.0,
+      "range": 7.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_dice_t3": {
+      "mineralCost": 0,
+      "maxHealth": 240.0,
+      "range": 9.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_gambler": {
+      "mineralCost": 60,
+      "maxHealth": 100.0,
+      "range": 6.0,
+      "damage": 8.0,
+      "attackIntervalTicks": 16,
+      "aggroPriority": 0
+    },
+    "gamble_spectator_t1": {
+      "mineralCost": 45,
+      "maxHealth": 80.0,
+      "range": 5.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_spectator_t2": {
+      "mineralCost": 0,
+      "maxHealth": 135.0,
+      "range": 5.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_spectator_t3": {
+      "mineralCost": 0,
+      "maxHealth": 220.0,
+      "range": 5.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
     }
   },
   "upgradeCosts": {
@@ -3640,7 +3696,14 @@
     "t3_grip_of_doom_tower->t4_grip_of_doom_tower": 490,
     "t1_hell_guillotine_tower->t2_hell_guillotine_tower": 160,
     "t2_hell_guillotine_tower->t3_hell_guillotine_tower": 285,
-    "t3_hell_guillotine_tower->t4_hell_guillotine_tower": 440
+    "t3_hell_guillotine_tower->t4_hell_guillotine_tower": 440,
+    "gamble_dice_t1->gamble_dice_t2": 100,
+    "gamble_dice_t2->gamble_dice_t3": 100,
+    "gamble_spectator_t1->gamble_spectator_t2": 100,
+    "gamble_spectator_t2->gamble_spectator_t3": 100,
+    "gamble_gambler->bet_odd": 100,
+    "gamble_gambler->bet_even": 100,
+    "gamble_gambler->roll_two_dice": 100
   },
   "abilities": {
     "villager_splash_t2": {
@@ -6530,6 +6593,60 @@
       "radius": 5.5,
       "damage": 139.0,
       "missingHealthDamageBonus": 1.8
+    },
+    "gamble_global": {
+      "oddEvenWinScore": 10.0,
+      "oddEvenLossScore": 8.0,
+      "maxHealthPerScore": 1.0,
+      "damagePerScore": 0.1,
+      "rangePerScore": 0.025,
+      "twoDiceLoss2": 40.0,
+      "twoDiceLoss3": 25.0,
+      "twoDiceLoss4": 15.0,
+      "twoDiceLoss5": 5.0,
+      "twoDiceGain6": 2.0,
+      "twoDiceGain7": 4.0,
+      "twoDiceGain8": 7.0,
+      "twoDiceGain9": 11.0,
+      "twoDiceGain10": 16.0,
+      "twoDiceGain11": 24.0,
+      "twoDiceGain12": 40.0,
+      "abilityRewardChance": 0.25,
+      "lossInsuranceReduction": 0.2,
+      "luckyStrikeMultiplier": 2.0,
+      "spreadEveryAttacks": 4.0,
+      "spreadDamageRatio": 0.5,
+      "spreadRadius": 3.0,
+      "supportFace1DamageTaken": 0.3,
+      "supportFace2AttackSpeedReduction": 0.15,
+      "supportFace3RangeBonus": 0.05,
+      "supportFace4MaxHealthBonus": 0.1,
+      "supportFace5AttackSpeedBonus": 0.15,
+      "supportFace6DamageBonus": 0.25
+    },
+    "gamble_dice_t1": {
+      "minimumRoll": 1.0,
+      "positiveMultiplier": 1.0
+    },
+    "gamble_dice_t2": {
+      "minimumRoll": 1.0,
+      "positiveMultiplier": 1.0
+    },
+    "gamble_dice_t3": {
+      "minimumRoll": 1.0,
+      "positiveMultiplier": 1.0
+    },
+    "gamble_spectator_t1": {
+      "minimumRoll": 1.0,
+      "positiveMultiplier": 1.0
+    },
+    "gamble_spectator_t2": {
+      "minimumRoll": 2.0,
+      "positiveMultiplier": 1.25
+    },
+    "gamble_spectator_t3": {
+      "minimumRoll": 3.0,
+      "positiveMultiplier": 1.5
     }
   },
   "illusionCloneQueue": {
