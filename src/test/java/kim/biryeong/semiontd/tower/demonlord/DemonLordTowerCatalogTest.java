@@ -544,6 +544,46 @@ final class DemonLordTowerCatalogTest {
         }
     }
 
+    /**
+     * 레벨은 한 경기 동안 상태가 없어졌다 다시 생겨도 유지돼야 합니다.
+     *
+     * <p>상태는 전투 제외, 직업 변경, 플레이어를 못 찾는 레인 틱 등으로 여러 번 버려지고 다시
+     * 만들어집니다. 새로 만든 상태는 레벨 1 이므로, 진행도를 따로 붙들지 않으면 그동안 쌓은
+     * 성장이 통째로 날아갑니다. 레벨은 마왕의 유일한 성장 축이라 그러면 판이 끝납니다.
+     */
+    @Test
+    void levelSurvivesStateTeardownWithinAMatch() {
+        UUID player = UUID.randomUUID();
+        DemonLordState state = DemonLordStates.getOrCreate(player);
+        state.enterCombat();
+        state.addExperience(500.0);
+        int grownLevel = state.level();
+        assertTrue(grownLevel > 1, "테스트 전제: 경험치를 넣으면 레벨이 올라야 합니다");
+
+        DemonLordStates.clear(player);
+        assertEquals(grownLevel, DemonLordStates.getOrCreate(player).level(),
+                "상태가 다시 만들어져도 레벨은 유지돼야 합니다");
+
+        // 새 경기는 잊습니다.
+        DemonLordStates.clear(player);
+        DemonLordStates.resetProgression(player);
+        assertEquals(1, DemonLordStates.getOrCreate(player).level(),
+                "새 경기는 레벨 1 부터 시작해야 합니다");
+    }
+
+    /** 다섯 번째 스킬은 마검 우클릭으로 나갑니다. 슬롯을 들고 있을 필요가 없습니다. */
+    @Test
+    void theRightClickSkillIsBoundToTheBladeNotItsOwnSlot() {
+        assertFalse(DemonLordBinding.RIGHT_CLICK.castOnSelect(),
+                "고르는 것만으로 나가면 조준할 수 없습니다");
+        assertTrue(DemonLordBinding.RIGHT_CLICK.isHotbarSlot(),
+                "쿨타임을 보여 주려면 핫바에 자리가 있어야 합니다");
+        assertNotEquals(DemonLordSkill.BLADE_SLOT, DemonLordBinding.RIGHT_CLICK.hotbarSlot(),
+                "표시 슬롯과 마검 자리는 달라야 합니다");
+        assertTrue(DemonLordBinding.RIGHT_CLICK.label().contains("우클릭"),
+                "라벨이 조작 방법을 알려야 합니다: " + DemonLordBinding.RIGHT_CLICK.label());
+    }
+
     private static void assertInvalidAbility(String configId, String key, double value) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());

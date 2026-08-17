@@ -21,7 +21,7 @@ public enum DemonLordBinding {
      * The one slot you can actually hold. Selecting it does nothing; right-clicking fires. Useful
      * for a skill you want to aim carefully instead of the instant number-key cast.
      */
-    RIGHT_CLICK(4, "5(우클릭)", false),
+    RIGHT_CLICK(4, "마검 우클릭", false),
     // -1 rather than NO_SLOT: an enum constant cannot forward-reference a static field.
     OFFHAND(-1, "F", false),
     DROP(-1, "Q", false);

@@ -47,6 +47,8 @@ public final class DemonLordTowerJob extends SemionJob {
     @Override
     public void onMatchStarted(JobContext context) {
         DemonLordStates.clear(context.player().uuid());
+        // 레벨은 한 경기 안에서만 유지됩니다. 새 경기는 여기서만 잊습니다.
+        DemonLordStates.resetProgression(context.player().uuid());
         DemonLordStates.getOrCreate(context.player().uuid());
     }
 

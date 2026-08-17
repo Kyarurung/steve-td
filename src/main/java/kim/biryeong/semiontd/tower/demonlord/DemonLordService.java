@@ -77,12 +77,16 @@ public final class DemonLordService {
      * stops protecting a demon lord while they are in combat.
      */
     public static void register(SemionGameManager gameManager) {
-        // 우클릭 시전 슬롯. 손에 들고 조준한 뒤 우클릭해야 나갑니다.
+        // 다섯 번째 스킬은 마검을 우클릭해 씁니다.
+        //
+        // 손은 시전이 끝날 때마다 마검으로 돌아오므로, 마검에 걸어 두면 슬롯을 옮기는 동작 없이
+        // 바로 조준해 쏠 수 있습니다. 스킬 슬롯을 들고 우클릭하게 하면 매번 슬롯을 바꿨다가
+        // 되돌아오는 왕복이 생겨 불편합니다.
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (world.isClientSide() || hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) {
                 return InteractionResult.PASS;
             }
-            if (serverPlayer.getInventory().getSelectedSlot() != DemonLordBinding.RIGHT_CLICK.hotbarSlot()) {
+            if (serverPlayer.getInventory().getSelectedSlot() != DemonLordSkill.BLADE_SLOT) {
                 return InteractionResult.PASS;
             }
             return handleKeyBinding(gameManager, serverPlayer, DemonLordBinding.RIGHT_CLICK)
@@ -492,8 +496,14 @@ public final class DemonLordService {
         state.setLastSelectedSlot(selected);
 
         DemonLordBinding binding = DemonLordBinding.forHotbarSlot(selected);
-        // 우클릭 슬롯은 손에 들고 조준해야 하므로 선택만으로는 발동하지 않습니다.
-        if (binding == null || !binding.castOnSelect()) {
+        if (binding == null) {
+            return;
+        }
+        // 우클릭 스킬은 마검에 걸려 있습니다. 그 슬롯은 쿨타임을 보여 주는 자리일 뿐이라,
+        // 집어 들면 아무것도 못 하는 아이템을 든 채로 남지 않게 마검으로 되돌립니다.
+        if (!binding.castOnSelect()) {
+            setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
+            state.setLastSelectedSlot(DemonLordSkill.BLADE_SLOT);
             return;
         }
         tryCast(player, lane, state, binding, gameTime);

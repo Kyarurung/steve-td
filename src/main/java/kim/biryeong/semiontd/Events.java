@@ -9,6 +9,8 @@ import kim.biryeong.semiontd.skybox.SemionSkyboxService;
 import kim.biryeong.semiontd.tip.SemionTipService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordBinding;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordStates;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -89,6 +91,10 @@ public final class Events {
         });
 
         // Q 키. 드롭 패킷을 가로채 일곱 번째 스킬로 씁니다.
+        //
+        // 이 이벤트는 바닐라가 스레드를 넘기기 전, 즉 <b>네티 채널 스레드</b>에서 돕니다. 여기서
+        // 레인·엔티티·파티클을 건드리면 서버 스레드 밖에서 월드를 만지게 되어 연결이 끊깁니다.
+        // 그래서 여기서는 값싼 상태 확인만 하고, 실제 시전은 서버 스레드로 넘깁니다.
         Stimuli.global().listen(PlayerC2SPacketEvent.EVENT, (player, packet) -> {
             if (!(packet instanceof ServerboundPlayerActionPacket action)) {
                 return EventResult.PASS;
@@ -98,9 +104,16 @@ public final class Events {
                     && kind != ServerboundPlayerActionPacket.Action.DROP_ALL_ITEMS) {
                 return EventResult.PASS;
             }
-            return DemonLordService.handleKeyBinding(gameManager, player, DemonLordBinding.DROP)
-                    ? EventResult.DENY
-                    : EventResult.PASS;
+            if (!DemonLordStates.isInCombat(player.getUUID())) {
+                return EventResult.PASS;
+            }
+            MinecraftServer server = player.getServer();
+            if (server == null) {
+                return EventResult.PASS;
+            }
+            server.execute(() -> DemonLordService.handleKeyBinding(gameManager, player, DemonLordBinding.DROP));
+            // 전투 중인 마왕의 Q 는 아이템을 버리는 키가 아니므로 드롭 자체는 항상 막습니다.
+            return EventResult.DENY;
         });
     }
 

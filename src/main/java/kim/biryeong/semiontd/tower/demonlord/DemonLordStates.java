@@ -14,6 +14,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class DemonLordStates {
     private static final Map<UUID, DemonLordState> STATES = new ConcurrentHashMap<>();
 
+    /**
+     * Kill-fed progress, kept alive across state teardown for the length of a match.
+     *
+     * <p>{@link #clear(UUID)} runs on more than match end - a job change, a lane tick that cannot
+     * see the player, or being knocked out and rebuilt all drop the state, and a rebuilt state
+     * starts at level 1. Levels are the demon lord's only growth, so wiping them mid-match undoes
+     * the entire run. Only {@link #resetProgression(UUID)} really forgets, and that is a new match.
+     */
+    private static final Map<UUID, Progression> PROGRESSION = new ConcurrentHashMap<>();
+
+    private record Progression(int level, double experience) {
+    }
+
     private DemonLordStates() {
     }
 
@@ -25,7 +38,21 @@ public final class DemonLordStates {
         if (playerId == null) {
             return null;
         }
-        return STATES.computeIfAbsent(playerId, DemonLordState::new);
+        return STATES.computeIfAbsent(playerId, id -> {
+            DemonLordState created = new DemonLordState(id);
+            Progression saved = PROGRESSION.get(id);
+            if (saved != null) {
+                created.restoreProgression(saved.level(), saved.experience());
+            }
+            return created;
+        });
+    }
+
+    /** Forgets kill-fed progress. Only a new match should do this. */
+    public static void resetProgression(UUID playerId) {
+        if (playerId != null) {
+            PROGRESSION.remove(playerId);
+        }
     }
 
     /** True only while the player is a demon lord who is currently fightable. */
@@ -50,12 +77,16 @@ public final class DemonLordStates {
      */
     public static void clear(UUID playerId) {
         if (playerId != null) {
-            STATES.remove(playerId);
+            DemonLordState removed = STATES.remove(playerId);
+            if (removed != null) {
+                PROGRESSION.put(playerId, new Progression(removed.level(), removed.experience()));
+            }
             DemonLordService.clearBossBar(playerId);
         }
     }
 
     public static void clearAllForTesting() {
         STATES.clear();
+        PROGRESSION.clear();
     }
 }

@@ -128,6 +128,20 @@ public final class DemonLordState {
         return experience;
     }
 
+    /**
+     * Restores kill-fed progress onto a freshly built state.
+     *
+     * <p>The state object is torn down and rebuilt whenever the player leaves and re-enters the
+     * builder's tick path, and a rebuilt state starts at level 1. Progression is the only thing the
+     * demon lord grows, so losing it mid-match wipes the whole run - {@link DemonLordStates} hands
+     * it back through here.
+     */
+    void restoreProgression(int restoredLevel, double restoredExperience) {
+        level = Math.max(1, Math.min(maxLevel(), restoredLevel));
+        experience = Math.max(0.0, restoredExperience);
+        health = Math.min(health, maxHealth());
+    }
+
     public int maxLevel() {
         return Math.max(1, (int) global("maxLevel", 30.0));
     }
