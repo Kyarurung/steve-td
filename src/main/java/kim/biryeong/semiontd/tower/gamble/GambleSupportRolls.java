@@ -52,9 +52,9 @@ public final class GambleSupportRolls {
                 case 1 -> new RollPlan(false, 2, 2.0);
                 case 2 -> new RollPlan(false, 2, 1.0);
                 case 3 -> new RollPlan(true, 2, 1.0);
-                case 4 -> new RollPlan(true, 2, 2.0);
-                case 5 -> new RollPlan(true, 4, 1.0);
-                case 6 -> new RollPlan(true, 4, 2.0);
+                case 4 -> new RollPlan(true, 2, 1.5);
+                case 5 -> new RollPlan(true, 4, 1.75);
+                case 6 -> new RollPlan(true, 4, 2.25);
                 default -> throw new IllegalStateException("Unreachable support face");
             };
         }
@@ -62,9 +62,9 @@ public final class GambleSupportRolls {
             case 1 -> new RollPlan(false, 1, 2.0);
             case 2 -> new RollPlan(false, 1, 1.0);
             case 3 -> new RollPlan(true, 1, 1.0);
-            case 4 -> new RollPlan(true, 1, 2.0);
-            case 5 -> new RollPlan(true, 2, 1.0);
-            case 6 -> new RollPlan(true, 2, 2.0);
+            case 4 -> new RollPlan(true, 1, 1.5);
+            case 5 -> new RollPlan(true, 2, 1.75);
+            case 6 -> new RollPlan(true, 2, 2.25);
             default -> throw new IllegalStateException("Unreachable support face");
         };
     }

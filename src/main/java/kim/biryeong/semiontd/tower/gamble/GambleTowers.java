@@ -30,7 +30,7 @@ public final class GambleTowers {
             .mineralCost(60).maxHealth(110).range(6.5).damage(10).attackIntervalTicks(13)
             .visual(EntityVisual.builder("minecraft:wandering_trader").scale(1.0).build())
             .description(List.of(
-                    "준비 시간에 100 다이아를 내고 홀수·짝수 맞히기 또는 주사위 두 개 굴리기를 반복할 수 있습니다.",
+                    "준비 시간에 홀수·짝수는 50 다이아, 주사위 두 개는 100 다이아를 내고 반복할 수 있습니다.",
                     "주사위 눈에 따라 최대 체력·공격력·사거리 중 무작위 능력치가 오르거나 내려갑니다.",
                     "주사위 두 개의 합이 {ability.gamble_global.twoDiceCompoundMinSum:integer} 이상이면 서로 다른 능력치 두 개가 보상을 나눠 받습니다.",
                     "기본 공격은 반경 {ability.gamble_global.baseSplashRadius:blocks} 안의 적에게도 피해를 줍니다.",
@@ -45,12 +45,12 @@ public final class GambleTowers {
     public static final TowerType SPECTATOR_T2 = spectator(
             "gamble_spectator_t2", "구경꾼 타워 II", 0, 10, 5,
             VillagerVisual.builder().profession(VillagerProfession.LIBRARIAN).build(),
-            "주사위는 2~6만 나오며 버프의 효과가 더 강해집니다."
+            "주사위는 1~6이 나오며 강화 효과와 연결 범위가 증가합니다."
     );
     public static final TowerType SPECTATOR_T3 = spectator(
             "gamble_spectator_t3", "구경꾼 타워 III", 0, 10, 6.5,
             VillagerVisual.builder().profession(VillagerProfession.CLERIC).build(),
-            "주사위는 3~6만 나오며 버프의 효과가 가장 강해집니다."
+            "주사위는 1~6이 나오며 강화 효과와 연결 범위가 가장 크게 증가합니다."
     );
 
     private static final List<TowerType> ALL = List.of(
@@ -90,8 +90,8 @@ public final class GambleTowers {
         return TowerType.builder(id, name).category(TowerCategory.SUPPORT).mineralCost(cost)
                 .maxHealth(health).range(range).damage(0).attackIntervalTicks(20).aggroPriority(-20)
                 .visual(visual).description(List.of(description,
-                        "눈 1은 강한 약화, 2는 약화, 3은 강화, 4는 강한 강화입니다.",
-                        "눈 5~6은 여러 능력치를 함께 강화하며 6의 효과가 더 강합니다.",
+                        "눈 1~2는 약화, 3~6은 강화이며 높은 눈일수록 효과가 강해집니다.",
+                        "눈 5~6은 여러 능력치를 함께 강화합니다.",
                         "공격하지 않으며 지원 범위와 이번 라운드 눈금이 타워 머리 위에 표시됩니다."))
                 .build();
     }
@@ -103,6 +103,7 @@ public final class GambleTowers {
         return support(id, name, cost, health, range, visual,
                 "누적 도박 점수가 가장 높은 도박꾼 하나와 연결되며 도박꾼 하나당 구경꾼은 최대 "
                         + "{ability.gamble_global.maxSpectatorsPerGambler:integer}기까지 연결됩니다. "
-                        + description + " 강화할수록 효과와 연결 범위가 올라갑니다.");
+                        + description + " 눈 6이 나오면 다이아 {ability.faceSixDiamondReward:integer}개를 얻습니다. "
+                        + "강화할수록 효과와 연결 범위가 올라갑니다.");
     }
 }

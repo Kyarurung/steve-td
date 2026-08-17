@@ -5,7 +5,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 
 public final class GambleBalance {
     public static final String GLOBAL_ID = "gamble_global";
-    public static final double ODD_EVEN_WIN_SCORE = 80.0;
+    public static final double ODD_EVEN_WIN_SCORE = 70.0;
     public static final double ODD_EVEN_LOSS_SCORE = 40.0;
     public static final double MAX_HEALTH_PER_SCORE = 5.0;
     public static final double DAMAGE_PER_SCORE = 0.50;
@@ -68,7 +68,7 @@ public final class GambleBalance {
             double[] defaults = {0.0, 0.0, 70.0, 50.0, 30.0, 10.0};
             return -global("twoDiceLoss" + sum, defaults[sum]);
         }
-        double[] defaults = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 40.0, 50.0, 60.0, 75.0, 90.0, 100.0};
+        double[] defaults = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 40.0, 50.0, 60.0, 90.0, 120.0, 150.0};
         return global("twoDiceGain" + sum, defaults[sum]);
     }
 
@@ -93,6 +93,15 @@ public final class GambleBalance {
 
     public static double supportPowerMultiplier(TowerType type) {
         return Math.max(0.0, TowerBalanceRuntime.ability(type.id(), "supportPowerMultiplier", 1.0));
+    }
+
+    public static long spectatorFaceSixDiamondReward(TowerType type) {
+        if (!GambleTowers.isSpectator(type)) {
+            return 0L;
+        }
+        return Math.max(0L, Math.round(TowerBalanceRuntime.ability(
+                type.id(), "faceSixDiamondReward", 0.0
+        )));
     }
 
     public static int maxSpectatorsPerGambler() {

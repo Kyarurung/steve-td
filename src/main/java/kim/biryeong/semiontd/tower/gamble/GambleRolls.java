@@ -37,9 +37,9 @@ public final class GambleRolls {
             case 7 -> 40.0;
             case 8 -> 50.0;
             case 9 -> 60.0;
-            case 10 -> 75.0;
-            case 11 -> 90.0;
-            case 12 -> 100.0;
+            case 10 -> 90.0;
+            case 11 -> 120.0;
+            case 12 -> 150.0;
             default -> throw new IllegalStateException("Unreachable dice sum");
         };
         return first == second ? delta * 2.0 : delta;

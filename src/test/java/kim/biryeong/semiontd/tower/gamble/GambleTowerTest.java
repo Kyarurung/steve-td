@@ -13,8 +13,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.PlayerEconomy;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.job.GambleTowerJob;
 import kim.biryeong.semiontd.job.JobRegistry;
@@ -45,7 +47,7 @@ final class GambleTowerTest {
 
     @Test
     void allThirtySixTwoDiceOutcomesUseTheNonlinearScoreAndDoubleRule() {
-        double[] bySum = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 75, 90, 100};
+        double[] bySum = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 90, 120, 150};
         double abilityAdjustedTotal = 0.0;
         for (int first = 1; first <= 6; first++) {
             for (int second = 1; second <= 6; second++) {
@@ -57,11 +59,11 @@ final class GambleTowerTest {
                 abilityAdjustedTotal += expected > 0.0 ? expected * 0.75 : expected;
             }
         }
-        assertEquals(32.7777777778, GambleRolls.defaultExpectedTwoDiceDelta(), EPSILON);
-        assertEquals(32.7777777778, GambleRolls.expectedTwoDiceDelta(), EPSILON);
-        assertEquals(21.8055555556, abilityAdjustedTotal / 36.0, EPSILON);
+        assertEquals(38.8888888889, GambleRolls.defaultExpectedTwoDiceDelta(), EPSILON);
+        assertEquals(38.8888888889, GambleRolls.expectedTwoDiceDelta(), EPSILON);
+        assertEquals(26.3888888889, abilityAdjustedTotal / 36.0, EPSILON);
         assertEquals(-140.0, GambleRolls.defaultTwoDiceDelta(1, 1), EPSILON);
-        assertEquals(200.0, GambleRolls.defaultTwoDiceDelta(6, 6), EPSILON);
+        assertEquals(300.0, GambleRolls.defaultTwoDiceDelta(6, 6), EPSILON);
     }
 
     @Test
@@ -81,31 +83,31 @@ final class GambleTowerTest {
         }
 
         double splitScore = GambleRolls.twoDiceDelta(6, 6) / 2.0;
-        assertEquals(500, GambleBalance.statDelta(GambleStat.MAX_HEALTH, splitScore), EPSILON);
-        assertEquals(50, GambleBalance.statDelta(GambleStat.DAMAGE, splitScore), EPSILON);
-        assertEquals(5, GambleBalance.statDelta(GambleStat.RANGE, splitScore), EPSILON);
+        assertEquals(750, GambleBalance.statDelta(GambleStat.MAX_HEALTH, splitScore), EPSILON);
+        assertEquals(75, GambleBalance.statDelta(GambleStat.DAMAGE, splitScore), EPSILON);
+        assertEquals(7.5, GambleBalance.statDelta(GambleStat.RANGE, splitScore), EPSILON);
         GambleState state = GambleState.EMPTY.recordStats(List.of(
-                new GambleState.StatChange(GambleStat.MAX_HEALTH, 500, 110),
-                new GambleState.StatChange(GambleStat.DAMAGE, 50, 10)
-        ), 200, "6+6 분할 복합 보상");
+                new GambleState.StatChange(GambleStat.MAX_HEALTH, 750, 110),
+                new GambleState.StatChange(GambleStat.DAMAGE, 75, 10)
+        ), 300, "6+6 분할 복합 보상");
         assertEquals(1, state.totalBets());
-        assertEquals(200, state.cumulativeScore(), EPSILON);
-        assertEquals(500, state.maxHealthDelta(), EPSILON);
-        assertEquals(50, state.damageDelta(), EPSILON);
+        assertEquals(300, state.cumulativeScore(), EPSILON);
+        assertEquals(750, state.maxHealthDelta(), EPSILON);
+        assertEquals(75, state.damageDelta(), EPSILON);
     }
 
     @Test
     void oddEvenAndFixedStatConversionNeverUseMultiplicativePercentages() {
-        assertEquals(80.0, GambleRolls.oddEvenDelta(GambleBet.ODD, 3), EPSILON);
+        assertEquals(70.0, GambleRolls.oddEvenDelta(GambleBet.ODD, 3), EPSILON);
         assertEquals(-40.0, GambleRolls.oddEvenDelta(GambleBet.ODD, 4), EPSILON);
-        assertEquals(80.0, GambleRolls.oddEvenDelta(GambleBet.EVEN, 4), EPSILON);
+        assertEquals(70.0, GambleRolls.oddEvenDelta(GambleBet.EVEN, 4), EPSILON);
         assertEquals(-40.0, GambleRolls.oddEvenDelta(GambleBet.EVEN, 3), EPSILON);
         assertThrows(IllegalArgumentException.class,
                 () -> GambleRolls.oddEvenDelta(GambleBet.TWO_DICE, 3));
-        assertEquals(10.0, (80.0 * 0.75 - 40.0) / 2.0, EPSILON,
+        assertEquals(6.25, (70.0 * 0.75 - 40.0) / 2.0, EPSILON,
                 "Odd/even stat expectation must remain positive while abilities can replace wins.");
-        assertEquals(24.0, (80.0 - 40.0 * 0.80) / 2.0, EPSILON,
-                "Insured odd/even expectation must stay below the two-dice high-risk option.");
+        assertEquals(19.0, (70.0 - 40.0 * 0.80) / 2.0, EPSILON,
+                "Insured odd/even must trade peak growth for its lower price and lower variance.");
 
         assertEquals(200.0, GambleBalance.statDelta(GambleStat.MAX_HEALTH, 40), EPSILON);
         assertEquals(20.0, GambleBalance.statDelta(GambleStat.DAMAGE, 40), EPSILON);
@@ -184,7 +186,7 @@ final class GambleTowerTest {
     }
 
     @Test
-    void catalogUsesThreeStartersHundredCostEdgesAndCreativeClassification() {
+    void catalogUsesThreeStartersConfiguredUpgradeCostsAndCreativeClassification() {
         List<ProductionTowerCatalog.CatalogEntry> entries = ProductionTowerCatalog.all().stream()
                 .filter(entry -> GambleTowers.isGambleTower(entry.type())).toList();
         assertEquals(7, entries.size());
@@ -214,8 +216,8 @@ final class GambleTowerTest {
         TowerUpgradeOption odd = ProductionTowerCatalog.upgrade(
                 GambleTowers.GAMBLER, GambleBet.ODD.upgradeId()).orElseThrow();
         List<String> oddTooltip = gambler.upgradeTooltipLines(odd);
-        assertTrue(oddTooltip.stream().anyMatch(line -> line.contains("체력 +400")
-                && line.contains("공격력 +40") && line.contains("사거리 +4")));
+        assertTrue(oddTooltip.stream().anyMatch(line -> line.contains("체력 +350")
+                && line.contains("공격력 +35") && line.contains("사거리 +3.5")));
         assertTrue(oddTooltip.stream().anyMatch(line -> line.contains("체력 -200")
                 && line.contains("공격력 -20") && line.contains("사거리 -2")));
         assertTrue(oddTooltip.stream().anyMatch(line -> line.contains("체력 -160")
@@ -229,7 +231,7 @@ final class GambleTowerTest {
         for (GambleBet bet : GambleBet.values()) {
             TowerUpgradeOption option = ProductionTowerCatalog.upgrade(GambleTowers.GAMBLER, bet.upgradeId())
                     .orElseThrow();
-            assertEquals(100, option.mineralCost());
+            assertEquals(bet == GambleBet.TWO_DICE ? 100 : 50, option.mineralCost());
             assertFalse(gambler.upgradeCostAddsToSaleValue(option));
         }
         assertEquals(100, ProductionTowerCatalog.upgrade(GambleTowers.DICE_T1, GambleTowers.DICE_T2.id())
@@ -281,19 +283,21 @@ final class GambleTowerTest {
         assertEffects(GambleSupportRolls.resolve(false, 1, 1.0, stats), false, 0.50);
         assertEffects(GambleSupportRolls.resolve(false, 2, 1.0, stats), false, 0.25);
         assertEffects(GambleSupportRolls.resolve(false, 3, 1.0, stats), true, 0.25);
-        assertEffects(GambleSupportRolls.resolve(false, 4, 1.0, stats), true, 0.50);
-        assertEffects(GambleSupportRolls.resolve(false, 5, 1.0, stats), true, 0.25, 2.50);
-        assertEffects(GambleSupportRolls.resolve(false, 6, 1.0, stats), true, 0.50, 5.00);
+        assertEffects(GambleSupportRolls.resolve(false, 4, 1.0, stats), true, 0.375);
+        assertEffects(GambleSupportRolls.resolve(false, 5, 1.0, stats), true, 0.4375, 4.375);
+        assertEffects(GambleSupportRolls.resolve(false, 6, 1.0, stats), true, 0.5625, 5.625);
 
         assertEffects(GambleSupportRolls.resolve(true, 1, 1.0, stats), false, 0.50, 2.00);
         assertEffects(GambleSupportRolls.resolve(true, 2, 1.0, stats), false, 0.25, 1.00);
         assertEffects(GambleSupportRolls.resolve(true, 3, 1.0, stats), true, 0.25, 2.50);
-        assertEffects(GambleSupportRolls.resolve(true, 4, 1.0, stats), true, 0.50, 5.00);
-        assertEffects(GambleSupportRolls.resolve(true, 5, 1.0, stats), true, 0.25, 2.50, 2.50, 25.0);
-        assertEffects(GambleSupportRolls.resolve(true, 6, 1.0, stats), true, 0.50, 5.00, 5.00, 50.0);
+        assertEffects(GambleSupportRolls.resolve(true, 4, 1.0, stats), true, 0.375, 3.75);
+        assertEffects(GambleSupportRolls.resolve(true, 5, 1.0, stats), true,
+                0.4375, 4.375, 4.375, 43.75);
+        assertEffects(GambleSupportRolls.resolve(true, 6, 1.0, stats), true,
+                0.5625, 5.625, 5.625, 56.25);
 
-        assertEffects(GambleSupportRolls.resolve(false, 6, 2.5, stats), true, 1.25, 12.5);
-        assertEffects(GambleSupportRolls.resolve(true, 1, 2.5, stats), false, 0.50, 2.00);
+        assertEffects(GambleSupportRolls.resolve(false, 6, 3.5, stats), true, 1.96875, 19.6875);
+        assertEffects(GambleSupportRolls.resolve(true, 1, 3.5, stats), false, 0.50, 2.00);
         assertThrows(IllegalArgumentException.class,
                 () -> GambleSupportRolls.resolve(false, 0, 1.0, stats));
     }
@@ -302,14 +306,18 @@ final class GambleTowerTest {
     void supportTierConfigurationMatchesRangePowerAndMinimumRollDesign() {
         assertEquals(1, GambleBalance.minimumRoll(GambleTowers.DICE_T3));
         assertEquals(1, GambleBalance.minimumRoll(GambleTowers.SPECTATOR_T1));
-        assertEquals(2, GambleBalance.minimumRoll(GambleTowers.SPECTATOR_T2));
-        assertEquals(3, GambleBalance.minimumRoll(GambleTowers.SPECTATOR_T3));
+        assertEquals(1, GambleBalance.minimumRoll(GambleTowers.SPECTATOR_T2));
+        assertEquals(1, GambleBalance.minimumRoll(GambleTowers.SPECTATOR_T3));
         assertEquals(1.0, GambleBalance.supportPowerMultiplier(GambleTowers.DICE_T1), EPSILON);
-        assertEquals(1.5, GambleBalance.supportPowerMultiplier(GambleTowers.DICE_T2), EPSILON);
-        assertEquals(2.5, GambleBalance.supportPowerMultiplier(GambleTowers.DICE_T3), EPSILON);
+        assertEquals(2.0, GambleBalance.supportPowerMultiplier(GambleTowers.DICE_T2), EPSILON);
+        assertEquals(3.5, GambleBalance.supportPowerMultiplier(GambleTowers.DICE_T3), EPSILON);
         assertEquals(1.0, GambleBalance.supportPowerMultiplier(GambleTowers.SPECTATOR_T1), EPSILON);
-        assertEquals(1.5, GambleBalance.supportPowerMultiplier(GambleTowers.SPECTATOR_T2), EPSILON);
-        assertEquals(2.5, GambleBalance.supportPowerMultiplier(GambleTowers.SPECTATOR_T3), EPSILON);
+        assertEquals(2.0, GambleBalance.supportPowerMultiplier(GambleTowers.SPECTATOR_T2), EPSILON);
+        assertEquals(3.5, GambleBalance.supportPowerMultiplier(GambleTowers.SPECTATOR_T3), EPSILON);
+        assertEquals(5, GambleBalance.spectatorFaceSixDiamondReward(GambleTowers.SPECTATOR_T1));
+        assertEquals(15, GambleBalance.spectatorFaceSixDiamondReward(GambleTowers.SPECTATOR_T2));
+        assertEquals(35, GambleBalance.spectatorFaceSixDiamondReward(GambleTowers.SPECTATOR_T3));
+        assertEquals(0, GambleBalance.spectatorFaceSixDiamondReward(GambleTowers.DICE_T3));
         assertEquals(3, GambleBalance.maxSpectatorsPerGambler());
         assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
@@ -319,15 +327,19 @@ final class GambleTowerTest {
     void defaultsMergeMissingGambleValuesAndRejectInvalidOnes() throws Exception {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         GambleTowers.all().forEach(type -> assertTrue(defaults.towers().containsKey(type.id())));
-        assertEquals(100, defaults.upgradeCost(GambleTowers.GAMBLER.id(), GambleBet.ODD.upgradeId(), -1));
+        assertEquals(50, defaults.upgradeCost(GambleTowers.GAMBLER.id(), GambleBet.ODD.upgradeId(), -1));
+        assertEquals(100, defaults.upgradeCost(
+                GambleTowers.GAMBLER.id(), GambleBet.TWO_DICE.upgradeId(), -1));
         TowerBalanceConfig partial = new TowerBalanceConfig(Map.of(), Map.of(), Map.of(
                 GambleBalance.GLOBAL_ID, Map.of("damagePerScore", 0.2))).withMissingDefaults(defaults);
         assertEquals(0.2, partial.ability(GambleBalance.GLOBAL_ID, "damagePerScore", -1), EPSILON);
         assertEquals(5.0, partial.ability(GambleBalance.GLOBAL_ID, "maxHealthPerScore", -1), EPSILON);
         assertEquals(3.0, partial.ability(GambleBalance.GLOBAL_ID, "maxSpectatorsPerGambler", -1), EPSILON);
         assertEquals(10.0, partial.ability(GambleBalance.GLOBAL_ID, "twoDiceCompoundMinSum", -1), EPSILON);
-        assertEquals(2.5, partial.ability(
+        assertEquals(3.5, partial.ability(
                 GambleTowers.DICE_T3.id(), "supportPowerMultiplier", -1), EPSILON);
+        assertEquals(35.0, partial.ability(
+                GambleTowers.SPECTATOR_T3.id(), "faceSixDiamondReward", -1), EPSILON);
         assertEquals(110, partial.towers().get(GambleTowers.GAMBLER.id()).maxHealth(), EPSILON);
 
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "abilityRewardChance", 1.1);
@@ -338,6 +350,7 @@ final class GambleTowerTest {
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "twoDiceLoss2", 1_000.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "minimumRoll", 7.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "supportPowerMultiplier", -1.0);
+        assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "faceSixDiamondReward", 3.5);
 
         try (var input = GambleTowerTest.class.getResourceAsStream(
                 "/semiontd/balance-defaults/tower_balance.json")) {
@@ -346,6 +359,31 @@ final class GambleTowerTest {
             assertTrue(root.getAsJsonObject("towers").has(GambleTowers.GAMBLER.id()));
             assertTrue(root.getAsJsonObject("abilities").has(GambleBalance.GLOBAL_ID));
         }
+    }
+
+    @Test
+    void spectatorFaceSixPaysOnlyDuringTheOwnersOpenRound() {
+        PlayerEconomy economy = new PlayerEconomy(EconomyConfig.defaultConfig());
+        long startingDiamond = economy.diamond();
+        try {
+            GambleSpectatorRewards.openRound(OWNER, economy);
+            assertEquals(0, GambleSpectatorRewards.awardFaceSix(
+                    OWNER, GambleTowers.SPECTATOR_T3, 5));
+            assertEquals(0, GambleSpectatorRewards.awardFaceSix(
+                    OWNER, GambleTowers.DICE_T3, 6));
+            assertEquals(5, GambleSpectatorRewards.awardFaceSix(
+                    OWNER, GambleTowers.SPECTATOR_T1, 6));
+            assertEquals(15, GambleSpectatorRewards.awardFaceSix(
+                    OWNER, GambleTowers.SPECTATOR_T2, 6));
+            assertEquals(35, GambleSpectatorRewards.awardFaceSix(
+                    OWNER, GambleTowers.SPECTATOR_T3, 6));
+            assertEquals(startingDiamond + 55, economy.diamond());
+        } finally {
+            GambleSpectatorRewards.closeRound(OWNER);
+        }
+        assertEquals(0, GambleSpectatorRewards.awardFaceSix(
+                OWNER, GambleTowers.SPECTATOR_T3, 6));
+        assertEquals(startingDiamond + 55, economy.diamond());
     }
 
     private static void assertEffects(

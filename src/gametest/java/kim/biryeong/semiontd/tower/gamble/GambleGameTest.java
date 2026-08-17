@@ -227,8 +227,8 @@ public final class GambleGameTest {
                     "Every affected tower must have a visible connection from its support tower.");
             require(sum(dice.lastRollCounts()) == 1 && sum(spectator.lastRollCounts()) == 1,
                     "Each support tower must roll exactly one face per round, regardless of target count.");
-            require(spectator.lastRollCounts()[0] == 0 && spectator.lastRollCounts()[1] == 0,
-                    "Tier 3 spectators must never roll below three.");
+            require(java.util.Arrays.stream(spectator.lastRollCounts()).sum() == 1,
+                    "Every spectator tier must use the same one-through-six die.");
 
             var diceSource = GambleRoundEffects.sourceId(dice);
             var spectatorSource = GambleRoundEffects.sourceId(spectator);

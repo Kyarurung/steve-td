@@ -3701,8 +3701,8 @@
     "gamble_dice_t2->gamble_dice_t3": 200,
     "gamble_spectator_t1->gamble_spectator_t2": 100,
     "gamble_spectator_t2->gamble_spectator_t3": 200,
-    "gamble_gambler->bet_odd": 100,
-    "gamble_gambler->bet_even": 100,
+    "gamble_gambler->bet_odd": 50,
+    "gamble_gambler->bet_even": 50,
     "gamble_gambler->roll_two_dice": 100
   },
   "abilities": {
@@ -6595,7 +6595,7 @@
       "missingHealthDamageBonus": 1.8
     },
     "gamble_global": {
-      "oddEvenWinScore": 80.0,
+      "oddEvenWinScore": 70.0,
       "oddEvenLossScore": 40.0,
       "maxHealthPerScore": 5.0,
       "damagePerScore": 0.5,
@@ -6611,9 +6611,9 @@
       "twoDiceGain7": 40.0,
       "twoDiceGain8": 50.0,
       "twoDiceGain9": 60.0,
-      "twoDiceGain10": 75.0,
-      "twoDiceGain11": 90.0,
-      "twoDiceGain12": 100.0,
+      "twoDiceGain10": 90.0,
+      "twoDiceGain11": 120.0,
+      "twoDiceGain12": 150.0,
       "abilityRewardChance": 0.25,
       "lossInsuranceReduction": 0.2,
       "twoDiceCompoundMinSum": 10.0,
@@ -6630,27 +6630,33 @@
     },
     "gamble_dice_t1": {
       "minimumRoll": 1.0,
-      "supportPowerMultiplier": 1.0
+      "supportPowerMultiplier": 1.0,
+      "faceSixDiamondReward": 0.0
     },
     "gamble_dice_t2": {
       "minimumRoll": 1.0,
-      "supportPowerMultiplier": 1.5
+      "supportPowerMultiplier": 2.0,
+      "faceSixDiamondReward": 0.0
     },
     "gamble_dice_t3": {
       "minimumRoll": 1.0,
-      "supportPowerMultiplier": 2.5
+      "supportPowerMultiplier": 3.5,
+      "faceSixDiamondReward": 0.0
     },
     "gamble_spectator_t1": {
       "minimumRoll": 1.0,
-      "supportPowerMultiplier": 1.0
+      "supportPowerMultiplier": 1.0,
+      "faceSixDiamondReward": 5.0
     },
     "gamble_spectator_t2": {
-      "minimumRoll": 2.0,
-      "supportPowerMultiplier": 1.5
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 2.0,
+      "faceSixDiamondReward": 15.0
     },
     "gamble_spectator_t3": {
-      "minimumRoll": 3.0,
-      "supportPowerMultiplier": 2.5
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 3.5,
+      "faceSixDiamondReward": 35.0
     }
   },
   "illusionCloneQueue": {

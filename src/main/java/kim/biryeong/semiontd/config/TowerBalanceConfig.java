@@ -1279,6 +1279,7 @@ public record TowerBalanceConfig(
             validateRange(type.id(), "minimumRoll", 1.0, 6.0);
             validateIntegral(type.id(), false, "minimumRoll");
             validatePositive(type.id(), "supportPowerMultiplier");
+            validateIntegral(type.id(), true, "faceSixDiamondReward");
         }
         if (configuredGambleExpectedScore() <= 0.0) {
             throw new IllegalArgumentException("Gamble two-dice score must have a positive expectation.");
@@ -1286,7 +1287,7 @@ public record TowerBalanceConfig(
     }
 
     private double configuredGambleExpectedScore() {
-        double[] defaults = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 75, 90, 100};
+        double[] defaults = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 90, 120, 150};
         double total = 0.0;
         for (int first = 1; first <= 6; first++) {
             for (int second = 1; second <= 6; second++) {
@@ -3700,7 +3701,8 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2.id(), 100);
         putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), 200);
         for (GambleBet bet : GambleBet.values()) {
-            putUpgrade(upgradeCosts, GambleTowers.GAMBLER, bet.upgradeId(), 100);
+            putUpgrade(upgradeCosts, GambleTowers.GAMBLER, bet.upgradeId(),
+                    bet == GambleBet.TWO_DICE ? 100 : 50);
         }
     }
 
@@ -3722,9 +3724,9 @@ public record TowerBalanceConfig(
         global.put("twoDiceGain7", 40.0);
         global.put("twoDiceGain8", 50.0);
         global.put("twoDiceGain9", 60.0);
-        global.put("twoDiceGain10", 75.0);
-        global.put("twoDiceGain11", 90.0);
-        global.put("twoDiceGain12", 100.0);
+        global.put("twoDiceGain10", 90.0);
+        global.put("twoDiceGain11", 120.0);
+        global.put("twoDiceGain12", 150.0);
         global.put("abilityRewardChance", GambleBalance.ABILITY_REWARD_CHANCE);
         global.put("lossInsuranceReduction", GambleBalance.LOSS_INSURANCE_REDUCTION);
         global.put("twoDiceCompoundMinSum", (double) GambleBalance.TWO_DICE_COMPOUND_MIN_SUM);
@@ -3740,23 +3742,24 @@ public record TowerBalanceConfig(
         global.put("maxSpectatorsPerGambler", (double) GambleBalance.MAX_SPECTATORS_PER_GAMBLER);
         putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
 
-        putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1, 1.0);
-        putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 1, 1.5);
-        putGambleSupportAbilities(abilities, GambleTowers.DICE_T3, 1, 2.5);
-        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T1, 1, 1.0);
-        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T2, 2, 1.5);
-        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T3, 3, 2.5);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1.0, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 2.0, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T3, 3.5, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T1, 1.0, 5);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T2, 2.0, 15);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T3, 3.5, 35);
     }
 
     private static void putGambleSupportAbilities(
             LinkedHashMap<String, Map<String, Double>> abilities,
             TowerType type,
-            int minimumRoll,
-            double supportPowerMultiplier
+            double supportPowerMultiplier,
+            int faceSixDiamondReward
     ) {
         putAbilities(abilities, type.id(), Map.of(
-                "minimumRoll", (double) minimumRoll,
-                "supportPowerMultiplier", supportPowerMultiplier
+                "minimumRoll", 1.0,
+                "supportPowerMultiplier", supportPowerMultiplier,
+                "faceSixDiamondReward", (double) faceSixDiamondReward
         ));
     }
 

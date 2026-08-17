@@ -31,6 +31,7 @@ public final class GambleSupportTower extends ProductionTower {
     private final List<GridPosition> linkedTargetPositions = new ArrayList<>();
     private List<GambleSupportEffect> activeEffects = List.of();
     private int lastFace;
+    private long lastDiamondReward;
     private int affectedTargets;
     private boolean waveActive;
     private int rangeVfxTicks;
@@ -70,6 +71,7 @@ public final class GambleSupportTower extends ProductionTower {
         linkedTargetPositions.clear();
         activeEffects = List.of();
         lastFace = 0;
+        lastDiamondReward = 0L;
         super.resetForRound(lane);
     }
 
@@ -102,6 +104,7 @@ public final class GambleSupportTower extends ProductionTower {
         linkedTargetPositions.clear();
         activeEffects = List.of();
         lastFace = 0;
+        lastDiamondReward = 0L;
         affectedTargets = 0;
         SemionTowerEntity source = GambleRoundEffects.towerEntity(this, lane).orElse(null);
         if (source == null || isDestroyed(lane)) {
@@ -116,6 +119,7 @@ public final class GambleSupportTower extends ProductionTower {
         activeEffects = GambleSupportRolls.roll(type(), face, source.getRandom());
         lastFace = face;
         lastRollCounts[face - 1] = 1;
+        lastDiamondReward = GambleSpectatorRewards.awardFaceSix(ownerPlayer(), type(), face);
         GambleRollLabels.show(lane, ownerPlayer(), this, sourceId, face);
         List<Vec3> positiveHits = new ArrayList<>();
         List<Vec3> negativeHits = new ArrayList<>();
@@ -171,6 +175,7 @@ public final class GambleSupportTower extends ProductionTower {
             linkedTargetPositions.addAll(previous.linkedTargetPositions);
             activeEffects = List.copyOf(previous.activeEffects);
             lastFace = previous.lastFace;
+            lastDiamondReward = previous.lastDiamondReward;
             affectedTargets = previous.affectedTargets;
             waveActive = previous.waveActive;
             rangeVfxTicks = previous.rangeVfxTicks;
@@ -183,6 +188,9 @@ public final class GambleSupportTower extends ProductionTower {
         ArrayList<String> lines = new ArrayList<>();
         lines.add("이번 라운드 대상: " + affectedTargets + "기");
         lines.add("이번 라운드 눈: " + (lastFace == 0 ? "아직 굴리지 않음" : Integer.toString(lastFace)));
+        if (lastDiamondReward > 0L) {
+            lines.add("눈 6 보상: 다이아 +" + lastDiamondReward);
+        }
         activeEffects.forEach(effect -> lines.add("적용 효과: " + effect.displayLine()));
         lines.add("지원 범위: " + oneDecimal(type().range()) + "칸");
         return List.copyOf(lines);
