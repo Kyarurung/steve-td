@@ -6,17 +6,21 @@ import kim.biryeong.semiontd.tower.TowerType;
 
 public final class GambleBalance {
     public static final String GLOBAL_ID = "gamble_global";
-    public static final double ODD_EVEN_WIN_SCORE = 10.0;
-    public static final double ODD_EVEN_LOSS_SCORE = 8.0;
-    public static final double MAX_HEALTH_PER_SCORE = 1.0;
-    public static final double DAMAGE_PER_SCORE = 0.10;
-    public static final double RANGE_PER_SCORE = 0.025;
+    public static final double ODD_EVEN_WIN_SCORE = 40.0;
+    public static final double ODD_EVEN_LOSS_SCORE = 28.0;
+    public static final double MAX_HEALTH_PER_SCORE = 5.0;
+    public static final double DAMAGE_PER_SCORE = 0.50;
+    public static final double RANGE_PER_SCORE = 0.05;
+    public static final double SPLASH_RADIUS_PER_SCORE = 0.025;
+    public static final double BASE_SPLASH_RADIUS = 1.5;
+    public static final double SPLASH_DAMAGE_RATIO = 0.60;
     public static final double ABILITY_REWARD_CHANCE = 0.25;
     public static final double LOSS_INSURANCE_REDUCTION = 0.20;
     public static final double LUCKY_STRIKE_MULTIPLIER = 2.0;
     public static final int SPREAD_EVERY_ATTACKS = 4;
     public static final double SPREAD_DAMAGE_RATIO = 0.50;
     public static final double SPREAD_RADIUS = 3.0;
+    public static final int SUPPORT_VFX_INTERVAL_TICKS = 40;
 
     private GambleBalance() {
     }
@@ -55,15 +59,29 @@ public final class GambleBalance {
         return global("spreadRadius", SPREAD_RADIUS);
     }
 
+    public static double baseSplashRadius() {
+        return global("baseSplashRadius", BASE_SPLASH_RADIUS);
+    }
+
+    public static double splashDamageRatio() {
+        return global("splashDamageRatio", SPLASH_DAMAGE_RATIO);
+    }
+
+    public static int supportVfxIntervalTicks() {
+        return Math.max(1, TowerBalanceRuntime.abilityInt(
+                GLOBAL_ID, "supportVfxIntervalTicks", SUPPORT_VFX_INTERVAL_TICKS
+        ));
+    }
+
     public static double twoDiceScore(int sum) {
         if (sum < 2 || sum > 12) {
             throw new IllegalArgumentException("Two-dice sum must be between 2 and 12: " + sum);
         }
         if (sum <= 5) {
-            double[] defaults = {0.0, 0.0, 40.0, 25.0, 15.0, 5.0};
+            double[] defaults = {0.0, 0.0, 80.0, 60.0, 40.0, 28.0};
             return -global("twoDiceLoss" + sum, defaults[sum]);
         }
-        double[] defaults = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 4.0, 7.0, 11.0, 16.0, 24.0, 40.0};
+        double[] defaults = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 40.0, 50.0, 60.0, 75.0, 90.0, 100.0};
         return global("twoDiceGain" + sum, defaults[sum]);
     }
 
@@ -72,6 +90,7 @@ public final class GambleBalance {
             case MAX_HEALTH -> global("maxHealthPerScore", MAX_HEALTH_PER_SCORE);
             case DAMAGE -> global("damagePerScore", DAMAGE_PER_SCORE);
             case RANGE -> global("rangePerScore", RANGE_PER_SCORE);
+            case SPLASH_RADIUS -> global("splashRadiusPerScore", SPLASH_RADIUS_PER_SCORE);
         };
         return score * perScore;
     }

@@ -23,17 +23,17 @@ public final class GambleRolls {
         requireDie(first);
         requireDie(second);
         double delta = switch (first + second) {
-            case 2 -> -40.0;
-            case 3 -> -25.0;
-            case 4 -> -15.0;
-            case 5 -> -5.0;
-            case 6 -> 2.0;
-            case 7 -> 4.0;
-            case 8 -> 7.0;
-            case 9 -> 11.0;
-            case 10 -> 16.0;
-            case 11 -> 24.0;
-            case 12 -> 40.0;
+            case 2 -> -80.0;
+            case 3 -> -60.0;
+            case 4 -> -40.0;
+            case 5 -> -28.0;
+            case 6 -> 20.0;
+            case 7 -> 40.0;
+            case 8 -> 50.0;
+            case 9 -> 60.0;
+            case 10 -> 75.0;
+            case 11 -> 90.0;
+            case 12 -> 100.0;
             default -> throw new IllegalStateException("Unreachable dice sum");
         };
         return first == second ? delta * 2.0 : delta;

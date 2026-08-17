@@ -410,20 +410,23 @@
 
 | 키 | 기본값 | 의미 |
 |---|---:|---|
-| `oddEvenWinScore`, `oddEvenLossScore` | 10, 8 | 홀짝 성공·실패 점수의 절댓값 |
-| `maxHealthPerScore` | 1.0 | 점수 1당 고정 최대 체력 |
-| `damagePerScore` | 0.10 | 점수 1당 고정 공격력 |
-| `rangePerScore` | 0.025 | 점수 1당 고정 사거리 블록 |
-| `twoDiceLoss2`~`twoDiceLoss5` | 40, 25, 15, 5 | 2d6 실패 점수 절댓값 |
-| `twoDiceGain6`~`twoDiceGain12` | 2, 4, 7, 11, 16, 24, 40 | 2d6 성공 점수 |
+| `oddEvenWinScore`, `oddEvenLossScore` | 40, 28 | 홀짝 성공·실패 점수의 절댓값 |
+| `maxHealthPerScore` | 5.0 | 점수 1당 최대 체력 변화 |
+| `damagePerScore` | 0.50 | 점수 1당 공격력 변화 |
+| `rangePerScore` | 0.05 | 점수 1당 사거리 블록 변화 |
+| `splashRadiusPerScore` | 0.025 | 점수 1당 공격 범위 변화 |
+| `baseSplashRadius`, `splashDamageRatio` | 1.5, 0.60 | 기본 공격 범위와 주변 적 피해 비율 |
+| `twoDiceLoss2`~`twoDiceLoss5` | 80, 60, 40, 28 | 주사위 두 개 실패 점수 절댓값 |
+| `twoDiceGain6`~`twoDiceGain12` | 20, 40, 50, 60, 75, 90, 100 | 주사위 두 개 성공 점수 |
 | `abilityRewardChance` | 0.25 | 성공 시 미보유 능력으로 바뀔 확률 |
 | `lossInsuranceReduction` | 0.20 | 손실 보험의 음수 고정치 완화율 |
 | `luckyStrikeMultiplier` | 2.0 | 행운의 일격 최종 피해 배율 |
 | `spreadEveryAttacks` | 4 | 분산 배당 발동 공격 횟수 |
 | `spreadDamageRatio`, `spreadRadius` | 0.50, 3.0 | 분산 배당 피해와 탐색 반경 |
+| `supportVfxIntervalTicks` | 40 | 지원 범위와 대상 연결선 재표시 간격 |
 | `supportFace1...`~`supportFace6...` | 0.30/0.15/0.05/0.10/0.15/0.25 | 지원 눈별 %p 효과 |
 
-지원 타워 ID별 `minimumRoll`과 `positiveMultiplier`가 구경꾼 티어의 저점과 긍정 효과 배율을 정합니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
+지원 타워 ID별 `minimumRoll`과 `positiveMultiplier`가 구경꾼 티어의 최저 눈과 버프 효과 배율을 정합니다. 각 지원 타워는 라운드마다 한 번만 굴리며, 구경꾼은 도박꾼만 지원합니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
 
 ## 수정 절차
 

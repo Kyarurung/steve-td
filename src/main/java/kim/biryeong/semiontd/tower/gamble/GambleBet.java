@@ -6,7 +6,7 @@ import java.util.Optional;
 public enum GambleBet {
     ODD("bet_odd", "홀에 걸기"),
     EVEN("bet_even", "짝에 걸기"),
-    TWO_DICE("roll_two_dice", "주사위 2개");
+    TWO_DICE("roll_two_dice", "주사위 두 개 굴리기");
 
     private final String upgradeId;
     private final String displayName;

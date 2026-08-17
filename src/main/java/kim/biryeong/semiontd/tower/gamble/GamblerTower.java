@@ -4,9 +4,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kim.biryeong.semiontd.SemionTd;
+import kim.biryeong.semiontd.api.area.AreaVfxSpec;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
+import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
@@ -19,6 +23,8 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
+import kim.biryeong.semiontd.tower.area.AreaEffectIds;
+import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -136,6 +142,7 @@ public final class GamblerTower extends ProductionTower {
             SemionTowerEntity source, SemionMonsterEntity target, double attemptedDamage,
             double resolvedOutgoingDamage, double dealtDamage, boolean killedTarget
     ) {
+        applyBasicSplash(source, target, resolvedOutgoingDamage);
         attackCount++;
         if (!state().has(GambleAbility.SPREAD_BET)
                 || attackCount % GambleBalance.spreadEveryAttacks() != 0
@@ -162,9 +169,24 @@ public final class GamblerTower extends ProductionTower {
     @Override
     public List<String> upgradeTooltipLines(TowerUpgradeOption option) {
         return GambleBet.fromUpgradeId(option.id()).map(bet -> switch (bet) {
-            case ODD -> List.of("d6이 홀수면 고정 점수 +10, 실패하면 -8", "비용은 판매 환불가에 포함되지 않습니다.");
-            case EVEN -> List.of("d6이 짝수면 고정 점수 +10, 실패하면 -8", "비용은 판매 환불가에 포함되지 않습니다.");
-            case TWO_DICE -> List.of("2d6 합에 따라 -40~+40점, 더블이면 수치가 2배", "비용은 판매 환불가에 포함되지 않습니다.");
+            case ODD -> List.of(
+                    "주사위 한 개를 굴려 홀수가 나오면 능력치가 오르고, 짝수가 나오면 내려갑니다.",
+                    "성공하면 체력 +200·공격력 +20·사거리 +2·공격 범위 +1 중 하나를 얻습니다.",
+                    "실패하면 무작위 능력치가 성공 보상의 70%만큼 감소합니다.",
+                    "비용은 판매 환불가에 포함되지 않습니다."
+            );
+            case EVEN -> List.of(
+                    "주사위 한 개를 굴려 짝수가 나오면 능력치가 오르고, 홀수가 나오면 내려갑니다.",
+                    "성공하면 체력 +200·공격력 +20·사거리 +2·공격 범위 +1 중 하나를 얻습니다.",
+                    "실패하면 무작위 능력치가 성공 보상의 70%만큼 감소합니다.",
+                    "비용은 판매 환불가에 포함되지 않습니다."
+            );
+            case TWO_DICE -> List.of(
+                    "주사위 두 개를 굴려 눈금의 합에 비례해 유닛을 업그레이드합니다.",
+                    "합이 2~5면 능력치가 크게 내려가고, 6~12면 크게 올라갑니다.",
+                    "가장 자주 나오는 합 7은 홀수·짝수 맞히기 성공과 같은 보상입니다.",
+                    "같은 눈이 나오면 변화량이 두 배가 되며 비용은 판매 환불가에 포함되지 않습니다."
+            );
         }).orElseGet(List::of);
     }
 
@@ -173,9 +195,11 @@ public final class GamblerTower extends ProductionTower {
         GambleState state = state();
         ArrayList<String> lines = new ArrayList<>();
         lines.add("도박 횟수: " + state.totalBets());
-        lines.add("고정 최대 체력: " + signed(state.maxHealthDelta()));
-        lines.add("고정 공격력: " + signed(state.damageDelta()));
-        lines.add("고정 사거리: " + signed(state.rangeDelta()));
+        lines.add("최대 체력 변화: " + signed(state.maxHealthDelta()));
+        lines.add("공격력 변화: " + signed(state.damageDelta()));
+        lines.add("사거리 변화: " + signed(state.rangeDelta()));
+        lines.add("공격 범위 변화: " + signed(state.splashRadiusDelta()));
+        lines.add("현재 공격 범위: " + oneDecimal(splashRadius()) + "칸");
         lines.add("보유 능력: " + (state.abilities().isEmpty() ? "없음" : state.abilities().stream()
                 .map(GambleAbility::displayName).collect(Collectors.joining(" / "))));
         lines.add("최근 결과: " + state.lastResult());
@@ -223,7 +247,34 @@ public final class GamblerTower extends ProductionTower {
             case MAX_HEALTH -> type().maxHealth();
             case DAMAGE -> type().damage();
             case RANGE -> type().range();
+            case SPLASH_RADIUS -> GambleBalance.baseSplashRadius();
         };
+    }
+
+    double splashRadius() {
+        return state().resolvedValue(GambleStat.SPLASH_RADIUS, GambleBalance.baseSplashRadius());
+    }
+
+    private void applyBasicSplash(
+            SemionTowerEntity source, SemionMonsterEntity primary, double resolvedOutgoingDamage
+    ) {
+        double radius = splashRadius();
+        double ratio = GambleBalance.splashDamageRatio();
+        if (source == null || primary == null || radius <= 0.0 || ratio <= 0.0
+                || resolvedOutgoingDamage <= 0.0) {
+            return;
+        }
+        MonsterAreaEffectRequest request = new MonsterAreaEffectRequest(
+                AreaEffectIds.tower(this, "basic_splash"),
+                source,
+                primary.position(),
+                radius,
+                Set.of(primary.getUUID()),
+                null,
+                AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
+        );
+        TowerAreaDamage.applyResolved(this, source, request,
+                ignored -> resolvedOutgoingDamage * ratio, true, (target, damage, killed) -> {});
     }
 
     private Optional<SemionMonsterEntity> nearestExtraTarget(SemionMonsterEntity primary) {

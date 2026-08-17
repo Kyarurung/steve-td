@@ -61,10 +61,12 @@ public final class GambleGameTest {
             lane.addTower(foreign);
             lane.markWaveStarted(1);
 
-            require(dice.affectedTargets() == 2 && spectator.affectedTargets() == 2,
-                    "Each support must roll once for each other owned tower and skip the foreign tower.");
-            require(sum(dice.lastRollCounts()) == 2 && sum(spectator.lastRollCounts()) == 2,
-                    "Roll distribution counts must match the independently affected targets.");
+            require(dice.affectedTargets() == 2 && spectator.affectedTargets() == 1,
+                    "Dice must support other owned towers while spectators support only the owned gambler.");
+            require(dice.linkedTargets() == 2 && spectator.linkedTargets() == 1,
+                    "Every affected tower must have a visible connection from its support tower.");
+            require(sum(dice.lastRollCounts()) == 1 && sum(spectator.lastRollCounts()) == 1,
+                    "Each support tower must roll exactly one face per round, regardless of target count.");
             require(spectator.lastRollCounts()[0] == 0 && spectator.lastRollCounts()[1] == 0,
                     "Tier 3 spectators must never roll below three.");
 
@@ -74,10 +76,22 @@ public final class GambleGameTest {
             SemionTowerEntity spectatorEntity = entity(lane, spectator);
             SemionTowerEntity targetEntity = entity(lane, target);
             SemionTowerEntity foreignEntity = entity(lane, foreign);
+            require(close(diceEntity.attackRange(), 0.0) && close(spectatorEntity.attackRange(), 0.0),
+                    "Support entities must have no combat range and therefore never attack.");
+            require(diceEntity.getPassengers().stream().anyMatch(passenger ->
+                            passenger.getCustomName() != null && passenger.getCustomName().getString().matches("\\[\\d]"))
+                            && spectatorEntity.getPassengers().stream().anyMatch(passenger ->
+                            passenger.getCustomName() != null && passenger.getCustomName().getString().matches("\\[\\d]")),
+                    "Each support tower must display its round face above itself.");
+            require(GambleRollLabels.count(lane, owner) == 2,
+                    "The lane must keep one combined face label for each support tower.");
             require(sourceCount(targetEntity, diceSource) == 1 && sourceCount(targetEntity, spectatorSource) == 1,
                     "The target must retain one independently sourced result from each support.");
             require(sourceCount(diceEntity, diceSource) == 0 && sourceCount(spectatorEntity, spectatorSource) == 0,
                     "Support towers must exclude themselves from their own roll.");
+            require(sourceCount(diceEntity, spectatorSource) == 0
+                            && sourceCount(spectatorEntity, diceSource) == 1,
+                    "The spectator must never affect a non-gambler, while dice support still affects spectators.");
             require(sourceCount(foreignEntity, diceSource) == 0 && sourceCount(foreignEntity, spectatorSource) == 0,
                     "A tower with another owner must never receive gamble support.");
 
@@ -85,6 +99,8 @@ public final class GambleGameTest {
             require(sourceCount(targetEntity, diceSource) == 1,
                     "A support result must survive after its source tower is destroyed.");
             GambleRoundEffects.clearAll(lane, owner);
+            require(GambleRollLabels.count(lane, owner) == 0,
+                    "Round cleanup must remove every floating face label.");
             require(sourceCount(targetEntity, diceSource) == 0 && sourceCount(targetEntity, spectatorSource) == 0,
                     "Round cleanup must remove every gamble source exactly.");
 
@@ -104,7 +120,7 @@ public final class GambleGameTest {
     }
 
     @GameTest(maxTicks = 120)
-    public void fixedStatePreservesHealthRatioAndSpreadBetHitsOnlyEveryFourthAttack(GameTestHelper context) {
+    public void rolledStatePreservesHealthRatioAndBasicSplashCoexistsWithSpreadBet(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         TowerBalanceRuntime.apply(defaults);
         UUID owner = stableUuid("gamble-combat-owner");
@@ -115,30 +131,42 @@ public final class GambleGameTest {
         GamblerTower original = gambler(owner, floor(context, 4, 2, 3));
         SemionMonsterEntity primary = null;
         SemionMonsterEntity secondary = null;
+        SemionMonsterEntity splashTarget = null;
         try {
             lane.addTower(original);
             GambleState upgradedState = new GambleState(
-                    40.0, 4.0, 1.0, EnumSet.of(GambleAbility.SPREAD_BET), 4, "고정치 테스트"
+                    50.0, 5.0, 0.5, 0.5,
+                    EnumSet.of(GambleAbility.SPREAD_BET), 4, "능력치 테스트"
             );
             original.setData(GamblerTower.STATE, upgradedState);
-            original.syncMaxHealth(140.0, false);
-            original.syncHealth(70.0);
-            entity(lane, original).setHealth(70.0F);
+            original.syncMaxHealth(160.0, false);
+            original.syncHealth(80.0);
+            entity(lane, original).setHealth(80.0F);
 
             GamblerTower replacement = gambler(owner, original.position());
             replacement.copyFrom(original, 0);
             require(lane.replaceTower(original, replacement), "Self-upgrade replacement must succeed.");
-            require(close(replacement.currentMaxHealth(), 140.0) && close(replacement.health(), 70.0),
+            require(close(replacement.currentMaxHealth(), 160.0) && close(replacement.health(), 80.0),
                     "A fixed max-health upgrade must preserve the exact 50% health ratio.");
-            require(close(replacement.adjustAttackRange(6.0), 7.0),
-                    "The range result must be a fixed +1 block, not a multiplicative percent.");
-            require(close(replacement.modifyAttackDamage(null, null, 8.0), 12.0),
-                    "The damage result must be a fixed +4, not a multiplicative percent.");
+            require(close(replacement.adjustAttackRange(6.5), 7.0),
+                    "The range result must add the rolled amount to the base range.");
+            require(close(replacement.modifyAttackDamage(null, null, 10.0), 15.0),
+                    "The damage result must add the rolled amount to the base damage.");
+            require(close(replacement.splashRadius(), 2.0),
+                    "The attack-area result must add the rolled amount to the base splash radius.");
 
             SemionTowerEntity source = entity(lane, replacement);
             primary = spawnTarget(context, lane, source.position().add(0.0, 0.0, 2.0), "gamble-primary");
-            secondary = spawnTarget(context, lane, source.position().add(0.5, 0.0, 2.0), "gamble-secondary");
-            for (int attack = 1; attack <= 3; attack++) {
+            splashTarget = spawnTarget(context, lane, primary.position().add(0.5, 0.0, 0.0), "gamble-splash");
+            secondary = spawnTarget(context, lane, primary.position().add(2.5, 0.0, 0.0), "gamble-secondary");
+            replacement.onAttackResolved(source, primary, 100.0, 100.0, 100.0, false);
+            require(close(splashTarget.runtimeMonster().health(), 40.0),
+                    "Every basic attack must deal 60% finalized damage inside the rolled splash radius.");
+            require(close(secondary.runtimeMonster().health(), 100.0),
+                    "A target outside the basic splash radius must not take splash damage.");
+            splashTarget.discard();
+            splashTarget = null;
+            for (int attack = 2; attack <= 3; attack++) {
                 replacement.onAttackResolved(source, primary, 100.0, 100.0, 100.0, false);
             }
             require(close(secondary.runtimeMonster().health(), 100.0),
@@ -150,6 +178,7 @@ public final class GambleGameTest {
         } finally {
             if (primary != null) primary.discard();
             if (secondary != null) secondary.discard();
+            if (splashTarget != null) splashTarget.discard();
             group.closeRuntime();
             TowerBalanceRuntime.apply(defaults);
         }

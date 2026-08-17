@@ -1256,16 +1256,19 @@ public record TowerBalanceConfig(
         String global = GambleBalance.GLOBAL_ID;
         validatePositive(global,
                 "oddEvenWinScore", "oddEvenLossScore", "maxHealthPerScore", "damagePerScore",
-                "rangePerScore", "luckyStrikeMultiplier", "spreadEveryAttacks", "spreadRadius",
+                "rangePerScore", "splashRadiusPerScore", "baseSplashRadius",
+                "luckyStrikeMultiplier", "spreadEveryAttacks", "spreadRadius",
+                "supportVfxIntervalTicks",
                 "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
                 "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
                 "twoDiceGain10", "twoDiceGain11", "twoDiceGain12");
         validateRatios(global,
                 "abilityRewardChance", "lossInsuranceReduction", "spreadDamageRatio",
+                "splashDamageRatio",
                 "supportFace1DamageTaken", "supportFace2AttackSpeedReduction",
                 "supportFace3RangeBonus", "supportFace4MaxHealthBonus",
                 "supportFace5AttackSpeedBonus", "supportFace6DamageBonus");
-        validateIntegral(global, false, "spreadEveryAttacks");
+        validateIntegral(global, false, "spreadEveryAttacks", "supportVfxIntervalTicks");
         validateAtLeast(global, 1.0, "luckyStrikeMultiplier");
 
         for (TowerType type : List.of(
@@ -1281,7 +1284,7 @@ public record TowerBalanceConfig(
     }
 
     private double configuredGambleExpectedScore() {
-        double[] defaults = {0, 0, -40, -25, -15, -5, 2, 4, 7, 11, 16, 24, 40};
+        double[] defaults = {0, 0, -80, -60, -40, -28, 20, 40, 50, 60, 75, 90, 100};
         double total = 0.0;
         for (int first = 1; first <= 6; first++) {
             for (int second = 1; second <= 6; second++) {
@@ -3706,23 +3709,27 @@ public record TowerBalanceConfig(
         global.put("maxHealthPerScore", GambleBalance.MAX_HEALTH_PER_SCORE);
         global.put("damagePerScore", GambleBalance.DAMAGE_PER_SCORE);
         global.put("rangePerScore", GambleBalance.RANGE_PER_SCORE);
-        global.put("twoDiceLoss2", 40.0);
-        global.put("twoDiceLoss3", 25.0);
-        global.put("twoDiceLoss4", 15.0);
-        global.put("twoDiceLoss5", 5.0);
-        global.put("twoDiceGain6", 2.0);
-        global.put("twoDiceGain7", 4.0);
-        global.put("twoDiceGain8", 7.0);
-        global.put("twoDiceGain9", 11.0);
-        global.put("twoDiceGain10", 16.0);
-        global.put("twoDiceGain11", 24.0);
-        global.put("twoDiceGain12", 40.0);
+        global.put("splashRadiusPerScore", GambleBalance.SPLASH_RADIUS_PER_SCORE);
+        global.put("baseSplashRadius", GambleBalance.BASE_SPLASH_RADIUS);
+        global.put("splashDamageRatio", GambleBalance.SPLASH_DAMAGE_RATIO);
+        global.put("twoDiceLoss2", 80.0);
+        global.put("twoDiceLoss3", 60.0);
+        global.put("twoDiceLoss4", 40.0);
+        global.put("twoDiceLoss5", 28.0);
+        global.put("twoDiceGain6", 20.0);
+        global.put("twoDiceGain7", 40.0);
+        global.put("twoDiceGain8", 50.0);
+        global.put("twoDiceGain9", 60.0);
+        global.put("twoDiceGain10", 75.0);
+        global.put("twoDiceGain11", 90.0);
+        global.put("twoDiceGain12", 100.0);
         global.put("abilityRewardChance", GambleBalance.ABILITY_REWARD_CHANCE);
         global.put("lossInsuranceReduction", GambleBalance.LOSS_INSURANCE_REDUCTION);
         global.put("luckyStrikeMultiplier", GambleBalance.LUCKY_STRIKE_MULTIPLIER);
         global.put("spreadEveryAttacks", (double) GambleBalance.SPREAD_EVERY_ATTACKS);
         global.put("spreadDamageRatio", GambleBalance.SPREAD_DAMAGE_RATIO);
         global.put("spreadRadius", GambleBalance.SPREAD_RADIUS);
+        global.put("supportVfxIntervalTicks", (double) GambleBalance.SUPPORT_VFX_INTERVAL_TICKS);
         global.put("supportFace1DamageTaken", 0.30);
         global.put("supportFace2AttackSpeedReduction", 0.15);
         global.put("supportFace3RangeBonus", 0.05);

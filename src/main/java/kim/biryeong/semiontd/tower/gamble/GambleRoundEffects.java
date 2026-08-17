@@ -45,6 +45,7 @@ public final class GambleRoundEffects {
                 towerEntity(target, lane).ifPresent(entity -> clearSource(entity, sourceId));
             }
         }
+        GambleRollLabels.clearSource(lane, owner, sourceId);
     }
 
     public static synchronized void rememberSource(
@@ -79,6 +80,7 @@ public final class GambleRoundEffects {
             byOwner.remove(owner);
             if (byOwner.isEmpty()) ACTIVE_SOURCES.remove(lane);
         }
+        GambleRollLabels.clearAll(lane, owner);
     }
 
     static java.util.Optional<SemionTowerEntity> towerEntity(Tower tower, PlayerLane lane) {

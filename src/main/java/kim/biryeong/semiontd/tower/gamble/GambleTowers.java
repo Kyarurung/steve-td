@@ -14,7 +14,7 @@ public final class GambleTowers {
     public static final TowerType DICE_T1 = support(
             "gamble_dice_t1", "주사위 타워 I", 45, 90, 5,
             BlockDisplayVisual.builder(Blocks.WHITE_CONCRETE.defaultBlockState()).scale(0.75).build(),
-            "라운드 시작에 사거리 안의 다른 내 타워마다 d6을 굴려 이번 라운드 효과를 부여합니다."
+            "각 주사위 타워는 라운드마다 주사위 한 개를 굴려 범위 안의 다른 내 타워에 같은 효과를 줍니다."
     );
     public static final TowerType DICE_T2 = support(
             "gamble_dice_t2", "주사위 타워 II", 0, 150, 7,
@@ -27,27 +27,28 @@ public final class GambleTowers {
             "효과 세기는 그대로이며 지원 사거리가 9칸으로 늘어납니다."
     );
     public static final TowerType GAMBLER = TowerType.builder("gamble_gambler", "도박꾼 타워")
-            .mineralCost(60).maxHealth(100).range(6).damage(8).attackIntervalTicks(16)
+            .mineralCost(60).maxHealth(110).range(6.5).damage(10).attackIntervalTicks(13)
             .visual(EntityVisual.builder("minecraft:wandering_trader").scale(1.0).build())
             .description(List.of(
-                    "준비 단계에 100 다이아를 내고 홀·짝 또는 2d6 도박을 반복합니다.",
-                    "도박은 최대 체력·공격력·사거리에 <gold>고정 수치</gold>를 가감하며 복리로 계산하지 않습니다.",
-                    "성공하면 낮은 확률로 손실 보험·행운의 일격·분산 배당을 얻습니다."
+                    "준비 시간에 100 다이아를 내고 홀수·짝수 맞히기 또는 주사위 두 개 굴리기를 반복할 수 있습니다.",
+                    "주사위 눈에 따라 최대 체력·공격력·사거리·공격 범위 중 무작위 능력치가 오르거나 내려갑니다.",
+                    "기본 공격은 대상 주변의 적에게도 피해를 줍니다.",
+                    "좋은 결과가 나오면 낮은 확률로 손실 보험·행운의 일격·분산 배당 중 하나를 얻습니다."
             )).build();
     public static final TowerType SPECTATOR_T1 = spectator(
             "gamble_spectator_t1", "구경꾼 타워 I", 45, 80,
-            VillagerVisual.builder().profession(VillagerProfession.NITWIT).build(), 1,
-            "각 대상마다 1~6을 굴립니다."
+            VillagerVisual.builder().profession(VillagerProfession.NITWIT).build(),
+            "주사위는 1~6이 나옵니다."
     );
     public static final TowerType SPECTATOR_T2 = spectator(
             "gamble_spectator_t2", "구경꾼 타워 II", 0, 135,
-            VillagerVisual.builder().profession(VillagerProfession.LIBRARIAN).build(), 2,
-            "각 대상마다 2~6을 굴리고 긍정 효과가 1.25배가 됩니다."
+            VillagerVisual.builder().profession(VillagerProfession.LIBRARIAN).build(),
+            "주사위는 2~6만 나오며 버프의 효과가 더 강해집니다."
     );
     public static final TowerType SPECTATOR_T3 = spectator(
             "gamble_spectator_t3", "구경꾼 타워 III", 0, 220,
-            VillagerVisual.builder().profession(VillagerProfession.CLERIC).build(), 3,
-            "각 대상마다 3~6을 굴리고 긍정 효과가 1.5배가 됩니다."
+            VillagerVisual.builder().profession(VillagerProfession.CLERIC).build(),
+            "주사위는 3~6만 나오며 버프의 효과가 가장 강해집니다."
     );
 
     private static final List<TowerType> ALL = List.of(
@@ -87,14 +88,16 @@ public final class GambleTowers {
         return TowerType.builder(id, name).category(TowerCategory.SUPPORT).mineralCost(cost)
                 .maxHealth(health).range(range).damage(0).attackIntervalTicks(20).aggroPriority(-20)
                 .visual(visual).description(List.of(description,
-                        "눈 1~2는 디버프, 3~6은 버프이며 출처가 다른 효과는 %p로 가산됩니다."))
+                        "눈 1~2는 약화, 3~6은 강화이며 여러 지원 타워의 효과는 함께 적용됩니다.",
+                        "공격하지 않으며 지원 범위와 이번 라운드 눈금이 타워 머리 위에 표시됩니다."))
                 .build();
     }
 
     private static TowerType spectator(
-            String id, String name, long cost, double health, EntityVisual visual, int tier, String description
+            String id, String name, long cost, double health, EntityVisual visual, String description
     ) {
         return support(id, name, cost, health, 5, visual,
-                description + " 강화할수록 저점과 긍정 효과가 올라갑니다. (T" + tier + ")");
+                "각 구경꾼은 라운드마다 주사위 한 개를 굴려 범위 안의 도박꾼 타워에 같은 효과를 줍니다. "
+                        + description + " 강화할수록 버프의 효과가 올라갑니다.");
     }
 }
