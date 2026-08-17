@@ -140,6 +140,20 @@ public final class GambleSupportTower extends ProductionTower {
     }
 
     @Override
+    public void onLaneCleared(PlayerLane lane) {
+        GambleRollLabels.clearSource(lane, ownerPlayer(), GambleRoundEffects.sourceId(this));
+    }
+
+    @Override
+    public void onDeath(PlayerLane lane) {
+        ResourceLocation sourceId = GambleRoundEffects.sourceId(this);
+        GambleRoundEffects.clearSource(lane, ownerPlayer(), sourceId);
+        linkedTargets.clear();
+        waveActive = false;
+        lastFace = 0;
+    }
+
+    @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
         if (previousTower instanceof GambleSupportTower previous) {
             System.arraycopy(previous.lastRollCounts, 0, lastRollCounts, 0, lastRollCounts.length);

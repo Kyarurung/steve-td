@@ -93,9 +93,17 @@ public final class GambleGameTest {
             require(sourceCount(foreignEntity, diceSource) == 0 && sourceCount(foreignEntity, spectatorSource) == 0,
                     "A tower with another owner must never receive gamble support.");
 
+            dice.onLaneCleared(lane);
+            spectator.onLaneCleared(lane);
+            require(GambleRollLabels.count(lane, owner) == 0,
+                    "Floating faces must disappear as soon as the owner's lane is cleared.");
+            require(sourceCount(targetEntity, diceSource) == 1 && sourceCount(targetEntity, spectatorSource) == 1,
+                    "Clearing the lane must hide the faces without ending surviving support effects early.");
+
             require(lane.killTower(dice), "The dice tower must be destroyable for persistence coverage.");
-            require(sourceCount(targetEntity, diceSource) == 1,
-                    "A support result must survive after its source tower is destroyed.");
+            require(sourceCount(targetEntity, diceSource) == 0
+                            && sourceCount(targetEntity, spectatorSource) == 1,
+                    "A destroyed support tower must immediately remove only its own result.");
             GambleRoundEffects.clearAll(lane, owner);
             require(GambleRollLabels.count(lane, owner) == 0,
                     "Round cleanup must remove every floating face label.");
