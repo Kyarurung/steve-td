@@ -626,7 +626,10 @@ final class DemonLordTowerCatalogTest {
 
         int gained = state.addExperience(500.0);
         assertTrue(gained > 0);
-        assertEquals(gained, state.unspentPoints(), "레벨업 수만큼 포인트를 받아야 합니다");
+        int perLevel = (int) TowerBalanceRuntime.ability(
+                DemonLordTowers.GLOBAL_CONFIG_ID, "statPointsPerLevel", 3.0);
+        assertTrue(perLevel > 1, "레벨당 여러 포인트를 줘야 스탯 하나하나가 체감됩니다");
+        assertEquals(gained * perLevel, state.unspentPoints(), "레벨업마다 정해진 수만큼 받아야 합니다");
 
         double beforeHealth = state.maxHealth();
         double beforeDamage = state.damageMultiplier();
@@ -634,7 +637,7 @@ final class DemonLordTowerCatalogTest {
         assertTrue(state.allocate(DemonLordStat.ATTACK));
         assertTrue(state.maxHealth() > beforeHealth, "체력 포인트가 최대 체력을 올려야 합니다");
         assertTrue(state.damageMultiplier() > beforeDamage, "공격력 포인트가 피해 배율을 올려야 합니다");
-        assertEquals(gained - 2, state.unspentPoints());
+        assertEquals(gained * perLevel - 2, state.unspentPoints());
     }
 
     /** 포인트를 아무리 쌓아도 쿨타임 0 과 피해 감소 100% 에는 닿으면 안 됩니다. */
@@ -645,15 +648,16 @@ final class DemonLordTowerCatalogTest {
         state.addExperience(1.0E9);
 
         assertEquals(1.0, state.cooldownMultiplier(), EPSILON, "찍기 전에는 100% 그대로여야 합니다");
-        // 기본값은 10 포인트마다 절반입니다.
-        for (int i = 0; i < 10; i++) {
+        // 기본값은 40 포인트마다 절반입니다. 다른 스탯보다 비싼 것은 의도된 것으로,
+        // 쿨감은 모든 스킬에 한꺼번에 곱해져 같은 효율이면 다른 선택지가 없어집니다.
+        for (int i = 0; i < 40; i++) {
             assertTrue(state.allocate(DemonLordStat.COOLDOWN));
         }
-        assertEquals(0.5, state.cooldownMultiplier(), EPSILON, "10 포인트면 절반");
-        for (int i = 0; i < 10; i++) {
+        assertEquals(0.5, state.cooldownMultiplier(), EPSILON, "40 포인트면 절반");
+        for (int i = 0; i < 40; i++) {
             assertTrue(state.allocate(DemonLordStat.COOLDOWN));
         }
-        assertEquals(0.25, state.cooldownMultiplier(), EPSILON, "20 포인트면 4분의 1");
+        assertEquals(0.25, state.cooldownMultiplier(), EPSILON, "80 포인트면 4분의 1");
 
         for (int i = 0; i < 200 && state.unspentPoints() > 0; i++) {
             state.allocate(DemonLordStat.COOLDOWN);

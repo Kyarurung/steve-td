@@ -1250,7 +1250,7 @@ public record TowerBalanceConfig(
         validatePositive(global,
                 "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks");
         validateAtLeast(global, 0.0,
-                "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage", "laneLeashSlack");
+                "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage");
         validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks");
         validateAtLeast(global, 1.0, "experienceGrowth");
 
@@ -1288,7 +1288,8 @@ public record TowerBalanceConfig(
                         validateRatios(id, "damageTakenBonus");
                     }
                     case SOUL_DRAIN -> {
-                        validatePositive(id, "range", "width");
+                        validatePositive(id, "range", "width", "rootDurationTicks");
+                        validateIntegral(id, false, "rootDurationTicks");
                         validateRatios(id, "lifeStealRatio", "lifeStealCap");
                     }
                     case ROAR_OF_DREAD -> {
@@ -3659,20 +3660,22 @@ public record TowerBalanceConfig(
         global.put("damagePerLevel", 0.05);
         global.put("bladeDamage", 19.0);
         global.put("bladeAttackIntervalTicks", 12.0);
-        // 레인 이탈 방지: lane_path 영역 밖으로 이만큼까지만 나갈 수 있습니다.
-        global.put("laneLeashSlack", 1.5);
         // 몹을 하나도 못 잡은 라운드에도 주는 기본 경험치입니다. 한 번 밀린 마왕이 영영
         // 따라잡지 못하는 상황을 막습니다. 직접 잡는 편이 여전히 훨씬 빠릅니다.
         global.put("passiveExperiencePerRound", 6.0);
         // 스탯 포인트. 레벨업마다 받아 원하는 능력치에 넣습니다.
-        global.put("statPointsPerLevel", 1.0);
+        global.put("statPointsPerLevel", 3.0);
         global.put("statHealthPerPoint", 40.0);
         global.put("statAttackPerPoint", 0.04);
         global.put("statDefensePerPoint", 0.02);
         global.put("statDefenseCap", 0.6);
-        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 10 이면 50%, 20 이면 25% 가 되고
+        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 40 이면 50%, 80 이면 25% 가 되고
         // 0 에는 닿지 않습니다. 선형이면 어느 지점에서 쿨타임이 사라져 버립니다.
-        global.put("statCooldownHalvingPoints", 10.0);
+        //
+        // 다른 스탯보다 포인트를 많이 요구합니다. 쿨감은 모든 스킬에 한꺼번에 곱해지는 데다
+        // 딜뿐 아니라 생존기와 이동기 회전율까지 같이 올려서, 같은 효율로 두면 다른 선택지가
+        // 존재할 이유가 없어집니다.
+        global.put("statCooldownHalvingPoints", 40.0);
         global.put("statSkillRangePerPoint", 0.03);
         global.put("statMoveSpeedPerPoint", 0.03);
         global.put("statMoveSpeedCap", 0.5);
@@ -3744,6 +3747,9 @@ public record TowerBalanceConfig(
                 values.put("lifeStealRatio", new double[] {0.25, 0.30, 0.35, 0.40}[index]);
                 // 다수를 꿰뚫어도 한 번에 회복할 수 있는 양에 상한을 둡니다.
                 values.put("lifeStealCap", new double[] {0.12, 0.15, 0.18, 0.22}[index]);
+                // 꿰뚫린 적은 이동 속도가 100% 깎여 그 자리에 묶입니다. 공격은 계속하므로
+                // 붙어 있는 적에게 쓰면 의미가 없고, 지나가려는 줄을 세우는 데 씁니다.
+                values.put("rootDurationTicks", new double[] {40.0, 50.0, 60.0, 70.0}[index]);
             }
             case GRIP_OF_DOOM -> {
                 values.put("range", new double[] {9.0, 10.0, 11.0, 12.0}[index]);

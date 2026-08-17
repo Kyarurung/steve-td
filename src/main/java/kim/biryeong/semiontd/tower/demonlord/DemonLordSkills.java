@@ -176,12 +176,13 @@ public final class DemonLordSkills {
      * 뒤집는 역할이라 위험을 감수할수록 보상이 커야 합니다.
      *
      * <p>순간이동은 돌진과 같은 이유로 두 번 막습니다 — 레이캐스트로 벽을 넘지 않게 하고,
-     * 자기 레인 밖으로 못 나가게 조입니다.
+     * 착지 지점이 벽 속이나 허공이 아닌지 확인합니다. 거리 자체는 제한하지 않습니다.
      */
     private static void castHellGuillotine(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
         double radius = reach(state, altar, "radius", 4.0);
-        Vec3 landing = DemonLordService.clampToLane(lane, lookTarget(player, reach(state, altar, "range", 10.0)));
+        Vec3 landing = DemonLordService.safeLanding(
+                player, player.position(), lookTarget(player, reach(state, altar, "range", 10.0)));
 
         // 잃은 체력 비율 0(만피)~1(빈사). 빈사에서 missingHealthDamageBonus 만큼 증가합니다.
         double missingRatio = Math.max(0.0, Math.min(1.0, 1.0 - state.healthRatio()));
@@ -210,12 +211,18 @@ public final class DemonLordSkills {
         return clip.getType() == HitResult.Type.MISS ? far : clip.getLocation();
     }
 
-    /** 전방 직선을 꿰뚫어 피해를 주고, 준 피해에 비례해 회복합니다. */
+    /**
+     * 전방 직선을 꿰뚫어 피해를 주고, 준 피해에 비례해 회복하며, 맞은 적을 그 자리에 묶습니다.
+     *
+     * <p>구속은 이동 속도를 100% 깎는 것이라 공격은 그대로 합니다. 붙어 있는 적을 떼어내는 것이
+     * 아니라, 도망치거나 지나쳐 가려는 적을 붙잡아 두는 기술입니다.
+     */
     private static void castSoulDrain(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
         double range = reach(state, altar, "range", 7.0);
         double width = ability(altar, "width", 1.6);
         double damage = ability(altar, "damage", 26.0) * state.damageMultiplier();
+        int rootTicks = (int) Math.max(1.0, ability(altar, "rootDurationTicks", 40.0));
 
         Vec3 start = player.position();
         Vec3 look = horizontal(player.getLookAngle());
@@ -230,6 +237,7 @@ public final class DemonLordSkills {
                     Tower.DamageResult damageResult = DemonLordService.dealDamage(
                             player, lane, altar, monster, damage, DamageType.MAGIC);
                     dealtDamage[0] += damageResult.dealtDamage();
+                    monster.applyTimedEffect(TimedEffectType.MONSTER_MOVE_SPEED_REDUCTION, 1.0, rootTicks);
                     return damageOutcome(damageResult);
                 });
         if (dealtDamage[0] > 0.0) {
@@ -370,7 +378,8 @@ public final class DemonLordSkills {
      *
      * <p>텔레포트는 충돌을 무시하므로 그냥 목표 지점으로 옮기면 아레나 배리어를 뚫고 맵 밖으로
      * 나가 떨어집니다. 그래서 두 겹으로 막습니다 — 먼저 블록에 레이캐스트해 벽 앞에서 멈추고,
-     * 그다음 자기 레인 영역으로 한 번 더 조입니다.
+     * 그다음 실제로 설 수 있는 자리인지(벽 속이 아닌지, 발밑이 허공이 아닌지) 확인합니다.
+     * 레인 경계는 보지 않습니다 — 마왕은 어디로든 돌진할 수 있습니다.
      */
     private static Vec3 resolveDashEnd(ServerPlayer player, PlayerLane lane, Vec3 start, Vec3 look, double distance) {
         Vec3 from = start.add(0.0, 0.6, 0.0);
@@ -386,7 +395,7 @@ public final class DemonLordSkills {
         if (horizontal(end.subtract(start)).dot(look) <= 0.0) {
             end = start;
         }
-        return DemonLordService.clampToLane(lane, end);
+        return DemonLordService.safeLanding(player, start, end);
     }
 
     /**

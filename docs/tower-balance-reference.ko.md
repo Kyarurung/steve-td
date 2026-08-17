@@ -377,7 +377,13 @@
 | `demon_lord_global` | `experiencePerMaxHealth`, `experienceBase`, `experienceGrowth` | 처치 경험치입니다. 처치 대상 최대 체력에 비례하며, 다음 레벨 요구량은 `experienceBase × experienceGrowth^(레벨-1)`입니다. |
 | `demon_lord_global` | `damagePerLevel` | 스킬과 평타 모두에 곱해지는 성장 배율입니다. 기본 레벨당 +5%입니다. |
 | `demon_lord_global` | `bladeDamage`, `bladeAttackIntervalTicks` | 마검 평타 수치입니다. 기본 피해는 19입니다. `bladeAttackIntervalTicks`는 바닐라와 같은 차지 곡선(`0.2 + 차지² × 0.8`)으로 피해에 곱해집니다. 바닐라 공격 쿨다운은 바닐라 피해 경로에만 걸리므로 직접 계산합니다. |
-| `demon_lord_global` | `laneLeashSlack` | `lane_path` 영역 밖으로 허용하는 여유 거리(블록)입니다. 레인을 다 정리하면 적용되지 않습니다. |
+| `demon_lord_global` | `passiveExperiencePerRound` | 몹을 하나도 못 잡은 라운드에도 주는 기본 경험치입니다. 한 번 밀린 마왕이 영영 따라잡지 못하는 상황을 막습니다. 직접 잡는 편이 여전히 훨씬 빠릅니다. |
+| `demon_lord_global` | `statPointsPerLevel` | 레벨업마다 받는 스탯 포인트 수입니다. 기본 3입니다. |
+| `demon_lord_global` | `statHealthPerPoint`, `statAttackPerPoint` | 포인트당 최대 체력(기본 +40)과 피해 배율(기본 +4%p) 증가입니다. |
+| `demon_lord_global` | `statDefensePerPoint`, `statDefenseCap` | 포인트당 피해 감소율(기본 +2%p)과 그 상한(기본 60%)입니다. 상한이 없으면 무적이 됩니다. |
+| `demon_lord_global` | `statCooldownHalvingPoints` | 쿨감은 선형이 아니라 이 포인트마다 절반이 되는 곱연산입니다(기본 40 → 50%, 80 → 25%). 0 에 닿지 않습니다. **다른 스탯보다 포인트를 많이 요구하는 것은 의도된 것입니다** — 쿨감은 모든 스킬에 한꺼번에 곱해지고 딜뿐 아니라 생존기·이동기 회전율까지 같이 올려서, 같은 효율로 두면 다른 선택지가 존재할 이유가 없어집니다. |
+| `demon_lord_global` | `statSkillRangePerPoint` | 포인트당 스킬 거리 증가입니다(기본 +3%p). 사거리·반경·돌진 거리 같은 거리 계열 값 전부에 곱해집니다. |
+| `demon_lord_global` | `statMoveSpeedPerPoint`, `statMoveSpeedCap` | 포인트당 이동 속도 증가와 상한입니다. 물약 효과가 아니라 일시 속성 수정자라 등급 단위(20%)가 아닌 잔단위를 표현할 수 있습니다. |
 | `..._wave_of_malice_tower` | `coneDegrees`, `range`, `damage`, `knockback` | 전방 부채꼴 각도·거리·피해·넉백입니다. |
 | `..._demon_wings_tower` | `leapPower`, `radius`, `damage`, `knockback`, `healRatio` | 도약력, 광역 반경, 피해, 넉백, 최대 체력 대비 회복량입니다. |
 | `..._sky_breaker_tower` | `dashDistance`, `hitRadius`, `damage`, `liftPower`, `stunTicks` | 돌진 거리, 경로 판정 반경, 피해, 띄우기 세기, 기절 시간입니다. 기절은 이동·공격 속도·공격력을 100% 깎습니다. |
@@ -386,6 +392,7 @@
 | `..._hellfire_brand_tower` | `placementRange`, `zoneRadius`, `zoneDurationTicks`, `tickIntervalTicks` | 시선으로 까는 최대 거리, 장판 반경, 지속 시간, 피해 주기입니다. 장판은 한 번에 하나만 유지되고 재시전하면 이전 것을 덮어씁니다. |
 | `..._hellfire_brand_tower` | `damage`, `damageTakenBonus` | 주기마다 들어가는 피해와, 장판 위 적이 받는 피해 증가입니다. |
 | `..._soul_drain_tower` | `range`, `width`, `damage` | 전방 직선 판정의 길이·폭과 대상당 피해입니다. |
+| `..._soul_drain_tower` | `rootDurationTicks` | 꿰뚫린 적을 그 자리에 묶는 시간입니다. 이동 속도를 100% 깎는 것이라 **공격은 계속합니다** — 붙어 있는 적을 떼어내는 용도가 아니라 지나가려는 줄을 세우는 용도입니다. |
 | `..._soul_drain_tower` | `lifeStealRatio`, `lifeStealCap` | 입힌 피해 대비 회복 비율과, 1회 회복량의 최대 체력 대비 상한입니다. 여럿을 꿰뚫어도 상한을 넘지 않습니다. |
 | `..._roar_of_dread_tower` | `radius`, `damage`, `knockback` | 광역 반경, 피해, 넉백 세기입니다. |
 | `..._roar_of_dread_tower` | `moveSpeedReduction`, `dreadDurationTicks` | 이동 속도 감소율과 지속 시간입니다. 지속 동안 공격도 함께 막힙니다. |

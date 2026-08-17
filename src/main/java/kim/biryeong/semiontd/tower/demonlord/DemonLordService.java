@@ -48,6 +48,9 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
 
@@ -62,11 +65,17 @@ import xyz.nucleoid.map_templates.BlockBounds;
 public final class DemonLordService {
     private static final Map<UUID, ServerBossEvent> BOSS_BARS = new ConcurrentHashMap<>();
 
-    /** Keeps a leashed player just inside the boundary instead of exactly on it. */
-    private static final double EDGE_MARGIN = 0.3;
-
     /** Falling this far below the lane floor means something threw the player out of the map. */
     private static final double FALL_RESCUE_DEPTH = 4.0;
+
+    /** 이동기 착지 지점을 되짚어 볼 때의 간격. 한 블록보다 촘촘해야 좁은 틈을 놓치지 않습니다. */
+    private static final double LANDING_STEP = 0.5;
+
+    /** 착지 지점에서 발밑 땅을 찾아 내려가는 깊이. 이보다 깊으면 허공으로 봅니다. */
+    private static final double GROUND_PROBE_DEPTH = 6.0;
+
+    /** 몸 검사 시 줄여 두는 여유. 벽에 스치듯 붙는 착지까지 막지는 않습니다. */
+    private static final double BODY_MARGIN = 0.05;
 
     /** How often a knocked-out demon lord shakes off lingering monster targets. */
     private static final int AGGRO_RELEASE_INTERVAL = 5;
@@ -220,7 +229,7 @@ public final class DemonLordService {
         }
         state.expireShieldIfNeeded(gameTime);
         lockFlight(player);
-        leashToLane(player, lane);
+        rescueFromVoid(player, lane);
         DemonLordSkills.tickPending(player, lane, state, gameTime);
         detectSkillCast(player, lane, state, gameTime);
     }
@@ -525,54 +534,72 @@ public final class DemonLordService {
     }
 
     /**
-     * Keeps the demon lord inside their own lane. Rather than a hard wall we snap them back onto the
-     * lane path at whatever progress they had reached, which reads as being yanked back by the lane.
+     * 맵 아래로 떨어진 마왕을 자기 레인 중앙으로 되돌립니다.
+     *
+     * <p>레인 밖으로 나가는 것 자체는 막지 않습니다. 다만 허공으로 빠지는 것만은 되돌려야
+     * 합니다. 전투 중에는 비행이 잠겨 있어 한 번 떨어지면 스스로 올라올 방법이 없고, 그대로
+     * 두면 낙사 외에는 결말이 없습니다.
      */
-    private static void leashToLane(ServerPlayer player, PlayerLane lane) {
-        // 레인을 다 정리했으면 중앙 방어 웨이브로 넘어가야 하므로 묶어두지 않습니다.
-        if (lane.laneLayout() == null || lane.clearedThisRound()) {
+    private static void rescueFromVoid(ServerPlayer player, PlayerLane lane) {
+        if (lane.laneLayout() == null) {
             return;
         }
-        Vec3 position = player.position();
-
-        // 맵 아래로 떨어지면 X/Z 만 잡아 봐야 계속 낙하합니다. 이 경우는 레인 중앙으로 되돌립니다.
         double floor = lane.laneLayout().laneArea().min().getY();
-        if (position.y < floor - FALL_RESCUE_DEPTH) {
-            Vec3 centre = laneCentre(lane.laneLayout());
-            player.teleportTo(centre.x, centre.y, centre.z);
-            player.setDeltaMovement(Vec3.ZERO);
-            player.resetFallDistance();
+        if (player.getY() >= floor - FALL_RESCUE_DEPTH) {
             return;
         }
-
-        Vec3 clamped = clampToLane(lane, position);
-        if (clamped.x == position.x && clamped.z == position.z) {
-            return;
-        }
-        player.teleportTo(clamped.x, position.y, clamped.z);
+        Vec3 centre = laneCentre(lane.laneLayout());
+        player.teleportTo(centre.x, centre.y, centre.z);
+        player.setDeltaMovement(Vec3.ZERO);
+        player.resetFallDistance();
     }
 
     /**
-     * Clamps a position into the player's own {@code lane_path} box.
+     * 이동기가 실제로 설 수 있는 지점을 고릅니다.
      *
-     * <p>Used both by the per-tick leash and by 하늘 부수기, which would otherwise teleport straight
-     * through the arena barrier and drop the player out of the map.
+     * <p>순간이동은 충돌을 무시합니다. 목표를 그대로 쓰면 벽 속에 박히거나 허공에 놓여, 비행이
+     * 잠긴 채로 맵 밖으로 떨어집니다. 그래서 목표에서 시작점 쪽으로 되짚어 오며 몸이 들어갈
+     * 틈이 있고 발밑에 땅이 있는 첫 지점을 씁니다. 어디에도 설 수 없으면 제자리입니다.
+     *
+     * <p>레인 경계는 보지 않습니다. 마왕은 어디든 갈 수 있고, 여기서 막는 것은 벽과 허공뿐입니다.
      */
-    static Vec3 clampToLane(PlayerLane lane, Vec3 position) {
-        if (lane.laneLayout() == null) {
-            return position;
+    static Vec3 safeLanding(ServerPlayer player, Vec3 from, Vec3 to) {
+        Vec3 delta = to.subtract(from);
+        double distance = delta.length();
+        if (distance < 1.0E-4) {
+            Vec3 spot = standingSpot(player, to);
+            return spot == null ? from : spot;
         }
-        BlockBounds area = lane.laneLayout().laneArea();
-        double slack = TowerBalanceRuntime.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "laneLeashSlack", 1.5);
-        double minX = area.min().getX() - slack + EDGE_MARGIN;
-        double maxX = area.max().getX() + 1.0 + slack - EDGE_MARGIN;
-        double minZ = area.min().getZ() - slack + EDGE_MARGIN;
-        double maxZ = area.max().getZ() + 1.0 + slack - EDGE_MARGIN;
-        return new Vec3(
-                Mth.clamp(position.x, Math.min(minX, maxX), Math.max(minX, maxX)),
-                position.y,
-                Mth.clamp(position.z, Math.min(minZ, maxZ), Math.max(minZ, maxZ))
-        );
+        int steps = (int) Math.ceil(distance / LANDING_STEP);
+        for (int i = steps; i >= 1; i--) {
+            Vec3 spot = standingSpot(player, from.add(delta.scale((double) i / steps)));
+            if (spot != null) {
+                return spot;
+            }
+        }
+        return from;
+    }
+
+    /**
+     * 후보 지점에 설 수 있으면 발이 닿는 좌표, 아니면 {@code null}.
+     *
+     * <p>탐침을 후보보다 위에서 시작하지 않는 것이 중요합니다. 위에서 쏘면 벽 속을 노렸을 때
+     * 그 벽의 윗면을 짚어 아레나 배리어 위에 올려놓게 됩니다. 후보가 블록 안이면 탐침이 즉시
+     * 막히고 몸 검사에서 걸러져, 한 걸음 뒤로 물러난 지점을 보게 됩니다.
+     */
+    private static Vec3 standingSpot(ServerPlayer player, Vec3 candidate) {
+        HitResult ground = player.level().clip(new ClipContext(
+                candidate.add(0.0, 0.05, 0.0),
+                candidate.subtract(0.0, GROUND_PROBE_DEPTH, 0.0),
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                player));
+        if (ground.getType() == HitResult.Type.MISS) {
+            return null;
+        }
+        Vec3 foot = ground.getLocation();
+        AABB body = player.getBoundingBox().move(foot.subtract(player.position()));
+        return player.level().noCollision(player, body.deflate(BODY_MARGIN)) ? foot : null;
     }
 
     /**
@@ -807,7 +834,10 @@ public final class DemonLordService {
         if (source != null) {
             Tower.DamageResult result = altar.damageTargetResult(source, monsterEntity, amount, type);
             if (result.dealtDamage() > 0.0) {
-                TowerVfxService.showAttack(source, monsterEntity, result.killed(), false);
+                // 제단은 쏘지 않습니다. showAttack 을 쓰면 건축 구역의 제단에서 몹까지 직선이
+                // 뻗어 나가, 아무것도 하지 않는 기둥이 공격한 것처럼 보입니다. 타격 표시와
+                // 처치 연출만 남기고 궤적은 뺍니다.
+                TowerVfxService.showRemoteHit(source, monsterEntity, result.killed());
             }
             return result;
         }
