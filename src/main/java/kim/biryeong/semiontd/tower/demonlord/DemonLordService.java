@@ -65,6 +65,11 @@ import xyz.nucleoid.map_templates.BlockBounds;
 public final class DemonLordService {
     private static final Map<UUID, ServerBossEvent> BOSS_BARS = new ConcurrentHashMap<>();
 
+    /** 전투 진입 직전의 핫바. 전투가 끝나면 우리가 치운 자리만 이걸로 되돌립니다. */
+    private static final Map<UUID, List<ItemStack>> PRE_COMBAT_HOTBAR = new ConcurrentHashMap<>();
+
+    private static final int HOTBAR_SLOTS = 9;
+
     /** Falling this far below the lane floor means something threw the player out of the map. */
     private static final double FALL_RESCUE_DEPTH = 4.0;
 
@@ -354,6 +359,7 @@ public final class DemonLordService {
 
     public static void clearPlayerState(UUID playerId) {
         clearBossBar(playerId);
+        PRE_COMBAT_HOTBAR.remove(playerId);
         DemonLordStates.clear(playerId);
     }
 
@@ -736,20 +742,23 @@ public final class DemonLordService {
      * Rebuilds the bar.
      *
      * <p>In combat the hotbar belongs entirely to the demon lord kit: the first four altars sit on
-     * keys 1-4 and the 마검 waits in slot 9. Out of combat the kit is stripped and the normal match
-     * tools come back, because that is when the player is actually shopping for towers.
+     * keys 1-4 and the 마검 waits in slot 9. Out of combat the kit is stripped and whatever the bar
+     * held before combat comes back, because that is when the player is actually shopping for towers.
      */
     private static void syncHotbar(ServerPlayer player, PlayerLane lane, DemonLordState state) {
         if (!state.inCombat()) {
             if (state.combatKitGranted()) {
                 clearCombatKit(player);
-                SemionHotbarService.grantMatchTools(player);
+                restoreHotbar(player);
                 state.setCombatKitGranted(false);
             }
             ensureStatTool(player);
             return;
         }
 
+        if (!state.combatKitGranted()) {
+            rememberHotbar(player);
+        }
         SemionHotbarService.clearMatchTools(player);
         clearCombatKit(player);
         List<DemonLordSkillTower> altars = orderedAltars(lane, player.getUUID());
@@ -804,6 +813,36 @@ public final class DemonLordService {
         ItemStack tool = new ItemStack(Items.EXPERIENCE_BOTTLE);
         tool.set(DataComponents.CUSTOM_NAME, STAT_TOOL_NAME);
         player.getInventory().setItem(STAT_TOOL_SLOT, tool);
+    }
+
+    /**
+     * 전투에 들어가기 직전의 핫바를 그대로 찍어 둡니다.
+     *
+     * <p>전에는 전투가 끝날 때 {@code grantMatchTools} 로 되돌렸는데, 그건 일반 매치의 타워·소환
+     * 도구만 아는 함수입니다. 샌드박스의 라운드 이동 도구나 팀장 도구처럼 다른 경로로 받은
+     * 것들은 전투 진입에 지워진 뒤 영영 돌아오지 않았습니다. 무엇을 들고 있었는지 기억해 두면
+     * 이 서비스가 도구 종류를 하나도 몰라도 됩니다.
+     */
+    static void rememberHotbar(ServerPlayer player) {
+        List<ItemStack> saved = new ArrayList<>(HOTBAR_SLOTS);
+        for (int slot = 0; slot < HOTBAR_SLOTS; slot++) {
+            saved.add(player.getInventory().getItem(slot).copy());
+        }
+        PRE_COMBAT_HOTBAR.put(player.getUUID(), List.copyOf(saved));
+    }
+
+    static void restoreHotbar(ServerPlayer player) {
+        List<ItemStack> saved = PRE_COMBAT_HOTBAR.remove(player.getUUID());
+        if (saved == null) {
+            return;
+        }
+        for (int slot = 0; slot < saved.size(); slot++) {
+            // 이미 뭔가 들어 있는 칸은 건드리지 않습니다. 라운드 시작에 게임이 새로 쥐여 준
+            // 도구가 우선이고, 우리는 우리가 비워 둔 자리만 되돌립니다.
+            if (player.getInventory().getItem(slot).isEmpty()) {
+                player.getInventory().setItem(slot, saved.get(slot).copy());
+            }
+        }
     }
 
     private static boolean isStatTool(ItemStack stack) {

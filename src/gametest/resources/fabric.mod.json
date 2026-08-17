@@ -21,6 +21,7 @@
       "kim.biryeong.semiontd.tower.insect.InsectGameTest",
       "kim.biryeong.semiontd.tower.futureagency.FutureAgencyGameTest",
       "kim.biryeong.semiontd.tower.queen.QueenGameTest",
+      "kim.biryeong.semiontd.tower.demonlord.DemonLordHotbarGameTest",
       "kim.biryeong.semiontd.tower.atlantis.AtlantisIntegrationGameTest",
       "kim.biryeong.semiontd.entity.tower.vfx.TowerVfxGameTest",
       "kim.biryeong.semiontd.game.RatingProfileCacheGameTest"
