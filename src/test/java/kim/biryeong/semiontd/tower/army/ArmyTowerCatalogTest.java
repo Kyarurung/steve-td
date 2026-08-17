@@ -193,7 +193,7 @@ class ArmyTowerCatalogTest {
     @Test
     void medalsBuffTheGuardLineAndTopRankKeepsAttacking() {
         ArmyStates.awardMedal(OWNER, 1.0);
-        assertEquals(110.0, tower(ArmyTowers.GUARD).modifyAttackDamage(null, null, 100.0), 1.0E-9);
+        assertEquals(105.0, tower(ArmyTowers.GUARD).modifyAttackDamage(null, null, 100.0), 1.0E-9);
 
         ArmyTower recruit = tower(ArmyTowers.RECRUIT);
         for (int wave = 1; wave <= ArmyBalance.staffSergeantService(); wave++) {

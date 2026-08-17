@@ -14,7 +14,7 @@ public final class HeroPartyBalance {
 
     private static final long[] WEAPON_UPGRADE_COSTS = {0, 80, 140, 220, 320, 450};
     private static final double[] WEAPON_MULTIPLIERS = {1.0, 1.15, 1.32, 1.50, 1.72, 2.0};
-    private static final long[] ARMOR_UPGRADE_COSTS = {0, 90, 150, 230, 340, 480};
+    private static final long[] ARMOR_UPGRADE_COSTS = {0, 126, 210, 322, 476, 672};
     private static final double[] ARMOR_HEALTH = {0.0, 60.0, 140.0, 240.0, 380.0, 560.0};
     private static final double[] ARMOR_REDUCTION = {0.0, 0.04, 0.08, 0.12, 0.16, 0.20};
 

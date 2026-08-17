@@ -442,8 +442,16 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
-    void companionDamageAndTierAbilitiesMatchTheApprovedProgression() {
+    void companionPricesDamageAndTierAbilitiesMatchTheApprovedProgression() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<HeroCompanionRole, long[]> expectedCosts = Map.of(
+                HeroCompanionRole.KNIGHT, new long[]{84, 126, 196, 308},
+                HeroCompanionRole.ARCHER, new long[]{77, 119, 182, 280},
+                HeroCompanionRole.MAGE, new long[]{98, 147, 231, 364},
+                HeroCompanionRole.PRIEST, new long[]{91, 140, 217, 336},
+                HeroCompanionRole.ROGUE, new long[]{70, 105, 168, 259},
+                HeroCompanionRole.BARD, new long[]{84, 126, 196, 308}
+        );
         Map<HeroCompanionRole, double[]> expectedDamage = Map.of(
                 HeroCompanionRole.KNIGHT, new double[]{7.2, 10.8, 15.6, 21.6},
                 HeroCompanionRole.ARCHER, new double[]{14.4, 20.4, 28.8, 38.4},
@@ -455,9 +463,27 @@ class HeroPartyTowerCatalogTest {
         for (HeroCompanionRole role : HeroCompanionRole.values()) {
             for (int tier = 1; tier <= 4; tier++) {
                 var type = HeroPartyTowers.companion(role, tier);
+                assertEquals(expectedCosts.get(role)[tier - 1], defaults.statsFor(type).mineralCost());
                 assertEquals(expectedDamage.get(role)[tier - 1], defaults.statsFor(type).damage(), 0.0001);
+                if (tier < 4) {
+                    var next = HeroPartyTowers.companion(role, tier + 1);
+                    assertEquals(expectedCosts.get(role)[tier], defaults.upgradeCost(type.id(), next.id(), -1));
+                }
             }
         }
+        assertEquals(112, defaults.statsFor(HeroPartyTowers.HERO).mineralCost());
+        assertEquals(List.of(15, 13, 10, 7),
+                java.util.stream.IntStream.rangeClosed(1, 4)
+                        .mapToObj(tier -> defaults.statsFor(
+                                HeroPartyTowers.companion(HeroCompanionRole.ARCHER, tier)
+                        ).attackIntervalTicks())
+                        .toList());
+        assertEquals(List.of(126L, 210L, 322L, 476L, 672L),
+                java.util.stream.IntStream.rangeClosed(1, 5)
+                        .mapToObj(HeroPartyBalance::armorUpgradeCost).toList());
+        assertEquals(List.of(80L, 140L, 220L, 320L, 450L),
+                java.util.stream.IntStream.rangeClosed(1, 5)
+                        .mapToObj(HeroPartyBalance::weaponUpgradeCost).toList());
 
         assertEquals(0.0, defaults.ability("hero_party_knight_1", "shieldBashEvery", -1.0), 0.0001);
         assertEquals(4.0, defaults.ability("hero_party_knight_2", "shieldBashEvery", -1.0), 0.0001);
@@ -465,6 +491,7 @@ class HeroPartyTowerCatalogTest {
         assertEquals(0.75, defaults.ability("hero_party_archer_4", "pierceDamageRatio", -1.0), 0.0001);
         assertEquals(1.50, defaults.ability("hero_party_mage_3", "empoweredSplashMultiplier", -1.0), 0.0001);
         assertEquals(0.50, defaults.ability("hero_party_priest_3", "secondTargetRatio", -1.0), 0.0001);
+        assertEquals(90.0, defaults.ability("hero_party_priest_4", "healAmount", -1.0), 0.0001);
         assertEquals(0.20, defaults.ability("hero_party_rogue_3", "killAttackSpeedBonus", -1.0), 0.0001);
         assertEquals(4.0, defaults.ability("hero_party_bard_4", "encoreEveryPulses", -1.0), 0.0001);
 

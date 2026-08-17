@@ -246,8 +246,8 @@ public final class HeroPartyIntegrationGameTest {
                     "Armor +1 should succeed during prepare.")) {
                 return;
             }
-            if (!equals(context, beforeEquipment - 270, game.players().get(ownerId).economy().diamond(),
-                    "Equipment should charge 100 + 80 + 90 diamonds.")) {
+            if (!equals(context, beforeEquipment - 306, game.players().get(ownerId).economy().diamond(),
+                    "Equipment should charge 100 + 80 + 126 diamonds.")) {
                 return;
             }
             requireClose(253.0, heroTower.currentMaxHealth(),
@@ -703,7 +703,7 @@ public final class HeroPartyIntegrationGameTest {
             UUID ownerId,
             BlockPos origin
     ) {
-        double[] expectedPrimaryHeal = {14.0, 21.0, 31.0, 45.0};
+        double[] expectedPrimaryHeal = {28.0, 42.0, 62.0, 90.0};
         double[] expectedSecondRatio = {0.0, 0.0, 0.50, 1.0};
         double[] expectedGuard = {0.0, 0.08, 0.10, 0.15};
         for (int tier = 1; tier <= 4; tier++) {

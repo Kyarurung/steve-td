@@ -54,7 +54,7 @@ public final class HeroCompanionTower extends HeroPartyTower {
     private static final int[] MAGE_EMPOWERED_EVERY = {0, 0, 5, 4};
     private static final double[] MAGE_EMPOWERED_MULTIPLIER = {0.0, 0.0, 1.50, 1.75};
     private static final double[] MAGE_EMPOWERED_RADIUS = {0.0, 0.0, 0.50, 0.75};
-    private static final double[] PRIEST_HEAL = {14.0, 21.0, 31.0, 45.0};
+    private static final double[] PRIEST_HEAL = {28.0, 42.0, 62.0, 90.0};
     private static final int[] PRIEST_INTERVAL = {40, 38, 34, 30};
     private static final double[] PRIEST_SECOND = {0.0, 0.0, 0.50, 1.0};
     private static final double[] PRIEST_GUARD = {0.0, 0.08, 0.10, 0.15};

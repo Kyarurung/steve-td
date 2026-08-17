@@ -1027,12 +1027,12 @@ public record TowerBalanceConfig(
         putAbilities(abilities, PlantSoil.MEADOW.configId(), Map.of(
                 "supportRadius", 6.0,
                 "healPercentPerPulse", 0.015,
-                // T3 기준 40라운드에 자기 최대 체력 +112% 상한에 도달합니다.
-                "maxHealthGrowthPerRound", 0.02,
-                "maxHealthGrowthCap", 0.8,
+                // T3 기준 자기 최대 체력은 라운드당 +2.1%, 최대 +70%까지 성장합니다.
+                "maxHealthGrowthPerRound", 0.015,
+                "maxHealthGrowthCap", 0.5,
                 // 라인 전체 분배는 잔디 타워 수만큼 합산되므로 비율을 낮추고 합계 상한을 둡니다.
-                "growthShareRatio", 0.2,
-                "growthShareCap", 0.5,
+                "growthShareRatio", 0.15,
+                "growthShareCap", 0.25,
                 "supportDurationTicks", 60.0
         ));
         // environment* 값은 타워 없이 지형만으로 걸리는 효과입니다.
@@ -2252,11 +2252,11 @@ public record TowerBalanceConfig(
                 Map.entry("weaponMultiplier5", 2.00),
                 Map.entry("weaponAttackIntervalReductionPerLevel",
                         (double) HeroPartyBalance.WEAPON_ATTACK_INTERVAL_REDUCTION_PER_LEVEL),
-                Map.entry("armorUpgradeCost1", 90.0),
-                Map.entry("armorUpgradeCost2", 150.0),
-                Map.entry("armorUpgradeCost3", 230.0),
-                Map.entry("armorUpgradeCost4", 340.0),
-                Map.entry("armorUpgradeCost5", 480.0),
+                Map.entry("armorUpgradeCost1", 126.0),
+                Map.entry("armorUpgradeCost2", 210.0),
+                Map.entry("armorUpgradeCost3", 322.0),
+                Map.entry("armorUpgradeCost4", 476.0),
+                Map.entry("armorUpgradeCost5", 672.0),
                 Map.entry("armorHealth1", 60.0),
                 Map.entry("armorHealth2", 140.0),
                 Map.entry("armorHealth3", 240.0),
@@ -2322,7 +2322,7 @@ public record TowerBalanceConfig(
         double[] mageEmpoweredEvery = {0.0, 0.0, 5.0, 4.0};
         double[] mageEmpoweredMultiplier = {0.0, 0.0, 1.50, 1.75};
         double[] mageEmpoweredRadius = {0.0, 0.0, 0.50, 0.75};
-        double[] priestHeal = {14.0, 21.0, 31.0, 45.0};
+        double[] priestHeal = {28.0, 42.0, 62.0, 90.0};
         double[] priestInterval = {40.0, 38.0, 34.0, 30.0};
         double[] priestSecond = {0.0, 0.0, 0.50, 1.0};
         double[] priestGuard = {0.0, 0.08, 0.10, 0.15};
@@ -2441,10 +2441,10 @@ public record TowerBalanceConfig(
         values.put("heartHealAmount", 12.0);
         values.put("heartHealRadius", 5.0);
         values.put("clubDamageReduction", 0.15);
-        values.put("cardSplashRadius", 1.25);
-        values.put("cardSplashExtraTargets", 1.0);
-        values.put("spadeRadius", 1.5);
-        values.put("spadeExtraTargets", 3.0);
+        values.put("cardSplashRadius", 2.0);
+        values.put("cardSplashExtraTargets", 5.0);
+        values.put("spadeRadius", 2.5);
+        values.put("spadeExtraTargets", 5.0);
         values.put("giantChargeTicks", 400.0);
         values.put("giantAccelerationRadius", 6.0);
         values.put("giantAccelerationMemoryTicks", 40.0);
