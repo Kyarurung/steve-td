@@ -4,6 +4,12 @@ import java.util.Arrays;
 import java.util.List;
 
 public final class GambleRewards {
+    private static final GambleStat[] ROLLABLE_STATS = {
+            GambleStat.MAX_HEALTH,
+            GambleStat.DAMAGE,
+            GambleStat.RANGE
+    };
+
     private GambleRewards() {
     }
 
@@ -29,8 +35,11 @@ public final class GambleRewards {
     }
 
     public static GambleStat chooseStat(int index) {
-        GambleStat[] values = GambleStat.values();
-        return values[Math.floorMod(index, values.length)];
+        return ROLLABLE_STATS[Math.floorMod(index, ROLLABLE_STATS.length)];
+    }
+
+    public static int rollableStatCount() {
+        return ROLLABLE_STATS.length;
     }
 
     public static double insuredDelta(GambleState state, double delta) {

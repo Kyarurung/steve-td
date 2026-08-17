@@ -12,7 +12,7 @@ public final class GambleBalance {
     public static final double DAMAGE_PER_SCORE = 0.50;
     public static final double RANGE_PER_SCORE = 0.05;
     public static final double SPLASH_RADIUS_PER_SCORE = 0.025;
-    public static final double BASE_SPLASH_RADIUS = 1.5;
+    public static final double BASE_SPLASH_RADIUS = 2.5;
     public static final double SPLASH_DAMAGE_RATIO = 0.60;
     public static final double ABILITY_REWARD_CHANCE = 0.25;
     public static final double LOSS_INSURANCE_REDUCTION = 0.20;

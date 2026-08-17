@@ -126,7 +126,11 @@ final class GambleTowerTest {
         assertEquals(2, GambleRewards.missingAbilities(one).size());
         assertEquals(GambleAbility.LOSS_INSURANCE, GambleRewards.chooseMissing(one, 0));
         assertEquals(GambleAbility.SPREAD_BET, GambleRewards.chooseMissing(one, 1));
-        assertEquals(GambleStat.SPLASH_RADIUS, GambleRewards.chooseStat(3));
+        assertEquals(3, GambleRewards.rollableStatCount());
+        assertEquals(GambleStat.MAX_HEALTH, GambleRewards.chooseStat(3));
+        assertFalse(java.util.stream.IntStream.range(0, 12)
+                .mapToObj(GambleRewards::chooseStat)
+                .anyMatch(stat -> stat == GambleStat.SPLASH_RADIUS));
     }
 
     @Test
@@ -232,7 +236,7 @@ final class GambleTowerTest {
         assertEquals(0.15, GambleBalance.supportMagnitude(2, 99), EPSILON);
         assertEquals(0.075, GambleBalance.supportMagnitude(3, 1.5), EPSILON);
         assertEquals(0.375, GambleBalance.supportMagnitude(6, 1.5), EPSILON);
-        assertEquals(1.5, GambleBalance.baseSplashRadius(), EPSILON);
+        assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
     }
 

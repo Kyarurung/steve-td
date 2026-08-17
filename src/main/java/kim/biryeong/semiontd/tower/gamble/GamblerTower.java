@@ -170,13 +170,13 @@ public final class GamblerTower extends ProductionTower {
         return GambleBet.fromUpgradeId(option.id()).map(bet -> switch (bet) {
             case ODD -> List.of(
                     "주사위 한 개를 굴려 홀수가 나오면 능력치가 오르고, 짝수가 나오면 내려갑니다.",
-                    "성공하면 체력 +200·공격력 +20·사거리 +2·공격 범위 +1 중 하나를 얻습니다.",
+                    "성공하면 체력 +200·공격력 +20·사거리 +2 중 하나를 얻습니다.",
                     "실패하면 무작위 능력치가 성공 보상의 70%만큼 감소합니다.",
                     "비용은 판매 환불가에 포함되지 않습니다."
             );
             case EVEN -> List.of(
                     "주사위 한 개를 굴려 짝수가 나오면 능력치가 오르고, 홀수가 나오면 내려갑니다.",
-                    "성공하면 체력 +200·공격력 +20·사거리 +2·공격 범위 +1 중 하나를 얻습니다.",
+                    "성공하면 체력 +200·공격력 +20·사거리 +2 중 하나를 얻습니다.",
                     "실패하면 무작위 능력치가 성공 보상의 70%만큼 감소합니다.",
                     "비용은 판매 환불가에 포함되지 않습니다."
             );
@@ -197,8 +197,7 @@ public final class GamblerTower extends ProductionTower {
         lines.add("최대 체력 변화: " + signed(state.maxHealthDelta()));
         lines.add("공격력 변화: " + signed(state.damageDelta()));
         lines.add("사거리 변화: " + signed(state.rangeDelta()));
-        lines.add("공격 범위 변화: " + signed(state.splashRadiusDelta()));
-        lines.add("현재 공격 범위: " + oneDecimal(splashRadius()) + "칸");
+        lines.add("고정 공격 범위: " + oneDecimal(splashRadius()) + "칸");
         if (state.abilities().isEmpty()) {
             lines.add("보유 능력: 없음");
         } else {
@@ -237,7 +236,7 @@ public final class GamblerTower extends ProductionTower {
             );
             after = before.recordAbility(ability, bet.displayName() + " " + roll + " → " + ability.detailLine());
         } else {
-            GambleStat stat = GambleRewards.chooseStat(source.getRandom().nextInt(GambleStat.values().length));
+            GambleStat stat = GambleRewards.chooseStat(source.getRandom().nextInt(GambleRewards.rollableStatCount()));
             double delta = GambleRewards.insuredDelta(before, GambleBalance.statDelta(stat, score));
             String result = bet.displayName() + " " + roll + " → " + stat.displayName() + " " + signed(delta);
             after = before.recordStat(stat, delta, baseValue(stat), result);
@@ -259,7 +258,7 @@ public final class GamblerTower extends ProductionTower {
     }
 
     double splashRadius() {
-        return state().resolvedValue(GambleStat.SPLASH_RADIUS, GambleBalance.baseSplashRadius());
+        return GambleBalance.baseSplashRadius();
     }
 
     private void applyBasicSplash(

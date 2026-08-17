@@ -158,16 +158,16 @@ public final class GambleGameTest {
                     "The range result must add the rolled amount to the base range.");
             require(close(replacement.modifyAttackDamage(null, null, 10.0), 15.0),
                     "The damage result must add the rolled amount to the base damage.");
-            require(close(replacement.splashRadius(), 2.0),
-                    "The attack-area result must add the rolled amount to the base splash radius.");
+            require(close(replacement.splashRadius(), 2.5),
+                    "The basic splash radius must remain fixed despite legacy rolled state.");
 
             SemionTowerEntity source = entity(lane, replacement);
             primary = spawnTarget(context, lane, source.position().add(0.0, 0.0, 2.0), "gamble-primary");
             splashTarget = spawnTarget(context, lane, primary.position().add(0.5, 0.0, 0.0), "gamble-splash");
-            secondary = spawnTarget(context, lane, primary.position().add(2.5, 0.0, 0.0), "gamble-secondary");
+            secondary = spawnTarget(context, lane, primary.position().add(2.75, 0.0, 0.0), "gamble-secondary");
             replacement.onAttackResolved(source, primary, 100.0, 100.0, 100.0, false);
             require(close(splashTarget.runtimeMonster().health(), 40.0),
-                    "Every basic attack must deal 60% finalized damage inside the rolled splash radius.");
+                    "Every basic attack must deal 60% finalized damage inside the fixed splash radius.");
             require(close(secondary.runtimeMonster().health(), 100.0),
                     "A target outside the basic splash radius must not take splash damage.");
             splashTarget.discard();

@@ -414,8 +414,8 @@
 | `maxHealthPerScore` | 5.0 | 점수 1당 최대 체력 변화 |
 | `damagePerScore` | 0.50 | 점수 1당 공격력 변화 |
 | `rangePerScore` | 0.05 | 점수 1당 사거리 블록 변화 |
-| `splashRadiusPerScore` | 0.025 | 점수 1당 공격 범위 변화 |
-| `baseSplashRadius`, `splashDamageRatio` | 1.5, 0.60 | 기본 공격 범위와 주변 적 피해 비율 |
+| `splashRadiusPerScore` | 0.025 | 이전 공격 범위 도박 상태 호환용 값이며 신규 도박에서는 사용하지 않음 |
+| `baseSplashRadius`, `splashDamageRatio` | 2.5, 0.60 | 고정 기본 공격 범위와 주변 적 피해 비율 |
 | `twoDiceLoss2`~`twoDiceLoss5` | 80, 60, 40, 28 | 주사위 두 개 실패 점수 절댓값 |
 | `twoDiceGain6`~`twoDiceGain12` | 20, 40, 50, 60, 75, 90, 100 | 주사위 두 개 성공 점수 |
 | `abilityRewardChance` | 0.25 | 성공 시 미보유 능력으로 바뀔 확률 |

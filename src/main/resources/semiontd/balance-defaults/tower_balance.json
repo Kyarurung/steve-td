@@ -6601,7 +6601,7 @@
       "damagePerScore": 0.5,
       "rangePerScore": 0.05,
       "splashRadiusPerScore": 0.025,
-      "baseSplashRadius": 1.5,
+      "baseSplashRadius": 2.5,
       "splashDamageRatio": 0.6,
       "twoDiceLoss2": 80.0,
       "twoDiceLoss3": 60.0,

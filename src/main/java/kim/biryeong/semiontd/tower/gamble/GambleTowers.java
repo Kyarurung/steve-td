@@ -31,8 +31,8 @@ public final class GambleTowers {
             .visual(EntityVisual.builder("minecraft:wandering_trader").scale(1.0).build())
             .description(List.of(
                     "준비 시간에 100 다이아를 내고 홀수·짝수 맞히기 또는 주사위 두 개 굴리기를 반복할 수 있습니다.",
-                    "주사위 눈에 따라 최대 체력·공격력·사거리·공격 범위 중 무작위 능력치가 오르거나 내려갑니다.",
-                    "기본 공격은 대상 주변의 적에게도 피해를 줍니다.",
+                    "주사위 눈에 따라 최대 체력·공격력·사거리 중 무작위 능력치가 오르거나 내려갑니다.",
+                    "기본 공격은 고정된 반경 2.5칸 안의 적에게도 피해를 줍니다.",
                     "좋은 결과가 나오면 낮은 확률로 손실 보험·행운의 일격·분산 배당 중 하나를 얻습니다.",
                     GambleAbility.LOSS_INSURANCE.defaultDetailLine(),
                     GambleAbility.LUCKY_STRIKE.defaultDetailLine(),
