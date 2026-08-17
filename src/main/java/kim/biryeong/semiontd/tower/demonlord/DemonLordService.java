@@ -23,7 +23,12 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
+import kim.biryeong.semiontd.SemionTd;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
@@ -66,6 +71,21 @@ public final class DemonLordService {
     /** How often a knocked-out demon lord shakes off lingering monster targets. */
     private static final int AGGRO_RELEASE_INTERVAL = 5;
 
+    /** 스스로 전투에서 물러나는 자리. 스킬 슬롯과 마검 사이의 마지막 빈칸입니다. */
+    private static final int RETREAT_SLOT = 7;
+
+    /** 준비 단계에만 놓이는 스탯 분배 도구 자리. 기존 매치 도구(0~2) 바로 뒤입니다. */
+    private static final int STAT_TOOL_SLOT = 3;
+
+    private static final Component STAT_TOOL_NAME =
+            Component.literal("스탯 포인트 분배").withStyle(ChatFormatting.LIGHT_PURPLE);
+
+    private static final ResourceLocation MOVE_SPEED_MODIFIER_ID =
+            ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "demon_lord_move_speed");
+
+    private static final Component RETREAT_NAME =
+            Component.literal("전투 이탈").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+
     private static final Component BLADE_NAME =
             Component.literal("마검").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD);
 
@@ -85,6 +105,12 @@ public final class DemonLordService {
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (world.isClientSide() || hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) {
                 return InteractionResult.PASS;
+            }
+            // 준비 단계의 스탯 분배 도구.
+            if (isStatTool(serverPlayer.getMainHandItem())
+                    && DemonLordStates.get(serverPlayer.getUUID()) != null) {
+                new DemonLordStatGui(serverPlayer).open();
+                return InteractionResult.SUCCESS;
             }
             if (serverPlayer.getInventory().getSelectedSlot() != DemonLordSkill.BLADE_SLOT) {
                 return InteractionResult.PASS;
@@ -181,6 +207,7 @@ public final class DemonLordService {
             state.clearLoadoutDirty();
         }
         syncBossBar(player, state);
+        syncMoveSpeed(player, state);
 
         if (!state.inCombat()) {
             restoreFlight(player);
@@ -299,12 +326,18 @@ public final class DemonLordService {
     }
 
     private static void knockOutOfCombat(ServerPlayer player, DemonLordState state) {
+        knockOutOfCombat(player, state, false);
+    }
+
+    private static void knockOutOfCombat(ServerPlayer player, DemonLordState state, boolean voluntary) {
         state.leaveCombat();
         restoreFlight(player);
         setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
         player.displayClientMessage(
-                Component.literal("전투에서 제외되었습니다. 다음 라운드에 부활합니다.")
-                        .withStyle(ChatFormatting.DARK_RED),
+                Component.literal(voluntary
+                                ? "스스로 전투에서 물러났습니다. 다음 라운드에 복귀합니다."
+                                : "전투에서 제외되었습니다. 다음 라운드에 부활합니다.")
+                        .withStyle(voluntary ? ChatFormatting.GOLD : ChatFormatting.DARK_RED),
                 false
         );
     }
@@ -411,6 +444,33 @@ public final class DemonLordService {
         }
     }
 
+    /**
+     * 이동 속도 스탯을 바닐라 속성으로 반영합니다.
+     *
+     * <p>속도 물약 효과가 아니라 속성 수정자를 쓰는 것은 포인트당 3% 같은 잔단위를 표현하려면
+     * 등급 단위(20%)로는 불가능하기 때문입니다. 일시(transient) 수정자라 저장되지 않고, 값이
+     * 달라질 때만 갱신해 매 틱 속성을 흔들지 않습니다.
+     */
+    private static void syncMoveSpeed(ServerPlayer player, DemonLordState state) {
+        AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (attribute == null) {
+            return;
+        }
+        double bonus = state.inCombat() ? state.moveSpeedBonus() : 0.0;
+        AttributeModifier existing = attribute.getModifier(MOVE_SPEED_MODIFIER_ID);
+        if (bonus <= 0.0) {
+            if (existing != null) {
+                attribute.removeModifier(MOVE_SPEED_MODIFIER_ID);
+            }
+            return;
+        }
+        if (existing != null && Math.abs(existing.amount() - bonus) < 1.0E-6) {
+            return;
+        }
+        attribute.addOrUpdateTransientModifier(new AttributeModifier(
+                MOVE_SPEED_MODIFIER_ID, bonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+    }
+
     private static void lockFlight(ServerPlayer player) {
         if (player.isCreative() || player.isSpectator()) {
             return;
@@ -495,6 +555,15 @@ public final class DemonLordService {
         }
         state.setLastSelectedSlot(selected);
 
+        // 8번 슬롯은 스스로 전투에서 빠지는 자리입니다. 다음 라운드까지 스킬을 못 쓰지만
+        // 어그로에서도 벗어나므로, 이길 수 없는 웨이브를 버티다 죽는 대신 물러설 수 있습니다.
+        if (selected == RETREAT_SLOT) {
+            setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
+            state.setLastSelectedSlot(DemonLordSkill.BLADE_SLOT);
+            knockOutOfCombat(player, state, true);
+            return;
+        }
+
         DemonLordBinding binding = DemonLordBinding.forHotbarSlot(selected);
         if (binding == null) {
             return;
@@ -535,7 +604,9 @@ public final class DemonLordService {
             return true;
         }
         int refund = DemonLordSkills.cast(player, lane, state, skill, altar, gameTime);
-        int cooldown = Math.max(1, altar.cooldownTicks() - Math.max(0, refund));
+        // 쿨감 스탯은 곱연산이라 0 에 닿지 않고, 환급은 그 뒤에 뺍니다.
+        int base = (int) Math.round(altar.cooldownTicks() * state.cooldownMultiplier());
+        int cooldown = Math.max(1, base - Math.max(0, refund));
         state.startCooldown(skill, gameTime, cooldown);
         player.getCooldowns().addCooldown(new ItemStack(skill.item()), cooldown);
         return true;
@@ -616,6 +687,7 @@ public final class DemonLordService {
                 SemionHotbarService.grantMatchTools(player);
                 state.setCombatKitGranted(false);
             }
+            ensureStatTool(player);
             return;
         }
 
@@ -637,6 +709,10 @@ public final class DemonLordService {
             }
             player.getInventory().setItem(binding.hotbarSlot(), skillStack(altars.get(index), binding));
         }
+        ItemStack retreat = new ItemStack(Items.TOTEM_OF_UNDYING);
+        retreat.set(DataComponents.CUSTOM_NAME, RETREAT_NAME);
+        player.getInventory().setItem(RETREAT_SLOT, DemonLordKitItems.mark(retreat));
+
         ItemStack blade = new ItemStack(Items.NETHERITE_SWORD);
         blade.set(DataComponents.CUSTOM_NAME, BLADE_NAME);
         player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, DemonLordKitItems.mark(blade));
@@ -654,6 +730,29 @@ public final class DemonLordService {
 
     private static void clearCombatKit(ServerPlayer player) {
         DemonLordKitItems.clear(player.getInventory());
+    }
+
+    /**
+     * 준비 단계에만 놓이는 스탯 분배 도구입니다.
+     *
+     * <p>전투 중에는 핫바가 스킬로 꽉 차므로 자리가 없고, 어차피 분배는 다음 웨이브를 준비하며
+     * 하는 일입니다. 이미 올바른 아이템이 있으면 건드리지 않아 매 틱 인벤토리를 흔들지 않습니다.
+     */
+    private static void ensureStatTool(ServerPlayer player) {
+        if (isStatTool(player.getInventory().getItem(STAT_TOOL_SLOT))) {
+            return;
+        }
+        ItemStack tool = new ItemStack(Items.EXPERIENCE_BOTTLE);
+        tool.set(DataComponents.CUSTOM_NAME, STAT_TOOL_NAME);
+        player.getInventory().setItem(STAT_TOOL_SLOT, tool);
+    }
+
+    private static boolean isStatTool(ItemStack stack) {
+        if (stack == null || !stack.is(Items.EXPERIENCE_BOTTLE)) {
+            return false;
+        }
+        Component name = stack.get(DataComponents.CUSTOM_NAME);
+        return name != null && name.getString().equals(STAT_TOOL_NAME.getString());
     }
 
     /** Shared damage entry point for the blade and every skill. */

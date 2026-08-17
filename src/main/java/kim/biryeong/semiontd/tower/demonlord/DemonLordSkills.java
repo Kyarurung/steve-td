@@ -82,7 +82,7 @@ public final class DemonLordSkills {
      * @return 처치 시 돌려줄 쿨타임 틱
      */
     private static int castGripOfDoom(ServerPlayer player, PlayerLane lane, DemonLordState state, DemonLordSkillTower altar) {
-        double range = ability(altar, "range", 9.0);
+        double range = reach(state, altar, "range", 9.0);
         Vec3 origin = player.position();
         Vec3 look = horizontal(player.getLookAngle());
 
@@ -132,7 +132,7 @@ public final class DemonLordSkills {
         // 시체가 터집니다. 폭발 피해는 처형 시점 체력에 비례하므로 단단한 적일수록 크게 터집니다.
         double blast = victimHealth * ability(altar, "explosionHealthRatio", 1.0)
                 + ability(altar, "areaDamage", 30.0) * state.damageMultiplier();
-        double blastRadius = ability(altar, "explosionRadius", 4.0);
+        double blastRadius = reach(state, altar, "explosionRadius", 4.0);
         SemionMonsterEntity executedTarget = target;
         applyArea(altar, lane, victimPosition, blastRadius, nearby -> nearby != executedTarget,
                 AreaVfxStyles.CORPSE_EXPLOSION,
@@ -152,19 +152,19 @@ public final class DemonLordSkills {
             DemonLordSkillTower altar, long gameTime) {
         int interval = (int) Math.max(1.0, ability(altar, "tickIntervalTicks", 20.0));
         int duration = (int) Math.max(1.0, ability(altar, "zoneDurationTicks", 100.0));
-        Vec3 centre = lookTarget(player, ability(altar, "placementRange", 10.0));
+        Vec3 centre = lookTarget(player, reach(state, altar, "placementRange", 10.0));
 
         state.placeZone(new DemonLordState.HellfireZone(
                 altar.type(),
                 centre,
-                ability(altar, "zoneRadius", 3.5),
+                reach(state, altar, "zoneRadius", 3.5),
                 ability(altar, "damage", 14.0) * state.damageMultiplier(),
                 ability(altar, "damageTakenBonus", 0.10),
                 interval,
                 gameTime + duration,
                 gameTime + interval
         ));
-        DemonLordVfx.show(altar, lane, centre, ability(altar, "zoneRadius", 3.5), AreaVfxStyles.DEBUFF);
+        DemonLordVfx.show(altar, lane, centre, reach(state, altar, "zoneRadius", 3.5), AreaVfxStyles.DEBUFF);
         sound(player, SoundEvents.FIRECHARGE_USE, 1.0f, 0.7f);
     }
 
@@ -180,8 +180,8 @@ public final class DemonLordSkills {
      */
     private static void castHellGuillotine(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
-        double radius = ability(altar, "radius", 4.0);
-        Vec3 landing = DemonLordService.clampToLane(lane, lookTarget(player, ability(altar, "range", 10.0)));
+        double radius = reach(state, altar, "radius", 4.0);
+        Vec3 landing = DemonLordService.clampToLane(lane, lookTarget(player, reach(state, altar, "range", 10.0)));
 
         // 잃은 체력 비율 0(만피)~1(빈사). 빈사에서 missingHealthDamageBonus 만큼 증가합니다.
         double missingRatio = Math.max(0.0, Math.min(1.0, 1.0 - state.healthRatio()));
@@ -213,7 +213,7 @@ public final class DemonLordSkills {
     /** 전방 직선을 꿰뚫어 피해를 주고, 준 피해에 비례해 회복합니다. */
     private static void castSoulDrain(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
-        double range = ability(altar, "range", 7.0);
+        double range = reach(state, altar, "range", 7.0);
         double width = ability(altar, "width", 1.6);
         double damage = ability(altar, "damage", 26.0) * state.damageMultiplier();
 
@@ -246,7 +246,7 @@ public final class DemonLordSkills {
     /** 주위를 밀어내고 이동을 늦추며 공격을 막습니다. 포위를 푸는 용도입니다. */
     private static void castRoarOfDread(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
-        double radius = ability(altar, "radius", 5.0);
+        double radius = reach(state, altar, "radius", 5.0);
         double damage = ability(altar, "damage", 19.0) * state.damageMultiplier();
         double knockback = ability(altar, "knockback", 1.0);
         double slow = ability(altar, "moveSpeedReduction", 0.50);
@@ -282,7 +282,7 @@ public final class DemonLordSkills {
     /** 전방 부채꼴을 쓸어 피해를 주고 뒤로 밀어냅니다. */
     private static void castWaveOfMalice(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
-        double range = ability(altar, "range", 6.0);
+        double range = reach(state, altar, "range", 6.0);
         double halfAngleCos = Math.cos(Math.toRadians(ability(altar, "coneDegrees", 60.0) / 2.0));
         double damage = ability(altar, "damage", 34.0) * state.damageMultiplier();
         double knockback = ability(altar, "knockback", 0.8);
@@ -305,7 +305,7 @@ public final class DemonLordSkills {
     /** 도약하며 주위를 밀어내고 체력을 회복합니다. */
     private static void castDemonWings(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
-        double radius = ability(altar, "radius", 4.0);
+        double radius = reach(state, altar, "radius", 4.0);
         double damage = ability(altar, "damage", 23.0) * state.damageMultiplier();
         double knockback = ability(altar, "knockback", 0.7);
         double leapPower = ability(altar, "leapPower", 1.0);
@@ -335,8 +335,8 @@ public final class DemonLordSkills {
      */
     private static void castSkyBreaker(ServerPlayer player, PlayerLane lane, DemonLordState state,
             DemonLordSkillTower altar) {
-        double distance = ability(altar, "dashDistance", 8.0);
-        double hitRadius = ability(altar, "hitRadius", 2.0);
+        double distance = reach(state, altar, "dashDistance", 8.0);
+        double hitRadius = reach(state, altar, "hitRadius", 2.0);
         double damage = ability(altar, "damage", 68.0) * state.damageMultiplier();
         double lift = ability(altar, "liftPower", 0.8);
         int stunTicks = (int) Math.max(1.0, ability(altar, "stunTicks", 40.0));
@@ -419,9 +419,9 @@ public final class DemonLordSkills {
         if (altar == null) {
             return;
         }
-        double blastRadius = ability(altar, "blastRadius", 4.0);
+        double blastRadius = reach(state, altar, "blastRadius", 4.0);
         double damage = ability(altar, "damage", 53.0) * state.damageMultiplier();
-        double range = ability(altar, "projectileRange", 18.0);
+        double range = reach(state, altar, "projectileRange", 18.0);
 
         // 실제 투사체 엔티티 대신 레이캐스트로 착탄 지점을 구합니다. 결과는 같고, 라운드마다
         // 수십 발이 날아다니는 엔티티를 만들지 않아도 됩니다.
@@ -495,6 +495,21 @@ public final class DemonLordSkills {
 
     private static double ability(DemonLordSkillTower altar, String key, double fallback) {
         return ability(altar.type(), key, fallback);
+    }
+
+    /**
+     * 거리 계열 수치입니다. 스킬 범위 스탯이 여기에만 곱해집니다.
+     *
+     * <p>사거리·반경·돌진 거리처럼 "얼마나 멀리 닿는가"만 늘려야 하므로, 피해나 지속 시간이
+     * 딸려 올라가지 않도록 통과 지점을 하나로 모아 두었습니다.
+     */
+    private static double reach(DemonLordState state, DemonLordSkillTower altar, String key, double fallback) {
+        return reach(state, altar.type(), key, fallback);
+    }
+
+    private static double reach(DemonLordState state, TowerType altar, String key, double fallback) {
+        double base = ability(altar, key, fallback);
+        return state == null ? base : base * state.skillRangeMultiplier();
     }
 
     private static double ability(TowerType altar, String key, double fallback) {

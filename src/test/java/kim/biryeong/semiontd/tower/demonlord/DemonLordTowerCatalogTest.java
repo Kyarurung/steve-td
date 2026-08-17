@@ -592,6 +592,62 @@ final class DemonLordTowerCatalogTest {
                 "라벨이 조작 방법을 알려야 합니다: " + DemonLordBinding.RIGHT_CLICK.label());
     }
 
+    /** 레벨업마다 포인트를 받고, 찍은 만큼 실제 능력치가 움직여야 합니다. */
+    @Test
+    void levellingGrantsPointsAndSpendingThemChangesTheNumbers() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.enterCombat();
+        assertEquals(0, state.unspentPoints(), "레벨 1 은 아직 받을 포인트가 없습니다");
+
+        int gained = state.addExperience(500.0);
+        assertTrue(gained > 0);
+        assertEquals(gained, state.unspentPoints(), "레벨업 수만큼 포인트를 받아야 합니다");
+
+        double beforeHealth = state.maxHealth();
+        double beforeDamage = state.damageMultiplier();
+        assertTrue(state.allocate(DemonLordStat.MAX_HEALTH));
+        assertTrue(state.allocate(DemonLordStat.ATTACK));
+        assertTrue(state.maxHealth() > beforeHealth, "체력 포인트가 최대 체력을 올려야 합니다");
+        assertTrue(state.damageMultiplier() > beforeDamage, "공격력 포인트가 피해 배율을 올려야 합니다");
+        assertEquals(gained - 2, state.unspentPoints());
+    }
+
+    /** 포인트를 아무리 쌓아도 쿨타임 0 과 피해 감소 100% 에는 닿으면 안 됩니다. */
+    @Test
+    void cooldownAndDefenceApproachTheirFloorWithoutCrossingIt() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.enterCombat();
+        state.addExperience(1.0E9);
+
+        assertEquals(1.0, state.cooldownMultiplier(), EPSILON, "찍기 전에는 100% 그대로여야 합니다");
+        // 기본값은 10 포인트마다 절반입니다.
+        for (int i = 0; i < 10; i++) {
+            assertTrue(state.allocate(DemonLordStat.COOLDOWN));
+        }
+        assertEquals(0.5, state.cooldownMultiplier(), EPSILON, "10 포인트면 절반");
+        for (int i = 0; i < 10; i++) {
+            assertTrue(state.allocate(DemonLordStat.COOLDOWN));
+        }
+        assertEquals(0.25, state.cooldownMultiplier(), EPSILON, "20 포인트면 4분의 1");
+
+        for (int i = 0; i < 200 && state.unspentPoints() > 0; i++) {
+            state.allocate(DemonLordStat.COOLDOWN);
+            state.allocate(DemonLordStat.DEFENSE);
+        }
+        assertTrue(state.cooldownMultiplier() > 0.0, "쿨타임이 0 이 되면 스킬을 무한히 씁니다");
+        assertTrue(state.damageReduction() < 1.0, "피해 감소가 100% 가 되면 죽지 않습니다");
+    }
+
+    /** 몹을 못 잡아도 라운드를 넘기면 조금은 자라야 합니다. */
+    @Test
+    void roundsGrantPassiveExperience() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertTrue(defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "passiveExperiencePerRound", -1) > 0.0,
+                "라운드 경과 경험치가 설정에 있어야 합니다");
+        assertTrue(defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "statPointsPerLevel", -1) > 0.0,
+                "레벨업 보상 포인트가 설정에 있어야 합니다");
+    }
+
     private static void assertInvalidAbility(String configId, String key, double value) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());

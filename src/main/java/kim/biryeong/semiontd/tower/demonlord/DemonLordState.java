@@ -20,6 +20,8 @@ import net.minecraft.world.phys.Vec3;
 public final class DemonLordState {
     private final UUID playerId;
     private final Map<DemonLordSkill, Long> cooldownReadyTick = new EnumMap<>(DemonLordSkill.class);
+    private final Map<DemonLordStat, Integer> statPoints = new EnumMap<>(DemonLordStat.class);
+    private int unspentPoints;
 
     private int level = 1;
     private double experience;
@@ -57,7 +59,67 @@ public final class DemonLordState {
     public double maxHealth() {
         double base = global("baseMaxHealth", 450.0);
         double perLevel = global("maxHealthPerLevel", 52.5);
-        return Math.max(1.0, base + perLevel * (level - 1));
+        double allocated = points(DemonLordStat.MAX_HEALTH) * global("statHealthPerPoint", 40.0);
+        return Math.max(1.0, base + perLevel * (level - 1) + allocated);
+    }
+
+    // ------------------------------------------------------------------ 스탯
+
+    public int points(DemonLordStat stat) {
+        return stat == null ? 0 : Math.max(0, statPoints.getOrDefault(stat, 0));
+    }
+
+    public int unspentPoints() {
+        return Math.max(0, unspentPoints);
+    }
+
+    /**
+     * Spends one point. Returns false when there is nothing left to spend.
+     *
+     * <p>Deliberately one at a time: allocation is permanent for the match, and a misclick that
+     * dumped ten points at once would be unrecoverable.
+     */
+    public boolean allocate(DemonLordStat stat) {
+        if (stat == null || unspentPoints <= 0) {
+            return false;
+        }
+        unspentPoints--;
+        statPoints.merge(stat, 1, Integer::sum);
+        // 체력에 찍으면 늘어난 만큼 즉시 채워, 전투 중 투자해도 바로 값을 합니다.
+        if (stat == DemonLordStat.MAX_HEALTH && inCombat) {
+            health += global("statHealthPerPoint", 40.0);
+        }
+        return true;
+    }
+
+    /** 받는 피해 감소율. 포인트를 쌓아도 100%에는 닿지 않습니다. */
+    public double damageReduction() {
+        double perPoint = global("statDefensePerPoint", 0.02);
+        double cap = Math.min(0.9, Math.max(0.0, global("statDefenseCap", 0.6)));
+        return Math.max(0.0, Math.min(cap, points(DemonLordStat.DEFENSE) * perPoint));
+    }
+
+    /**
+     * 쿨타임 배율. 지정한 포인트마다 절반이 되는 지수 감쇠라 0 에는 닿지 않습니다.
+     *
+     * <p>기본값에서 10 포인트면 절반, 20 포인트면 4분의 1 입니다. 선형으로 깎으면 어느 지점에서
+     * 쿨타임이 사라져 스킬을 무한히 쓰게 되므로 곱연산으로 접근시킵니다.
+     */
+    public double cooldownMultiplier() {
+        double halving = Math.max(1.0, global("statCooldownHalvingPoints", 10.0));
+        return Math.pow(0.5, points(DemonLordStat.COOLDOWN) / halving);
+    }
+
+    /** 스킬 사거리·반경 배율입니다. */
+    public double skillRangeMultiplier() {
+        return 1.0 + points(DemonLordStat.SKILL_RANGE) * global("statSkillRangePerPoint", 0.03);
+    }
+
+    /** 이동 속도 증가율입니다. */
+    public double moveSpeedBonus() {
+        double perPoint = global("statMoveSpeedPerPoint", 0.03);
+        double cap = Math.max(0.0, global("statMoveSpeedCap", 0.5));
+        return Math.max(0.0, Math.min(cap, points(DemonLordStat.MOVE_SPEED) * perPoint));
     }
 
     public double shield() {
@@ -78,7 +140,7 @@ public final class DemonLordState {
         if (amount <= 0.0 || !inCombat) {
             return false;
         }
-        double remaining = amount;
+        double remaining = amount * (1.0 - damageReduction());
         if (shield > 0.0) {
             double absorbed = Math.min(shield, remaining);
             shield -= absorbed;
@@ -172,6 +234,7 @@ public final class DemonLordState {
             double previousMax = maxHealth();
             level++;
             gained++;
+            unspentPoints += Math.max(0, (int) global("statPointsPerLevel", 1.0));
             health += Math.max(0.0, maxHealth() - previousMax);
         }
         if (level >= maxLevel()) {
@@ -180,9 +243,10 @@ public final class DemonLordState {
         return gained;
     }
 
-    /** Scales every skill and blade hit. Levels are the builder's only damage growth. */
+    /** Scales every skill and blade hit. Levels grow it, and 공격력 points grow it further. */
     public double damageMultiplier() {
-        return 1.0 + global("damagePerLevel", 0.05) * (level - 1);
+        return 1.0 + global("damagePerLevel", 0.05) * (level - 1)
+                + points(DemonLordStat.ATTACK) * global("statAttackPerPoint", 0.04);
     }
 
     public double bladeDamage() {

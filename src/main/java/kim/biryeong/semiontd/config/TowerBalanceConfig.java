@@ -3661,6 +3661,21 @@ public record TowerBalanceConfig(
         global.put("bladeAttackIntervalTicks", 12.0);
         // 레인 이탈 방지: lane_path 영역 밖으로 이만큼까지만 나갈 수 있습니다.
         global.put("laneLeashSlack", 1.5);
+        // 몹을 하나도 못 잡은 라운드에도 주는 기본 경험치입니다. 한 번 밀린 마왕이 영영
+        // 따라잡지 못하는 상황을 막습니다. 직접 잡는 편이 여전히 훨씬 빠릅니다.
+        global.put("passiveExperiencePerRound", 6.0);
+        // 스탯 포인트. 레벨업마다 받아 원하는 능력치에 넣습니다.
+        global.put("statPointsPerLevel", 1.0);
+        global.put("statHealthPerPoint", 40.0);
+        global.put("statAttackPerPoint", 0.04);
+        global.put("statDefensePerPoint", 0.02);
+        global.put("statDefenseCap", 0.6);
+        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 10 이면 50%, 20 이면 25% 가 되고
+        // 0 에는 닿지 않습니다. 선형이면 어느 지점에서 쿨타임이 사라져 버립니다.
+        global.put("statCooldownHalvingPoints", 10.0);
+        global.put("statSkillRangePerPoint", 0.03);
+        global.put("statMoveSpeedPerPoint", 0.03);
+        global.put("statMoveSpeedCap", 0.5);
         putAbilities(abilities, DemonLordTowers.GLOBAL_CONFIG_ID, global);
 
         for (DemonLordSkill skill : DemonLordSkill.values()) {

@@ -6169,7 +6169,17 @@
       "damagePerLevel": 0.05,
       "bladeDamage": 19.0,
       "bladeAttackIntervalTicks": 12.0,
-      "laneLeashSlack": 1.5
+      "laneLeashSlack": 1.5,
+      "passiveExperiencePerRound": 6.0,
+      "statPointsPerLevel": 1.0,
+      "statHealthPerPoint": 40.0,
+      "statAttackPerPoint": 0.04,
+      "statDefensePerPoint": 0.02,
+      "statDefenseCap": 0.6,
+      "statCooldownHalvingPoints": 10.0,
+      "statSkillRangePerPoint": 0.03,
+      "statMoveSpeedPerPoint": 0.03,
+      "statMoveSpeedCap": 0.5
     },
     "t1_wave_of_malice_tower": {
       "towerSlotCost": 3.0,
