@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.api.area.AreaVfxSpec;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
@@ -200,8 +199,16 @@ public final class GamblerTower extends ProductionTower {
         lines.add("사거리 변화: " + signed(state.rangeDelta()));
         lines.add("공격 범위 변화: " + signed(state.splashRadiusDelta()));
         lines.add("현재 공격 범위: " + oneDecimal(splashRadius()) + "칸");
-        lines.add("보유 능력: " + (state.abilities().isEmpty() ? "없음" : state.abilities().stream()
-                .map(GambleAbility::displayName).collect(Collectors.joining(" / "))));
+        if (state.abilities().isEmpty()) {
+            lines.add("보유 능력: 없음");
+        } else {
+            lines.add("보유 능력:");
+            for (GambleAbility ability : GambleAbility.values()) {
+                if (state.has(ability)) {
+                    lines.add(ability.detailLine());
+                }
+            }
+        }
         lines.add("최근 결과: " + state.lastResult());
         return List.copyOf(lines);
     }
@@ -228,7 +235,7 @@ public final class GamblerTower extends ProductionTower {
             GambleAbility ability = GambleRewards.chooseMissing(
                     before, source.getRandom().nextInt(GambleRewards.missingAbilities(before).size())
             );
-            after = before.recordAbility(ability, bet.displayName() + " " + roll + " → " + ability.displayName());
+            after = before.recordAbility(ability, bet.displayName() + " " + roll + " → " + ability.detailLine());
         } else {
             GambleStat stat = GambleRewards.chooseStat(source.getRandom().nextInt(GambleStat.values().length));
             double delta = GambleRewards.insuredDelta(before, GambleBalance.statDelta(stat, score));

@@ -130,6 +130,30 @@ final class GambleTowerTest {
     }
 
     @Test
+    void everyUniqueAbilityExplainsItsTriggerAndConfiguredEffectInTowerDetails() {
+        assertTrue(GambleAbility.LOSS_INSURANCE.description().contains("20%"));
+        assertTrue(GambleAbility.LUCKY_STRIKE.description().contains("6"));
+        assertTrue(GambleAbility.LUCKY_STRIKE.description().contains("2배"));
+        assertTrue(GambleAbility.SPREAD_BET.description().contains("4번째"));
+        assertTrue(GambleAbility.SPREAD_BET.description().contains("3칸"));
+        assertTrue(GambleAbility.SPREAD_BET.description().contains("50%"));
+        for (GambleAbility ability : GambleAbility.values()) {
+            assertTrue(GambleTowers.GAMBLER.description().contains(ability.defaultDetailLine()));
+        }
+
+        GamblerTower gambler = new GamblerTower(GambleTowers.GAMBLER, OWNER, TeamId.RED, 1,
+                new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));
+        GambleState state = GambleState.EMPTY
+                .recordAbility(GambleAbility.LUCKY_STRIKE, "lucky")
+                .recordAbility(GambleAbility.SPREAD_BET, "spread");
+        gambler.setData(GamblerTower.STATE, state);
+        List<String> details = gambler.runtimeDetailLines();
+        assertTrue(details.contains(GambleAbility.LUCKY_STRIKE.detailLine()));
+        assertTrue(details.contains(GambleAbility.SPREAD_BET.detailLine()));
+        assertFalse(details.contains(GambleAbility.LOSS_INSURANCE.detailLine()));
+    }
+
+    @Test
     void luckyStrikeIsExactlyOneFaceOutOfSix() {
         int successes = 0;
         for (int die = 1; die <= 6; die++) {
