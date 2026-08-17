@@ -287,9 +287,16 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         super.aiStep();
         invulnerableTime = 0;
         double previousMaxHealthBonus = activeTimedEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS);
+        double previousFlatMaxHealthBonus = activeTimedEffectMagnitude(TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS);
         timedEffects.tick();
-        if (Double.compare(previousMaxHealthBonus, activeTimedEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS)) != 0) {
+        if (Double.compare(previousMaxHealthBonus, activeTimedEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS)) != 0
+                || Double.compare(previousFlatMaxHealthBonus,
+                activeTimedEffectMagnitude(TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS)) != 0) {
             syncMaxHealthEffect(TimedEffectType.TOWER_MAX_HEALTH_BONUS);
+        }
+        double regenerationPerSecond = activeTimedEffectMagnitude(TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND);
+        if (regenerationPerSecond > 0.0) {
+            receiveHealing(regenerationPerSecond / 20.0);
         }
         syncMoobloomVisualEntity();
         syncBlockDisplayVisual();
@@ -308,7 +315,8 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
         double multiplier = 1.0
                 + timedEffects.magnitude(TimedEffectType.TOWER_RANGE_BONUS)
                 - timedEffects.magnitude(TimedEffectType.TOWER_RANGE_REDUCTION);
-        return attackRange * Math.max(0.01, multiplier);
+        return attackRange * Math.max(0.01, multiplier)
+                + timedEffects.magnitude(TimedEffectType.TOWER_FLAT_RANGE_BONUS);
     }
 
     public double targetAcquireRange() {
@@ -340,7 +348,8 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public double attackDamageAmount(SemionMonsterEntity target) {
-        double damageAmount = attackDamage * (1.0 + timedEffects.magnitude(TimedEffectType.TOWER_DAMAGE_BONUS));
+        double damageAmount = attackDamage * (1.0 + timedEffects.magnitude(TimedEffectType.TOWER_DAMAGE_BONUS))
+                + timedEffects.magnitude(TimedEffectType.TOWER_FLAT_DAMAGE_BONUS);
         if (runtimeTower != null) {
             damageAmount = runtimeTower.modifyAttackDamage(this, target, damageAmount);
         }
@@ -717,11 +726,13 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     private void syncMaxHealthEffect(TimedEffectType type, boolean healIncrease) {
         if (runtimeTower == null
                 || (type != TimedEffectType.TOWER_MAX_HEALTH_BONUS
+                && type != TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS
                 && type != TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS)) {
             return;
         }
         double nextMaxHealth = runtimeTower.effectBaseMaxHealth()
-                * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS));
+                * (1.0 + activeEffectMagnitude(TimedEffectType.TOWER_MAX_HEALTH_BONUS))
+                + activeEffectMagnitude(TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS);
         runtimeTower.syncEffectMaxHealth(
                 nextMaxHealth,
                 activeEffectMagnitude(TimedEffectType.TOWER_TRAIT_MAX_HEALTH_BONUS),

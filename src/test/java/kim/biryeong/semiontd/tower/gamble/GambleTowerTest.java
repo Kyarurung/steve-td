@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.job.GambleTowerJob;
@@ -46,7 +47,7 @@ final class GambleTowerTest {
 
     @Test
     void allThirtySixTwoDiceOutcomesUseTheNonlinearScoreAndDoubleRule() {
-        double[] bySum = {0, 0, -80, -60, -40, -28, 20, 40, 50, 60, 75, 90, 100};
+        double[] bySum = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 75, 90, 100};
         double abilityAdjustedTotal = 0.0;
         for (int first = 1; first <= 6; first++) {
             for (int second = 1; second <= 6; second++) {
@@ -58,10 +59,10 @@ final class GambleTowerTest {
                 abilityAdjustedTotal += expected > 0.0 ? expected * 0.75 : expected;
             }
         }
-        assertEquals(28.5555555556, GambleRolls.defaultExpectedTwoDiceDelta(), EPSILON);
-        assertEquals(28.5555555556, GambleRolls.expectedTwoDiceDelta(), EPSILON);
-        assertEquals(17.5833333333, abilityAdjustedTotal / 36.0, EPSILON);
-        assertEquals(-160.0, GambleRolls.defaultTwoDiceDelta(1, 1), EPSILON);
+        assertEquals(32.7777777778, GambleRolls.defaultExpectedTwoDiceDelta(), EPSILON);
+        assertEquals(32.7777777778, GambleRolls.expectedTwoDiceDelta(), EPSILON);
+        assertEquals(21.8055555556, abilityAdjustedTotal / 36.0, EPSILON);
+        assertEquals(-140.0, GambleRolls.defaultTwoDiceDelta(1, 1), EPSILON);
         assertEquals(200.0, GambleRolls.defaultTwoDiceDelta(6, 6), EPSILON);
     }
 
@@ -234,8 +235,14 @@ final class GambleTowerTest {
         assertEquals(1.5, GambleBalance.positiveMultiplier(GambleTowers.SPECTATOR_T3), EPSILON);
         assertEquals(0.30, GambleBalance.supportMagnitude(1, 99), EPSILON);
         assertEquals(0.15, GambleBalance.supportMagnitude(2, 99), EPSILON);
-        assertEquals(0.075, GambleBalance.supportMagnitude(3, 1.5), EPSILON);
-        assertEquals(0.375, GambleBalance.supportMagnitude(6, 1.5), EPSILON);
+        assertEquals(TimedEffectType.TOWER_FLAT_RANGE_BONUS, GambleBalance.supportEffectType(3));
+        assertEquals(TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND, GambleBalance.supportEffectType(4));
+        assertEquals(TimedEffectType.TOWER_FLAT_DAMAGE_BONUS, GambleBalance.supportEffectType(5));
+        assertEquals(TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS, GambleBalance.supportEffectType(6));
+        assertEquals(0.75, GambleBalance.supportMagnitude(3, 1.5), EPSILON);
+        assertEquals(7.5, GambleBalance.supportMagnitude(4, 1.5), EPSILON);
+        assertEquals(7.5, GambleBalance.supportMagnitude(5, 1.5), EPSILON);
+        assertEquals(75.0, GambleBalance.supportMagnitude(6, 1.5), EPSILON);
         assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
     }

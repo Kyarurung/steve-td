@@ -14,7 +14,7 @@ public final class GambleTowers {
     public static final TowerType DICE_T1 = support(
             "gamble_dice_t1", "주사위 타워 I", 45, 90, 5,
             BlockDisplayVisual.builder(Blocks.WHITE_CONCRETE.defaultBlockState()).scale(0.75).build(),
-            "각 주사위 타워는 라운드마다 주사위 한 개를 굴려 범위 안의 다른 내 타워에 같은 효과를 줍니다."
+            "각 주사위 타워는 라운드마다 주사위 한 개를 굴려 범위 안의 내 전투 타워에 같은 효과를 줍니다."
     );
     public static final TowerType DICE_T2 = support(
             "gamble_dice_t2", "주사위 타워 II", 0, 150, 7,
@@ -92,6 +92,7 @@ public final class GambleTowers {
                 .maxHealth(health).range(range).damage(0).attackIntervalTicks(20).aggroPriority(-20)
                 .visual(visual).description(List.of(description,
                         "눈 1~2는 약화, 3~6은 강화이며 여러 지원 타워의 효과는 함께 적용됩니다.",
+                        "강화 눈은 사거리·초당 회복·공격력·최대 체력 중 하나를 올립니다.",
                         "공격하지 않으며 지원 범위와 이번 라운드 눈금이 타워 머리 위에 표시됩니다."))
                 .build();
     }

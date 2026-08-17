@@ -23,10 +23,10 @@ public final class GambleRolls {
         requireDie(first);
         requireDie(second);
         double delta = switch (first + second) {
-            case 2 -> -80.0;
-            case 3 -> -60.0;
-            case 4 -> -40.0;
-            case 5 -> -28.0;
+            case 2 -> -70.0;
+            case 3 -> -50.0;
+            case 4 -> -30.0;
+            case 5 -> -10.0;
             case 6 -> 20.0;
             case 7 -> 40.0;
             case 8 -> 50.0;

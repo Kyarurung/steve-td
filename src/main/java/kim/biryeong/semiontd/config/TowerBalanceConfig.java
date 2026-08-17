@@ -1259,15 +1259,15 @@ public record TowerBalanceConfig(
                 "rangePerScore", "splashRadiusPerScore", "baseSplashRadius",
                 "luckyStrikeMultiplier", "spreadEveryAttacks", "spreadRadius",
                 "supportVfxIntervalTicks",
+                "supportFace3FlatRangeBonus", "supportFace4HealthRegenPerSecond",
+                "supportFace5FlatDamageBonus", "supportFace6FlatMaxHealthBonus",
                 "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
                 "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
                 "twoDiceGain10", "twoDiceGain11", "twoDiceGain12");
         validateRatios(global,
                 "abilityRewardChance", "lossInsuranceReduction", "spreadDamageRatio",
                 "splashDamageRatio",
-                "supportFace1DamageTaken", "supportFace2AttackSpeedReduction",
-                "supportFace3RangeBonus", "supportFace4MaxHealthBonus",
-                "supportFace5AttackSpeedBonus", "supportFace6DamageBonus");
+                "supportFace1DamageTaken", "supportFace2AttackSpeedReduction");
         validateIntegral(global, false, "spreadEveryAttacks", "supportVfxIntervalTicks");
         validateAtLeast(global, 1.0, "luckyStrikeMultiplier");
 
@@ -1284,7 +1284,7 @@ public record TowerBalanceConfig(
     }
 
     private double configuredGambleExpectedScore() {
-        double[] defaults = {0, 0, -80, -60, -40, -28, 20, 40, 50, 60, 75, 90, 100};
+        double[] defaults = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 75, 90, 100};
         double total = 0.0;
         for (int first = 1; first <= 6; first++) {
             for (int second = 1; second <= 6; second++) {
@@ -3712,10 +3712,10 @@ public record TowerBalanceConfig(
         global.put("splashRadiusPerScore", GambleBalance.SPLASH_RADIUS_PER_SCORE);
         global.put("baseSplashRadius", GambleBalance.BASE_SPLASH_RADIUS);
         global.put("splashDamageRatio", GambleBalance.SPLASH_DAMAGE_RATIO);
-        global.put("twoDiceLoss2", 80.0);
-        global.put("twoDiceLoss3", 60.0);
-        global.put("twoDiceLoss4", 40.0);
-        global.put("twoDiceLoss5", 28.0);
+        global.put("twoDiceLoss2", 70.0);
+        global.put("twoDiceLoss3", 50.0);
+        global.put("twoDiceLoss4", 30.0);
+        global.put("twoDiceLoss5", 10.0);
         global.put("twoDiceGain6", 20.0);
         global.put("twoDiceGain7", 40.0);
         global.put("twoDiceGain8", 50.0);
@@ -3732,10 +3732,10 @@ public record TowerBalanceConfig(
         global.put("supportVfxIntervalTicks", (double) GambleBalance.SUPPORT_VFX_INTERVAL_TICKS);
         global.put("supportFace1DamageTaken", 0.30);
         global.put("supportFace2AttackSpeedReduction", 0.15);
-        global.put("supportFace3RangeBonus", 0.05);
-        global.put("supportFace4MaxHealthBonus", 0.10);
-        global.put("supportFace5AttackSpeedBonus", 0.15);
-        global.put("supportFace6DamageBonus", 0.25);
+        global.put("supportFace3FlatRangeBonus", 0.50);
+        global.put("supportFace4HealthRegenPerSecond", 5.0);
+        global.put("supportFace5FlatDamageBonus", 5.0);
+        global.put("supportFace6FlatMaxHealthBonus", 50.0);
         putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
 
         putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1, 1.0);

@@ -78,7 +78,7 @@ public final class GambleBalance {
             throw new IllegalArgumentException("Two-dice sum must be between 2 and 12: " + sum);
         }
         if (sum <= 5) {
-            double[] defaults = {0.0, 0.0, 80.0, 60.0, 40.0, 28.0};
+            double[] defaults = {0.0, 0.0, 70.0, 50.0, 30.0, 10.0};
             return -global("twoDiceLoss" + sum, defaults[sum]);
         }
         double[] defaults = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 40.0, 50.0, 60.0, 75.0, 90.0, 100.0};
@@ -107,10 +107,10 @@ public final class GambleBalance {
         return switch (face) {
             case 1 -> TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS;
             case 2 -> TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION;
-            case 3 -> TimedEffectType.TOWER_RANGE_BONUS;
-            case 4 -> TimedEffectType.TOWER_MAX_HEALTH_BONUS;
-            case 5 -> TimedEffectType.TOWER_ATTACK_SPEED_BONUS;
-            case 6 -> TimedEffectType.TOWER_DAMAGE_BONUS;
+            case 3 -> TimedEffectType.TOWER_FLAT_RANGE_BONUS;
+            case 4 -> TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND;
+            case 5 -> TimedEffectType.TOWER_FLAT_DAMAGE_BONUS;
+            case 6 -> TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS;
             default -> throw new IllegalArgumentException("Support die must be between 1 and 6: " + face);
         };
     }
@@ -119,10 +119,10 @@ public final class GambleBalance {
         double base = switch (face) {
             case 1 -> global("supportFace1DamageTaken", 0.30);
             case 2 -> global("supportFace2AttackSpeedReduction", 0.15);
-            case 3 -> global("supportFace3RangeBonus", 0.05);
-            case 4 -> global("supportFace4MaxHealthBonus", 0.10);
-            case 5 -> global("supportFace5AttackSpeedBonus", 0.15);
-            case 6 -> global("supportFace6DamageBonus", 0.25);
+            case 3 -> global("supportFace3FlatRangeBonus", 0.50);
+            case 4 -> global("supportFace4HealthRegenPerSecond", 5.0);
+            case 5 -> global("supportFace5FlatDamageBonus", 5.0);
+            case 6 -> global("supportFace6FlatMaxHealthBonus", 50.0);
             default -> throw new IllegalArgumentException("Support die must be between 1 and 6: " + face);
         };
         return face <= 2 ? base : base * Math.max(0.0, positiveMultiplier);

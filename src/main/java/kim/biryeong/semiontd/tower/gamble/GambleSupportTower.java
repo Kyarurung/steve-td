@@ -19,6 +19,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.ProductionTower;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import net.minecraft.core.particles.ParticleTypes;
@@ -187,9 +188,10 @@ public final class GambleSupportTower extends ProductionTower {
     }
 
     private boolean acceptsTarget(Tower target) {
-        return !GambleTowers.isSpectator(type())
+        return target.type().category() != TowerCategory.SUPPORT
+                && (!GambleTowers.isSpectator(type())
                 || target instanceof GamblerTower
-                || target.type().id().equals(GambleTowers.GAMBLER.id());
+                || target.type().id().equals(GambleTowers.GAMBLER.id()));
     }
 
     private void showPersistentVfx(SemionTowerEntity source, PlayerLane lane) {

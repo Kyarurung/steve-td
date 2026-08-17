@@ -416,7 +416,7 @@
 | `rangePerScore` | 0.05 | 점수 1당 사거리 블록 변화 |
 | `splashRadiusPerScore` | 0.025 | 이전 공격 범위 도박 상태 호환용 값이며 신규 도박에서는 사용하지 않음 |
 | `baseSplashRadius`, `splashDamageRatio` | 2.5, 0.60 | 고정 기본 공격 범위와 주변 적 피해 비율 |
-| `twoDiceLoss2`~`twoDiceLoss5` | 80, 60, 40, 28 | 주사위 두 개 실패 점수 절댓값 |
+| `twoDiceLoss2`~`twoDiceLoss5` | 70, 50, 30, 10 | 주사위 두 개 실패 점수 절댓값 |
 | `twoDiceGain6`~`twoDiceGain12` | 20, 40, 50, 60, 75, 90, 100 | 주사위 두 개 성공 점수 |
 | `abilityRewardChance` | 0.25 | 성공 시 미보유 능력으로 바뀔 확률 |
 | `lossInsuranceReduction` | 0.20 | 손실 보험의 음수 고정치 완화율 |
@@ -424,7 +424,9 @@
 | `spreadEveryAttacks` | 4 | 분산 배당 발동 공격 횟수 |
 | `spreadDamageRatio`, `spreadRadius` | 0.50, 3.0 | 분산 배당 피해와 탐색 반경 |
 | `supportVfxIntervalTicks` | 40 | 지원 범위와 대상 연결선 재표시 간격 |
-| `supportFace1...`~`supportFace6...` | 0.30/0.15/0.05/0.10/0.15/0.25 | 지원 눈별 %p 효과 |
+| `supportFace1DamageTaken`, `supportFace2AttackSpeedReduction` | 0.30, 0.15 | 눈 1~2의 받는 피해·공격 속도 약화율 |
+| `supportFace3FlatRangeBonus`, `supportFace4HealthRegenPerSecond` | 0.5, 5 | 눈 3의 고정 사거리와 눈 4의 초당 회복 보너스 |
+| `supportFace5FlatDamageBonus`, `supportFace6FlatMaxHealthBonus` | 5, 50 | 눈 5~6의 고정 공격력·최대 체력 보너스 |
 
 지원 타워 ID별 `minimumRoll`과 `positiveMultiplier`가 구경꾼 티어의 최저 눈과 버프 효과 배율을 정합니다. 각 지원 타워는 라운드마다 한 번만 굴리며, 구경꾼은 도박꾼만 지원합니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
 

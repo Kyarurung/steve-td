@@ -24,6 +24,8 @@ import kim.biryeong.semiontd.tower.Tower;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -32,11 +34,69 @@ public final class GambleGameTest {
     private static final List<TimedEffectType> SUPPORT_EFFECTS = List.of(
             TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS,
             TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION,
-            TimedEffectType.TOWER_RANGE_BONUS,
-            TimedEffectType.TOWER_MAX_HEALTH_BONUS,
-            TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
-            TimedEffectType.TOWER_DAMAGE_BONUS
+            TimedEffectType.TOWER_FLAT_RANGE_BONUS,
+            TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND,
+            TimedEffectType.TOWER_FLAT_DAMAGE_BONUS,
+            TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS
     );
+
+    @GameTest(maxTicks = 80)
+    public void flatSupportStatsAndRegenerationApplyToTheRuntimeTower(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        UUID owner = stableUuid("gamble-flat-support-owner");
+        PlayerLane lane = testLane(context, owner);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(lane);
+        prepareFloor(context);
+        GamblerTower target = gambler(owner, floor(context, 4, 2, 4));
+        ResourceLocation rangeSource = supportTestSource("range");
+        ResourceLocation regenerationSource = supportTestSource("regeneration");
+        ResourceLocation damageSource = supportTestSource("damage");
+        ResourceLocation healthSource = supportTestSource("health");
+        try {
+            lane.addTower(target);
+            SemionTowerEntity entity = entity(lane, target);
+            entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_RANGE_BONUS, rangeSource, 0.5);
+            entity.setPersistentEffect(TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND, regenerationSource, 5.0);
+            entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_DAMAGE_BONUS, damageSource, 5.0);
+            entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS, healthSource, 50.0);
+
+            require(close(entity.attackRange(), 7.0), "A range roll must add exactly 0.5 blocks.");
+            require(close(entity.attackDamageAmount(null), 15.0), "A damage roll must add exactly 5 damage.");
+            require(close(target.currentMaxHealth(), 160.0), "A max-health roll must add exactly 50 health.");
+            target.syncHealth(100.0);
+            entity.setHealth(100.0F);
+
+            context.runAfterDelay(20, () -> {
+                try {
+                    require(target.health() >= 104.75 && target.health() <= 105.25,
+                            "Five health per second must heal about five health over twenty ticks: "
+                                    + target.health());
+                    entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_RANGE_BONUS, rangeSource, 0.0);
+                    entity.setPersistentEffect(TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND, regenerationSource, 0.0);
+                    entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_DAMAGE_BONUS, damageSource, 0.0);
+                    entity.setPersistentEffect(TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS, healthSource, 0.0);
+                    require(close(entity.attackRange(), 6.5), "Removing support must restore base range.");
+                    require(close(entity.attackDamageAmount(null), 10.0), "Removing support must restore base damage.");
+                    require(close(target.currentMaxHealth(), 110.0), "Removing support must restore base max health.");
+                    context.succeed();
+                } catch (Throwable failure) {
+                    context.fail(Component.literal("Gamble flat support GameTest failed: "
+                            + failure.getClass().getName() + ": " + failure.getMessage()));
+                } finally {
+                    group.closeRuntime();
+                    TowerBalanceRuntime.apply(defaults);
+                }
+            });
+        } catch (Throwable failure) {
+            group.closeRuntime();
+            TowerBalanceRuntime.apply(defaults);
+            context.fail(Component.literal("Gamble flat support setup failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        }
+    }
 
     @GameTest(maxTicks = 120)
     public void supportRollsAreOwnerFilteredStackBySourceAndLiveUntilRoundCleanup(GameTestHelper context) {
@@ -61,9 +121,9 @@ public final class GambleGameTest {
             lane.addTower(foreign);
             lane.markWaveStarted(1);
 
-            require(dice.affectedTargets() == 2 && spectator.affectedTargets() == 1,
-                    "Dice must support other owned towers while spectators support only the owned gambler.");
-            require(dice.linkedTargets() == 2 && spectator.linkedTargets() == 1,
+            require(dice.affectedTargets() == 1 && spectator.affectedTargets() == 1,
+                    "Dice must support owned combat towers while spectators support only the owned gambler.");
+            require(dice.linkedTargets() == 1 && spectator.linkedTargets() == 1,
                     "Every affected tower must have a visible connection from its support tower.");
             require(sum(dice.lastRollCounts()) == 1 && sum(spectator.lastRollCounts()) == 1,
                     "Each support tower must roll exactly one face per round, regardless of target count.");
@@ -88,8 +148,8 @@ public final class GambleGameTest {
             require(sourceCount(diceEntity, diceSource) == 0 && sourceCount(spectatorEntity, spectatorSource) == 0,
                     "Support towers must exclude themselves from their own roll.");
             require(sourceCount(diceEntity, spectatorSource) == 0
-                            && sourceCount(spectatorEntity, diceSource) == 1,
-                    "The spectator must never affect a non-gambler, while dice support still affects spectators.");
+                            && sourceCount(spectatorEntity, diceSource) == 0,
+                    "Support towers must never support each other and accidentally gain combat stats.");
             require(sourceCount(foreignEntity, diceSource) == 0 && sourceCount(foreignEntity, spectatorSource) == 0,
                     "A tower with another owner must never receive gamble support.");
 
@@ -217,6 +277,10 @@ public final class GambleGameTest {
 
     private static int sourceCount(SemionTowerEntity entity, net.minecraft.resources.ResourceLocation source) {
         return (int) SUPPORT_EFFECTS.stream().filter(type -> entity.hasTimedEffectSource(type, source)).count();
+    }
+
+    private static ResourceLocation supportTestSource(String path) {
+        return ResourceLocation.fromNamespaceAndPath("semion-td", "gamble/test/" + path);
     }
 
     private static int sum(int[] values) {

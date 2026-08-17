@@ -20,10 +20,10 @@ public final class GambleRoundEffects {
     private static final List<TimedEffectType> EFFECT_TYPES = List.of(
             TimedEffectType.TOWER_DAMAGE_TAKEN_BONUS,
             TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION,
-            TimedEffectType.TOWER_RANGE_BONUS,
-            TimedEffectType.TOWER_MAX_HEALTH_BONUS,
-            TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
-            TimedEffectType.TOWER_DAMAGE_BONUS
+            TimedEffectType.TOWER_FLAT_RANGE_BONUS,
+            TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND,
+            TimedEffectType.TOWER_FLAT_DAMAGE_BONUS,
+            TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS
     );
 
     private GambleRoundEffects() {
