@@ -167,7 +167,9 @@ final class DemonLordTowerCatalogTest {
             assertNotEquals(DemonLordSkill.BLADE_SLOT, binding.hotbarSlot(),
                     binding + " must not take the blade slot");
         }
-        assertEquals(5, slots.size(), "1-4 와 우클릭 슬롯이 실제 핫바를 씁니다");
+        // 일곱 바인딩 모두 핫바에 자리를 갖습니다. 1~4 는 눌러서 쓰고, 나머지 셋은
+        // 쿨타임을 보여 주기만 하는 자리입니다(마검 우클릭 / F / Q).
+        assertEquals(7, slots.size(), "일곱 바인딩 모두 쿨타임을 보여 줄 자리가 있어야 합니다");
         assertEquals(7, DemonLordBinding.values().length);
         assertEquals("1", DemonLordBinding.forIndex(0).label());
         assertEquals("4", DemonLordBinding.forIndex(3).label());
@@ -182,19 +184,23 @@ final class DemonLordTowerCatalogTest {
     }
 
     /**
-     * 우클릭 슬롯만 손에 들 수 있어야 합니다. 나머지 핫바 바인딩은 고르는 순간 나가므로
-     * castOnSelect 가 켜져 있어야 하고, 우클릭 슬롯은 반대로 꺼져 있어야 조준이 됩니다.
+     * 숫자 키 넷만 고르는 즉시 나갑니다.
+     *
+     * <p>나머지 셋(마검 우클릭·F·Q)은 다른 입력으로 쓰므로 자리는 쿨타임 표시 전용이고,
+     * 집어 들어도 발동하면 안 됩니다. 쿨다운은 아이템 위에만 그려져서 자리가 없으면
+     * 남은 시간을 알 방법이 아예 없습니다.
      */
     @Test
-    void onlyTheRightClickBindingIsHoldable() {
+    void onlyTheNumberKeysCastOnSelect() {
+        Set<DemonLordBinding> displayOnly = Set.of(
+                DemonLordBinding.RIGHT_CLICK, DemonLordBinding.OFFHAND, DemonLordBinding.DROP);
         for (DemonLordBinding binding : DemonLordBinding.values()) {
-            if (binding == DemonLordBinding.RIGHT_CLICK) {
-                assertFalse(binding.castOnSelect(), "우클릭 슬롯은 선택만으로 나가면 안 됩니다");
-                assertTrue(binding.isHotbarSlot(), "우클릭 슬롯은 손에 들 수 있어야 합니다");
-                continue;
+            assertTrue(binding.isHotbarSlot(), binding + " 는 쿨타임을 보여 줄 자리가 필요합니다");
+            if (displayOnly.contains(binding)) {
+                assertFalse(binding.castOnSelect(), binding + " 는 고르는 것만으로 나가면 안 됩니다");
+            } else {
+                assertTrue(binding.castOnSelect(), binding + " 는 고르는 즉시 나가야 합니다");
             }
-            assertEquals(binding.isHotbarSlot(), binding.castOnSelect(),
-                    binding + ": 핫바 바인딩은 선택 즉시 발동해야 합니다");
         }
     }
 
@@ -578,6 +584,8 @@ final class DemonLordTowerCatalogTest {
                 "고르는 것만으로 나가면 조준할 수 없습니다");
         assertTrue(DemonLordBinding.RIGHT_CLICK.isHotbarSlot(),
                 "쿨타임을 보여 주려면 핫바에 자리가 있어야 합니다");
+        assertTrue(DemonLordBinding.OFFHAND.isHotbarSlot() && DemonLordBinding.DROP.isHotbarSlot(),
+                "F 와 Q 도 쿨타임을 볼 자리가 있어야 합니다");
         assertNotEquals(DemonLordSkill.BLADE_SLOT, DemonLordBinding.RIGHT_CLICK.hotbarSlot(),
                 "표시 슬롯과 마검 자리는 달라야 합니다");
         assertTrue(DemonLordBinding.RIGHT_CLICK.label().contains("우클릭"),

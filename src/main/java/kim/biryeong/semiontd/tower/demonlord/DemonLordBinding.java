@@ -22,9 +22,13 @@ public enum DemonLordBinding {
      * for a skill you want to aim carefully instead of the instant number-key cast.
      */
     RIGHT_CLICK(4, "마검 우클릭", false),
-    // -1 rather than NO_SLOT: an enum constant cannot forward-reference a static field.
-    OFFHAND(-1, "F", false),
-    DROP(-1, "Q", false);
+    /**
+     * F 와 Q 는 핫바를 눌러 쓰는 키가 아니지만, 아이템이 없으면 쿨타임을 볼 방법이 없습니다.
+     * 쿨다운 표시는 아이템 위에만 그려지기 때문입니다. 그래서 보여 주기용 자리를 줍니다 -
+     * 집어 들어도 시전되지 않고 마검으로 되돌아갑니다.
+     */
+    OFFHAND(5, "F", false),
+    DROP(6, "Q", false);
 
     /** Bindings that are not a hotbar slot use this sentinel. */
     public static final int NO_SLOT = -1;
