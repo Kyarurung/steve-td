@@ -202,6 +202,8 @@ public final class PlayerLane {
     }
 
     public void resetForRound() {
+        // markWaveStarted 의 짝: 여기서 전투를 풀지 않으면 준비 단계까지 스킬 핫바가 유지됩니다.
+        DemonLordService.endRound(ownerPlayer);
         clearTranscendence();
         clearedThisRound = false;
         leakedThisRound = false;

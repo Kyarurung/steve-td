@@ -391,6 +391,25 @@ public final class DemonLordState {
         loadoutDirty = true;
     }
 
+    /**
+     * Called when the round ends with the demon lord still standing.
+     *
+     * <p>Combat has to end somewhere. Without this the flag survives the wave and the next prepare
+     * phase inherits the skill hotbar, which leaves no way to reach the shop.
+     *
+     * <p>Not {@link #leaveCombat()}: the pool never emptied, so health stays where the wave left it
+     * and the boss bar reads 대기 instead of 전투 제외. The next wave refills it anyway.
+     */
+    public void standDown() {
+        if (!inCombat) {
+            return;
+        }
+        inCombat = false;
+        clearShield();
+        clearPendingSkills();
+        loadoutDirty = true;
+    }
+
     // ------------------------------------------------------------- cooldowns
 
     public boolean isSkillReady(DemonLordSkill skill, long gameTime) {

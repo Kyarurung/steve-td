@@ -329,6 +329,20 @@ public final class DemonLordService {
         }
     }
 
+    /**
+     * 라운드가 끝나면 전투를 해제합니다.
+     *
+     * <p>{@link #beginWave}의 짝입니다. 이게 없으면 전투 플래그가 웨이브를 넘어 살아남아 다음
+     * 준비 단계까지 스킬 핫바가 유지되고, 상점을 열 수 없습니다. 체력이 남아 있었다면 그대로
+     * 두고 [대기]로만 표시합니다.
+     */
+    public static void endRound(UUID playerId) {
+        DemonLordState state = DemonLordStates.get(playerId);
+        if (state != null) {
+            state.standDown();
+        }
+    }
+
     public static void clearPlayerState(UUID playerId) {
         clearBossBar(playerId);
         DemonLordStates.clear(playerId);
@@ -430,10 +444,13 @@ public final class DemonLordService {
             bar.setColor(BossEvent.BossBarColor.RED);
             bar.setProgress((float) state.healthRatio());
         } else {
-            bar.setName(Component.literal("마왕 Lv." + state.level() + "  [전투 제외]")
-                    .withStyle(ChatFormatting.DARK_GRAY));
+            // 체력이 남아 있으면 웨이브를 버티고 내려온 것이고, 0이면 실제로 쓰러진 것입니다.
+            boolean knockedOut = state.health() <= 0.0;
+            bar.setName(Component.literal(
+                            "마왕 Lv." + state.level() + (knockedOut ? "  [전투 제외]" : "  [대기]"))
+                    .withStyle(knockedOut ? ChatFormatting.DARK_GRAY : ChatFormatting.GRAY));
             bar.setColor(BossEvent.BossBarColor.WHITE);
-            bar.setProgress(0.0f);
+            bar.setProgress(knockedOut ? 0.0f : (float) state.healthRatio());
         }
     }
 

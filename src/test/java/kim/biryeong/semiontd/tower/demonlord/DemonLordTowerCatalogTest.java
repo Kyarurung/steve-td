@@ -358,6 +358,31 @@ final class DemonLordTowerCatalogTest {
         assertFalse(state.consumePendingSpawn(), "The teleport request is one-shot");
     }
 
+    /**
+     * 웨이브를 살아서 끝낸 마왕은 쓰러진 것이 아닙니다.
+     *
+     * <p>라운드 끝에 전투를 풀지 않으면 다음 준비 단계까지 스킬 핫바가 남아 상점을 못 엽니다.
+     * 그렇다고 {@code leaveCombat} 으로 풀면 체력이 0이 되어 쓰러진 것처럼 보입니다.
+     */
+    @Test
+    void standingDownEndsCombatWithoutEmptyingThePool() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.enterCombat();
+        state.applyDamage(state.maxHealth() * 0.25);
+        double survived = state.health();
+        assertTrue(survived > 0.0);
+
+        state.standDown();
+        assertFalse(state.inCombat(), "라운드가 끝나면 전투가 풀려야 준비 단계에서 상점을 엽니다");
+        assertEquals(survived, state.health(), EPSILON, "살아서 내려온 체력은 그대로 둡니다");
+        assertTrue(state.loadoutDirty(), "핫바를 비전투 구성으로 다시 깔아야 합니다");
+
+        // 다음 웨이브에는 다시 만피로 들어갑니다.
+        state.enterCombat();
+        assertTrue(state.inCombat());
+        assertEquals(state.maxHealth(), state.health(), EPSILON);
+    }
+
     @Test
     void balanceConfigCarriesEverySkillNumber() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
