@@ -26,6 +26,13 @@ public enum GambleSupportStat {
         return displayName;
     }
 
+    public String displayName(boolean positive) {
+        if (this == REGENERATION) {
+            return positive ? "초당 체력 회복" : "초당 체력 감소";
+        }
+        return displayName;
+    }
+
     public TimedEffectType effectType(boolean positive) {
         return positive ? positiveType : negativeType;
     }

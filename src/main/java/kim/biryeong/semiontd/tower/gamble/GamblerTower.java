@@ -212,7 +212,7 @@ public final class GamblerTower extends ProductionTower {
                 : GambleRolls.oddEvenDelta(bet, first);
         GambleState before = state();
         double healthRatio = health() / Math.max(1.0, currentMaxHealth());
-        String roll = bet == GambleBet.TWO_DICE ? first + "+" + second : Integer.toString(first);
+        String roll = GambleRolls.formatResultRoll(bet, first, second);
         GambleState after;
         if (GambleRewards.awardsAbility(before, score, source.getRandom().nextDouble())) {
             GambleAbility ability = GambleRewards.chooseMissing(

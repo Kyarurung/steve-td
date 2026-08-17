@@ -67,6 +67,16 @@ final class GambleTowerTest {
     }
 
     @Test
+    void twoDiceResultTextCallsOutDoublesOnlyForMatchingFaces() {
+        assertEquals("6+6=12 더블!", GambleRolls.formatResultRoll(GambleBet.TWO_DICE, 6, 6));
+        assertEquals("2+5=7", GambleRolls.formatResultRoll(GambleBet.TWO_DICE, 2, 5));
+        assertEquals("3", GambleRolls.formatResultRoll(GambleBet.ODD, 3, 0));
+        assertEquals("4", GambleRolls.formatResultRoll(GambleBet.EVEN, 4, 0));
+        assertThrows(IllegalArgumentException.class,
+                () -> GambleRolls.formatResultRoll(GambleBet.TWO_DICE, 1, 0));
+    }
+
+    @Test
     void twoDiceTotalsTenAndAboveRewardTwoDistinctStatsInOneBet() {
         for (int first = 1; first <= 6; first++) {
             for (int second = 1; second <= 6; second++) {
@@ -173,8 +183,22 @@ final class GambleTowerTest {
         assertFalse(GambleAbility.LOSS_INSURANCE.description().contains("홀수·짝수"));
         assertFalse(GambleAbility.LOSS_INSURANCE.description().contains("주사위 두 개"));
         assertTrue(GambleTowers.GAMBLER.description().stream().anyMatch(line -> line.contains("손실 보험")));
+        assertTrue(GambleTowers.GAMBLER.description().stream().anyMatch(
+                line -> line.contains("능력치 상승 대신 손실 보험")));
         assertFalse(GambleTowers.GAMBLER.description().stream().anyMatch(line -> line.contains("모든 도박")));
         assertFalse(GambleTowers.DICE_T3.description().stream().anyMatch(line -> line.contains("효과 배율")));
+        assertTrue(GambleTowers.DICE_T2.description().stream().anyMatch(
+                line -> line.contains("2배") && line.contains("약화 수치는 증가하지")));
+        assertTrue(GambleTowers.DICE_T3.description().stream().anyMatch(
+                line -> line.contains("3.5배") && line.contains("약화 수치는 증가하지")));
+        assertTrue(GambleTowers.SPECTATOR_T1.description().stream().anyMatch(
+                line -> line.contains("도박꾼 하나") && line.contains("최대")));
+        assertTrue(GambleTowers.SPECTATOR_T3.description().stream().anyMatch(
+                line -> line.contains("3.5배") && line.contains("약화 수치는 증가하지")));
+        assertEquals("초당 체력 회복 +2.5", new GambleSupportEffect(
+                GambleSupportStat.REGENERATION, true, 2.5).displayLine());
+        assertEquals("초당 체력 감소 -1", new GambleSupportEffect(
+                GambleSupportStat.REGENERATION, false, 1.0).displayLine());
 
         GamblerTower gambler = new GamblerTower(GambleTowers.GAMBLER, OWNER, TeamId.RED, 1,
                 new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));

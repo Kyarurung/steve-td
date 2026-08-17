@@ -25,6 +25,18 @@ public final class GambleRolls {
         return first + second >= GambleBalance.twoDiceCompoundMinSum() ? 2 : 1;
     }
 
+    static String formatResultRoll(GambleBet bet, int first, int second) {
+        requireDie(first);
+        if (bet == GambleBet.TWO_DICE) {
+            requireDie(second);
+            return first + "+" + second + "=" + (first + second) + (first == second ? " 더블!" : "");
+        }
+        if (bet == GambleBet.ODD || bet == GambleBet.EVEN) {
+            return Integer.toString(first);
+        }
+        throw new IllegalArgumentException("Result roll requires a gamble bet.");
+    }
+
     public static double defaultTwoDiceDelta(int first, int second) {
         requireDie(first);
         requireDie(second);

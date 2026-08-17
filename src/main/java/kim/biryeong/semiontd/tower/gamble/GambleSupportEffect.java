@@ -15,7 +15,7 @@ public record GambleSupportEffect(GambleSupportStat stat, boolean positive, doub
     }
 
     public String displayLine() {
-        return stat.displayName() + " " + (positive ? "+" : "-") + number(magnitude);
+        return stat.displayName(positive) + " " + (positive ? "+" : "-") + number(magnitude);
     }
 
     private static String number(double value) {
