@@ -53,15 +53,14 @@ public final class DemonLordTowerJob extends SemionJob {
     }
 
     /**
-     * Every round hands the demon lord a fresh pool, which is also how a player who was knocked out
-     * last round comes back: {@code enterCombat} refills health and clears cooldowns.
+     * 라운드 시작은 준비 단계입니다. 여기서는 상태만 있는지 확인하고 전투로는 넣지 않습니다.
+     *
+     * <p>전투 진입은 웨이브가 실제로 시작될 때({@code PlayerLane#markWaveStarted})입니다.
+     * 준비 단계에 전투로 들어가면 핫바가 스킬로 덮여 타워를 살 수 없습니다.
      */
     @Override
     public void onRoundStarted(JobContext context, int round) {
-        DemonLordState state = DemonLordStates.getOrCreate(context.player().uuid());
-        if (state != null) {
-            state.enterCombat();
-        }
+        DemonLordStates.getOrCreate(context.player().uuid());
     }
 
     /**

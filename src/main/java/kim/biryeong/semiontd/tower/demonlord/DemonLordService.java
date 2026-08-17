@@ -314,6 +314,21 @@ public final class DemonLordService {
         clearPlayerState(player.getUUID());
     }
 
+    /**
+     * 웨이브가 시작될 때 마왕을 전투 상태로 넣습니다.
+     *
+     * <p>준비 단계가 아니라 여기인 것이 중요합니다. 준비 단계에 전투로 들어가면 핫바가 스킬로
+     * 덮여 타워를 살 수 없고, 8번으로 스스로 물러난 뒤에는 웨이브가 시작돼도 복귀할 방법이
+     * 없어 레인이 그대로 뚫립니다. 웨이브마다 다시 들어오므로 물러남의 대가는 그 웨이브 하나로
+     * 끝납니다.
+     */
+    public static void beginWave(UUID playerId) {
+        DemonLordState state = DemonLordStates.get(playerId);
+        if (state != null) {
+            state.enterCombat();
+        }
+    }
+
     public static void clearPlayerState(UUID playerId) {
         clearBossBar(playerId);
         DemonLordStates.clear(playerId);

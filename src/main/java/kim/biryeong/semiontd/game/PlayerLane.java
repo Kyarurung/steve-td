@@ -357,6 +357,9 @@ public final class PlayerLane {
         applyRoundTraitEffects();
         applyOpeningAttackSpeed();
         ResonanceService.captureWaveStart(this);
+        // 마왕은 여기서 전투 상태가 됩니다. 라운드 시작(준비 단계)에 걸면 상점을 열 수 없는
+        // 채로 준비 시간을 보내게 되고, 스스로 물러난 뒤 웨이브가 시작돼도 복귀하지 못합니다.
+        DemonLordService.beginWave(ownerPlayer);
     }
 
     public void addDefenderEntity(DefenderEntity defenderEntity) {
