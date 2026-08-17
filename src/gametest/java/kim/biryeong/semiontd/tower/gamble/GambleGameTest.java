@@ -78,13 +78,11 @@ public final class GambleGameTest {
             SemionTowerEntity foreignEntity = entity(lane, foreign);
             require(close(diceEntity.attackRange(), 0.0) && close(spectatorEntity.attackRange(), 0.0),
                     "Support entities must have no combat range and therefore never attack.");
-            require(diceEntity.getPassengers().stream().anyMatch(passenger ->
-                            passenger.getCustomName() != null && passenger.getCustomName().getString().matches("\\[\\d]"))
-                            && spectatorEntity.getPassengers().stream().anyMatch(passenger ->
-                            passenger.getCustomName() != null && passenger.getCustomName().getString().matches("\\[\\d]")),
+            require(GambleRollLabels.hasVisibleLabel(lane, owner, dice)
+                            && GambleRollLabels.hasVisibleLabel(lane, owner, spectator),
                     "Each support tower must display its round face above itself.");
             require(GambleRollLabels.count(lane, owner) == 2,
-                    "The lane must keep one combined face label for each support tower.");
+                    "The lane must keep one face label for each support tower.");
             require(sourceCount(targetEntity, diceSource) == 1 && sourceCount(targetEntity, spectatorSource) == 1,
                     "The target must retain one independently sourced result from each support.");
             require(sourceCount(diceEntity, diceSource) == 0 && sourceCount(spectatorEntity, spectatorSource) == 0,
@@ -258,6 +256,6 @@ public final class GambleGameTest {
     }
 
     private static void require(boolean condition, String message) {
-        if (!condition) throw new AssertionError(message);
+        if (!condition) throw new IllegalStateException(message);
     }
 }

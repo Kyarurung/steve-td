@@ -38,9 +38,8 @@ final class GambleRollLabels {
         label.faces.put(sourceId, face);
         if (label.visual == null || label.visual.isRemoved()) {
             label.visual = create(level, targetEntity);
-        } else if (label.visual.getVehicle() != targetEntity) {
-            label.visual.stopRiding();
-            label.visual.startRiding(targetEntity, true);
+        } else {
+            moveAbove(label.visual, targetEntity);
         }
         if (label.visual != null) {
             label.visual.setCustomName(component(label.faces));
@@ -88,6 +87,29 @@ final class GambleRollLabels {
         return LABELS.getOrDefault(lane, Map.of()).getOrDefault(owner, Map.of()).size();
     }
 
+    static synchronized void sync(PlayerLane lane, UUID owner, Tower target) {
+        Label label = LABELS.getOrDefault(lane, Map.of())
+                .getOrDefault(owner, Map.of())
+                .get(target);
+        if (label == null || label.visual == null || label.visual.isRemoved()) {
+            return;
+        }
+        GambleRoundEffects.towerEntity(target, lane)
+                .ifPresent(entity -> moveAbove(label.visual, entity));
+    }
+
+    static synchronized boolean hasVisibleLabel(PlayerLane lane, UUID owner, Tower target) {
+        Label label = LABELS.getOrDefault(lane, Map.of())
+                .getOrDefault(owner, Map.of())
+                .get(target);
+        return label != null
+                && label.visual != null
+                && !label.visual.isRemoved()
+                && label.visual.isCustomNameVisible()
+                && label.visual.getCustomName() != null
+                && label.visual.getCustomName().getString().matches("\\[\\d]");
+    }
+
     private static ArmorStand create(ServerLevel level, SemionTowerEntity target) {
         ArmorStand visual = new ArmorStand(level, target.getX(), target.getY(), target.getZ());
         visual.setInvisible(true);
@@ -102,8 +124,12 @@ final class GambleRollLabels {
         if (!level.addFreshEntity(visual)) {
             return null;
         }
-        visual.startRiding(target, true);
+        moveAbove(visual, target);
         return visual;
+    }
+
+    private static void moveAbove(ArmorStand visual, SemionTowerEntity target) {
+        visual.teleportTo(target.getX(), target.getY(), target.getZ());
     }
 
     private static Component component(Map<ResourceLocation, Integer> faces) {

@@ -72,6 +72,7 @@ public final class GambleSupportTower extends ProductionTower {
     @Override
     public void tick(PlayerLane lane) {
         super.tick(lane);
+        GambleRollLabels.sync(lane, ownerPlayer(), this);
         if (isDestroyed(lane) || --rangeVfxTicks > 0) {
             return;
         }

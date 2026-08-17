@@ -681,7 +681,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
     }
 
     public boolean hasTimedEffectSource(TimedEffectType type, ResourceLocation sourceId) {
-        return timedEffects.hasSource(type, sourceId);
+        return timedEffects.hasSource(type, sourceId) || timedEffects.hasPersistent(type, sourceId);
     }
 
     public boolean hasPersistentEffect(TimedEffectType type) {
