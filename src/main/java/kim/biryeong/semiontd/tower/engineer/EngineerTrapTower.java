@@ -43,6 +43,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.DoorBlock;
@@ -92,6 +93,17 @@ public final class EngineerTrapTower extends EntityBackedTower {
     @Override
     public boolean targetableByMonsters() {
         return kind == EngineerTowers.TrapKind.DOOR && waveActive && activeTicks > 0 && health() > 0.0;
+    }
+
+    @Override
+    public double modifyIncomingDamage(
+            SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount
+    ) {
+        double damage = super.modifyIncomingDamage(towerEntity, damageSource, damageAmount);
+        if (kind != EngineerTowers.TrapKind.DOOR || !waveActive || activeTicks <= 0) {
+            return damage;
+        }
+        return damage * (1.0 - EngineerBalance.doorDamageReduction(pressCount()));
     }
 
     @Override
@@ -234,8 +246,19 @@ public final class EngineerTrapTower extends EntityBackedTower {
                 + " 잔여시간</yellow> <white>"
                 + String.format(java.util.Locale.ROOT, "%.1f초", activeTicks / 20.0) + "</white>");
         lines.add("<red>재무장</red> <white>" + (armed ? "완료" : "신호 해제 필요") + "</white>");
+        int presses = pressCount();
+        lines.add("<yellow>이번 매치 발판 작동</yellow> <white>" + presses + "회</white>");
+        if (kind == EngineerTowers.TrapKind.DOOR) {
+            lines.add("<green>누적 피해 감소</green> <white>"
+                    + precisePercent(EngineerBalance.doorDamageReduction(presses)) + " / "
+                    + precisePercent(EngineerBalance.doorDamageReductionCap()) + "</white>");
+        }
         if (kind == EngineerTowers.TrapKind.TNT) {
             lines.add("<red>라운드 폭발</red> <white>" + (tntUsed ? "사용함" : "준비됨") + "</white>");
+            int extraTargets = EngineerBalance.tntExtraTargets(presses);
+            lines.add("<green>누적 추가 대상</green> <white>+" + extraTargets + "/"
+                    + EngineerBalance.tntExtraTargetCap() + "기 · 현재 최대 "
+                    + ((long) intAbility("maxTargets", tntMaxTargets(tier)) + extraTargets) + "기</white>");
             if (fuseTicks >= 0) {
                 lines.add("<yellow>점화 잔여시간</yellow> <white>"
                         + String.format(java.util.Locale.ROOT, "%.1f초", fuseTicks / 20.0) + "</white>");
@@ -258,12 +281,26 @@ public final class EngineerTrapTower extends EntityBackedTower {
             lines.add("<gold>거리 피해 보너스</gold> <green>+"
                     + Math.round((EngineerBalance.dispenserDamageMultiplier(activationPlateDistance) - 1.0) * 100.0)
                     + "%</green>");
+            lines.add("<green>누적 피해 보너스</green> <white>+"
+                    + Math.round((EngineerBalance.dispenserPressDamageMultiplier(presses) - 1.0) * 100.0)
+                    + "%/" + Math.round(EngineerBalance.dispenserDamageBonusCap() * 100.0) + "%</white>");
         }
         if (kind == EngineerTowers.TrapKind.PISTON) {
+            int extraTargets = EngineerBalance.pistonExtraTargets(presses);
+            lines.add("<green>누적 추가 대상</green> <white>+" + extraTargets + "/"
+                    + EngineerBalance.pistonExtraTargetCap() + "기 · 현재 최대 "
+                    + ((long) intAbility("maxTargets", pistonMaxTargets(tier)) + extraTargets) + "기</white>");
             lines.add("<aqua>설치 제한</aqua> <white>플레이어당 " + EngineerBalance.maxPistons() + "기</white>");
             lines.add("<yellow>대상 면역</yellow> <white>"
                     + String.format(java.util.Locale.ROOT, "%.1f초", EngineerBalance.pistonImmunityTicks() / 20.0)
                     + "</white>");
+        }
+        if (kind == EngineerTowers.TrapKind.SLIME) {
+            double baseSlow = ability("slow", slimeSlow(tier));
+            double slow = EngineerBalance.slimeSlow(baseSlow, presses);
+            lines.add("<green>누적 둔화 보너스</green> <white>+" + precisePercent(slow - baseSlow)
+                    + "p · 현재 " + precisePercent(slow) + " / "
+                    + precisePercent(EngineerBalance.slimeSlowCap()) + "</white>");
         }
         return List.copyOf(lines);
     }
@@ -330,7 +367,8 @@ public final class EngineerTrapTower extends EntityBackedTower {
                 .ifPresent(target -> {
                     double damage = ability("damage", dispenserDamage(tier))
                             * EngineerBalance.dispenserDamageMultiplier(activationPlateDistance)
-                            * EngineerBalance.plateDamageMultiplier(activationPlateKind);
+                            * EngineerBalance.plateDamageMultiplier(activationPlateKind)
+                            * EngineerBalance.dispenserPressDamageMultiplier(pressCount());
                     DamageResult result = damageTargetResult(source, target, damage, DamageType.PHYSICAL);
                     TowerVfxService.showSecondaryAttack(source, target);
                     if (result.killed()) {
@@ -341,7 +379,7 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     private void tickSlime(SemionTowerEntity source, boolean showVfx) {
         double radius = ability("radius", slimeRadius(tier));
-        double slow = ability("slow", slimeSlow(tier));
+        double slow = EngineerBalance.slimeSlow(ability("slow", slimeSlow(tier)), pressCount());
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "slime"), source, radius,
                 showVfx ? AreaVfxSpec.onTrigger(AreaVfxStyles.DEBUFF) : AreaVfxSpec.none()
@@ -354,7 +392,8 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     private void explodeTnt(PlayerLane lane, SemionTowerEntity source) {
         double radius = ability("radius", tntRadius(tier));
-        int cap = intAbility("maxTargets", tntMaxTargets(tier));
+        long cap = (long) intAbility("maxTargets", tntMaxTargets(tier))
+                + EngineerBalance.tntExtraTargets(pressCount());
         List<SemionMonsterEntity> selected = liveMonsters(lane).stream()
                 .filter(target -> target.position().distanceToSqr(source.position()) <= radius * radius)
                 .sorted(Comparator.comparingDouble(target -> target.position().distanceToSqr(source.position())))
@@ -376,7 +415,8 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     private void firePiston(PlayerLane lane, SemionTowerEntity source) {
         double radius = ability("radius", pistonRadius(tier));
-        int cap = intAbility("maxTargets", pistonMaxTargets(tier));
+        long cap = (long) intAbility("maxTargets", pistonMaxTargets(tier))
+                + EngineerBalance.pistonExtraTargets(pressCount());
         long now = lane.arenaWorld().getGameTime();
         Vec3 start = lane.laneLayout().positionAt(0.0);
         liveMonsters(lane).stream()
@@ -612,6 +652,14 @@ public final class EngineerTrapTower extends EntityBackedTower {
 
     int activationPlateDistance() {
         return activationPlateDistance;
+    }
+
+    private int pressCount() {
+        return EngineerPressStates.count(ownerPlayer());
+    }
+
+    private static String precisePercent(double ratio) {
+        return String.format(java.util.Locale.ROOT, "%.2f%%", ratio * 100.0);
     }
 
     private EngineerTowers.PlateKind damagePlateKind() {

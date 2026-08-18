@@ -56,6 +56,7 @@ final class EngineerTowerCatalogTest {
 
     @AfterEach
     void resetCatalog() {
+        EngineerPressStates.clear(OWNER);
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
     }
 
@@ -128,6 +129,20 @@ final class EngineerTowerCatalogTest {
         assertEquals(0.10, defaults.ability(
                 EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", -1), 0.0001);
         assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
+        assertEquals(0.01, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "dispenserDamageBonusPerGolemPress", -1), 0.0001);
+        assertEquals(2.0, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "dispenserDamageBonusCap", -1), 0.0001);
+        assertEquals(0.0005, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "doorDamageReductionPerGolemPress", -1), 0.0001);
+        assertEquals(0.40, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "doorDamageReductionCap", -1), 0.0001);
+        assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "golemPressesPerExtraTarget", -1));
+        assertEquals(20, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "tntExtraTargetCap", -1));
+        assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "pistonExtraTargetCap", -1));
+        assertEquals(0.0005, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "slimeSlowPerGolemPress", -1), 0.0001);
+        assertEquals(0.80, defaults.ability(EngineerBalance.GLOBAL_ID, "slimeSlowCap", -1), 0.0001);
         assertEquals(0, defaults.abilityInt(EngineerTowers.REDSTONE_DUST.id(), TowerCapacity.CONFIG_KEY, -1));
         assertEquals(20, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
         assertEquals(10, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "tntFuseVfxIntervalTicks", -1));
@@ -164,17 +179,106 @@ final class EngineerTowerCatalogTest {
         assertEquals(10, merged.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
         assertEquals(0.10, merged.ability(
                 EngineerBalance.GLOBAL_ID, "plateDamageBonusPerTier", -1), 0.0001);
+        assertEquals(0.01, merged.ability(
+                EngineerBalance.GLOBAL_ID, "dispenserDamageBonusPerGolemPress", -1), 0.0001);
+        assertEquals(20, merged.abilityInt(EngineerBalance.GLOBAL_ID, "tntExtraTargetCap", -1));
+        assertEquals(0.80, merged.ability(EngineerBalance.GLOBAL_ID, "slimeSlowCap", -1), 0.0001);
         assertEquals(20, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
+
+        for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
+            TowerType resolved = TowerBalanceRuntime.resolve(EngineerTowers.trap(kind, 3));
+            assertTrue(resolved.description().stream().noneMatch(line -> line.contains("{ability.")));
+        }
 
         for (EngineerTowers.TrapKind kind : List.of(
                 EngineerTowers.TrapKind.TNT,
                 EngineerTowers.TrapKind.DISPENSER
         )) {
             TowerType resolved = TowerBalanceRuntime.resolve(EngineerTowers.trap(kind, 3));
-            assertTrue(resolved.description().stream().noneMatch(line -> line.contains("{ability.")));
             assertTrue(resolved.description().stream().anyMatch(line -> line.contains("10%")));
         }
 
+    }
+
+    @Test
+    void golemPressBonusesRespectBoundariesCapsAndExistingMultipliers() {
+        assertEquals(1.0, EngineerBalance.dispenserPressDamageMultiplier(0), 0.0001);
+        assertEquals(1.09, EngineerBalance.dispenserPressDamageMultiplier(9), 0.0001);
+        assertEquals(1.10, EngineerBalance.dispenserPressDamageMultiplier(10), 0.0001);
+        assertEquals(2.0, EngineerBalance.dispenserPressDamageMultiplier(100), 0.0001);
+        assertEquals(3.0, EngineerBalance.dispenserPressDamageMultiplier(200), 0.0001);
+        assertEquals(3.0, EngineerBalance.dispenserPressDamageMultiplier(800), 0.0001);
+
+        assertEquals(0.0, EngineerBalance.doorDamageReduction(0), 0.0001);
+        assertEquals(0.05, EngineerBalance.doorDamageReduction(100), 0.0001);
+        assertEquals(0.25, EngineerBalance.doorDamageReduction(500), 0.0001);
+        assertEquals(0.40, EngineerBalance.doorDamageReduction(800), 0.0001);
+        assertEquals(0, EngineerBalance.tntExtraTargets(9));
+        assertEquals(1, EngineerBalance.tntExtraTargets(10));
+        assertEquals(10, EngineerBalance.tntExtraTargets(100));
+        assertEquals(20, EngineerBalance.tntExtraTargets(200));
+        assertEquals(20, EngineerBalance.tntExtraTargets(800));
+        assertEquals(0, EngineerBalance.pistonExtraTargets(9));
+        assertEquals(1, EngineerBalance.pistonExtraTargets(10));
+        assertEquals(10, EngineerBalance.pistonExtraTargets(100));
+        assertEquals(10, EngineerBalance.pistonExtraTargets(800));
+        assertEquals(0.55, EngineerBalance.slimeSlow(0.55, 0), 0.0001);
+        assertEquals(0.555, EngineerBalance.slimeSlow(0.55, 10), 0.0001);
+        assertEquals(0.80, EngineerBalance.slimeSlow(0.55, 500), 0.0001);
+        assertEquals(0.80, EngineerBalance.slimeSlow(0.55, 800), 0.0001);
+
+        double composed = EngineerTrapTower.dispenserDamage(3)
+                * EngineerBalance.dispenserDamageMultiplier(10)
+                * EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.GOLD)
+                * EngineerBalance.dispenserPressDamageMultiplier(200);
+        assertEquals(351.0, composed, 0.0001);
+    }
+
+    @Test
+    void pressStateIsPlayerScopedAndRuntimeReloadUsesTheExistingCount() {
+        UUID other = UUID.nameUUIDFromBytes("other-engineer".getBytes(StandardCharsets.UTF_8));
+        for (int index = 0; index < 10; index++) {
+            EngineerPressStates.recordPress(OWNER);
+        }
+        EngineerPressStates.recordPress(other);
+        assertEquals(10, EngineerPressStates.count(OWNER));
+        assertEquals(1, EngineerPressStates.count(other));
+
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(EngineerBalance.GLOBAL_ID));
+        global.put("dispenserDamageBonusPerGolemPress", 0.02);
+        global.put("golemPressesPerExtraTarget", 5.0);
+        abilities.put(EngineerBalance.GLOBAL_ID, global);
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
+        ));
+
+        assertEquals(10, EngineerPressStates.count(OWNER));
+        assertEquals(1.20, EngineerBalance.dispenserPressDamageMultiplier(EngineerPressStates.count(OWNER)), 0.0001);
+        assertEquals(2, EngineerBalance.tntExtraTargets(EngineerPressStates.count(OWNER)));
+        EngineerPressStates.clear(other);
+    }
+
+    @Test
+    void matchLifecycleClearsPressState() {
+        EconomyConfig economy = EconomyConfig.defaultConfig();
+        SemionGame game = new SemionGame(economy, WaveConfig.defaultConfig(), new GameArena(Map.of()));
+        SemionPlayer player = new SemionPlayer(OWNER, "engineer", TeamId.RED, 1, new PlayerEconomy(economy));
+        game.players().put(OWNER, player);
+        EngineerTowerJob job = new EngineerTowerJob();
+        JobContext context = new JobContext(game, player);
+
+        EngineerPressStates.recordPress(OWNER);
+        job.onMatchStarted(context);
+        assertEquals(0, EngineerPressStates.count(OWNER));
+        EngineerPressStates.recordPress(OWNER);
+        job.onEliminated(context);
+        assertEquals(0, EngineerPressStates.count(OWNER));
+        EngineerPressStates.recordPress(OWNER);
+        game.close();
+        assertEquals(0, EngineerPressStates.count(OWNER));
     }
 
     @Test
@@ -222,6 +326,16 @@ final class EngineerTowerCatalogTest {
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 0.0);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 2.5);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", 2.5);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserDamageBonusPerGolemPress", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorDamageReductionPerGolemPress", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorDamageReductionCap", 1.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "golemPressesPerExtraTarget", 0.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "golemPressesPerExtraTarget", 2.5);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "tntExtraTargetCap", 2.5);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "pistonExtraTargetCap", -1.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "slimeSlowPerGolemPress", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "slimeSlowCap", 1.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "slimeSlowCap", 0.50);
         assertInvalidAbility(defaults, EngineerTowers.REDSTONE_DUST.id(), TowerCapacity.CONFIG_KEY, 0.5);
         assertInvalidAbility(defaults,
                 EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 2).id(), "intervalTicks", 20.0);

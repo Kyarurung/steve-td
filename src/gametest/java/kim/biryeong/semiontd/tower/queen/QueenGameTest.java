@@ -376,16 +376,28 @@ public final class QueenGameTest {
                     * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR));
             requireClose(pairHealth, firstCard.currentMaxHealth(),
                     "Poker hands must increase card maximum health.");
+            requireClose((QueenTowers.QUEEN.maxHealth() + QueenBalance.queenMaxHealthPerRound())
+                            * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR)), queen.currentMaxHealth(),
+                    "A completed hand must add its bonus to the Queen's maximum health once per wave.");
             require(firstCard.adjustAttackInterval(999) == 19,
                     "One pair must improve the Heart card attack interval.");
+            require(towerEntity(context, firstCard).aggroPriority() == QueenBalance.cardAggro(QueenCard.Suit.HEART),
+                    "The live card entity must use its suit role's aggro priority.");
+            lane.markWaveStarted(3);
+            requireClose((QueenTowers.QUEEN.maxHealth() + QueenBalance.queenMaxHealthPerRound() * 2.0)
+                            * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR) * 2.0), queen.currentMaxHealth(),
+                    "The same completed hand must add its bonus again on the next wave without duplicate snapshots.");
             firstCard.assignCard(new QueenCard(QueenCard.Suit.HEART, 3));
             requireClose(pairHealth, firstCard.currentMaxHealth(),
                     "Card changes during a wave must not change the snapshot.");
-            lane.markWaveStarted(3);
+            lane.markWaveStarted(4);
             requireClose(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART), firstCard.currentMaxHealth(),
                     "The next wave must capture the updated hand.");
             require(firstCard.adjustAttackInterval(999) == QueenBalance.cardInterval(QueenCard.Suit.HEART),
                     "The next wave must replace the previous attack-speed bonus.");
+            requireClose((QueenTowers.QUEEN.maxHealth() + QueenBalance.queenMaxHealthPerRound() * 3.0)
+                            * (1.0 + QueenBalance.handBonus(PokerHand.ONE_PAIR) * 2.0), queen.currentMaxHealth(),
+                    "A high-card wave must preserve the accumulated Queen health bonus without adding more.");
             context.succeed();
         } finally {
             group.closeRuntime();

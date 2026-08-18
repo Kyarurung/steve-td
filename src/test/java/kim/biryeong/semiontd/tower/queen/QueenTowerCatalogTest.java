@@ -100,6 +100,10 @@ final class QueenTowerCatalogTest {
 
         assertEquals(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART) * 2.0, card.currentMaxHealth(), 0.0001);
         assertEquals(QueenBalance.cardInterval(QueenCard.Suit.HEART) / 2, card.adjustAttackInterval(999));
+        for (QueenCard.Suit suit : QueenCard.Suit.values()) {
+            card.assignCard(new QueenCard(suit, 2));
+            assertEquals(QueenBalance.cardAggro(suit), card.aggroPriority());
+        }
     }
 
     @Test
@@ -130,13 +134,18 @@ final class QueenTowerCatalogTest {
     }
 
     @Test
-    void queenStartsFragileAndScalesHealthLinearlyByRound() {
+    void queenScalesHealthByRoundAndAccumulatedPokerBonusUpToThreeHundredPercent() {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         QueenTower queen = (QueenTower) ProductionTowerCatalog.find(QueenTowers.QUEEN.id()).orElseThrow()
                 .create(OWNER, TeamId.RED, 1, new GridPosition(0, 64, 0));
         assertEquals(60.0, queen.currentMaxHealth(), 0.0001);
         queen.markWaveStarted(10);
         assertEquals(132.0, queen.effectBaseMaxHealth(), 0.0001);
+        QueenStates.state(OWNER).addPokerHealthBonus(1.0);
+        assertEquals(264.0, queen.effectBaseMaxHealth(), 0.0001);
+        QueenStates.state(OWNER).addPokerHealthBonus(10.0);
+        assertEquals(3.0, QueenStates.state(OWNER).pokerHealthBonus(), 0.0001);
+        assertEquals(528.0, queen.effectBaseMaxHealth(), 0.0001);
     }
 
     @Test
@@ -144,9 +153,12 @@ final class QueenTowerCatalogTest {
         UUID other = UUID.nameUUIDFromBytes("queen-other".getBytes());
         try {
             QueenStates.state(OWNER).addCharge(123.0);
+            QueenStates.state(OWNER).addPokerHealthBonus(0.8);
             assertEquals(0.0, QueenStates.state(other).charge(), 0.0001);
+            assertEquals(0.0, QueenStates.state(other).pokerHealthBonus(), 0.0001);
             QueenStates.clear(OWNER);
             assertEquals(0.0, QueenStates.state(OWNER).charge(), 0.0001);
+            assertEquals(0.0, QueenStates.state(OWNER).pokerHealthBonus(), 0.0001);
             assertEquals(QueenBalance.giantInitialExecutionHealth(),
                     QueenStates.state(OWNER).executionHealth(), 0.0001);
         } finally {
@@ -190,6 +202,8 @@ final class QueenTowerCatalogTest {
                 "giantExecutionGrowthRatio", -1), 0.0001);
         assertEquals(8.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "queenMaxHealthPerRound", -1), 0.0001);
+        assertEquals(3.0, merged.ability(QueenBalance.GLOBAL_ID,
+                "queenPokerHealthBonusCap", -1), 0.0001);
         assertEquals(2.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "giantGrowthTargetCapMultiplier", -1), 0.0001);
         assertEquals(80, merged.abilityInt(QueenBalance.GLOBAL_ID,
@@ -208,6 +222,7 @@ final class QueenTowerCatalogTest {
         assertInvalidAbility(defaults, "shrinkFactorPerPoint", 1.0);
         assertInvalidAbility(defaults, "minimumStatScale", 0.0);
         assertInvalidAbility(defaults, "minimumVisualScale", 1.1);
+        assertInvalidAbility(defaults, "queenPokerHealthBonusCap", 0.0);
         assertInvalidAbility(defaults, "rangeVfxIntervalTicks", 20.5);
         assertInvalidAbility(defaults, "card.heart.aggro", 55.5);
         assertInvalidAbility(defaults, "spadeRadius", 1.0);

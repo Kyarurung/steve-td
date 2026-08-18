@@ -115,6 +115,8 @@ public final class FutureAgencyAgentTower extends ProductionTower {
             return;
         }
         waveActive = false;
+        // A cleared lane records its carry before the shared final-defense pass.
+        if (withdrawn) return;
         if (carriedCopy && lane != null) {
             lane.removeTower(this);
             return;

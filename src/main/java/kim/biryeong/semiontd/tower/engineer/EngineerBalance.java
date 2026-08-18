@@ -18,6 +18,15 @@ public final class EngineerBalance {
     public static final double PLATE_DAMAGE_BONUS_PER_TIER = 0.10;
     public static final double DISPENSER_DAMAGE_PER_PLATE_BLOCK = 0.10;
     public static final int DISPENSER_MAX_PLATE_DISTANCE = 10;
+    public static final double DISPENSER_DAMAGE_BONUS_PER_GOLEM_PRESS = 0.01;
+    public static final double DISPENSER_DAMAGE_BONUS_CAP = 2.0;
+    public static final double DOOR_DAMAGE_REDUCTION_PER_GOLEM_PRESS = 0.0005;
+    public static final double DOOR_DAMAGE_REDUCTION_CAP = 0.40;
+    public static final int GOLEM_PRESSES_PER_EXTRA_TARGET = 10;
+    public static final int TNT_EXTRA_TARGET_CAP = 20;
+    public static final int PISTON_EXTRA_TARGET_CAP = 10;
+    public static final double SLIME_SLOW_PER_GOLEM_PRESS = 0.0005;
+    public static final double SLIME_SLOW_CAP = 0.80;
     public static final int ACTIVE_VFX_INTERVAL_TICKS = 20;
     public static final int TNT_FUSE_VFX_INTERVAL_TICKS = 10;
 
@@ -103,5 +112,72 @@ public final class EngineerBalance {
                 "plateDamageBonusPerTier",
                 PLATE_DAMAGE_BONUS_PER_TIER
         );
+    }
+
+    public static double dispenserPressDamageMultiplier(int presses) {
+        double bonus = Math.max(0, presses) * TowerBalanceRuntime.ability(
+                GLOBAL_ID,
+                "dispenserDamageBonusPerGolemPress",
+                DISPENSER_DAMAGE_BONUS_PER_GOLEM_PRESS
+        );
+        return 1.0 + Math.min(bonus, dispenserDamageBonusCap());
+    }
+
+    public static double dispenserDamageBonusCap() {
+        return TowerBalanceRuntime.ability(
+                GLOBAL_ID, "dispenserDamageBonusCap", DISPENSER_DAMAGE_BONUS_CAP);
+    }
+
+    public static double doorDamageReduction(int presses) {
+        double reduction = Math.max(0, presses) * TowerBalanceRuntime.ability(
+                GLOBAL_ID,
+                "doorDamageReductionPerGolemPress",
+                DOOR_DAMAGE_REDUCTION_PER_GOLEM_PRESS
+        );
+        return Math.min(reduction, doorDamageReductionCap());
+    }
+
+    public static double doorDamageReductionCap() {
+        return TowerBalanceRuntime.ability(
+                GLOBAL_ID, "doorDamageReductionCap", DOOR_DAMAGE_REDUCTION_CAP);
+    }
+
+    public static int tntExtraTargets(int presses) {
+        return extraTargets(presses, "tntExtraTargetCap", TNT_EXTRA_TARGET_CAP);
+    }
+
+    public static int pistonExtraTargets(int presses) {
+        return extraTargets(presses, "pistonExtraTargetCap", PISTON_EXTRA_TARGET_CAP);
+    }
+
+    public static int tntExtraTargetCap() {
+        return TowerBalanceRuntime.abilityInt(GLOBAL_ID, "tntExtraTargetCap", TNT_EXTRA_TARGET_CAP);
+    }
+
+    public static int pistonExtraTargetCap() {
+        return TowerBalanceRuntime.abilityInt(GLOBAL_ID, "pistonExtraTargetCap", PISTON_EXTRA_TARGET_CAP);
+    }
+
+    public static double slimeSlow(double baseSlow, int presses) {
+        double slow = Math.max(0.0, baseSlow) + Math.max(0, presses) * TowerBalanceRuntime.ability(
+                GLOBAL_ID,
+                "slimeSlowPerGolemPress",
+                SLIME_SLOW_PER_GOLEM_PRESS
+        );
+        return Math.min(slow, slimeSlowCap());
+    }
+
+    public static double slimeSlowCap() {
+        return TowerBalanceRuntime.ability(GLOBAL_ID, "slimeSlowCap", SLIME_SLOW_CAP);
+    }
+
+    private static int extraTargets(int presses, String capKey, int fallbackCap) {
+        int perTarget = Math.max(1, TowerBalanceRuntime.abilityInt(
+                GLOBAL_ID,
+                "golemPressesPerExtraTarget",
+                GOLEM_PRESSES_PER_EXTRA_TARGET
+        ));
+        int cap = TowerBalanceRuntime.abilityInt(GLOBAL_ID, capKey, fallbackCap);
+        return Math.min(Math.max(0, presses) / perTarget, cap);
     }
 }

@@ -2276,6 +2276,15 @@ public record TowerBalanceConfig(
         global.put("plateDamageBonusPerTier", EngineerBalance.PLATE_DAMAGE_BONUS_PER_TIER);
         global.put("dispenserDamagePerPlateBlock", EngineerBalance.DISPENSER_DAMAGE_PER_PLATE_BLOCK);
         global.put("dispenserMaxPlateDistance", (double) EngineerBalance.DISPENSER_MAX_PLATE_DISTANCE);
+        global.put("dispenserDamageBonusPerGolemPress", EngineerBalance.DISPENSER_DAMAGE_BONUS_PER_GOLEM_PRESS);
+        global.put("dispenserDamageBonusCap", EngineerBalance.DISPENSER_DAMAGE_BONUS_CAP);
+        global.put("doorDamageReductionPerGolemPress", EngineerBalance.DOOR_DAMAGE_REDUCTION_PER_GOLEM_PRESS);
+        global.put("doorDamageReductionCap", EngineerBalance.DOOR_DAMAGE_REDUCTION_CAP);
+        global.put("golemPressesPerExtraTarget", (double) EngineerBalance.GOLEM_PRESSES_PER_EXTRA_TARGET);
+        global.put("tntExtraTargetCap", (double) EngineerBalance.TNT_EXTRA_TARGET_CAP);
+        global.put("pistonExtraTargetCap", (double) EngineerBalance.PISTON_EXTRA_TARGET_CAP);
+        global.put("slimeSlowPerGolemPress", EngineerBalance.SLIME_SLOW_PER_GOLEM_PRESS);
+        global.put("slimeSlowCap", EngineerBalance.SLIME_SLOW_CAP);
         global.put("activeVfxIntervalTicks", (double) EngineerBalance.ACTIVE_VFX_INTERVAL_TICKS);
         global.put("tntFuseVfxIntervalTicks", (double) EngineerBalance.TNT_FUSE_VFX_INTERVAL_TICKS);
         putAbilities(abilities, EngineerBalance.GLOBAL_ID, global);
@@ -2546,6 +2555,7 @@ public record TowerBalanceConfig(
         values.put("giantExecutionGrowthRatio", 0.05);
         values.put("giantGrowthTargetCapMultiplier", 2.0);
         values.put("queenMaxHealthPerRound", 8.0);
+        values.put("queenPokerHealthBonusCap", 3.0);
         values.put("giantContactRadius", 4.0);
         values.put("giantSpeed", 0.65);
         values.put("giantSlow", 0.55);
@@ -2608,7 +2618,7 @@ public record TowerBalanceConfig(
         }
         for (String key : java.util.List.of("queenShrinkPoints", "cardShrinkPoints", "cardDeathShrinkPoints",
                 "cardDeathRadius", "heartHealAmount", "heartHealRadius", "cardSplashRadius", "spadeRadius", "giantAccelerationRadius",
-                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "queenMaxHealthPerRound", "giantContactRadius", "giantSpeed",
+                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "queenMaxHealthPerRound", "queenPokerHealthBonusCap", "giantContactRadius", "giantSpeed",
                 "card.heart.maxHealth", "card.heart.range", "card.diamond.maxHealth", "card.diamond.range",
                 "card.club.maxHealth", "card.club.range", "card.spade.maxHealth", "card.spade.range")) {
             if (values.getOrDefault(key, 0.0) <= 0.0) {
@@ -2815,10 +2825,12 @@ public record TowerBalanceConfig(
         requireEngineerPositive(global,
                 "activeTicks", "doorActiveTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
                 "doorRetargetTicks", "tntFuseTicks", "maxRedstone", "maxPlates", "maxPistons",
-                "dispenserMaxPlateDistance", "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
+                "dispenserMaxPlateDistance", "golemPressesPerExtraTarget",
+                "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         requireEngineerIntegral(global,
                 "activeTicks", "doorActiveTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
                 "maxRedstone", "maxPlates", "maxPistons", "dispenserMaxPlateDistance",
+                "golemPressesPerExtraTarget", "tntExtraTargetCap", "pistonExtraTargetCap",
                 "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         double distanceBonus = global.getOrDefault("dispenserDamagePerPlateBlock", -1.0);
         if (distanceBonus < 0.0 || distanceBonus > 1.0) {
@@ -2827,6 +2839,17 @@ public record TowerBalanceConfig(
         double plateBonus = global.getOrDefault("plateDamageBonusPerTier", -1.0);
         if (plateBonus < 0.0 || plateBonus > 1.0) {
             throw new IllegalArgumentException("Engineer plate damage bonus must be in [0, 1].");
+        }
+        requireEngineerRatio(global, "dispenserDamageBonusPerGolemPress", true);
+        requireEngineerRatio(global, "doorDamageReductionPerGolemPress", true);
+        requireEngineerRatio(global, "doorDamageReductionCap", false);
+        requireEngineerRatio(global, "slimeSlowPerGolemPress", true);
+        requireEngineerRatio(global, "slimeSlowCap", false);
+        if (global.get("doorDamageReductionPerGolemPress") > global.get("doorDamageReductionCap")) {
+            throw new IllegalArgumentException("Engineer door damage reduction per press must not exceed its cap.");
+        }
+        if (global.get("slimeSlowPerGolemPress") > global.get("slimeSlowCap")) {
+            throw new IllegalArgumentException("Engineer slime slow per press must not exceed its cap.");
         }
         if (global.getOrDefault("dispenserMaxPlateDistance", 0.0)
                 > global.getOrDefault("maxRedstone", 0.0)) {
@@ -2855,6 +2878,10 @@ public record TowerBalanceConfig(
                 if (values.containsKey("slow") && values.get("slow") >= 1.0) {
                     throw new IllegalArgumentException("Engineer slow ratio must be in [0, 1): " + id);
                 }
+                if (kind == EngineerTowers.TrapKind.SLIME
+                        && values.getOrDefault("slow", 0.0) > global.get("slimeSlowCap")) {
+                    throw new IllegalArgumentException("Engineer slime slow cap must cover every configured tier.");
+                }
             }
         }
         validateEngineerTierOrder(EngineerTowers.TrapKind.DOOR, "radius", true);
@@ -2878,6 +2905,13 @@ public record TowerBalanceConfig(
                 }
                 previousHealth = stats.maxHealth();
             }
+        }
+    }
+
+    private static void requireEngineerRatio(Map<String, Double> values, String key, boolean inclusiveOne) {
+        double value = values.getOrDefault(key, -1.0);
+        if (value < 0.0 || (inclusiveOne ? value > 1.0 : value >= 1.0)) {
+            throw new IllegalArgumentException("Engineer ratio is out of range: " + key);
         }
     }
 

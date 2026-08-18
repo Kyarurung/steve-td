@@ -5,6 +5,7 @@ import java.util.UUID;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.engineer.EngineerBalance;
+import kim.biryeong.semiontd.tower.engineer.EngineerPressStates;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.network.chat.Component;
@@ -19,7 +20,7 @@ public final class EngineerTowerJob extends SemionJob {
                 Component.literal("기술자"),
                 List.of(
                         SemionText.mini("<green><bold>시작</bold></green> <gray>구리 골렘과 발판을 놓고 함정까지 레드스톤으로 연결하세요.</gray>"),
-                        SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>골렘이 밟을 발판의 위치와 등급으로 함정 발동 순서를 정하세요.</gray>"),
+                        SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>골렘이 발판을 밟을수록 매치 동안 모든 함정이 강해집니다.</gray>"),
                         SemionText.mini("<yellow><bold>주의</bold></yellow> <gray>회로가 끊기면 함정이 멈추며 강제 최종 방어에서도 작동하지 않습니다.</gray>")
                 )
         );
@@ -83,5 +84,15 @@ public final class EngineerTowerJob extends SemionJob {
     @Override
     public boolean includesTowerInCatalog(TowerType towerType) {
         return EngineerTowers.isEngineerTower(towerType);
+    }
+
+    @Override
+    public void onMatchStarted(JobContext context) {
+        EngineerPressStates.clear(context.player().uuid());
+    }
+
+    @Override
+    public void onEliminated(JobContext context) {
+        EngineerPressStates.clear(context.player().uuid());
     }
 }

@@ -43,6 +43,7 @@ public final class FutureAgencyGameTest {
 
             first.onLaneCleared(lane);
             second.onLaneCleared(lane);
+            lane.moveTowersToFinalDefense();
             lane.resetForRound();
 
             require(first.position().equals(firstOrigin) && close(first.health(), first.currentMaxHealth()),
@@ -65,6 +66,7 @@ public final class FutureAgencyGameTest {
             for (int round = 2; round <= 3; round++) {
                 lane.markWaveStarted(round);
                 finishWave(lane);
+                lane.moveTowersToFinalDefense();
                 lane.resetForRound();
                 require(carried(lane).size() == 2,
                         "Two installed originals must retain exactly two survivors after wave " + round + ".");

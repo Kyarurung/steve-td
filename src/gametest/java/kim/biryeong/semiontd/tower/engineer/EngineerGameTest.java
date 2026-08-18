@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
@@ -69,6 +70,7 @@ public final class EngineerGameTest {
     @GameTest
     public void circuitsUseRealBlocksAndPoweredTrapStopsAtFinalDefense(GameTestHelper context) {
         UUID owner = stableUuid("engineer-circuit");
+        EngineerPressStates.clear(owner);
         PlayerLane lane = testLane(context, owner);
         GridPosition dustPosition = floor(context, 2, 2, 3);
         GridPosition repeaterPosition = floor(context, 4, 2, 3);
@@ -137,6 +139,8 @@ public final class EngineerGameTest {
                     "A powered loop without a recent copper-golem plate press must not activate a trap.");
             context.getLevel().setBlock(slimePosition(trapPosition).east(), Blocks.AIR.defaultBlockState(), 3);
             require(plate.pressPlate(lane), "The engineer plate must create the authorized circuit pulse.");
+            require(EngineerPressStates.count(owner) == 0,
+                    "Direct plate and redstone activation must not count as a copper-golem press.");
             slime.tick(lane);
             require(slime.activeTicksRemaining() > 0, "A powered trap must latch for three seconds.");
             require(slime.activationPlateDistance() == 1,
@@ -174,6 +178,7 @@ public final class EngineerGameTest {
                     + failure.getClass().getName() + ": " + failure.getMessage()));
         } finally {
             lane.clearTowers();
+            EngineerPressStates.clear(owner);
         }
     }
 
@@ -227,6 +232,7 @@ public final class EngineerGameTest {
     @GameTest
     public void copperGolemChoosesGoldBeforeWoodAndIsInvulnerable(GameTestHelper context) {
         UUID owner = stableUuid("engineer-golem-priority");
+        EngineerPressStates.clear(owner);
         PlayerLane lane = testLane(context, owner);
         GridPosition golemPosition = floor(context, 5, 2, 7);
         GridPosition woodPosition = floor(context, 6, 2, 7);
@@ -271,18 +277,32 @@ public final class EngineerGameTest {
             }
             require(golem.pressesThisWave() == 2,
                     "The golem must continue to the remaining pressure plate.");
+            require(EngineerPressStates.count(owner) == 2,
+                    "Only successful copper-golem plate activations must enter the match total.");
             Vec3 waitingPosition = entity.position();
             for (int tick = 0; tick < 20; tick++) {
                 golem.tick(lane);
             }
             require(entity.position().distanceToSqr(waitingPosition) < 0.01,
                     "With no available plate, the golem must wait on its last plate instead of returning home.");
+            lane.markWaveStarted(2);
+            require(golem.pressesThisWave() == 0 && EngineerPressStates.count(owner) == 2,
+                    "A new wave must reset only the wave counter.");
+            require(lane.removeTower(golem), "The original golem must be removable.");
+            EngineerGolemTower replacement = new EngineerGolemTower(
+                    EngineerTowers.COPPER_GOLEM, owner, TeamId.RED, 1, golemPosition, golemPosition
+            );
+            lane.addTower(replacement);
+            lane.markWaveStarted(3);
+            require(EngineerPressStates.count(owner) == 2,
+                    "Selling and reinstalling the golem must preserve the match total.");
             context.succeed();
         } catch (Throwable failure) {
             context.fail(Component.literal("Engineer golem GameTest failed: "
                     + failure.getClass().getName() + ": " + failure.getMessage()));
         } finally {
             lane.clearTowers();
+            EngineerPressStates.clear(owner);
         }
     }
 
@@ -347,6 +367,7 @@ public final class EngineerGameTest {
     @GameTest
     public void doorTauntLastsSixSecondsAndRefreshesWithoutAPlateCycleGap(GameTestHelper context) {
         UUID owner = stableUuid("engineer-door-duration");
+        EngineerPressStates.clear(owner);
         PlayerLane lane = testLane(context, owner);
         GridPosition platePosition = floor(context, 6, 2, 7);
         GridPosition doorPosition = floor(context, 7, 2, 7);
@@ -374,6 +395,10 @@ public final class EngineerGameTest {
             require(door.activeTicksRemaining() == EngineerBalance.doorActiveTicks() - 1,
                     "The iron door must latch for six seconds.");
             require(monster.getTarget() == doorEntity, "The active door must taunt nearby monsters.");
+            recordPresses(owner, 800);
+            context.hurt(doorEntity, monster.damageSources().mobAttack(monster), 100.0F);
+            requireClose(160.0, door.health(),
+                    "An active door must use the latest capped match total for incoming damage reduction.");
 
             unpowerPlate(context, plate);
             door.tick(lane);
@@ -399,6 +424,7 @@ public final class EngineerGameTest {
             }
             lane.clearTowers();
             AreaEffectLaneIndex.unregister(lane);
+            EngineerPressStates.clear(owner);
         }
     }
 
@@ -461,8 +487,9 @@ public final class EngineerGameTest {
     }
 
     @GameTest(maxTicks = 160)
-    public void goldPlateTntDamagesOnlyTheNearestSixteenTargets(GameTestHelper context) {
+    public void goldPlateTntAddsTargetsFromTheLatestPressCountAtExplosion(GameTestHelper context) {
         UUID owner = stableUuid("engineer-tnt-gold-cap");
+        EngineerPressStates.clear(owner);
         PlayerLane lane = testLane(context, owner);
         GridPosition tntPosition = floor(context, 7, 2, 7);
         GridPosition goldPosition = floor(context, 6, 2, 7);
@@ -512,15 +539,17 @@ public final class EngineerGameTest {
             tnt.tick(lane);
             require(wood.pressPlate(lane), "A later wood pulse must be accepted while the fuse is running.");
             tnt.tick(lane);
+            recordPresses(owner, 20);
             for (int tick = 0; tick < EngineerBalance.tntFuseTicks(); tick++) {
                 tnt.tick(lane);
             }
 
             for (int index = 0; index < targets.size(); index++) {
-                double expectedHealth = index < 16 ? 376.0 : 1_000.0;
-                requireClose(expectedHealth, targets.get(index).runtimeMonster().health(),
+                requireClose(376.0, targets.get(index).runtimeMonster().health(),
                         "TNT target " + index + " health");
             }
+            require(tnt.runtimeDetailLines().stream().anyMatch(line -> line.contains("+2/20기")),
+                    "TNT details must show the current accumulated target bonus.");
             require(tnt.runtimeDetailLines().stream().anyMatch(line -> line.contains("금 발판")),
                     "TNT details must preserve the ignition plate grade.");
             require(tnt.runtimeDetailLines().stream().anyMatch(line -> line.contains("+30%")),
@@ -533,12 +562,14 @@ public final class EngineerGameTest {
             targets.forEach(SemionMonsterEntity::discard);
             lane.clearTowers();
             AreaEffectLaneIndex.unregister(lane);
+            EngineerPressStates.clear(owner);
         }
     }
 
     @GameTest(maxTicks = 80)
     public void dispenserCombinesGoldPlateAndCircuitDistanceDamage(GameTestHelper context) {
         UUID owner = stableUuid("engineer-dispenser-gold-distance");
+        EngineerPressStates.clear(owner);
         PlayerLane lane = testLane(context, owner);
         GridPosition platePosition = floor(context, 4, 2, 7);
         GridPosition dustOnePosition = floor(context, 5, 2, 7);
@@ -575,16 +606,19 @@ public final class EngineerGameTest {
 
             lane.markWaveStarted(20);
             require(plate.pressPlate(lane), "The gold plate must power the dispenser through the circuit.");
+            recordPresses(owner, 200);
             dispenser.tick(lane);
 
-            requireClose(923.95, target.runtimeMonster().health(),
-                    "The dispenser shot must combine 45 damage, three circuit blocks, and the gold plate bonus.");
+            requireClose(771.85, target.runtimeMonster().health(),
+                    "The dispenser shot must multiply base, distance, plate, and capped match bonuses.");
             require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("금 발판")),
                     "Dispenser details must show the activating plate grade.");
             require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("+30%")),
                     "Dispenser details must show the gold plate damage bonus.");
             require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("3/10칸")),
                     "Dispenser details must show the applied circuit distance.");
+            require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("+200%/200%")),
+                    "Dispenser details must show the capped match damage bonus.");
             context.succeed();
         } catch (Throwable failure) {
             context.fail(Component.literal("Engineer dispenser damage GameTest failed: "
@@ -594,6 +628,81 @@ public final class EngineerGameTest {
                 target.discard();
             }
             lane.clearTowers();
+            EngineerPressStates.clear(owner);
+        }
+    }
+
+    @GameTest
+    public void pistonAndSlimeUsePressCountWhenTheirEffectsRun(GameTestHelper context) {
+        UUID owner = stableUuid("engineer-piston-slime-presses");
+        EngineerPressStates.clear(owner);
+        PlayerLane lane = testLane(context, owner);
+        GridPosition pistonPosition = floor(context, 5, 2, 7);
+        GridPosition pistonPlatePosition = floor(context, 4, 2, 7);
+        GridPosition slimePosition = floor(context, 10, 2, 7);
+        GridPosition slimePlatePosition = floor(context, 9, 2, 7);
+        prepareFloor(context, pistonPosition, pistonPlatePosition, slimePosition, slimePlatePosition);
+        EngineerTrapTower piston = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 1),
+                owner, TeamId.RED, 1, pistonPosition, pistonPosition
+        );
+        EngineerCircuitTower pistonPlate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                owner, TeamId.RED, 1, pistonPlatePosition, pistonPlatePosition
+        );
+        EngineerTrapTower slime = new EngineerTrapTower(
+                EngineerTowers.trap(EngineerTowers.TrapKind.SLIME, 3),
+                owner, TeamId.RED, 1, slimePosition, slimePosition
+        );
+        EngineerCircuitTower slimePlate = new EngineerCircuitTower(
+                EngineerTowers.plate(EngineerTowers.PlateKind.WOOD),
+                owner, TeamId.RED, 1, slimePlatePosition, slimePlatePosition
+        );
+        ArrayList<SemionMonsterEntity> targets = new ArrayList<>();
+        try {
+            AreaEffectLaneIndex.register(lane);
+            lane.addTower(piston);
+            lane.addTower(pistonPlate);
+            lane.addTower(slime);
+            lane.addTower(slimePlate);
+            Vec3 pistonCenter = Vec3.atCenterOf(new BlockPos(
+                    pistonPosition.x(), pistonPosition.y() + 1, pistonPosition.z()));
+            targets.add(spawnMonster(context, lane, "engineer-piston-target-1", pistonCenter.add(0.0, 0.0, 1.0)));
+            targets.add(spawnMonster(context, lane, "engineer-piston-target-2", pistonCenter.add(0.0, 0.0, -1.0)));
+            SemionMonsterEntity slimeTarget = spawnMonster(
+                    context,
+                    lane,
+                    "engineer-slime-target",
+                    Vec3.atCenterOf(new BlockPos(slimePosition.x(), slimePosition.y() + 1, slimePosition.z() + 1))
+            );
+            targets.add(slimeTarget);
+            targets.forEach(target -> target.setNoAi(true));
+
+            lane.markWaveStarted(1);
+            recordPresses(owner, 10);
+            require(pistonPlate.pressPlate(lane), "The piston plate must activate the trap.");
+            piston.tick(lane);
+            Vec3 laneStart = lane.laneLayout().positionAt(0.0);
+            require(targets.get(0).position().distanceToSqr(laneStart) < 0.01
+                            && targets.get(1).position().distanceToSqr(laneStart) < 0.01,
+                    "Ten presses must let the tier-one piston move two targets.");
+
+            require(slimePlate.pressPlate(lane), "The slime plate must activate the trap.");
+            slime.tick(lane);
+            recordPresses(owner, 490);
+            slime.tick(lane);
+            requireClose(0.80,
+                    slimeTarget.activeTimedEffectMagnitude(TimedEffectType.MONSTER_MOVE_SPEED_REDUCTION),
+                    "The active slime trap must use the latest press total and cap its slow at eighty percent.");
+            context.succeed();
+        } catch (Throwable failure) {
+            context.fail(Component.literal("Engineer accumulated control GameTest failed: "
+                    + failure.getClass().getName() + ": " + failure.getMessage()));
+        } finally {
+            targets.forEach(SemionMonsterEntity::discard);
+            lane.clearTowers();
+            AreaEffectLaneIndex.unregister(lane);
+            EngineerPressStates.clear(owner);
         }
     }
 
@@ -661,6 +770,12 @@ public final class EngineerGameTest {
 
     private static UUID stableUuid(String seed) {
         return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void recordPresses(UUID owner, int count) {
+        for (int index = 0; index < count; index++) {
+            EngineerPressStates.recordPress(owner);
+        }
     }
 
     private static void require(boolean condition, String message) {

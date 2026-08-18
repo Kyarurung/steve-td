@@ -26,6 +26,7 @@ public final class EngineerTowers {
             .visual(EntityVisual.vanilla("friendsandfoes:copper_golem"))
             .description(List.of(
                     "<gray>웨이브 중 <aqua>발판</aqua>을 우선순위와 거리 순으로 순회합니다.</gray>",
+                    "<gold>성공한 발판 작동 횟수는 매치 동안 누적되어 연결된 함정을 강화합니다.</gold>",
                     "<green>공격하지 않고 무적이며 타워 슬롯을 사용하지 않습니다.</green>"
             ))
             .build();
@@ -210,35 +211,59 @@ public final class EngineerTowers {
     }
 
     private static List<String> trapDescription(TrapKind kind, String ability) {
+        String global = "ability." + EngineerBalance.GLOBAL_ID + ".";
         String powered = "<gray><red>레드스톤</red> 상승 신호를 받으면 <gold>"
                 + placeholder(
-                        "ability." + EngineerBalance.GLOBAL_ID + ".",
+                        global,
                         kind == TrapKind.DOOR ? "doorActiveTicks" : "activeTicks",
                         "seconds"
                 )
                 + "</gold> 동안 작동하는 <yellow>함정</yellow>입니다.</gray>";
         return switch (kind) {
-            case DOOR -> List.of(powered, "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 몬스터를 유인합니다.</green>");
-            case TNT -> List.of(powered, "<red>" + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "tntFuseTicks", "seconds")
+            case DOOR -> List.of(
+                    powered,
+                    "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 몬스터를 유인합니다.</green>",
+                    "<aqua>누적 발판 작동 1회당 받는 피해가 "
+                            + placeholder(global, "doorDamageReductionPerGolemPress", "percent") + " 감소하며 최대 "
+                            + placeholder(global, "doorDamageReductionCap", "percent") + "까지 적용됩니다.</aqua>"
+            );
+            case TNT -> List.of(powered, "<red>" + placeholder(global, "tntFuseTicks", "seconds")
                     + " 뒤 최대 " + placeholder(ability, "maxTargets", "integer") + "기에게 피해 "
                     + placeholder(ability, "damage", "integer") + "을 줍니다. 라운드당 한 번만 폭발합니다.</red>",
+                    "<gold>누적 발판 작동 " + placeholder(global, "golemPressesPerExtraTarget", "integer")
+                            + "회마다 대상이 1기 늘며 최대 " + placeholder(global, "tntExtraTargetCap", "integer")
+                            + "기가 추가됩니다.</gold>",
                     plateDamageDescription());
             case DISPENSER -> List.of(
                     powered,
                     "<green>사거리 " + placeholder(ability, "range", "blocks") + "에서 피해 "
                             + placeholder(ability, "damage", "integer") + "을 반복 발사합니다.</green>",
                     "<gold>신호를 보낸 발판까지의 회로 거리 1칸당 피해가 "
-                            + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "dispenserDamagePerPlateBlock", "percent")
+                            + placeholder(global, "dispenserDamagePerPlateBlock", "percent")
                             + " 증가하며 최대 "
-                            + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "dispenserMaxPlateDistance", "integer")
+                            + placeholder(global, "dispenserMaxPlateDistance", "integer")
                             + "칸까지 적용됩니다.</gold>",
+                    "<aqua>누적 발판 작동 1회당 피해가 "
+                            + placeholder(global, "dispenserDamageBonusPerGolemPress", "percent") + " 증가하며 최대 "
+                            + placeholder(global, "dispenserDamageBonusCap", "percent") + "까지 적용됩니다.</aqua>",
                     plateDamageDescription()
             );
-            case PISTON -> List.of(powered, "<aqua>반경 " + placeholder(ability, "radius", "blocks") + "의 최대 "
-                    + placeholder(ability, "maxTargets", "integer") + "기를 라인 시작점으로 되돌립니다. 같은 적은 "
-                    + placeholder("ability." + EngineerBalance.GLOBAL_ID + ".", "pistonImmunityTicks", "seconds")
-                    + " 동안 면역입니다.</aqua>");
-            case SLIME -> List.of(powered, "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 이동속도를 " + placeholder(ability, "slow", "percent") + " 낮춥니다.</green>");
+            case PISTON -> List.of(
+                    powered,
+                    "<aqua>반경 " + placeholder(ability, "radius", "blocks") + "의 최대 "
+                            + placeholder(ability, "maxTargets", "integer") + "기를 라인 시작점으로 되돌립니다. 같은 적은 "
+                            + placeholder(global, "pistonImmunityTicks", "seconds") + " 동안 면역입니다.</aqua>",
+                    "<gold>누적 발판 작동 " + placeholder(global, "golemPressesPerExtraTarget", "integer")
+                            + "회마다 대상이 1기 늘며 최대 " + placeholder(global, "pistonExtraTargetCap", "integer")
+                            + "기가 추가됩니다.</gold>"
+            );
+            case SLIME -> List.of(
+                    powered,
+                    "<green>반경 " + placeholder(ability, "radius", "blocks") + "의 이동속도를 "
+                            + placeholder(ability, "slow", "percent") + " 낮춥니다.</green>",
+                    "<gold>누적 발판 작동 1회당 둔화가 " + placeholder(global, "slimeSlowPerGolemPress", "percent")
+                            + " 증가하며 최종 둔화는 " + placeholder(global, "slimeSlowCap", "percent") + "까지 적용됩니다.</gold>"
+            );
         };
     }
 

@@ -105,7 +105,6 @@ public final class QueenCardTower extends ProductionTower {
         this.lane = lane;
         waveActive = true;
         heartHealCooldown = QueenBalance.heartHealIntervalTicks();
-        QueenPoker.snapshot(lane, ownerPlayer());
     }
 
     @Override
