@@ -13,6 +13,7 @@ import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.config.SummonConfig;
 import kim.biryeong.semiontd.job.AdversaryTowerJob;
 import kim.biryeong.semiontd.job.EndTowerJob;
+import kim.biryeong.semiontd.job.WarlockTowerJob;
 import kim.biryeong.semiontd.summon.IncomeSummons;
 import kim.biryeong.semiontd.summon.SummonRegistry;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
@@ -20,6 +21,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.adversary.AdversaryBalance;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
+import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.trait.TraitRegistry;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -149,6 +151,28 @@ final class WebCatalogExporterTest {
                 .collect(java.util.stream.Collectors.toSet()));
         assertTrue(document.abilities()
                 .containsKey(kim.biryeong.semiontd.tower.atlantis.AtlantisBalance.CONFIG_ID));
+    }
+
+    @Test
+    void warlockFamilyExportsCompleteOwnedUpgradeGraph() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        IncomeSummons.reloadBuiltIns(SummonConfig.defaultConfig());
+
+        WebCatalogExporter.CatalogDocument document = WebCatalogExporter.snapshot(1L);
+        assertExportedFamily(
+                document,
+                WarlockTowerJob.ID.toString(),
+                WarlockTowers.all().stream().map(type -> type.id()).collect(java.util.stream.Collectors.toSet()),
+                WarlockTowers.CONFIG_ID,
+                Set.of(
+                        edge(WarlockTowers.BASE_WARLOCK_TOWER.id(), "ranged_warlock_tower", WarlockTowers.RANGED_WARLOCK_TOWER.id()),
+                        edge(WarlockTowers.BASE_WARLOCK_TOWER.id(), "melee_warlock_tower", WarlockTowers.MELEE_WARLOCK_TOWER.id()),
+                        edge(WarlockTowers.T1_SLAVE.id(), "t2_slave", WarlockTowers.T2_SLAVE.id()),
+                        edge(WarlockTowers.T2_SLAVE.id(), "t3_slave", WarlockTowers.T3_SLAVE.id()),
+                        edge(WarlockTowers.T1_RANGED_SLAVE.id(), "t2_ranged_slave", WarlockTowers.T2_RANGED_SLAVE.id()),
+                        edge(WarlockTowers.T2_RANGED_SLAVE.id(), "t3_ranged_slave", WarlockTowers.T3_RANGED_SLAVE.id())
+                )
+        );
     }
 
     @Test
