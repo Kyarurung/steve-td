@@ -15,6 +15,7 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.ProductionTower;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
@@ -58,7 +59,7 @@ public final class GamblerTower extends ProductionTower {
 
     @Override
     protected void configureEntityAfterSpawn(SemionTowerEntity entity, PlayerLane lane) {
-        entity.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.GOLD_INGOT));
+        entity.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(heldItem()));
         entity.setCustomName(Component.literal(type().displayName()));
         entity.setCustomNameVisible(true);
     }
@@ -128,6 +129,13 @@ public final class GamblerTower extends ProductionTower {
     @Override
     public void onUpgradeApplied(PlayerLane lane, TowerUpgradeOption option) {
         GambleBet.fromUpgradeId(option.id()).ifPresent(bet -> resolveBet(lane, bet));
+    }
+
+    @Override
+    public void onUpgradeCompleted(PlayerLane lane, Tower previousTower, TowerUpgradeOption option) {
+        if (GambleBet.fromUpgradeId(option.id()).isPresent()) {
+            promoteAfterBet(lane);
+        }
     }
 
     @Override
@@ -251,12 +259,61 @@ public final class GamblerTower extends ProductionTower {
             case MAX_HEALTH -> type().maxHealth();
             case DAMAGE -> type().damage();
             case RANGE -> type().range();
-            case SPLASH_RADIUS -> GambleBalance.baseSplashRadius();
+            case SPLASH_RADIUS -> splashRadius();
         };
     }
 
     double splashRadius() {
-        return GambleBalance.baseSplashRadius();
+        return GambleBalance.gamblerSplashRadius(type());
+    }
+
+    private net.minecraft.world.item.Item heldItem() {
+        if (type().id().equals(GambleTowers.KING.id())) {
+            return Items.DIAMOND;
+        }
+        if (type().id().equals(GambleTowers.DARK_KING.id())) {
+            return Items.NETHERITE_INGOT;
+        }
+        return Items.GOLD_INGOT;
+    }
+
+    private void promoteAfterBet(PlayerLane lane) {
+        TowerType targetType = GambleTowers.promotionTarget(type(), state().cumulativeScore());
+        if (targetType == null || lane == null) {
+            return;
+        }
+        Tower replacement = ProductionTowerCatalog.find(targetType.id())
+                .map(entry -> entry.create(
+                        ownerPlayer(), teamId(), laneId(), originalPosition(), position()))
+                .orElse(null);
+        if (!(replacement instanceof GamblerTower promoted)) {
+            return;
+        }
+        promoted.copyFrom(this, 0L);
+        if (!lane.replaceTower(this, promoted)) {
+            return;
+        }
+        promoted.showPromotionResult(lane);
+    }
+
+    private void showPromotionResult(PlayerLane lane) {
+        SemionTowerEntity source = GambleRoundEffects.towerEntity(this, lane).orElse(null);
+        if (source == null) {
+            return;
+        }
+        if (source.level() instanceof net.minecraft.server.level.ServerLevel level) {
+            level.sendParticles(type().id().equals(GambleTowers.DARK_KING.id())
+                            ? ParticleTypes.WITCH : ParticleTypes.HAPPY_VILLAGER,
+                    source.getX(), source.getY() + 1.0, source.getZ(), 40, 0.55, 0.65, 0.55, 0.08);
+        }
+        if (source.getServer() != null) {
+            var player = source.getServer().getPlayerList().getPlayer(ownerPlayer());
+            if (player != null) {
+                player.sendSystemMessage(SemionText.prefixedPlain(
+                        "누적 도박 점수 " + signed(state().cumulativeScore()) + " 달성! "
+                                + type().displayName() + "으로 전직했습니다."));
+            }
+        }
     }
 
     private void applyBasicSplash(

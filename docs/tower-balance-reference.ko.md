@@ -410,14 +410,14 @@
 
 | 키 | 기본값 | 의미 |
 |---|---:|---|
-| `oddEvenWinScore`, `oddEvenLossScore` | 80, 40 | 홀짝 성공·실패 점수의 절댓값 |
+| `oddEvenWinScore`, `oddEvenLossScore` | 70, 40 | 홀짝 성공·실패 점수의 절댓값 |
 | `maxHealthPerScore` | 5.0 | 점수 1당 최대 체력 변화 |
 | `damagePerScore` | 0.50 | 점수 1당 공격력 변화 |
 | `rangePerScore` | 0.05 | 점수 1당 사거리 블록 변화 |
 | `splashRadiusPerScore` | 0.025 | 이전 공격 범위 도박 상태 호환용 값이며 신규 도박에서는 사용하지 않음 |
 | `baseSplashRadius`, `splashDamageRatio` | 2.5, 0.60 | 고정 기본 공격 범위와 주변 적 피해 비율 |
 | `twoDiceLoss2`~`twoDiceLoss5` | 70, 50, 30, 10 | 주사위 두 개 실패 점수 절댓값 |
-| `twoDiceGain6`~`twoDiceGain12` | 20, 40, 50, 60, 75, 90, 100 | 주사위 두 개 성공 점수 |
+| `twoDiceGain6`~`twoDiceGain12` | 20, 40, 50, 60, 90, 120, 150 | 주사위 두 개 성공 점수 |
 | `twoDiceCompoundMinSum` | 10 | 전체 보상을 서로 다른 능력치 두 개가 절반씩 나눠 받는 최소 합계 |
 | `abilityRewardChance` | 0.25 | 성공 시 미보유 능력으로 바뀔 확률 |
 | `lossInsuranceReduction` | 0.20 | 손실 보험의 음수 고정치 완화율 |
@@ -427,8 +427,12 @@
 | `supportPositiveDamageUnit`, `supportNegativeDamageUnit` | 2.5, 2.5 | 공격력 강화·약화 기본 단위 |
 | `supportPositiveMaxHealthUnit`, `supportNegativeMaxHealthUnit` | 25, 25 | 최대 체력 강화·약화 기본 단위 |
 | `maxSpectatorsPerGambler` | 3 | 한 도박꾼에 연결할 수 있는 구경꾼 수 |
+| `kingPromotionScore` | 400 | 도박왕 전직에 필요한 누적 점수 |
+| `darkKingPromotionScoreMagnitude` | 200 | 어둠의 도박왕 전직에 필요한 음수 누적 점수의 절댓값 |
 
-지원 타워 ID별 `minimumRoll`과 `supportPowerMultiplier`가 최저 눈과 긍정 효과 배율을 정합니다. 기본 배율은 T1/T2/T3 `1.0/1.5/2.5`이고 약화 효과에는 적용되지 않습니다. 주사위 타워는 범위 안의 자기 전투 타워를 모두 지원하고, 구경꾼은 누적 도박 점수가 가장 높은 도박꾼 하나를 지원합니다. 두 지원 계열의 체력은 전 티어 10이며 범위는 `3.5/5/6.5`입니다. 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
+지원 타워 ID별 `minimumRoll`과 `supportPowerMultiplier`가 최저 눈과 긍정 효과 배율을 정합니다. 기본 배율은 T1/T2/T3 `1.0/2.0/3.5`이고 약화 효과에는 적용되지 않습니다. 주사위 타워는 범위 안의 자기 전투 타워를 모두 지원하고, 구경꾼은 누적 도박 점수가 가장 높은 도박꾼 하나를 지원합니다. 두 지원 계열의 체력은 전 티어 10이며 범위는 `3.5/5/6.5`입니다.
+
+`gamble_king`과 `gamble_dark_king`의 `splashRadiusBonus` 기본값은 각각 `0.5`, `0.75`입니다. 전직 전 도박 상태는 새 타워 타입으로 복사되며, 운영 설정에는 새 기본 키가 자동 병합되므로 기존 월드·운영값을 지우지 않습니다.
 
 ## 수정 절차
 

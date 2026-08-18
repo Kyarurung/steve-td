@@ -3296,6 +3296,22 @@
       "attackIntervalTicks": 13,
       "aggroPriority": 0
     },
+    "gamble_king": {
+      "mineralCost": 0,
+      "maxHealth": 400.0,
+      "range": 7.5,
+      "damage": 40.0,
+      "attackIntervalTicks": 8,
+      "aggroPriority": 0
+    },
+    "gamble_dark_king": {
+      "mineralCost": 0,
+      "maxHealth": 440.0,
+      "range": 8.0,
+      "damage": 44.0,
+      "attackIntervalTicks": 8,
+      "aggroPriority": 0
+    },
     "gamble_spectator_t1": {
       "mineralCost": 45,
       "maxHealth": 10.0,
@@ -3703,7 +3719,13 @@
     "gamble_spectator_t2->gamble_spectator_t3": 200,
     "gamble_gambler->bet_odd": 50,
     "gamble_gambler->bet_even": 50,
-    "gamble_gambler->roll_two_dice": 100
+    "gamble_gambler->roll_two_dice": 100,
+    "gamble_king->bet_odd": 50,
+    "gamble_king->bet_even": 50,
+    "gamble_king->roll_two_dice": 100,
+    "gamble_dark_king->bet_odd": 50,
+    "gamble_dark_king->bet_even": 50,
+    "gamble_dark_king->roll_two_dice": 100
   },
   "abilities": {
     "villager_splash_t2": {
@@ -6626,7 +6648,15 @@
       "supportNegativeHealthLossUnit": 1.0,
       "supportNegativeDamageUnit": 2.5,
       "supportNegativeMaxHealthUnit": 25.0,
-      "maxSpectatorsPerGambler": 3.0
+      "maxSpectatorsPerGambler": 3.0,
+      "kingPromotionScore": 400.0,
+      "darkKingPromotionScoreMagnitude": 200.0
+    },
+    "gamble_king": {
+      "splashRadiusBonus": 0.5
+    },
+    "gamble_dark_king": {
+      "splashRadiusBonus": 0.75
     },
     "gamble_dice_t1": {
       "minimumRoll": 1.0,

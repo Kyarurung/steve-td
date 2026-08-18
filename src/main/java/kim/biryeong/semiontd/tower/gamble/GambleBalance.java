@@ -26,6 +26,10 @@ public final class GambleBalance {
     public static final double SUPPORT_NEGATIVE_DAMAGE_UNIT = 2.5;
     public static final double SUPPORT_NEGATIVE_MAX_HEALTH_UNIT = 25.0;
     public static final int MAX_SPECTATORS_PER_GAMBLER = 3;
+    public static final double KING_PROMOTION_SCORE = 400.0;
+    public static final double DARK_KING_PROMOTION_SCORE = -200.0;
+    public static final double KING_SPLASH_RADIUS_BONUS = 0.5;
+    public static final double DARK_KING_SPLASH_RADIUS_BONUS = 0.75;
 
     private GambleBalance() {
     }
@@ -52,6 +56,25 @@ public final class GambleBalance {
 
     public static double splashDamageRatio() {
         return global("splashDamageRatio", SPLASH_DAMAGE_RATIO);
+    }
+
+    public static double kingPromotionScore() {
+        return global("kingPromotionScore", KING_PROMOTION_SCORE);
+    }
+
+    public static double darkKingPromotionScore() {
+        return -global("darkKingPromotionScoreMagnitude", Math.abs(DARK_KING_PROMOTION_SCORE));
+    }
+
+    public static double gamblerSplashRadius(TowerType type) {
+        double fallback = 0.0;
+        if (GambleTowers.isKing(type)) {
+            fallback = KING_SPLASH_RADIUS_BONUS;
+        } else if (GambleTowers.isDarkKing(type)) {
+            fallback = DARK_KING_SPLASH_RADIUS_BONUS;
+        }
+        return baseSplashRadius() + Math.max(0.0,
+                TowerBalanceRuntime.ability(type.id(), "splashRadiusBonus", fallback));
     }
 
     public static int supportVfxIntervalTicks() {

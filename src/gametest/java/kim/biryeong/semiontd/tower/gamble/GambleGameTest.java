@@ -19,13 +19,17 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TeamLaneGroup;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -338,6 +342,63 @@ public final class GambleGameTest {
             if (primary != null) primary.discard();
             if (secondary != null) secondary.discard();
             if (splashTarget != null) splashTarget.discard();
+            group.closeRuntime();
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void scoreThresholdPromotionsKeepStateAndEquipFinalFormItems(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        UUID owner = stableUuid("gamble-promotion-owner");
+        PlayerLane lane = testLane(context, owner);
+        TeamLaneGroup group = new TeamLaneGroup(TeamId.RED, BossMonster.defaultBoss(TeamId.RED));
+        group.addLane(lane);
+        prepareFloor(context);
+        GamblerTower kingCandidate = gambler(owner, floor(context, 4, 2, 3));
+        GamblerTower darkCandidate = gambler(owner, floor(context, 8, 2, 3));
+        try {
+            lane.addTower(kingCandidate);
+            lane.addTower(darkCandidate);
+            GambleState kingState = new GambleState(
+                    50.0, 5.0, 0.5, 0.0,
+                    400.0, Set.of(GambleAbility.LOSS_INSURANCE), 12, "도박왕 전직 테스트"
+            );
+            GambleState darkState = new GambleState(
+                    -20.0, -2.0, -0.5, 0.0,
+                    -200.0, Set.of(), 4, "어둠의 도박왕 전직 테스트"
+            );
+            kingCandidate.setData(GamblerTower.STATE, kingState);
+            darkCandidate.setData(GamblerTower.STATE, darkState);
+            TowerUpgradeOption bet = ProductionTowerCatalog.upgrade(
+                    GambleTowers.GAMBLER, GambleBet.ODD.upgradeId()).orElseThrow();
+
+            kingCandidate.onUpgradeCompleted(lane, kingCandidate, bet);
+            darkCandidate.onUpgradeCompleted(lane, darkCandidate, bet);
+
+            Tower kingTower = lane.towerAt(kingCandidate.position());
+            Tower darkTower = lane.towerAt(darkCandidate.position());
+            require(kingTower instanceof GamblerTower && kingTower.type().id().equals(GambleTowers.KING.id()),
+                    "A +400 score gambler must become the Gamble King.");
+            require(darkTower instanceof GamblerTower
+                            && darkTower.type().id().equals(GambleTowers.DARK_KING.id()),
+                    "A -200 score gambler must become the Dark Gamble King.");
+            GamblerTower king = (GamblerTower) kingTower;
+            GamblerTower dark = (GamblerTower) darkTower;
+            require(king.state().equals(kingState) && dark.state().equals(darkState),
+                    "Promotion must preserve every gamble stat, score, bet count, result, and ability.");
+            require(close(king.currentMaxHealth(), 450.0) && close(dark.currentMaxHealth(), 420.0),
+                    "Promoted base health must retain the previous fixed gamble deltas.");
+            require(close(king.splashRadius(), 3.0) && close(dark.splashRadius(), 3.25),
+                    "Final forms must gain their configured splash-radius bonuses.");
+            require(entity(lane, king).getItemBySlot(EquipmentSlot.MAINHAND).is(Items.DIAMOND),
+                    "The Gamble King must hold a diamond.");
+            require(entity(lane, dark).getItemBySlot(EquipmentSlot.MAINHAND).is(Items.NETHERITE_INGOT),
+                    "The Dark Gamble King must hold a netherite ingot.");
+            context.succeed();
+        } finally {
             group.closeRuntime();
             TowerBalanceRuntime.apply(defaults);
         }

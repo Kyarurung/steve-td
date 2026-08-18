@@ -1263,6 +1263,7 @@ public record TowerBalanceConfig(
                 "supportNegativeRangeUnit", "supportNegativeHealthLossUnit",
                 "supportNegativeDamageUnit", "supportNegativeMaxHealthUnit",
                 "maxSpectatorsPerGambler",
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude",
                 "twoDiceCompoundMinSum",
                 "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
                 "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
@@ -1272,6 +1273,9 @@ public record TowerBalanceConfig(
         validateIntegral(global, false, "supportVfxIntervalTicks", "maxSpectatorsPerGambler");
         validateRange(global, "twoDiceCompoundMinSum", 2.0, 12.0);
         validateIntegral(global, false, "twoDiceCompoundMinSum");
+        validateIntegral(global, false, "kingPromotionScore", "darkKingPromotionScoreMagnitude");
+        validatePositive(GambleTowers.KING.id(), "splashRadiusBonus");
+        validatePositive(GambleTowers.DARK_KING.id(), "splashRadiusBonus");
 
         for (TowerType type : List.of(
                 GambleTowers.DICE_T1, GambleTowers.DICE_T2, GambleTowers.DICE_T3,
@@ -3700,9 +3704,12 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), 200);
         putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2.id(), 100);
         putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), 200);
-        for (GambleBet bet : GambleBet.values()) {
-            putUpgrade(upgradeCosts, GambleTowers.GAMBLER, bet.upgradeId(),
-                    bet == GambleBet.TWO_DICE ? 100 : 50);
+        for (TowerType gambler : List.of(
+                GambleTowers.GAMBLER, GambleTowers.KING, GambleTowers.DARK_KING)) {
+            for (GambleBet bet : GambleBet.values()) {
+                putUpgrade(upgradeCosts, gambler, bet.upgradeId(),
+                        bet == GambleBet.TWO_DICE ? 100 : 50);
+            }
         }
     }
 
@@ -3740,7 +3747,16 @@ public record TowerBalanceConfig(
         global.put("supportNegativeDamageUnit", GambleBalance.SUPPORT_NEGATIVE_DAMAGE_UNIT);
         global.put("supportNegativeMaxHealthUnit", GambleBalance.SUPPORT_NEGATIVE_MAX_HEALTH_UNIT);
         global.put("maxSpectatorsPerGambler", (double) GambleBalance.MAX_SPECTATORS_PER_GAMBLER);
+        global.put("kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
+        global.put("darkKingPromotionScoreMagnitude", Math.abs(GambleBalance.DARK_KING_PROMOTION_SCORE));
         putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
+
+        putAbilities(abilities, GambleTowers.KING.id(), Map.of(
+                "splashRadiusBonus", GambleBalance.KING_SPLASH_RADIUS_BONUS
+        ));
+        putAbilities(abilities, GambleTowers.DARK_KING.id(), Map.of(
+                "splashRadiusBonus", GambleBalance.DARK_KING_SPLASH_RADIUS_BONUS
+        ));
 
         putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1.0, 0);
         putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 2.0, 0);

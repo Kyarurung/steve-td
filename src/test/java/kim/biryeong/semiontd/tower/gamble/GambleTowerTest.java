@@ -213,7 +213,7 @@ final class GambleTowerTest {
     void catalogUsesThreeStartersConfiguredUpgradeCostsAndCreativeClassification() {
         List<ProductionTowerCatalog.CatalogEntry> entries = ProductionTowerCatalog.all().stream()
                 .filter(entry -> GambleTowers.isGambleTower(entry.type())).toList();
-        assertEquals(7, entries.size());
+        assertEquals(9, entries.size());
         assertEquals(3, entries.stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count());
         assertTrue(entries.stream().filter(ProductionTowerCatalog.CatalogEntry::starter)
                 .map(entry -> entry.type().id()).toList().containsAll(List.of(
@@ -252,11 +252,14 @@ final class GambleTowerTest {
         assertTrue(gambler.type().range() >= IllagerTowers.T1_PILLAGER.range());
         assertTrue(gambler.type().damage() * IllagerTowers.T1_PILLAGER.attackIntervalTicks()
                 > IllagerTowers.T1_PILLAGER.damage() * gambler.type().attackIntervalTicks());
-        for (GambleBet bet : GambleBet.values()) {
-            TowerUpgradeOption option = ProductionTowerCatalog.upgrade(GambleTowers.GAMBLER, bet.upgradeId())
-                    .orElseThrow();
-            assertEquals(bet == GambleBet.TWO_DICE ? 100 : 50, option.mineralCost());
-            assertFalse(gambler.upgradeCostAddsToSaleValue(option));
+        for (var gamblerType : List.of(
+                GambleTowers.GAMBLER, GambleTowers.KING, GambleTowers.DARK_KING)) {
+            for (GambleBet bet : GambleBet.values()) {
+                TowerUpgradeOption option = ProductionTowerCatalog.upgrade(gamblerType, bet.upgradeId())
+                        .orElseThrow();
+                assertEquals(bet == GambleBet.TWO_DICE ? 100 : 50, option.mineralCost());
+                assertFalse(gambler.upgradeCostAddsToSaleValue(option));
+            }
         }
         assertEquals(100, ProductionTowerCatalog.upgrade(GambleTowers.DICE_T1, GambleTowers.DICE_T2.id())
                 .orElseThrow().mineralCost());
@@ -277,6 +280,42 @@ final class GambleTowerTest {
         assertTrue(JobRegistry.creativeBuilders().stream().anyMatch(job -> job.id().equals(GambleTowerJob.ID)));
         assertFalse(JobRegistry.officialBuilders().stream().anyMatch(job -> job.id().equals(GambleTowerJob.ID)));
         assertEquals("semion-td:gamble_towers", new GambleTowerJob().id().toString());
+    }
+
+    @Test
+    void promotionThresholdsCreateFinalFormsWithoutDiscardingGambleState() {
+        assertEquals(GambleTowers.KING,
+                GambleTowers.promotionTarget(GambleTowers.GAMBLER, 400.0));
+        assertEquals(GambleTowers.DARK_KING,
+                GambleTowers.promotionTarget(GambleTowers.GAMBLER, -200.0));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, 399.999));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, -199.999));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.KING, -1_000.0));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.DARK_KING, 1_000.0));
+
+        assertEquals(400.0, GambleTowers.KING.maxHealth(), EPSILON);
+        assertEquals(40.0, GambleTowers.KING.damage(), EPSILON);
+        assertEquals(7.5, GambleTowers.KING.range(), EPSILON);
+        assertEquals(8, GambleTowers.KING.attackIntervalTicks());
+        assertEquals(440.0, GambleTowers.DARK_KING.maxHealth(), EPSILON);
+        assertEquals(44.0, GambleTowers.DARK_KING.damage(), EPSILON);
+        assertEquals(8.0, GambleTowers.DARK_KING.range(), EPSILON);
+        assertEquals(8, GambleTowers.DARK_KING.attackIntervalTicks());
+        assertEquals(3.0, GambleBalance.gamblerSplashRadius(GambleTowers.KING), EPSILON);
+        assertEquals(3.25, GambleBalance.gamblerSplashRadius(GambleTowers.DARK_KING), EPSILON);
+
+        GambleState state = GambleState.EMPTY
+                .recordStat(GambleStat.MAX_HEALTH, 250.0, 110.0, 350.0, "health")
+                .recordAbility(GambleAbility.LOSS_INSURANCE, 50.0, "insurance");
+        GamblerTower original = new GamblerTower(GambleTowers.GAMBLER, OWNER, TeamId.RED, 1,
+                new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));
+        original.setData(GamblerTower.STATE, state);
+        GamblerTower promoted = new GamblerTower(GambleTowers.KING, OWNER, TeamId.RED, 1,
+                original.originalPosition(), original.position());
+        promoted.copyFrom(original, 0L);
+        assertEquals(state, promoted.state());
+        assertEquals(650.0, promoted.effectBaseMaxHealth(), EPSILON);
+        assertTrue(promoted.state().has(GambleAbility.LOSS_INSURANCE));
     }
 
     @Test
@@ -345,6 +384,8 @@ final class GambleTowerTest {
         assertEquals(3, GambleBalance.maxSpectatorsPerGambler());
         assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
+        assertEquals(400.0, GambleBalance.kingPromotionScore(), EPSILON);
+        assertEquals(-200.0, GambleBalance.darkKingPromotionScore(), EPSILON);
     }
 
     @Test
@@ -365,6 +406,16 @@ final class GambleTowerTest {
         assertEquals(35.0, partial.ability(
                 GambleTowers.SPECTATOR_T3.id(), "faceSixDiamondReward", -1), EPSILON);
         assertEquals(110, partial.towers().get(GambleTowers.GAMBLER.id()).maxHealth(), EPSILON);
+        assertEquals(400, partial.towers().get(GambleTowers.KING.id()).maxHealth(), EPSILON);
+        assertEquals(440, partial.towers().get(GambleTowers.DARK_KING.id()).maxHealth(), EPSILON);
+        assertEquals(400.0, partial.ability(
+                GambleBalance.GLOBAL_ID, "kingPromotionScore", -1), EPSILON);
+        assertEquals(200.0, partial.ability(
+                GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", -1), EPSILON);
+        assertEquals(0.5, partial.ability(
+                GambleTowers.KING.id(), "splashRadiusBonus", -1), EPSILON);
+        assertEquals(0.75, partial.ability(
+                GambleTowers.DARK_KING.id(), "splashRadiusBonus", -1), EPSILON);
 
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "abilityRewardChance", 1.1);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "splashDamageRatio", 1.1);
@@ -372,6 +423,9 @@ final class GambleTowerTest {
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "supportPositiveRangeUnit", -1.0);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "twoDiceCompoundMinSum", 9.5);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "twoDiceLoss2", 1_000.0);
+        assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "kingPromotionScore", 0.0);
+        assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", 0.0);
+        assertInvalidAbility(defaults, GambleTowers.KING.id(), "splashRadiusBonus", 0.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "minimumRoll", 7.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "supportPowerMultiplier", -1.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "faceSixDiamondReward", 3.5);
@@ -381,6 +435,8 @@ final class GambleTowerTest {
             var root = JsonParser.parseReader(new InputStreamReader(
                     java.util.Objects.requireNonNull(input), StandardCharsets.UTF_8)).getAsJsonObject();
             assertTrue(root.getAsJsonObject("towers").has(GambleTowers.GAMBLER.id()));
+            assertTrue(root.getAsJsonObject("towers").has(GambleTowers.KING.id()));
+            assertTrue(root.getAsJsonObject("towers").has(GambleTowers.DARK_KING.id()));
             assertTrue(root.getAsJsonObject("abilities").has(GambleBalance.GLOBAL_ID));
         }
     }

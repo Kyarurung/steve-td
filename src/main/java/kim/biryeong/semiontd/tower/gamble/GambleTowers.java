@@ -11,6 +11,9 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.level.block.Blocks;
 
 public final class GambleTowers {
+    private static final EntityVisual GAMBLER_VISUAL = EntityVisual.builder("minecraft:wandering_trader")
+            .scale(1.0).build();
+
     public static final TowerType DICE_T1 = support(
             "gamble_dice_t1", "주사위 타워 I", 45, 10, 3.5,
             BlockDisplayVisual.builder(Blocks.WHITE_CONCRETE.defaultBlockState()).scale(0.75).build(),
@@ -43,14 +46,36 @@ public final class GambleTowers {
     );
     public static final TowerType GAMBLER = TowerType.builder("gamble_gambler", "도박꾼 타워")
             .mineralCost(60).maxHealth(110).range(6.5).damage(10).attackIntervalTicks(13)
-            .visual(EntityVisual.builder("minecraft:wandering_trader").scale(1.0).build())
+            .visual(GAMBLER_VISUAL)
             .description(List.of(
                     "준비 시간에 홀수·짝수는 50 다이아, 주사위 두 개는 100 다이아를 내고 반복할 수 있습니다.",
                     "주사위 눈에 따라 최대 체력·공격력·사거리 중 무작위 능력치가 오르거나 내려갑니다.",
                     "주사위 두 개의 합이 {ability.gamble_global.twoDiceCompoundMinSum:integer} 이상이면 서로 다른 능력치 두 개가 보상을 나눠 받습니다.",
                     "기본 공격은 반경 {ability.gamble_global.baseSplashRadius:blocks} 안의 적에게도 피해를 줍니다.",
                     "좋은 결과가 나오면 {ability.gamble_global.abilityRewardChance:percent} 확률로 능력치 상승 대신 손실 보험을 얻습니다.",
-                    "손실 보험은 능력치 감소량을 {ability.gamble_global.lossInsuranceReduction:percent} 줄입니다."
+                    "손실 보험은 능력치 감소량을 {ability.gamble_global.lossInsuranceReduction:percent} 줄입니다.",
+                    "도박 직후 누적 점수가 +{ability.gamble_global.kingPromotionScore:integer} 이상이면 도박왕, "
+                            + "-{ability.gamble_global.darkKingPromotionScoreMagnitude:integer} 이하이면 어둠의 도박왕으로 전직합니다."
+            )).build();
+    public static final TowerType KING = TowerType.builder("gamble_king", "도박왕")
+            .mineralCost(0).maxHealth(400).range(7.5).damage(40).attackIntervalTicks(8)
+            .visual(GAMBLER_VISUAL)
+            .description(List.of(
+                    "누적 도박 점수 +{ability.gamble_global.kingPromotionScore:integer}을 달성한 도박꾼의 최종 전직입니다.",
+                    "전직 전 도박 횟수·누적 점수·능력치 변화·손실 보험을 모두 유지합니다.",
+                    "기본 체력과 공격력, 공격 속도가 대폭 증가하고 사거리와 범위 피해 반경이 증가합니다.",
+                    "범위 피해 반경이 {ability.splashRadiusBonus:blocks}만큼 증가합니다.",
+                    "전직 후에도 세 가지 도박을 계속할 수 있습니다."
+            )).build();
+    public static final TowerType DARK_KING = TowerType.builder("gamble_dark_king", "어둠의 도박왕")
+            .mineralCost(0).maxHealth(440).range(8).damage(44).attackIntervalTicks(8)
+            .visual(GAMBLER_VISUAL)
+            .description(List.of(
+                    "누적 도박 점수 -{ability.gamble_global.darkKingPromotionScoreMagnitude:integer} 이하에 도달한 도박꾼의 최종 전직입니다.",
+                    "전직 전 도박 횟수·누적 점수·능력치 변화·손실 보험을 모두 유지합니다.",
+                    "도박왕보다 기본 체력·공격력·사거리와 범위 피해 반경이 소폭 높습니다.",
+                    "범위 피해 반경이 {ability.splashRadiusBonus:blocks}만큼 증가합니다.",
+                    "전직 후에도 세 가지 도박을 계속할 수 있습니다."
             )).build();
     public static final TowerType SPECTATOR_T1 = support(
             "gamble_spectator_t1", "구경꾼 타워 I", 45, 10, 3.5,
@@ -90,7 +115,8 @@ public final class GambleTowers {
     );
 
     private static final List<TowerType> ALL = List.of(
-            DICE_T1, DICE_T2, DICE_T3, GAMBLER, SPECTATOR_T1, SPECTATOR_T2, SPECTATOR_T3
+            DICE_T1, DICE_T2, DICE_T3, GAMBLER, KING, DARK_KING,
+            SPECTATOR_T1, SPECTATOR_T2, SPECTATOR_T3
     );
 
     static {
@@ -114,6 +140,31 @@ public final class GambleTowers {
 
     public static boolean isSpectator(TowerType type) {
         return matches(type, SPECTATOR_T1) || matches(type, SPECTATOR_T2) || matches(type, SPECTATOR_T3);
+    }
+
+    public static boolean isGambler(TowerType type) {
+        return matches(type, GAMBLER) || matches(type, KING) || matches(type, DARK_KING);
+    }
+
+    public static boolean isKing(TowerType type) {
+        return matches(type, KING);
+    }
+
+    public static boolean isDarkKing(TowerType type) {
+        return matches(type, DARK_KING);
+    }
+
+    public static TowerType promotionTarget(TowerType current, double cumulativeScore) {
+        if (!matches(current, GAMBLER)) {
+            return null;
+        }
+        if (cumulativeScore <= GambleBalance.darkKingPromotionScore()) {
+            return DARK_KING;
+        }
+        if (cumulativeScore >= GambleBalance.kingPromotionScore()) {
+            return KING;
+        }
+        return null;
     }
 
     private static boolean matches(TowerType actual, TowerType expected) {
