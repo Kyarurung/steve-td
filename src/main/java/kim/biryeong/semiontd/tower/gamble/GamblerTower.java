@@ -58,6 +58,18 @@ public final class GamblerTower extends ProductionTower {
     }
 
     @Override
+    public void refreshType(TowerType type, PlayerLane lane) {
+        if (type == null || !type().id().equals(type.id())) {
+            return;
+        }
+        double healthRatio = health() / Math.max(1.0, currentMaxHealth());
+        setData(STATE, state().rebalanced(type));
+        super.refreshType(type, lane);
+        syncHealth(currentMaxHealth() * healthRatio);
+        promoteAfterBet(lane);
+    }
+
+    @Override
     protected void configureEntityAfterSpawn(SemionTowerEntity entity, PlayerLane lane) {
         entity.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(heldItem()));
         entity.setCustomName(Component.literal(type().displayName()));

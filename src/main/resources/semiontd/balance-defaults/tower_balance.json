@@ -6665,9 +6665,9 @@
       "supportNegativeDamageUnit": 2.5,
       "supportNegativeMaxHealthUnit": 25.0,
       "maxSpectatorsPerGambler": 3.0,
-      "kingPromotionScore": 1000.0,
+      "kingPromotionScore": 400.0,
       "darkKingPromotionScoreMagnitude": 400.0,
-      "maxGambleScore": 2000.0
+      "maxGambleScore": 500.0
     },
     "gamble_king": {
       "splashRadiusBonus": 0.5

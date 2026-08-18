@@ -1,7 +1,9 @@
 package kim.biryeong.semiontd.tower.gamble;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -379,7 +381,7 @@ public final class GambleGameTest {
             lane.addTower(darkCandidate);
             GambleState kingState = new GambleState(
                     50.0, 5.0, 0.5, 0.0,
-                    1_000.0, Set.of(GambleAbility.LOSS_INSURANCE), 12, "도박왕 전직 테스트"
+                    400.0, Set.of(GambleAbility.LOSS_INSURANCE), 12, "도박왕 전직 테스트"
             );
             GambleState darkState = new GambleState(
                     -20.0, -2.0, -0.5, 0.0,
@@ -396,7 +398,7 @@ public final class GambleGameTest {
             Tower kingTower = lane.towerAt(kingCandidate.position());
             Tower darkTower = lane.towerAt(darkCandidate.position());
             require(kingTower instanceof GamblerTower && kingTower.type().id().equals(GambleTowers.KING.id()),
-                    "A +1000 score gambler must become the Gamble King.");
+                    "A +400 score gambler must become the Gamble King.");
             require(darkTower instanceof GamblerTower
                             && darkTower.type().id().equals(GambleTowers.DARK_KING.id()),
                     "A -400 score gambler must become the Dark Gamble King.");
@@ -480,7 +482,7 @@ public final class GambleGameTest {
                     position, position);
             gambler.setData(GamblerTower.STATE, new GambleState(
                     10_000.0, 1_000.0, 100.0, 0.0,
-                    2_000.0, Set.of(GambleAbility.LOSS_INSURANCE), 99, "최대 점수"
+                    500.0, Set.of(GambleAbility.LOSS_INSURANCE), 99, "최대 점수"
             ));
             lane.addTower(gambler);
             game.players().get(owner).economy().addMineral(1_000);
@@ -498,6 +500,61 @@ public final class GambleGameTest {
         } finally {
             game.close();
             TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    @GameTest(maxTicks = 80)
+    public void balanceReloadReclampsAndPromotesExistingGamblerWithoutCharging(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig legacy = withGambleScores(defaults, 1_000.0, 2_000.0);
+        ProductionTowerCatalogs.reloadBuiltIns(legacy);
+        UUID owner = stableUuid("gamble-reload-cap-owner");
+        SemionGame game = startedGambleGame(context, owner, "gamble-reload-cap");
+        try {
+            PlayerLane lane = game.playerLane(owner).orElseThrow();
+            GridPosition position = emptyPosition(lane);
+            GamblerTower gambler = new GamblerTower(
+                    TowerBalanceRuntime.resolve(GambleTowers.GAMBLER), owner, TeamId.RED, 1,
+                    position, position);
+            gambler.setData(GamblerTower.STATE, new GambleState(
+                    4_000.0, 400.0, 40.0, 20.0,
+                    600.0, Set.of(GambleAbility.LOSS_INSURANCE), 30, "이전 상한"
+            ));
+            lane.addTower(gambler);
+            gambler.syncHealth(gambler.currentMaxHealth() * 0.5);
+            game.players().get(owner).economy().addMineral(1_000);
+            long before = game.players().get(owner).economy().mineral();
+
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
+            game.refreshProductionTowerTypes();
+
+            Tower refreshed = lane.towerAt(position);
+            require(refreshed instanceof GamblerTower
+                            && refreshed.type().id().equals(GambleTowers.KING.id()),
+                    "Lowering the promotion threshold must promote an existing eligible gambler.");
+            GamblerTower king = (GamblerTower) refreshed;
+            require(close(king.state().cumulativeScore(), 500.0),
+                    "Reload must clamp the displayed score to the new maximum.");
+            require(close(king.state().maxHealthDelta(), 2_500.0)
+                            && close(king.state().damageDelta(), 250.0)
+                            && close(king.state().rangeDelta(), 25.0),
+                    "Reload must clamp every stored positive stat to the new score-equivalent maximum.");
+            require(close(king.health(), king.currentMaxHealth() * 0.5),
+                    "Reload and promotion must preserve the current health ratio.");
+            require(king.runtimeDetailLines().stream().anyMatch(line -> line.contains("+500.0 / +500.0")),
+                    "Runtime details must immediately show the reloaded cap.");
+            require(ProductionTowerService.availableUpgrades(game, owner, position).isEmpty(),
+                    "Reload must immediately close every gamble button at the new cap.");
+            require(ProductionTowerService.upgradeTower(
+                            game, owner, position, GambleBet.TWO_DICE.upgradeId())
+                            == TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
+                    "A direct bet request must be rejected after a cap-lowering reload.");
+            require(game.players().get(owner).economy().mineral() == before,
+                    "A rejected post-reload bet must not charge diamonds.");
+            context.succeed();
+        } finally {
+            game.close();
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
         }
     }
 
@@ -606,6 +663,18 @@ public final class GambleGameTest {
 
     private static UUID stableUuid(String seed) {
         return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static TowerBalanceConfig withGambleScores(
+            TowerBalanceConfig defaults, double kingPromotionScore, double maxGambleScore
+    ) {
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> gamble = new LinkedHashMap<>(abilities.get(GambleBalance.GLOBAL_ID));
+        gamble.put("kingPromotionScore", kingPromotionScore);
+        gamble.put("maxGambleScore", maxGambleScore);
+        abilities.put(GambleBalance.GLOBAL_ID, gamble);
+        return new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion());
     }
 
     private static boolean close(double first, double second) {

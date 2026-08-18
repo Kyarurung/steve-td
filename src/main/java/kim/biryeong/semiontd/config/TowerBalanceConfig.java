@@ -1279,6 +1279,13 @@ public record TowerBalanceConfig(
         validateIntegral(global, false, "twoDiceCompoundMinSum");
         validateIntegral(global, false,
                 "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore");
+        double kingPromotionScore = ability(global, "kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
+        double maxGambleScore = ability(global, "maxGambleScore", GambleBalance.MAX_GAMBLE_SCORE);
+        if (maxGambleScore < kingPromotionScore) {
+            throw new IllegalArgumentException(
+                    "Gamble maximum score must be greater than or equal to the king promotion score."
+            );
+        }
         validatePositive(GambleTowers.KING.id(), "splashRadiusBonus");
         validatePositive(GambleTowers.DARK_KING.id(), "splashRadiusBonus");
 

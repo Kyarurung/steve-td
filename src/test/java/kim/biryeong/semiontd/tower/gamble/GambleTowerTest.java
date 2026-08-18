@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
@@ -143,7 +144,7 @@ final class GambleTowerTest {
 
         assertEquals(76, state.cumulativeScore(), EPSILON);
         state = state.recordStat(GambleStat.DAMAGE, 10_000, 8, 100, "capped");
-        assertEquals(1_008, state.resolvedValue(GambleStat.DAMAGE, 8), EPSILON);
+        assertEquals(258, state.resolvedValue(GambleStat.DAMAGE, 8), EPSILON);
         state = state.recordStat(GambleStat.DAMAGE, -20_000, 8, -140, "floor");
         assertEquals(1.6, state.resolvedValue(GambleStat.DAMAGE, 8), EPSILON);
         assertEquals(-6.4, state.damageDelta(), EPSILON);
@@ -154,8 +155,8 @@ final class GambleTowerTest {
 
         GambleState capped = GambleState.EMPTY.recordStat(
                 GambleStat.MAX_HEALTH, 20_000, 100, 2_500, "score cap");
-        assertEquals(2_000, capped.cumulativeScore(), EPSILON);
-        assertEquals(10_000, capped.maxHealthDelta(), EPSILON);
+        assertEquals(500, capped.cumulativeScore(), EPSILON);
+        assertEquals(2_500, capped.maxHealthDelta(), EPSILON);
         assertTrue(capped.atScoreCap());
         GamblerTower cappedTower = new GamblerTower(GambleTowers.GAMBLER, OWNER, TeamId.RED, 1,
                 new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));
@@ -167,6 +168,47 @@ final class GambleTowerTest {
         }
         assertTrue(cappedTower.runtimeDetailLines().stream()
                 .anyMatch(line -> line.contains("도박 상태: 종료")));
+    }
+
+    @Test
+    void balanceReloadReclampsExistingScoreStatsHealthAndUpgradeAvailability() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig legacy = withGambleScores(defaults, 1_000.0, 2_000.0);
+        try {
+            ProductionTowerCatalogs.reloadBuiltIns(legacy);
+            GamblerTower gambler = new GamblerTower(
+                    ProductionTowerCatalog.find(GambleTowers.GAMBLER.id()).orElseThrow().type(),
+                    OWNER, TeamId.RED, 1,
+                    new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));
+            gambler.setData(GamblerTower.STATE, new GambleState(
+                    10_000.0, 1_000.0, 100.0, 50.0,
+                    2_000.0, Set.of(GambleAbility.LOSS_INSURANCE), 99, "이전 상한"
+            ));
+            gambler.syncMaxHealth(gambler.effectBaseMaxHealth(), false);
+            gambler.syncHealth(gambler.currentMaxHealth() * 0.5);
+
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
+            gambler.refreshType(
+                    ProductionTowerCatalog.find(GambleTowers.GAMBLER.id()).orElseThrow().type(), null);
+
+            GambleState rebalanced = gambler.state();
+            assertEquals(500.0, rebalanced.cumulativeScore(), EPSILON);
+            assertEquals(2_500.0, rebalanced.maxHealthDelta(), EPSILON);
+            assertEquals(250.0, rebalanced.damageDelta(), EPSILON);
+            assertEquals(25.0, rebalanced.rangeDelta(), EPSILON);
+            assertEquals(12.5, rebalanced.splashRadiusDelta(), EPSILON);
+            assertEquals(gambler.currentMaxHealth() * 0.5, gambler.health(), EPSILON);
+            assertTrue(rebalanced.atScoreCap());
+            assertTrue(gambler.runtimeDetailLines().stream()
+                    .anyMatch(line -> line.contains("+500.0 / +500.0")));
+            for (GambleBet bet : GambleBet.values()) {
+                TowerUpgradeOption option = ProductionTowerCatalog.upgrade(
+                        GambleTowers.GAMBLER, bet.upgradeId()).orElseThrow();
+                assertFalse(gambler.meetsUpgradeRequirements(null, option));
+            }
+        } finally {
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        }
     }
 
     @Test
@@ -301,10 +343,10 @@ final class GambleTowerTest {
     @Test
     void promotionThresholdsCreateFinalFormsWithoutDiscardingGambleState() {
         assertEquals(GambleTowers.KING,
-                GambleTowers.promotionTarget(GambleTowers.GAMBLER, 1_000.0));
+                GambleTowers.promotionTarget(GambleTowers.GAMBLER, 400.0));
         assertEquals(GambleTowers.DARK_KING,
                 GambleTowers.promotionTarget(GambleTowers.GAMBLER, -400.0));
-        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, 999.999));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, 399.999));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, -399.999));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.KING, -1_000.0));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.DARK_KING, 1_000.0));
@@ -400,9 +442,9 @@ final class GambleTowerTest {
         assertEquals(3, GambleBalance.maxSpectatorsPerGambler());
         assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
-        assertEquals(1_000.0, GambleBalance.kingPromotionScore(), EPSILON);
+        assertEquals(400.0, GambleBalance.kingPromotionScore(), EPSILON);
         assertEquals(-400.0, GambleBalance.darkKingPromotionScore(), EPSILON);
-        assertEquals(2_000.0, GambleBalance.maxGambleScore(), EPSILON);
+        assertEquals(500.0, GambleBalance.maxGambleScore(), EPSILON);
     }
 
     @Test
@@ -425,11 +467,11 @@ final class GambleTowerTest {
         assertEquals(110, partial.towers().get(GambleTowers.GAMBLER.id()).maxHealth(), EPSILON);
         assertEquals(400, partial.towers().get(GambleTowers.KING.id()).maxHealth(), EPSILON);
         assertEquals(440, partial.towers().get(GambleTowers.DARK_KING.id()).maxHealth(), EPSILON);
-        assertEquals(1_000.0, partial.ability(
+        assertEquals(400.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "kingPromotionScore", -1), EPSILON);
         assertEquals(400.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", -1), EPSILON);
-        assertEquals(2_000.0, partial.ability(
+        assertEquals(500.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "maxGambleScore", -1), EPSILON);
         assertEquals(0.5, partial.ability(
                 GambleTowers.KING.id(), "splashRadiusBonus", -1), EPSILON);
@@ -445,6 +487,7 @@ final class GambleTowerTest {
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "kingPromotionScore", 0.0);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", 0.0);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "maxGambleScore", 0.0);
+        assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "maxGambleScore", 399.0);
         assertInvalidAbility(defaults, GambleTowers.KING.id(), "splashRadiusBonus", 0.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "minimumRoll", 7.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "supportPowerMultiplier", -1.0);
@@ -507,5 +550,17 @@ final class GambleTowerTest {
         TowerBalanceConfig broken = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities,
                 defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion());
         assertThrows(IllegalArgumentException.class, broken::validateForRuntime);
+    }
+
+    private static TowerBalanceConfig withGambleScores(
+            TowerBalanceConfig defaults, double kingPromotionScore, double maxGambleScore
+    ) {
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> gamble = new LinkedHashMap<>(abilities.get(GambleBalance.GLOBAL_ID));
+        gamble.put("kingPromotionScore", kingPromotionScore);
+        gamble.put("maxGambleScore", maxGambleScore);
+        abilities.put(GambleBalance.GLOBAL_ID, gamble);
+        return new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion());
     }
 }

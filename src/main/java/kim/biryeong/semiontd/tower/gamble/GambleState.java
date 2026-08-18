@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import kim.biryeong.semiontd.tower.TowerType;
 
 public record GambleState(
         double maxHealthDelta,
@@ -52,6 +53,23 @@ public record GambleState(
 
     public boolean atScoreCap() {
         return cumulativeScore >= GambleBalance.maxGambleScore();
+    }
+
+    public GambleState rebalanced(TowerType type) {
+        double maxHealthBase = type == null ? 0.0 : type.maxHealth();
+        double damageBase = type == null ? 0.0 : type.damage();
+        double rangeBase = type == null ? 0.0 : type.range();
+        double splashRadiusBase = type == null ? 0.0 : GambleBalance.gamblerSplashRadius(type);
+        return new GambleState(
+                clampConfiguredDelta(GambleStat.MAX_HEALTH, maxHealthDelta, maxHealthBase),
+                clampConfiguredDelta(GambleStat.DAMAGE, damageDelta, damageBase),
+                clampConfiguredDelta(GambleStat.RANGE, rangeDelta, rangeBase),
+                clampConfiguredDelta(GambleStat.SPLASH_RADIUS, splashRadiusDelta, splashRadiusBase),
+                cumulativeScore,
+                abilities,
+                totalBets,
+                lastResult
+        );
     }
 
     public GambleState recordStat(
@@ -109,6 +127,13 @@ public record GambleState(
     private static double capPositiveDelta(GambleStat stat, double value) {
         return Math.min(GambleBalance.statDelta(stat, GambleBalance.maxGambleScore()),
                 sanitizeDelta(value));
+    }
+
+    private static double clampConfiguredDelta(GambleStat stat, double value, double baseValue) {
+        double minimum = -Math.max(0.0, baseValue) * 0.80;
+        double maximum = Math.max(0.0,
+                GambleBalance.statDelta(stat, GambleBalance.maxGambleScore()));
+        return clampDelta(value, minimum, maximum);
     }
 
     private static double clampDelta(double value, double minimum, double maximum) {
