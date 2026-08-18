@@ -84,7 +84,7 @@ class ArmyStatesTest {
     /**
      * The medal ceiling is a balance budget, not an implementation detail.
      *
-     * <p>Per-slot effectiveness was derived with the permanent bonus fixed at +20%: a ten-slot
+     * <p>Per-slot effectiveness was derived with the permanent bonus fixed at +100%: a ten-slot
      * roster already reaches the command cap, so anything added here lands on top of the family's
      * strongest configuration rather than helping the weak early game. Raising it needs the slot
      * maths redone, so the assertion is a hard stop rather than a loose sanity check.
@@ -94,7 +94,7 @@ class ArmyStatesTest {
         for (int i = 0; i < 100; i++) {
             ArmyStates.awardMedal(PLAYER, 1.0);
         }
-        assertEquals(0.20, ArmyStates.medalBonus(PLAYER), 1.0E-9,
-                "permanent bonus is budgeted at exactly +20%; re-derive per-slot output before changing it");
+        assertEquals(1.0, ArmyStates.medalBonus(PLAYER), 1.0E-9,
+                "permanent bonus is budgeted at exactly +100%; re-derive per-slot output before changing it");
     }
 }

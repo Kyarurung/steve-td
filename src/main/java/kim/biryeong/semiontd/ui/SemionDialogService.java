@@ -1258,6 +1258,22 @@ public final class SemionDialogService {
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_ABILITY_INTERVAL_REDUCTION, "<green>⏱ 주기 감소 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_ATTACK_SPEED_REDUCTION, "<red>⚡ 공속 감소 -", "</red>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_RANGE_REDUCTION, "<red>🎯 사거리 감소 -", "</red>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_FLAT_RANGE_BONUS,
+                "<green>🎯 사거리 증가 +", "칸</green>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_FLAT_RANGE_REDUCTION,
+                "<red>🎯 사거리 감소 -", "칸</red>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_HEALTH_REGEN_PER_SECOND,
+                "<green>❤ 초당 회복 +", "/초</green>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_HEALTH_LOSS_PER_SECOND,
+                "<red>❤ 초당 체력 감소 -", "/초</red>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_FLAT_DAMAGE_BONUS,
+                "<green>⚔ 공격력 증가 +", "</green>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_FLAT_DAMAGE_REDUCTION,
+                "<red>⚔ 공격력 감소 -", "</red>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_FLAT_MAX_HEALTH_BONUS,
+                "<green>❤ 최대 체력 증가 +", "</green>");
+        appendTimedEffectValue(effects, entity, TimedEffectType.TOWER_FLAT_MAX_HEALTH_REDUCTION,
+                "<red>❤ 최대 체력 감소 -", "</red>");
         if (effects.length() > 0) {
             body.append("<yellow>✨ 활성 효과</yellow>\n").append(effects);
         }
@@ -1359,6 +1375,32 @@ public final class SemionDialogService {
         body.append("<dark_gray>-</dark_gray> ")
                 .append(prefix)
                 .append(percent(magnitude))
+                .append(suffix);
+        if (persistent) {
+            body.append(" <gray>지속</gray>\n");
+        } else {
+            body.append(" <gray>")
+                    .append(oneDecimal(ticks / 20.0))
+                    .append("초</gray>\n");
+        }
+    }
+
+    private static void appendTimedEffectValue(
+            StringBuilder body,
+            SemionTowerEntity entity,
+            TimedEffectType type,
+            String prefix,
+            String suffix
+    ) {
+        double magnitude = entity.activeEffectMagnitude(type);
+        int ticks = entity.activeTimedEffectTicks(type);
+        boolean persistent = entity.hasPersistentEffect(type);
+        if (magnitude <= 0.0 || (!persistent && ticks <= 0)) {
+            return;
+        }
+        body.append("<dark_gray>-</dark_gray> ")
+                .append(prefix)
+                .append(oneDecimal(magnitude))
                 .append(suffix);
         if (persistent) {
             body.append(" <gray>지속</gray>\n");

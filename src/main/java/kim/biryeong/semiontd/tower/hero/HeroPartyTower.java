@@ -117,6 +117,12 @@ public abstract class HeroPartyTower extends ProductionTower {
         return 0.0;
     }
 
+    @Override
+    public double effectBaseMaxHealth() {
+        return type().maxHealth() * HeroPartyBalance.partyHealthMultiplier(state().adventurePoints())
+                + Math.max(0.0, bonusFlatHealth());
+    }
+
     protected final List<SemionTowerEntity> partyEntities(SemionTowerEntity source) {
         if (source == null) {
             return List.of();
@@ -195,9 +201,7 @@ public abstract class HeroPartyTower extends ProductionTower {
     private void applyPartyMaxHealth(boolean preserveRatio) {
         double previousMaximum = Math.max(1.0, currentMaxHealth());
         double ratio = preserveRatio ? health() / previousMaximum : 1.0;
-        double next = type().maxHealth() * HeroPartyBalance.partyHealthMultiplier(state().adventurePoints())
-                + Math.max(0.0, bonusFlatHealth());
-        syncMaxHealth(next, false);
+        syncMaxHealth(effectBaseMaxHealth(), false);
         syncHealth(currentMaxHealth() * Math.max(0.0, Math.min(1.0, ratio)));
     }
 }

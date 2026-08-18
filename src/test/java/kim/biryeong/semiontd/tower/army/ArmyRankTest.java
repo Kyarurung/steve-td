@@ -60,25 +60,25 @@ class ArmyRankTest {
             }
             previous = rank;
         }
-        assertEquals(0.0, ArmyRank.STAFF_SERGEANT.attackMultiplier(), EPSILON,
-                "the top rank must stop firing entirely, otherwise stacking 고참 costs nothing");
+        assertEquals(0.40, ArmyRank.STAFF_SERGEANT.attackMultiplier(), EPSILON,
+                "the top rank must retain enough firepower to prevent a same-wave roster shutdown");
     }
 
     /**
      * The number the family's stats were derived from.
      *
-     * <p>{@code (2*1.00 + 3*0.75 + 4*0.40 + 4*0.00) / 13}. If this drifts, the listed damage on
+     * <p>{@code (2*1.00 + 3*0.75 + 4*0.60 + 4*0.40) / 13}. If this drifts, the listed damage on
      * every 전투 tower has to be recomputed against the dealer curve.
      */
     @Test
-    void lifetimeAverageAttackMultiplierIsFortyFivePercent() {
+    void lifetimeAverageAttackMultiplierIsAboutSixtyThreePercent() {
         double total = 0.0;
         for (int service = 0; service < ArmyBalance.dischargeService(); service++) {
             total += ArmyRank.of(service).attackMultiplier();
         }
         double average = total / ArmyBalance.dischargeService();
-        assertEquals(0.45, average, 0.005,
-                "family stats assume a 0.45 lifetime average; re-derive them before changing the curve");
+        assertEquals(0.634615, average, 0.000001,
+                "family stats assume the aggressive mid-late rank curve; re-derive them before changing it");
     }
 
     @Test
@@ -107,19 +107,19 @@ class ArmyRankTest {
     /**
      * The pyramid rule stated in the tower descriptions.
      *
-     * <p>A 고참 pays its full damage to buff juniors, so it only breaks even once roughly two
-     * juniors are in range. That ratio is what forces a mixed roster instead of a wall of 병장.
+     * <p>A 고참 still pays personal damage to buff juniors, but the aggressive curve lets later
+     * ranks recover that loss with fewer nearby juniors.
      */
     @Test
-    void everyRankBreaksEvenAtAboutTwoJuniors() {
+    void everyRankBreaksEvenWithinAboutTwoJuniors() {
         for (ArmyRank rank : ArmyRank.values()) {
             if (rank == ArmyRank.PRIVATE) {
                 continue;
             }
             double surrendered = ArmyRank.PRIVATE.attackMultiplier() - rank.attackMultiplier();
             double breakEven = surrendered / rank.damageBuff();
-            assertTrue(breakEven > 1.8 && breakEven < 2.3,
-                    rank + " break-even should sit near two juniors but was " + breakEven);
+            assertTrue(breakEven >= 1.1 && breakEven <= 2.1,
+                    rank + " break-even should stay within about two juniors but was " + breakEven);
         }
     }
 }

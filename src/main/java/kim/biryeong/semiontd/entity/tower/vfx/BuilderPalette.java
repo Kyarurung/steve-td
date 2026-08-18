@@ -27,6 +27,8 @@ public enum BuilderPalette {
     PLANT(0x43A047, 0xF48FB1, "minecraft:spore_blossom_air", "minecraft:cherry_leaves"),
     ARMY(0x556B2F, 0xD4AF37, "minecraft:smoke", "minecraft:crit"),
     THUNDER(0x38BDF8, 0xFACC15, "minecraft:electric_spark", "minecraft:end_rod"),
+    DEMON_LORD(0x7B1FA2, 0xFF1744, "minecraft:soul_fire_flame", "minecraft:damage_indicator"),
+    GAMBLE(0xF9C74F, 0x9B5DE5, "minecraft:crit", "minecraft:witch"),
     DEFAULT(0xE0E0E0, 0xFFFFFF, "minecraft:end_rod", "minecraft:crit");
 
     private final DustParticleOptions rayParticle;

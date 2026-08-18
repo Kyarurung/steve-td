@@ -110,8 +110,19 @@ public final class FutureAgencyAgentTower extends ProductionTower {
 
     @Override
     public void moveToFinalDefense(PlayerLane lane, GridPosition position) {
-        if (FutureAgencyStates.state(ownerPlayer()).worldSaved()) super.moveToFinalDefense(lane, position);
-        else carryIntoNextRound(lane);
+        if (FutureAgencyStates.state(ownerPlayer()).worldSaved()) {
+            super.moveToFinalDefense(lane, position);
+            return;
+        }
+        waveActive = false;
+        // A cleared lane records its carry before the shared final-defense pass.
+        if (withdrawn) return;
+        if (carriedCopy && lane != null) {
+            lane.removeTower(this);
+            return;
+        }
+        withdrawn = true;
+        super.onRemoved(lane);
     }
 
     @Override

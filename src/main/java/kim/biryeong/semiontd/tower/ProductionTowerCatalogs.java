@@ -8,10 +8,13 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.army.ArmyTowerCatalogs;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowerCatalogs;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowerCatalogs;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowerCatalogs;
 import kim.biryeong.semiontd.tower.end.EndTowerCatalogs;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowerCatalogs;
 import kim.biryeong.semiontd.tower.illager.IllagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowerCatalogs;
+import kim.biryeong.semiontd.tower.gamble.GambleTowerCatalogs;
 import kim.biryeong.semiontd.tower.insect.InsectTowerCatalogs;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowerCatalogs;
 import kim.biryeong.semiontd.tower.legion.LegionTowerCatalogs;
@@ -57,6 +60,8 @@ public final class ProductionTowerCatalogs {
             PlantTowerCatalogs.register();
             ArmyTowerCatalogs.register();
             ThunderTowerCatalogs.register();
+            DemonLordTowerCatalogs.register();
+            GambleTowerCatalogs.register();
         }
     }
 }

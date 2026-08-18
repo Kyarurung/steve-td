@@ -48,12 +48,17 @@ import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.tower.engineer.EngineerTrapTower;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordVfx;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.insect.InsectSpawnerTower;
 import kim.biryeong.semiontd.tower.insect.InsectUnitTower;
 import kim.biryeong.semiontd.tower.mage.MageProphetTower;
 import kim.biryeong.semiontd.tower.mage.MageWizardTower;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
+import kim.biryeong.semiontd.tower.plant.PlantTowers;
+import kim.biryeong.semiontd.tower.plant.PlantVfx;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
@@ -619,13 +624,25 @@ public final class SemionCommands {
                                 .then(literal("discharge")
                                         .executes(context -> debugArmyVfx(
                                                 context.getSource(), gameManager, ArmyTower.DebugVfx.DISCHARGE))))
+                        .then(literal("plant")
+                                .then(literal("lob")
+                                        .executes(context -> debugPlantVfx(context.getSource(), gameManager))))
                         .then(literal("thunder")
                                 .then(literal("arc")
                                         .executes(context -> debugThunderVfx(
                                                 context.getSource(), gameManager, ThunderVfx.DebugKind.ARC)))
                                 .then(literal("discharge")
                                         .executes(context -> debugThunderVfx(
-                                                context.getSource(), gameManager, ThunderVfx.DebugKind.DISCHARGE)))))
+                                                context.getSource(), gameManager, ThunderVfx.DebugKind.DISCHARGE))))
+                        .then(literal("demon_lord")
+                                .then(argument("skill", StringArgumentType.word())
+                                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                                java.util.Arrays.stream(DemonLordSkill.values())
+                                                        .map(DemonLordSkill::key), builder))
+                                        .executes(context -> debugDemonLordVfx(
+                                                context.getSource(), gameManager,
+                                                StringArgumentType.getString(context, "skill")))))
+                )
                 .then(literal("summonui")
                         .executes(context -> debugSummonDialog(context.getSource(), gameManager, 1))
                         .then(argument("page", IntegerArgumentType.integer(1))
@@ -751,6 +768,33 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 아틀란티스 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugPlantVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (!tower.type().id().equals(PlantTowers.T3_PODZOL_PITCHER_TOWER.id())
+                        || !(tower instanceof EntityBackedTower backed)
+                        || backed.entityId().isEmpty()) {
+                    continue;
+                }
+                if (lane.arenaWorld().getEntity(backed.entityId().getAsInt())
+                        instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity
+                        && towerEntity.isAlive()) {
+                    PlantVfx.showDebug(towerEntity, player);
+                    success(source, "식물 물병 포격 VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, "살아 있는 물병 식물 타워가 필요합니다.");
         return 0;
     }
 
@@ -948,6 +992,31 @@ public final class SemionCommands {
         failure(source, kind == ArmyTower.DebugVfx.BARRAGE
                 ? "살아 있는 군대 포병 타워가 필요합니다."
                 : "살아 있는 군대 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugDemonLordVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            String skillKey
+    ) throws CommandSyntaxException {
+        DemonLordSkill skill = DemonLordSkill.fromKey(skillKey);
+        if (skill == null) {
+            failure(source, "알 수 없는 마왕 스킬입니다: " + skillKey);
+            return 0;
+        }
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (var altar : DemonLordService.orderedAltars(lane, player.getUUID())) {
+                if (altar.skill() == skill && DemonLordVfx.showDebug(altar, lane, player.position())) {
+                    success(source, "마왕 " + skill.displayName() + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, "해당 스킬의 살아 있는 마왕 제단이 필요합니다.");
         return 0;
     }
 

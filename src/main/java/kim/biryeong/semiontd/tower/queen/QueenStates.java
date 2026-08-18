@@ -34,12 +34,14 @@ public final class QueenStates {
         private TeamLaneGroup laneGroup;
         private double charge;
         private double executionHealth = QueenBalance.giantInitialExecutionHealth();
+        private double pokerHealthBonus;
         private QueenGiantRunner runner;
         private QueenCard nextCard;
 
         public TeamLaneGroup laneGroup() {return laneGroup;}
         public double charge() {return charge;}
         public double executionHealth() {return executionHealth;}
+        public double pokerHealthBonus() {return Math.min(pokerHealthBonus, QueenBalance.queenPokerHealthBonusCap());}
         public boolean runnerActive() {return runner != null && runner.active();}
 
         public QueenCard peekNextCard() {
@@ -58,6 +60,11 @@ public final class QueenStates {
             charge += amount;
         }
 
+        public void addPokerHealthBonus(double amount) {
+            if (!Double.isFinite(amount) || amount <= 0.0) return;
+            pokerHealthBonus = Math.min(QueenBalance.queenPokerHealthBonusCap(), pokerHealthBonus + amount);
+        }
+
         public boolean ready() {return charge >= QueenBalance.giantChargeTicks();}
 
         public void consumeCharge() {
@@ -70,7 +77,8 @@ public final class QueenStates {
                         effectiveMaxHealth,
                         executionHealth * QueenBalance.giantGrowthTargetCapMultiplier()
                 );
-                executionHealth += growthBase * QueenBalance.giantExecutionGrowthRatio();
+                executionHealth += Math.max(QueenBalance.giantInitialExecutionHealth(), growthBase)
+                        * QueenBalance.giantExecutionGrowthRatio();
             }
         }
 

@@ -14,13 +14,11 @@ import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
  * Tower types for the 군대 builder.
  *
  * <p>The family runs on two independent axes. Tier is bought with minerals and sets the base stats;
- * rank is earned by surviving waves and decides how much of that base the tower still fires. See
+ * rank is earned by participating in waves and decides how much of that base the tower still fires. See
  * {@link ArmyRank}.
  *
- * <p>Listed damage is the 이등병 value, so it reads high next to other builders. The lifetime
- * average is {@code 0.45} of it, which is why these numbers sit on the ordinary dealer curve
- * (efficiency 20–26) rather than on the illager evoker's 37.5 — a tower whose damage decays to zero
- * cannot also start at the top of the curve.
+ * <p>Listed damage is the fresh-rank value. T2 and T3 combat towers are intentionally weighted
+ * toward the middle and late game, while the rank curve keeps aging cohorts active until discharge.
  *
  * <p>Three visual groups keep the roles readable: 본부 is a wandering trader (an obvious
  * non-combatant), 경계 is a tuff golem (a sentry that stands still by default), and only 전투 uses
@@ -87,7 +85,7 @@ public final class ArmyTowers {
     );
 
     public static final TowerType MILITARY_POLICE = tower(
-            "army_military_police_t2", "헌병", 105, 420.0, 2.6, 11.0, 19, 85,
+            "army_military_police_t2", "헌병", 105, 630.0, 2.6, 11.0, 19, 85,
             visual(SENTRY, 1.1),
             List.of(
                     "<gray> 방패를 든 정면 방어 계열입니다. </gray>",
@@ -97,7 +95,7 @@ public final class ArmyTowers {
     );
 
     public static final TowerType MP_COMMANDER = tower(
-            "army_mp_commander_t3", "헌병대장", 220, 650.0, 2.8, 20.0, 18, 110,
+            "army_mp_commander_t3", "헌병대장", 220, 975.0, 2.8, 20.0, 18, 110,
             visual(SENTRY, 1.3),
             List.of(
                     "<gray> 방패 계열의 최종 형태입니다. 계열 최고의 체력으로 버팁니다. </gray>",
@@ -107,7 +105,7 @@ public final class ArmyTowers {
     );
 
     public static final TowerType GOP_SENTRY = tower(
-            "army_gop_sentry_t2", "GOP 초병", 100, 300.0, 2.6, 10.0, 19, 85,
+            "army_gop_sentry_t2", "GOP 초병", 100, 450.0, 2.6, 10.0, 19, 85,
             visual(SENTRY, 1.1),
             List.of(
                     "<gray> 군기를 잡아 주변의 시간을 늦추는 계열입니다. </gray>",
@@ -118,7 +116,7 @@ public final class ArmyTowers {
     );
 
     public static final TowerType OUTPOST_CHIEF = tower(
-            "army_outpost_chief_t3", "초소장", 215, 540.0, 2.8, 18.0, 18, 110,
+            "army_outpost_chief_t3", "초소장", 215, 810.0, 2.8, 18.0, 18, 110,
             visual(SENTRY, 1.3),
             List.of(
                     "<gray> 군기 계열의 최종 형태입니다. </gray>",
@@ -141,7 +139,7 @@ public final class ArmyTowers {
     );
 
     public static final TowerType SPECIALIST = tower(
-            "army_specialist_t2", "특급전사", 130, 140.0, 6.5, 21.0, 12, 0,
+            "army_specialist_t2", "특급전사", 130, 140.0, 6.5, 30.0, 12, 0,
             visual(RIFLE, 1.05),
             List.of(
                     "<gray> 단일 대상 화력을 담당하는 주력입니다. </gray>",
@@ -150,18 +148,18 @@ public final class ArmyTowers {
     );
 
     public static final TowerType PLATOON_LEADER = tower(
-            "army_platoon_leader_t3", "소대장", 280, 190.0, 7.0, 43.0, 11, 0,
+            "army_platoon_leader_t3", "소대장", 280, 190.0, 7.0, 60.0, 11, 0,
             visual(RIFLE, 1.2),
             List.of(
                     "<gray> 단일 계열의 최종 형태입니다. </gray>",
-                    "<green> 병장이 되면 공격을 멈추고 반경 <yellow>{ability.army_global.commandRadius:blocks}</yellow> 안의 후임에게 </green>",
+                    "<green> 최종 계급에는 공격력 <yellow>{ability.army_global.staffSergeantAttackMultiplier:percent}</yellow>로 싸우며 반경 <yellow>{ability.army_global.commandRadius:blocks}</yellow> 안의 후임에게 </green>",
                     "<green> 공격력 <yellow>+{ability.army_global.staffSergeantDamageBuff:percent}</yellow>, 공격 속도 <yellow>+{ability.army_global.staffSergeantAttackSpeedBuff:percent}</yellow>를 줍니다. </green>",
                     "<red> 후임이 2기 미만이면 손해입니다. </red>"
             )
     );
 
     public static final TowerType GUNNER = tower(
-            "army_gunner_t2", "포병", 130, 110.0, 7.5, 21.0, 16, 0,
+            "army_gunner_t2", "포병", 130, 110.0, 7.5, 30.0, 16, 0,
             visual(ARTILLERY, 1.0),
             List.of(
                     "<gray> 사거리가 길고 느린 광역 계열입니다. </gray>",
@@ -170,12 +168,12 @@ public final class ArmyTowers {
     );
 
     public static final TowerType BATTERY_CHIEF = tower(
-            "army_battery_chief_t3", "포대장", 280, 150.0, 8.5, 40.0, 15, 0,
+            "army_battery_chief_t3", "포대장", 280, 150.0, 8.5, 56.0, 15, 0,
             visual(ARTILLERY, 1.2),
             List.of(
                     "<gray> 광역 계열의 최종 형태입니다. 라인 전체를 덮습니다. </gray>",
                     "<light_purple> 공격이 반경 <yellow>{ability.splashRadius:blocks}</yellow> 안의 적에게 <yellow>{ability.splashDamageRatio:percent}</yellow>로 퍼집니다. </light_purple>",
-                    "<green> 병장이 되면 공격을 멈추고 후임을 강화합니다. </green>"
+                    "<green> 최종 계급에는 공격력 <yellow>{ability.army_global.staffSergeantAttackMultiplier:percent}</yellow>로 싸우며 후임을 강화합니다. </green>"
             )
     );
 

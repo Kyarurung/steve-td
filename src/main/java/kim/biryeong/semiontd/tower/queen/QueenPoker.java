@@ -28,12 +28,17 @@ final class QueenPoker {
                 RowKey key = new RowKey(pathMostlyX ? position.x() : position.z(), position.y());
                 rows.computeIfAbsent(key, ignored -> new ArrayList<>()).add(card);
             }
-            rows.values().forEach(row -> evaluateRow(row, pathMostlyX, best));
+            double healthBonus = 0.0;
+            for (List<QueenCardTower> row : rows.values()) {
+                healthBonus += evaluateRow(row, pathMostlyX, best);
+            }
+            QueenStates.state(ownerPlayer).addPokerHealthBonus(healthBonus);
         }
         best.forEach(QueenCardTower::applyPokerSnapshot);
     }
 
-    private static void evaluateRow(List<QueenCardTower> row, boolean pathMostlyX, Map<QueenCardTower, PokerHand> best) {
+    private static double evaluateRow(List<QueenCardTower> row, boolean pathMostlyX, Map<QueenCardTower, PokerHand> best) {
+        double healthBonus = 0.0;
         row.sort(Comparator.comparingInt(card -> perpendicular(card.originalPosition(), pathMostlyX)));
         for (int start = 0; start + 5 <= row.size(); start++) {
             List<QueenCardTower> window = row.subList(start, start + 5);
@@ -41,10 +46,12 @@ final class QueenPoker {
             int last = perpendicular(window.getLast().originalPosition(), pathMostlyX);
             if (last - first != 4) continue;
             PokerHand hand = PokerHand.evaluate(window.stream().map(card -> card.card().orElseThrow()).toList());
+            healthBonus += QueenBalance.handBonus(hand);
             for (QueenCardTower card : window) {
                 if (hand.ordinal() > best.get(card).ordinal()) best.put(card, hand);
             }
         }
+        return healthBonus;
     }
 
     private static int perpendicular(GridPosition position, boolean pathMostlyX) {

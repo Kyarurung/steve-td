@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerEconomy;
@@ -31,6 +32,7 @@ import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -54,6 +56,7 @@ final class EngineerTowerCatalogTest {
 
     @AfterEach
     void resetCatalog() {
+        EngineerPressStates.clear(OWNER);
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
     }
 
@@ -93,9 +96,13 @@ final class EngineerTowerCatalogTest {
         assertEquals(0, create(EngineerTowers.COPPER_GOLEM).slotWeight());
         assertEquals(0, create(EngineerTowers.REDSTONE_DUST).slotWeight());
         assertEquals(0, create(EngineerTowers.repeater(Direction.WEST)).slotWeight());
+        assertEquals(0, TowerCapacity.slotCost(EngineerTowers.REDSTONE_DUST));
         assertEquals(1, create(EngineerTowers.plate(EngineerTowers.PlateKind.WOOD)).slotWeight());
         assertEquals(1, create(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1)).slotWeight());
         assertFalse(create(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1)).participatesInFinalDefense());
+        assertTrue(create(EngineerTowers.REDSTONE_DUST).canBeSold());
+        assertTrue(create(EngineerTowers.repeater(Direction.WEST)).canBeSold());
+        assertTrue(create(EngineerTowers.plate(EngineerTowers.PlateKind.WOOD)).canBeSold());
     }
 
     @Test
@@ -118,16 +125,41 @@ final class EngineerTowerCatalogTest {
         assertEquals(4, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxPlates", -1));
         assertEquals(3, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "maxPistons", -1));
         assertEquals(0.10, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "plateDamageBonusPerTier", -1), 0.0001);
+        assertEquals(0.10, defaults.ability(
                 EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", -1), 0.0001);
         assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
+        assertEquals(0.01, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "dispenserDamageBonusPerGolemPress", -1), 0.0001);
+        assertEquals(2.0, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "dispenserDamageBonusCap", -1), 0.0001);
+        assertEquals(0.0005, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "doorDamageReductionPerGolemPress", -1), 0.0001);
+        assertEquals(0.40, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "doorDamageReductionCap", -1), 0.0001);
+        assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "golemPressesPerExtraTarget", -1));
+        assertEquals(20, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "tntExtraTargetCap", -1));
+        assertEquals(10, defaults.abilityInt(EngineerBalance.GLOBAL_ID, "pistonExtraTargetCap", -1));
+        assertEquals(0.0005, defaults.ability(
+                EngineerBalance.GLOBAL_ID, "slimeSlowPerGolemPress", -1), 0.0001);
+        assertEquals(0.80, defaults.ability(EngineerBalance.GLOBAL_ID, "slimeSlowCap", -1), 0.0001);
+        assertEquals(0, defaults.abilityInt(EngineerTowers.REDSTONE_DUST.id(), TowerCapacity.CONFIG_KEY, -1));
         assertEquals(20, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
         assertEquals(10, defaults.abilityTicks(EngineerBalance.GLOBAL_ID, "tntFuseVfxIntervalTicks", -1));
         assertEquals(1.1, EngineerBalance.dispenserDamageMultiplier(1), 0.0001);
         assertEquals(1.5, EngineerBalance.dispenserDamageMultiplier(5), 0.0001);
         assertEquals(2.0, EngineerBalance.dispenserDamageMultiplier(10), 0.0001);
         assertEquals(2.0, EngineerBalance.dispenserDamageMultiplier(35), 0.0001);
+        assertEquals(1.0, EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.WOOD), 0.0001);
+        assertEquals(1.1, EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.STONE), 0.0001);
+        assertEquals(1.2, EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.IRON), 0.0001);
+        assertEquals(1.3, EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.GOLD), 0.0001);
         assertEquals(480.0, defaults.ability(
                 EngineerTowers.trap(EngineerTowers.TrapKind.TNT, 3).id(), "damage", -1), 0.0001);
+        assertEquals(16, defaults.abilityInt(
+                EngineerTowers.trap(EngineerTowers.TrapKind.TNT, 3).id(), "maxTargets", -1));
+        assertEquals(45.0, defaults.ability(
+                EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 3).id(), "damage", -1), 0.0001);
         assertEquals(850.0, defaults.towers()
                 .get(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 3).id()).maxHealth(), 0.0001);
         assertDoesNotThrow(defaults::validateForRuntime);
@@ -145,8 +177,108 @@ final class EngineerTowerCatalogTest {
         assertEquals(120, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "doorActiveTicks", -1));
         assertEquals(100, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "plateCooldownTicks", -1));
         assertEquals(10, merged.abilityInt(EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", -1));
+        assertEquals(0.10, merged.ability(
+                EngineerBalance.GLOBAL_ID, "plateDamageBonusPerTier", -1), 0.0001);
+        assertEquals(0.01, merged.ability(
+                EngineerBalance.GLOBAL_ID, "dispenserDamageBonusPerGolemPress", -1), 0.0001);
+        assertEquals(20, merged.abilityInt(EngineerBalance.GLOBAL_ID, "tntExtraTargetCap", -1));
+        assertEquals(0.80, merged.ability(EngineerBalance.GLOBAL_ID, "slimeSlowCap", -1), 0.0001);
         assertEquals(20, merged.abilityTicks(EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", -1));
 
+        for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
+            TowerType resolved = TowerBalanceRuntime.resolve(EngineerTowers.trap(kind, 3));
+            assertTrue(resolved.description().stream().noneMatch(line -> line.contains("{ability.")));
+        }
+
+        for (EngineerTowers.TrapKind kind : List.of(
+                EngineerTowers.TrapKind.TNT,
+                EngineerTowers.TrapKind.DISPENSER
+        )) {
+            TowerType resolved = TowerBalanceRuntime.resolve(EngineerTowers.trap(kind, 3));
+            assertTrue(resolved.description().stream().anyMatch(line -> line.contains("10%")));
+        }
+
+    }
+
+    @Test
+    void golemPressBonusesRespectBoundariesCapsAndExistingMultipliers() {
+        assertEquals(1.0, EngineerBalance.dispenserPressDamageMultiplier(0), 0.0001);
+        assertEquals(1.09, EngineerBalance.dispenserPressDamageMultiplier(9), 0.0001);
+        assertEquals(1.10, EngineerBalance.dispenserPressDamageMultiplier(10), 0.0001);
+        assertEquals(2.0, EngineerBalance.dispenserPressDamageMultiplier(100), 0.0001);
+        assertEquals(3.0, EngineerBalance.dispenserPressDamageMultiplier(200), 0.0001);
+        assertEquals(3.0, EngineerBalance.dispenserPressDamageMultiplier(800), 0.0001);
+
+        assertEquals(0.0, EngineerBalance.doorDamageReduction(0), 0.0001);
+        assertEquals(0.05, EngineerBalance.doorDamageReduction(100), 0.0001);
+        assertEquals(0.25, EngineerBalance.doorDamageReduction(500), 0.0001);
+        assertEquals(0.40, EngineerBalance.doorDamageReduction(800), 0.0001);
+        assertEquals(0, EngineerBalance.tntExtraTargets(9));
+        assertEquals(1, EngineerBalance.tntExtraTargets(10));
+        assertEquals(10, EngineerBalance.tntExtraTargets(100));
+        assertEquals(20, EngineerBalance.tntExtraTargets(200));
+        assertEquals(20, EngineerBalance.tntExtraTargets(800));
+        assertEquals(0, EngineerBalance.pistonExtraTargets(9));
+        assertEquals(1, EngineerBalance.pistonExtraTargets(10));
+        assertEquals(10, EngineerBalance.pistonExtraTargets(100));
+        assertEquals(10, EngineerBalance.pistonExtraTargets(800));
+        assertEquals(0.55, EngineerBalance.slimeSlow(0.55, 0), 0.0001);
+        assertEquals(0.555, EngineerBalance.slimeSlow(0.55, 10), 0.0001);
+        assertEquals(0.80, EngineerBalance.slimeSlow(0.55, 500), 0.0001);
+        assertEquals(0.80, EngineerBalance.slimeSlow(0.55, 800), 0.0001);
+
+        double composed = EngineerTrapTower.dispenserDamage(3)
+                * EngineerBalance.dispenserDamageMultiplier(10)
+                * EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.GOLD)
+                * EngineerBalance.dispenserPressDamageMultiplier(200);
+        assertEquals(351.0, composed, 0.0001);
+    }
+
+    @Test
+    void pressStateIsPlayerScopedAndRuntimeReloadUsesTheExistingCount() {
+        UUID other = UUID.nameUUIDFromBytes("other-engineer".getBytes(StandardCharsets.UTF_8));
+        for (int index = 0; index < 10; index++) {
+            EngineerPressStates.recordPress(OWNER);
+        }
+        EngineerPressStates.recordPress(other);
+        assertEquals(10, EngineerPressStates.count(OWNER));
+        assertEquals(1, EngineerPressStates.count(other));
+
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(EngineerBalance.GLOBAL_ID));
+        global.put("dispenserDamageBonusPerGolemPress", 0.02);
+        global.put("golemPressesPerExtraTarget", 5.0);
+        abilities.put(EngineerBalance.GLOBAL_ID, global);
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
+        ));
+
+        assertEquals(10, EngineerPressStates.count(OWNER));
+        assertEquals(1.20, EngineerBalance.dispenserPressDamageMultiplier(EngineerPressStates.count(OWNER)), 0.0001);
+        assertEquals(2, EngineerBalance.tntExtraTargets(EngineerPressStates.count(OWNER)));
+        EngineerPressStates.clear(other);
+    }
+
+    @Test
+    void matchLifecycleClearsPressState() {
+        EconomyConfig economy = EconomyConfig.defaultConfig();
+        SemionGame game = new SemionGame(economy, WaveConfig.defaultConfig(), new GameArena(Map.of()));
+        SemionPlayer player = new SemionPlayer(OWNER, "engineer", TeamId.RED, 1, new PlayerEconomy(economy));
+        game.players().put(OWNER, player);
+        EngineerTowerJob job = new EngineerTowerJob();
+        JobContext context = new JobContext(game, player);
+
+        EngineerPressStates.recordPress(OWNER);
+        job.onMatchStarted(context);
+        assertEquals(0, EngineerPressStates.count(OWNER));
+        EngineerPressStates.recordPress(OWNER);
+        job.onEliminated(context);
+        assertEquals(0, EngineerPressStates.count(OWNER));
+        EngineerPressStates.recordPress(OWNER);
+        game.close();
+        assertEquals(0, EngineerPressStates.count(OWNER));
     }
 
     @Test
@@ -168,26 +300,43 @@ final class EngineerTowerCatalogTest {
     void tunedDamageRegressionMatchesTheEngineerCeilings() {
         double t3Shot = EngineerTrapTower.dispenserDamage(3);
         double shotsPerSecond = 20.0 / EngineerTrapTower.dispenserInterval(3);
-        assertEquals(60.0, t3Shot * shotsPerSecond, 0.0001);
-        assertEquals(90.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(5), 0.0001);
-        assertEquals(120.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(10), 0.0001);
-        assertEquals(120.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(35), 0.0001);
+        assertEquals(90.0, t3Shot * shotsPerSecond, 0.0001);
+        assertEquals(135.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(5), 0.0001);
+        assertEquals(180.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(10), 0.0001);
+        assertEquals(180.0, t3Shot * shotsPerSecond * EngineerBalance.dispenserDamageMultiplier(35), 0.0001);
+        assertEquals(234.0, t3Shot * shotsPerSecond
+                * EngineerBalance.dispenserDamageMultiplier(10)
+                * EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.GOLD), 0.0001);
 
         double tnt = EngineerTrapTower.tntDamage(3);
         assertEquals(480.0, tnt, 0.0001);
         assertEquals(1_440.0, tnt * 3, 0.0001);
         assertEquals(2_400.0, tnt * 5, 0.0001);
-        assertEquals(4_320.0, tnt * EngineerTrapTower.tntMaxTargets(3), 0.0001);
+        assertEquals(7_680.0, tnt * EngineerTrapTower.tntMaxTargets(3), 0.0001);
+        assertEquals(9_984.0, tnt * EngineerTrapTower.tntMaxTargets(3)
+                * EngineerBalance.plateDamageMultiplier(EngineerTowers.PlateKind.GOLD), 0.0001);
     }
 
     @Test
     void invalidEngineerCapsTicksAndTierOrderAreRejected() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "plateDamageBonusPerTier", 1.1);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserDamagePerPlateBlock", 1.1);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserMaxPlateDistance", 36.0);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 0.0);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorActiveTicks", 2.5);
         assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "activeVfxIntervalTicks", 2.5);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "dispenserDamageBonusPerGolemPress", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorDamageReductionPerGolemPress", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "doorDamageReductionCap", 1.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "golemPressesPerExtraTarget", 0.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "golemPressesPerExtraTarget", 2.5);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "tntExtraTargetCap", 2.5);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "pistonExtraTargetCap", -1.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "slimeSlowPerGolemPress", 1.1);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "slimeSlowCap", 1.0);
+        assertInvalidAbility(defaults, EngineerBalance.GLOBAL_ID, "slimeSlowCap", 0.50);
+        assertInvalidAbility(defaults, EngineerTowers.REDSTONE_DUST.id(), TowerCapacity.CONFIG_KEY, 0.5);
         assertInvalidAbility(defaults,
                 EngineerTowers.trap(EngineerTowers.TrapKind.DISPENSER, 2).id(), "intervalTicks", 20.0);
         assertInvalidAbility(defaults,
@@ -256,6 +405,25 @@ final class EngineerTowerCatalogTest {
         assertFalse(job.canUseTower(context, EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 1)));
         assertTrue(job.canUseTower(context, EngineerTowers.trap(EngineerTowers.TrapKind.PISTON, 2)),
                 "The three-piston limit must not block upgrading an existing piston.");
+    }
+
+    @Test
+    void redstoneDustCanBePlacedAtTheTowerLimitWithoutUsingCapacity() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        EconomyConfig economy = EconomyConfig.defaultConfig();
+        SemionGame game = new SemionGame(economy, WaveConfig.defaultConfig(), new GameArena(Map.of()));
+        SemionPlayer player = new SemionPlayer(OWNER, "engineer", TeamId.RED, 1, new PlayerEconomy(economy));
+        game.players().put(OWNER, player);
+        game.teams().get(TeamId.RED).activate();
+        PlayerLane lane = testLane();
+        game.teams().get(TeamId.RED).laneGroup().addLane(lane);
+        for (int index = 0; index < game.towerLimitForPlayer(OWNER); index++) {
+            lane.addTower(new TestTower(EngineerTowers.trap(EngineerTowers.TrapKind.DOOR, 1), index));
+        }
+
+        assertEquals(game.towerLimitForPlayer(OWNER), game.towerCapacityUsed(OWNER));
+        assertTrue(game.canFitTower(OWNER, EngineerTowers.REDSTONE_DUST));
+        assertFalse(game.canFitTower(OWNER, EngineerTowers.plate(EngineerTowers.PlateKind.WOOD)));
     }
 
     @Test

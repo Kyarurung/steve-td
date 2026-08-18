@@ -1,5 +1,7 @@
 package kim.biryeong.semiontd.job;
 
+import static kim.biryeong.semiontd.tower.warlock.WarlockFormatting.warlockText;
+
 import java.util.List;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -26,6 +28,15 @@ public final class WarlockTowerJob extends SemionJob {
                 SemionText.mini("<green><bold>시작</bold></green> <gray>아군을 희생하며 영구적으로 강해지고, 원거리 또는 근거리 흑마법사를 선택한 뒤 마지막까지 살아남아 각성하세요.</gray>"),
                 SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>원거리는 누적 흡수, 근거리는 라운드 흡수로 성장하며 " + awakeningKills() + "킬에 도달하면 각성을 습득합니다.</gray>"),
                 SemionText.mini("<yellow><bold>주의</bold></yellow> <gray>흑마법사를 먼저 놓고 희생시킬 아군을 주변에 배치하되, 라인마다 1기만 운용하세요.</gray>")
+        );
+    }
+
+    @Override
+    public List<Component> description() {
+        return List.of(
+                SemionText.mini("<green><bold>시작</bold></green> <gray>아군을 희생하며 영구적으로 강해지고, 원거리 또는 근거리 흑마법사를 선택해 마지막까지 살아남아 " + warlockText("각성") + "하세요.</gray>"),
+                SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>원거리는 누적 흡수로 생명력 흡수·광역 범위를, 근거리는 라운드 흡수로 공격 속도·폭발력을 키웁니다. " + awakeningKills() + "킬에 도달하면 " + warlockText("각성") + "을 습득합니다.</gray>"),
+                SemionText.mini("<yellow><bold>주의</bold></yellow> <gray>흑마법사는 라인마다 1기만 운용할 수 있고, 각성은 라운드 종료 시 해제됩니다.</gray>")
         );
     }
 

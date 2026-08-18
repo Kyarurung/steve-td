@@ -222,7 +222,8 @@ public final class HeroPartyIntegrationGameTest {
                 return;
             }
 
-            var heroTower = lane.towerAt(kim.biryeong.semiontd.game.GridPosition.from(heroPos));
+            HeroTower heroTower = (HeroTower) lane.towerAt(kim.biryeong.semiontd.game.GridPosition.from(heroPos));
+            SemionTowerEntity heroEntity = towerEntity(context, heroTower);
             heroTower.syncHealth(80.0);
             long beforeEquipment = game.players().get(ownerId).economy().diamond();
             if (!equals(context, HeroPartyStates.ActionResult.SUCCESS,
@@ -245,14 +246,28 @@ public final class HeroPartyIntegrationGameTest {
                     "Armor +1 should succeed during prepare.")) {
                 return;
             }
-            if (!equals(context, beforeEquipment - 270, game.players().get(ownerId).economy().diamond(),
-                    "Equipment should charge 100 + 80 + 90 diamonds.")) {
+            if (!equals(context, beforeEquipment - 306, game.players().get(ownerId).economy().diamond(),
+                    "Equipment should charge 100 + 80 + 126 diamonds.")) {
                 return;
             }
-            if (!equals(context, 220.0, heroTower.currentMaxHealth(), "Armor +1 should add 60 maximum health.")) {
+            requireClose(253.0, heroTower.currentMaxHealth(),
+                    "Greatsword health scaling should include Armor +1.");
+            requireClose(101.2, heroTower.health(),
+                    "Weapon and armor changes should preserve the current health ratio.");
+            if (!equals(context, 40, heroTower.aggroPriority(),
+                    "Greatsword should set the Hero's aggro priority.")) {
                 return;
             }
-            if (!equals(context, 110.0, heroTower.health(), "Armor upgrades should preserve current health ratio.")) {
+            if (!equals(context, 19, heroTower.adjustAttackInterval(heroTower.type().attackIntervalTicks()),
+                    "Greatsword +1 should reduce its attack interval by one tick.")) {
+                return;
+            }
+            if (!equals(context, 40, heroEntity.aggroPriority(),
+                    "Equipping a weapon should immediately synchronize entity aggro.")) {
+                return;
+            }
+            if (!equals(context, 19, heroEntity.attackIntervalTicks(),
+                    "Weapon upgrades should immediately synchronize the entity attack interval.")) {
                 return;
             }
             HeroPartyState state = HeroPartyStates.state(ownerId);
@@ -264,10 +279,8 @@ public final class HeroPartyIntegrationGameTest {
             if (!check(context, !state.armorVisible(), "The armor visibility setting should be disabled.")) {
                 return;
             }
-            if (!equals(context, 220.0, heroTower.currentMaxHealth(),
-                    "Hiding armor must keep its maximum-health bonus.")) {
-                return;
-            }
+            requireClose(253.0, heroTower.currentMaxHealth(),
+                    "Hiding armor must keep its maximum-health bonus.");
             if (!check(context, state.owns(HeroWeapon.SWORD) && state.owns(HeroWeapon.GREATSWORD),
                     "Changing equipment must preserve previously owned weapons.")) {
                 return;
@@ -690,7 +703,7 @@ public final class HeroPartyIntegrationGameTest {
             UUID ownerId,
             BlockPos origin
     ) {
-        double[] expectedPrimaryHeal = {14.0, 21.0, 31.0, 45.0};
+        double[] expectedPrimaryHeal = {28.0, 42.0, 62.0, 90.0};
         double[] expectedSecondRatio = {0.0, 0.0, 0.50, 1.0};
         double[] expectedGuard = {0.0, 0.08, 0.10, 0.15};
         for (int tier = 1; tier <= 4; tier++) {

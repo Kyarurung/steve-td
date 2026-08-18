@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
@@ -28,6 +29,9 @@ import kim.biryeong.semiontd.tower.futureagency.FutureAgencyLeaderTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyPolicy;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.gamble.GambleBalance;
+import kim.biryeong.semiontd.tower.gamble.GambleBet;
+import kim.biryeong.semiontd.tower.gamble.GambleTowers;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroPartyBalance;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
@@ -47,6 +51,8 @@ import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.queen.PokerHand;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.plant.PlantSoil;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
@@ -114,6 +120,17 @@ public record TowerBalanceConfig(
     }
 
     public static TowerBalanceConfig defaultConfig() {
+        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, codeDefaults());
+    }
+
+    /**
+     * The numbers this build ships in code, before the bundled resource replaces them.
+     *
+     * <p>{@code BundledBalanceDefaults.load} returns the resource verbatim rather than merging, so a
+     * builder whose values only land here would silently run on fallbacks. Exposing the code-side
+     * config lets tooling diff the two and regenerate the bundled resource.
+     */
+    public static TowerBalanceConfig codeDefaults() {
         LinkedHashMap<String, TowerStats> towers = new LinkedHashMap<>();
         addTower(towers, VillagerTowers.T1_SPLASH_TOWER);
         addTower(towers, VillagerTowers.T2_LIBRARIAN_TOWER);
@@ -223,6 +240,8 @@ public record TowerBalanceConfig(
         addPlantTowers(towers);
         addArmyTowers(towers);
         addThunderTowers(towers);
+        addDemonLordTowers(towers);
+        addGambleTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -304,6 +323,8 @@ public record TowerBalanceConfig(
         putPlantUpgrades(upgradeCosts);
         putArmyUpgrades(upgradeCosts);
         putThunderUpgrades(upgradeCosts);
+        putDemonLordUpgrades(upgradeCosts);
+        putGambleUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -872,6 +893,8 @@ public record TowerBalanceConfig(
         putPlantAbilities(abilities);
         putArmyAbilities(abilities);
         putThunderAbilities(abilities);
+        putDemonLordAbilities(abilities);
+        putGambleAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -880,7 +903,7 @@ public record TowerBalanceConfig(
                 IllusionCloneQueueConfig.defaultConfig(),
                 VillagerAdvConfig.defaultConfig()
         );
-        return BundledBalanceDefaults.load("tower_balance.json", TowerBalanceConfig.class, fallback);
+        return fallback;
     }
 
     private static void addPlantTowers(LinkedHashMap<String, TowerStats> towers) {
@@ -903,10 +926,10 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER.id(), 240);
         putUpgrade(upgradeCosts, PlantTowers.T1_MEADOW_NOVA_TOWER, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), 175);
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_NOVA_TOWER, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), 275);
-        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 110);
-        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 180);
-        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 160);
-        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 250);
+        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 80);
+        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 130);
+        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 190);
+        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 300);
         putUpgrade(upgradeCosts, PlantTowers.T1_PODZOL_TOWER, PlantTowers.T2_PODZOL_TOWER.id(), 170);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_LILAC_TOWER.id(), 285);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_ROSE_TOWER.id(), 285);
@@ -942,6 +965,7 @@ public record TowerBalanceConfig(
         global.put("sergeantAttackMultiplier", ArmyBalance.SERGEANT_ATTACK_MULTIPLIER);
         global.put("sergeantDamageBuff", ArmyBalance.SERGEANT_DAMAGE_BUFF);
         global.put("staffSergeantService", (double) ArmyBalance.STAFF_SERGEANT_SERVICE);
+        global.put("staffSergeantAttackMultiplier", ArmyBalance.STAFF_SERGEANT_ATTACK_MULTIPLIER);
         global.put("staffSergeantDamageBuff", ArmyBalance.STAFF_SERGEANT_DAMAGE_BUFF);
         global.put("staffSergeantAttackSpeedBuff", ArmyBalance.STAFF_SERGEANT_ATTACK_SPEED_BUFF);
         global.put("dischargeService", (double) ArmyBalance.DISCHARGE_SERVICE);
@@ -995,10 +1019,10 @@ public record TowerBalanceConfig(
         for (TowerType type : PlantTowers.TERRAFORM_TOWERS) {
             putAbilities(abilities, type.id(), Map.of("terraformRadius", (double) PlantTowers.tierOf(type)));
         }
-        // 개화: 계열 지형 칸 수에 비례한 피해 증가. 40칸에서 상한(+40%)에 도달합니다.
+        // 개화: T3 테라포머가 만든 7x7 지형에서 상한(+60%)에 도달합니다.
         putAbilities(abilities, PlantTowers.GLOBAL_CONFIG_ID, Map.of(
-                "bloomDamagePerTile", 0.01,
-                "bloomDamageCap", 0.4,
+                "bloomDamagePerTile", 0.015,
+                "bloomDamageCap", 0.6,
                 "soilPulseIntervalTicks", 20.0,
                 // 지형 효과 범위는 사거리를 따라가되, 사거리를 2배로 늘린 뒤에도 장판이 과해지지 않게 상한을 둡니다.
                 "soilAuraMinRadius", 3.0,
@@ -1008,13 +1032,13 @@ public record TowerBalanceConfig(
         // 잔디는 후방 지원 지형입니다. 자기 회복이 아니라 주변 아군을 회복시키고 성장 체력을 나눠 줍니다.
         putAbilities(abilities, PlantSoil.MEADOW.configId(), Map.of(
                 "supportRadius", 6.0,
-                "healPercentPerPulse", 0.015,
-                // T3 기준 40라운드에 자기 최대 체력 +112% 상한에 도달합니다.
-                "maxHealthGrowthPerRound", 0.02,
-                "maxHealthGrowthCap", 0.8,
+                "healPercentPerPulse", 0.012,
+                // T3 기준 자기 최대 체력은 라운드당 +2.1%, 최대 +70%까지 성장합니다.
+                "maxHealthGrowthPerRound", 0.015,
+                "maxHealthGrowthCap", 0.5,
                 // 라인 전체 분배는 잔디 타워 수만큼 합산되므로 비율을 낮추고 합계 상한을 둡니다.
-                "growthShareRatio", 0.2,
-                "growthShareCap", 0.5,
+                "growthShareRatio", 0.15,
+                "growthShareCap", 0.25,
                 "supportDurationTicks", 60.0
         ));
         // environment* 값은 타워 없이 지형만으로 걸리는 효과입니다.
@@ -1027,36 +1051,41 @@ public record TowerBalanceConfig(
         ));
         putAbilities(abilities, PlantSoil.DESERT.configId(), Map.of(
                 "environmentAttackSpeedReduction", 0.15,
-                "environmentMaxHealthDamagePerSecond", 0.005,
+                "environmentMaxHealthDamagePerSecond", 0.0075,
                 "environmentDurationTicks", 60.0,
                 // 타워 오라는 지형 자체 값보다 세게 잡아, 겹치면 타워 쪽이 적용됩니다.
                 "attackSpeedReduction", 0.25,
                 "debuffDurationTicks", 60.0,
                 // 사암 계열은 공격을 안 해 사거리가 0 이라 장판 크기를 지형에서 직접 정합니다.
                 "auraRadius", 5.0,
-                "thornReflectRatio", 0.25
+                "thornReflectRatio", 0.30
         ));
         putAbilities(abilities, PlantSoil.PODZOL.configId(), Map.of(
                 "rangeBonus", 4.0,
                 "attackSpeedBonus", 0.25,
                 // 잔디가 체력을 키우듯 회백토는 피해를 키웁니다. 40라운드까지 계속 오릅니다.
                 "damageGrowthPerRound", 0.015,
-                "damageGrowthCap", 0.6
+                "damageGrowthCap", 0.6,
+                // 잔디와 같은 방식으로 라인 전체에 나눠 줍니다. 회백토 타워 수만큼 합산되므로
+                // 비율을 낮게 잡고 합계 상한을 둡니다.
+                "growthShareRatio", 0.2,
+                "growthShareCap", 0.4,
+                "supportDurationTicks", 60.0
         ));
 
         // 지형 효과는 계열 공용이고, soilPower 가 티어별 배율을 담당합니다.
         // 민들레 계열은 지원 배율에 더해 생존한 웨이브 정산 다이아를 만들어 냅니다.
         putAbilities(abilities, PlantTowers.T1_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 0.6,
-                "diamondPerWave", 3.0
+                "diamondPerWave", 4.0
         ));
         putAbilities(abilities, PlantTowers.T2_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.0,
-                "diamondPerWave", 9.0
+                "diamondPerWave", 11.0
         ));
         putAbilities(abilities, PlantTowers.T3_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.4,
-                "diamondPerWave", 24.0
+                "diamondPerWave", 28.0
         ));
 
         // 튤립 계열은 자기 중심 광역이라 novaRadius/novaDamageRatio 를 씁니다.
@@ -1068,17 +1097,17 @@ public record TowerBalanceConfig(
         putAbilities(abilities, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), Map.of(
                 "soilPower", 1.0,
                 "novaRadius", 4.5,
-                "novaDamageRatio", 0.5
+                "novaDamageRatio", 0.6
         ));
         putAbilities(abilities, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), Map.of(
                 "soilPower", 1.4,
                 "novaRadius", 5.5,
-                "novaDamageRatio", 0.6
+                "novaDamageRatio", 0.75
         ));
-        // 균사 계열은 소모성 지뢰입니다.
-        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0);
-        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0);
-        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0);
+        // 균사 계열은 라운드당 한 번 터지는 지뢰입니다.
+        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 8.0);
+        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 10.0);
+        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 12.0);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1100,9 +1129,9 @@ public record TowerBalanceConfig(
                 "critChance", 0.20,
                 "critMultiplier", 2.0,
                 "splashRadius", 5.0,
-                "splashDamageRatio", 0.35,
+                "splashDamageRatio", 0.45,
                 "splashConeDegrees", 130.0,
-                "splashMissingHealthRatio", 0.02
+                "splashMissingHealthRatio", 0.03
         ));
 
         // 장미 덤불: 치명타 특화. 초치명타는 3배입니다.
@@ -1120,10 +1149,12 @@ public record TowerBalanceConfig(
                 "critChance", 0.20,
                 "critMultiplier", 2.0,
                 "splashRadius", 4.0,
-                "splashDamageRatio", 0.45,
+                "splashDamageRatio", 0.60,
                 "snareMoveSpeedReduction", 0.7,
                 // 실효 공격 간격(35틱)보다 짧아야 재장전 사이에 적이 움직일 틈이 생깁니다.
-                "snareDurationTicks", 20.0
+                "snareDurationTicks", 20.0,
+                // 곡사 연출용 포물선 높이입니다. 0 이면 궤적을 그리지 않습니다.
+                "lobArcHeight", 5.0
         ));
     }
 
@@ -1133,7 +1164,8 @@ public record TowerBalanceConfig(
             double triggerRadius,
             double explosionRadius,
             double moveSpeedReduction,
-            double disableTicks
+            double disableTicks,
+            double fuseTicks
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "triggerRadius", triggerRadius,
@@ -1143,7 +1175,10 @@ public record TowerBalanceConfig(
                 // 남은 체력도 함께 터집니다. 온전할수록 세게 터집니다.
                 "explosionHealthRatio", 0.25,
                 "explosionMoveSpeedReduction", moveSpeedReduction,
-                "explosionDisableTicks", disableTicks
+                "explosionDisableTicks", disableTicks,
+                // 밟은 뒤 터지기까지의 도화선 길이. 이 동안 섬광이 떠 있고, 빠져나가면 맞지
+                // 않습니다. 길수록 경고가 후하고 짧을수록 즉발에 가깝습니다.
+                "fuseTicks", fuseTicks
         ));
     }
 
@@ -1201,7 +1236,7 @@ public record TowerBalanceConfig(
             }
         });
         abilities.forEach((configId, values) -> values.forEach((key, value) -> {
-            if (value == null || !Double.isFinite(value) || value < 0.0) {
+            if (!isValidAbilityValue(configId, key, value)) {
                 throw new IllegalArgumentException(
                         "Tower balance ability must be finite and non-negative: " + configId + "." + key
                 );
@@ -1221,6 +1256,148 @@ public record TowerBalanceConfig(
         validatePlantAbilities();
         validateArmyAbilities();
         validateThunderAbilities();
+        validateDemonLordAbilities();
+        validateGambleAbilities();
+    }
+
+    private void validateGambleAbilities() {
+        String global = GambleBalance.GLOBAL_ID;
+        validatePositive(global,
+                "oddEvenWinScore", "oddEvenLossScore", "maxHealthPerScore", "damagePerScore",
+                "rangePerScore", "splashRadiusPerScore", "baseSplashRadius",
+                "supportVfxIntervalTicks",
+                "supportPositiveRangeUnit", "supportPositiveRegenUnit",
+                "supportPositiveDamageUnit", "supportPositiveMaxHealthUnit",
+                "supportNegativeRangeUnit", "supportNegativeHealthLossUnit",
+                "supportNegativeDamageUnit", "supportNegativeMaxHealthUnit",
+                "maxSpectatorsPerGambler",
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore",
+                "twoDiceCompoundMinSum",
+                "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
+                "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
+                "twoDiceGain10", "twoDiceGain11", "twoDiceGain12");
+        validateRatios(global,
+                "abilityRewardChance", "lossInsuranceReduction", "splashDamageRatio");
+        validateIntegral(global, false, "supportVfxIntervalTicks", "maxSpectatorsPerGambler");
+        validateRange(global, "twoDiceCompoundMinSum", 2.0, 12.0);
+        validateIntegral(global, false, "twoDiceCompoundMinSum");
+        validateIntegral(global, false,
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore");
+        double kingPromotionScore = ability(global, "kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
+        double maxGambleScore = ability(global, "maxGambleScore", GambleBalance.MAX_GAMBLE_SCORE);
+        if (maxGambleScore < kingPromotionScore) {
+            throw new IllegalArgumentException(
+                    "Gamble maximum score must be greater than or equal to the king promotion score."
+            );
+        }
+        validatePositive(GambleTowers.KING.id(), "splashRadiusBonus");
+        validatePositive(GambleTowers.DARK_KING.id(), "splashRadiusBonus");
+
+        for (TowerType type : List.of(
+                GambleTowers.DICE_T1, GambleTowers.DICE_T2, GambleTowers.DICE_T3,
+                GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3)) {
+            validateRange(type.id(), "minimumRoll", 1.0, 6.0);
+            validateIntegral(type.id(), false, "minimumRoll");
+            validatePositive(type.id(), "supportPowerMultiplier");
+            validateIntegral(type.id(), true, "faceSixDiamondReward");
+        }
+        if (configuredGambleExpectedScore() <= 0.0) {
+            throw new IllegalArgumentException("Gamble two-dice score must have a positive expectation.");
+        }
+    }
+
+    private double configuredGambleExpectedScore() {
+        double[] defaults = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 90, 120, 150};
+        double total = 0.0;
+        for (int first = 1; first <= 6; first++) {
+            for (int second = 1; second <= 6; second++) {
+                int sum = first + second;
+                String key = sum <= 5 ? "twoDiceLoss" + sum : "twoDiceGain" + sum;
+                double score = ability(GambleBalance.GLOBAL_ID, key, Math.abs(defaults[sum]));
+                if (sum <= 5) score = -score;
+                total += score * (first == second ? 2.0 : 1.0);
+            }
+        }
+        return total / 36.0;
+    }
+
+    private void validateDemonLordAbilities() {
+        String global = DemonLordTowers.GLOBAL_CONFIG_ID;
+        validatePositive(global,
+                "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks");
+        validateAtLeast(global, 0.0,
+                "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage");
+        validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks");
+        validateAtLeast(global, 1.0, "experienceGrowth");
+
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+                String id = skill.towerId(tier);
+                validatePositive(id, TowerCapacity.CONFIG_KEY, "cooldownTicks");
+                validateIntegral(id, false, TowerCapacity.CONFIG_KEY, "cooldownTicks");
+                switch (skill) {
+                    case WAVE_OF_MALICE -> {
+                        validateRange(id, "coneDegrees", Double.MIN_VALUE, 360.0);
+                        validatePositive(id, "range");
+                    }
+                    case DEMON_WINGS -> {
+                        validatePositive(id, "leapPower", "radius");
+                        validateRatios(id, "healRatio");
+                    }
+                    case SKY_BREAKER -> {
+                        validatePositive(id, "dashDistance", "hitRadius", "liftPower", "stunTicks");
+                        validateIntegral(id, false, "stunTicks");
+                    }
+                    case ARCANE_BOMBARDMENT -> {
+                        validatePositive(id, "jumpPower", "castDelayTicks", "projectileRange", "blastRadius");
+                        validateIntegral(id, false, "castDelayTicks");
+                    }
+                    case DEMON_BARRIER -> {
+                        validateRatios(id, "shieldRatio");
+                        validatePositive(id, "shieldDurationTicks");
+                        validateIntegral(id, false, "shieldDurationTicks");
+                    }
+                    case HELLFIRE_BRAND -> {
+                        validatePositive(id,
+                                "placementRange", "zoneRadius", "zoneDurationTicks", "tickIntervalTicks");
+                        validateIntegral(id, false, "zoneDurationTicks", "tickIntervalTicks");
+                        validateRatios(id, "damageTakenBonus");
+                    }
+                    case SOUL_DRAIN -> {
+                        validatePositive(id, "range", "width", "rootDurationTicks");
+                        validateIntegral(id, false, "rootDurationTicks");
+                        validateRatios(id, "lifeStealRatio", "lifeStealCap");
+                    }
+                    case ROAR_OF_DREAD -> {
+                        validatePositive(id, "radius", "dreadDurationTicks");
+                        validateIntegral(id, false, "dreadDurationTicks");
+                        validateRatios(id, "moveSpeedReduction");
+                    }
+                    case GRIP_OF_DOOM -> {
+                        validatePositive(id, "range", "explosionRadius");
+                        validateRatios(id, "missingHealthRatio");
+                        validateIntegral(id, true, "killRefundTicks");
+                        Double executeRatio = configuredAbility(id, "executeHealthRatio");
+                        if (executeRatio != null && (executeRatio < 0.0 || executeRatio >= 1.0)) {
+                            throw new IllegalArgumentException(
+                                    "Demon lord execute ratio must be at least 0 and below 1: " + id);
+                        }
+                    }
+                    case HELL_GUILLOTINE -> validatePositive(id, "range", "radius");
+                }
+            }
+        }
+    }
+
+    private void validateIntegralAbility(String configId, String key) {
+        Map<String, Double> values = abilities.get(configId);
+        Double value = values == null ? null : values.get(key);
+        if (value != null && (value > Integer.MAX_VALUE || value != Math.rint(value))) {
+            throw new IllegalArgumentException(
+                    "Tower balance count ability must be a whole number no greater than "
+                            + Integer.MAX_VALUE + ": " + configId + "." + key
+            );
+        }
     }
 
     private void validateThunderAbilities() {
@@ -1337,7 +1514,7 @@ public record TowerBalanceConfig(
         validateRatios(global,
                 "dischargeRefundRatio", "medalDamageBonus", "corporalAttackMultiplier",
                 "corporalDamageBuff", "sergeantAttackMultiplier", "sergeantDamageBuff",
-                "staffSergeantDamageBuff", "staffSergeantAttackSpeedBuff");
+                "staffSergeantAttackMultiplier", "staffSergeantDamageBuff", "staffSergeantAttackSpeedBuff");
         validatePositive(global,
                 "commandRadius", "maxCommandBonus", "maxMedals", "corporalService", "sergeantService",
                 "staffSergeantService", "dischargeService");
@@ -1386,21 +1563,29 @@ public record TowerBalanceConfig(
                 "environmentAttackSpeedReduction", "environmentMaxHealthDamagePerSecond",
                 "attackSpeedReduction", "thornReflectRatio");
         validateRatios(PlantSoil.PODZOL.configId(),
-                "attackSpeedBonus");
+                "attackSpeedBonus", "growthShareRatio");
         validateAtLeast(PlantSoil.MEADOW.configId(), 0.0,
                 "maxHealthGrowthPerRound", "maxHealthGrowthCap", "growthShareCap");
         validateAtLeast(PlantSoil.PODZOL.configId(), 0.0,
-                "damageGrowthPerRound", "damageGrowthCap");
+                "damageGrowthPerRound", "damageGrowthCap", "growthShareCap");
 
         validatePositive(PlantTowers.GLOBAL_CONFIG_ID,
                 "soilAuraMinRadius", "soilAuraMaxRadius", "soilPulseIntervalTicks", "environmentTickIntervalTicks");
         validatePositive(PlantSoil.MEADOW.configId(), "supportRadius", "supportDurationTicks");
+        validatePositive(PlantSoil.PODZOL.configId(), "supportDurationTicks");
         validatePositive(PlantSoil.MYCELIUM.configId(), "environmentDurationTicks");
         validatePositive(PlantSoil.DESERT.configId(), "environmentDurationTicks", "debuffDurationTicks", "auraRadius");
         validateIntegral(PlantTowers.GLOBAL_CONFIG_ID, false, "soilPulseIntervalTicks", "environmentTickIntervalTicks");
         validateIntegral(PlantSoil.MEADOW.configId(), false, "supportDurationTicks");
+        validateIntegral(PlantSoil.PODZOL.configId(), false, "supportDurationTicks");
         validateIntegral(PlantSoil.MYCELIUM.configId(), false, "environmentDurationTicks");
         validateIntegral(PlantSoil.DESERT.configId(), false, "environmentDurationTicks", "debuffDurationTicks");
+
+        for (TowerType mine : List.of(
+                PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
+            validatePositive(mine.id(), "triggerIntervalTicks", "fuseTicks");
+            validateIntegral(mine.id(), false, "triggerIntervalTicks", "fuseTicks");
+        }
 
         Double minRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMinRadius");
         Double maxRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMaxRadius");
@@ -1586,8 +1771,8 @@ public record TowerBalanceConfig(
             Map<String, Double> fallbackValues = fallback.abilities.getOrDefault(configId, Map.of());
             LinkedHashMap<String, Double> repairedValues = new LinkedHashMap<>();
             values.forEach((key, value) -> {
-                Double repaired = isNonNegativeFinite(value) ? value : fallbackValues.get(key);
-                if (isNonNegativeFinite(repaired)) {
+                Double repaired = isValidAbilityValue(configId, key, value) ? value : fallbackValues.get(key);
+                if (isValidAbilityValue(configId, key, repaired)) {
                     repairedValues.put(key, repaired);
                 }
             });
@@ -1604,8 +1789,14 @@ public record TowerBalanceConfig(
         );
     }
 
-    private static boolean isNonNegativeFinite(Double value) {
-        return value != null && Double.isFinite(value) && value >= 0.0;
+    private static boolean isValidAbilityValue(String configId, String key, Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            return false;
+        }
+        boolean signedHeroWeaponAggro = "aggroPriority".equals(key)
+                && configId.startsWith("hero_party_weapon_")
+                && HeroWeapon.byId(configId.substring("hero_party_weapon_".length())) != null;
+        return value >= 0.0 || signedHeroWeaponAggro;
     }
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
@@ -2093,11 +2284,22 @@ public record TowerBalanceConfig(
         global.put("maxRedstone", (double) EngineerBalance.MAX_REDSTONE);
         global.put("maxPlates", (double) EngineerBalance.MAX_PLATES);
         global.put("maxPistons", (double) EngineerBalance.MAX_PISTONS);
+        global.put("plateDamageBonusPerTier", EngineerBalance.PLATE_DAMAGE_BONUS_PER_TIER);
         global.put("dispenserDamagePerPlateBlock", EngineerBalance.DISPENSER_DAMAGE_PER_PLATE_BLOCK);
         global.put("dispenserMaxPlateDistance", (double) EngineerBalance.DISPENSER_MAX_PLATE_DISTANCE);
+        global.put("dispenserDamageBonusPerGolemPress", EngineerBalance.DISPENSER_DAMAGE_BONUS_PER_GOLEM_PRESS);
+        global.put("dispenserDamageBonusCap", EngineerBalance.DISPENSER_DAMAGE_BONUS_CAP);
+        global.put("doorDamageReductionPerGolemPress", EngineerBalance.DOOR_DAMAGE_REDUCTION_PER_GOLEM_PRESS);
+        global.put("doorDamageReductionCap", EngineerBalance.DOOR_DAMAGE_REDUCTION_CAP);
+        global.put("golemPressesPerExtraTarget", (double) EngineerBalance.GOLEM_PRESSES_PER_EXTRA_TARGET);
+        global.put("tntExtraTargetCap", (double) EngineerBalance.TNT_EXTRA_TARGET_CAP);
+        global.put("pistonExtraTargetCap", (double) EngineerBalance.PISTON_EXTRA_TARGET_CAP);
+        global.put("slimeSlowPerGolemPress", EngineerBalance.SLIME_SLOW_PER_GOLEM_PRESS);
+        global.put("slimeSlowCap", EngineerBalance.SLIME_SLOW_CAP);
         global.put("activeVfxIntervalTicks", (double) EngineerBalance.ACTIVE_VFX_INTERVAL_TICKS);
         global.put("tntFuseVfxIntervalTicks", (double) EngineerBalance.TNT_FUSE_VFX_INTERVAL_TICKS);
         putAbilities(abilities, EngineerBalance.GLOBAL_ID, global);
+        putAbilities(abilities, EngineerTowers.REDSTONE_DUST.id(), Map.of(TowerCapacity.CONFIG_KEY, 0.0));
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 LinkedHashMap<String, Double> values = new LinkedHashMap<>();
@@ -2162,11 +2364,13 @@ public record TowerBalanceConfig(
                 Map.entry("weaponMultiplier3", 1.50),
                 Map.entry("weaponMultiplier4", 1.72),
                 Map.entry("weaponMultiplier5", 2.00),
-                Map.entry("armorUpgradeCost1", 90.0),
-                Map.entry("armorUpgradeCost2", 150.0),
-                Map.entry("armorUpgradeCost3", 230.0),
-                Map.entry("armorUpgradeCost4", 340.0),
-                Map.entry("armorUpgradeCost5", 480.0),
+                Map.entry("weaponAttackIntervalReductionPerLevel",
+                        (double) HeroPartyBalance.WEAPON_ATTACK_INTERVAL_REDUCTION_PER_LEVEL),
+                Map.entry("armorUpgradeCost1", 126.0),
+                Map.entry("armorUpgradeCost2", 210.0),
+                Map.entry("armorUpgradeCost3", 322.0),
+                Map.entry("armorUpgradeCost4", 476.0),
+                Map.entry("armorUpgradeCost5", 672.0),
                 Map.entry("armorHealth1", 60.0),
                 Map.entry("armorHealth2", 140.0),
                 Map.entry("armorHealth3", 240.0),
@@ -2177,9 +2381,9 @@ public record TowerBalanceConfig(
                 Map.entry("armorReduction3", 0.12),
                 Map.entry("armorReduction4", 0.16),
                 Map.entry("armorReduction5", 0.20),
-                Map.entry("adventureDamagePerPoint", 0.0025),
-                Map.entry("adventureHealingPerPoint", 0.0025),
-                Map.entry("adventureHealthPerPoint", 0.0035),
+                Map.entry("adventureDamagePerPoint", 0.0030),
+                Map.entry("adventureHealingPerPoint", 0.0030),
+                Map.entry("adventureHealthPerPoint", 0.0045),
                 Map.entry(
                         "focusFireDamageReductionPerExtraAttacker",
                         HeroPartyBalance.FOCUS_FIRE_REDUCTION_PER_EXTRA_ATTACKER
@@ -2191,7 +2395,9 @@ public record TowerBalanceConfig(
                     "purchaseCost", (double) weapon.defaultPurchaseCost(),
                     "damage", weapon.defaultDamage(),
                     "range", weapon.defaultRange(),
-                    "attackIntervalTicks", (double) weapon.defaultAttackIntervalTicks()
+                    "attackIntervalTicks", (double) weapon.defaultAttackIntervalTicks(),
+                    "maxHealthMultiplier", weapon.defaultMaxHealthMultiplier(),
+                    "aggroPriority", (double) weapon.defaultAggroPriority()
             ));
             if (weapon == HeroWeapon.SWORD || weapon == HeroWeapon.LONGBOW) {
                 mergeAbilities(abilities, weapon.configId(), Map.of(
@@ -2230,7 +2436,7 @@ public record TowerBalanceConfig(
         double[] mageEmpoweredEvery = {0.0, 0.0, 5.0, 4.0};
         double[] mageEmpoweredMultiplier = {0.0, 0.0, 1.50, 1.75};
         double[] mageEmpoweredRadius = {0.0, 0.0, 0.50, 0.75};
-        double[] priestHeal = {14.0, 21.0, 31.0, 45.0};
+        double[] priestHeal = {28.0, 42.0, 62.0, 90.0};
         double[] priestInterval = {40.0, 38.0, 34.0, 30.0};
         double[] priestSecond = {0.0, 0.0, 0.50, 1.0};
         double[] priestGuard = {0.0, 0.08, 0.10, 0.15};
@@ -2341,7 +2547,7 @@ public record TowerBalanceConfig(
         values.put("shrinkFactorPerPoint", 0.98);
         values.put("minimumStatScale", 0.20);
         values.put("minimumVisualScale", 0.50);
-        values.put("queenShrinkPoints", 5.0);
+        values.put("queenShrinkPoints", 7.0);
         values.put("cardShrinkPoints", 0.75);
         values.put("cardDeathShrinkPoints", 1.5);
         values.put("cardDeathRadius", 3.0);
@@ -2349,17 +2555,18 @@ public record TowerBalanceConfig(
         values.put("heartHealAmount", 12.0);
         values.put("heartHealRadius", 5.0);
         values.put("clubDamageReduction", 0.15);
-        values.put("cardSplashRadius", 1.25);
-        values.put("cardSplashExtraTargets", 1.0);
-        values.put("spadeRadius", 1.5);
-        values.put("spadeExtraTargets", 3.0);
+        values.put("cardSplashRadius", 2.0);
+        values.put("cardSplashExtraTargets", 5.0);
+        values.put("spadeRadius", 2.5);
+        values.put("spadeExtraTargets", 5.0);
         values.put("giantChargeTicks", 400.0);
         values.put("giantAccelerationRadius", 6.0);
         values.put("giantAccelerationMemoryTicks", 40.0);
         values.put("giantInitialExecutionHealth", 5.0);
         values.put("giantExecutionGrowthRatio", 0.05);
-        values.put("giantGrowthTargetCapMultiplier", 4.0);
+        values.put("giantGrowthTargetCapMultiplier", 2.0);
         values.put("queenMaxHealthPerRound", 8.0);
+        values.put("queenPokerHealthBonusCap", 3.0);
         values.put("giantContactRadius", 4.0);
         values.put("giantSpeed", 0.65);
         values.put("giantSlow", 0.55);
@@ -2422,7 +2629,7 @@ public record TowerBalanceConfig(
         }
         for (String key : java.util.List.of("queenShrinkPoints", "cardShrinkPoints", "cardDeathShrinkPoints",
                 "cardDeathRadius", "heartHealAmount", "heartHealRadius", "cardSplashRadius", "spadeRadius", "giantAccelerationRadius",
-                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "queenMaxHealthPerRound", "giantContactRadius", "giantSpeed",
+                "giantInitialExecutionHealth", "giantGrowthTargetCapMultiplier", "queenMaxHealthPerRound", "queenPokerHealthBonusCap", "giantContactRadius", "giantSpeed",
                 "card.heart.maxHealth", "card.heart.range", "card.diamond.maxHealth", "card.diamond.range",
                 "card.club.maxHealth", "card.club.range", "card.spade.maxHealth", "card.spade.range")) {
             if (values.getOrDefault(key, 0.0) <= 0.0) {
@@ -2447,7 +2654,17 @@ public record TowerBalanceConfig(
     private void validateHeroPartyBalance() {
         for (HeroWeapon weapon : HeroWeapon.values()) {
             validateRatios(weapon.configId(), "incomeDamageBonus");
+            validatePositive(weapon.configId(), "maxHealthMultiplier");
+            validateRange(weapon.configId(), "aggroPriority", -100.0, 100.0);
+            Double aggroPriority = configuredAbility(weapon.configId(), "aggroPriority");
+            if (aggroPriority != null && aggroPriority != Math.rint(aggroPriority)) {
+                throw new IllegalArgumentException(
+                        "Hero Party weapon aggro priority must be an integer: " + weapon.configId()
+                );
+            }
         }
+        validateIntegral(HeroPartyBalance.GLOBAL_CONFIG_ID, false,
+                "weaponAttackIntervalReductionPerLevel");
         for (int tier = 1; tier <= 4; tier++) {
             String knight = HeroPartyTowers.companion(HeroCompanionRole.KNIGHT, tier).id();
             validateRatios(knight, "damageReduction", "shieldBashSlow", "guardDamageReduction");
@@ -2619,19 +2836,37 @@ public record TowerBalanceConfig(
         requireEngineerPositive(global,
                 "activeTicks", "doorActiveTicks", "plateCooldownTicks", "golemMoveSpeed", "pistonImmunityTicks",
                 "doorRetargetTicks", "tntFuseTicks", "maxRedstone", "maxPlates", "maxPistons",
-                "dispenserMaxPlateDistance", "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
+                "dispenserMaxPlateDistance", "golemPressesPerExtraTarget",
+                "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         requireEngineerIntegral(global,
                 "activeTicks", "doorActiveTicks", "plateCooldownTicks", "pistonImmunityTicks", "doorRetargetTicks", "tntFuseTicks",
                 "maxRedstone", "maxPlates", "maxPistons", "dispenserMaxPlateDistance",
+                "golemPressesPerExtraTarget", "tntExtraTargetCap", "pistonExtraTargetCap",
                 "activeVfxIntervalTicks", "tntFuseVfxIntervalTicks");
         double distanceBonus = global.getOrDefault("dispenserDamagePerPlateBlock", -1.0);
         if (distanceBonus < 0.0 || distanceBonus > 1.0) {
             throw new IllegalArgumentException("Engineer dispenser distance bonus must be in [0, 1].");
         }
+        double plateBonus = global.getOrDefault("plateDamageBonusPerTier", -1.0);
+        if (plateBonus < 0.0 || plateBonus > 1.0) {
+            throw new IllegalArgumentException("Engineer plate damage bonus must be in [0, 1].");
+        }
+        requireEngineerRatio(global, "dispenserDamageBonusPerGolemPress", true);
+        requireEngineerRatio(global, "doorDamageReductionPerGolemPress", true);
+        requireEngineerRatio(global, "doorDamageReductionCap", false);
+        requireEngineerRatio(global, "slimeSlowPerGolemPress", true);
+        requireEngineerRatio(global, "slimeSlowCap", false);
+        if (global.get("doorDamageReductionPerGolemPress") > global.get("doorDamageReductionCap")) {
+            throw new IllegalArgumentException("Engineer door damage reduction per press must not exceed its cap.");
+        }
+        if (global.get("slimeSlowPerGolemPress") > global.get("slimeSlowCap")) {
+            throw new IllegalArgumentException("Engineer slime slow per press must not exceed its cap.");
+        }
         if (global.getOrDefault("dispenserMaxPlateDistance", 0.0)
                 > global.getOrDefault("maxRedstone", 0.0)) {
             throw new IllegalArgumentException("Engineer dispenser distance cap must not exceed maxRedstone.");
         }
+        validateIntegral(EngineerTowers.REDSTONE_DUST.id(), true, TowerCapacity.CONFIG_KEY);
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 String id = EngineerTowers.trap(kind, tier).id();
@@ -2653,6 +2888,10 @@ public record TowerBalanceConfig(
                 }
                 if (values.containsKey("slow") && values.get("slow") >= 1.0) {
                     throw new IllegalArgumentException("Engineer slow ratio must be in [0, 1): " + id);
+                }
+                if (kind == EngineerTowers.TrapKind.SLIME
+                        && values.getOrDefault("slow", 0.0) > global.get("slimeSlowCap")) {
+                    throw new IllegalArgumentException("Engineer slime slow cap must cover every configured tier.");
                 }
             }
         }
@@ -2677,6 +2916,13 @@ public record TowerBalanceConfig(
                 }
                 previousHealth = stats.maxHealth();
             }
+        }
+    }
+
+    private static void requireEngineerRatio(Map<String, Double> values, String key, boolean inclusiveOne) {
+        double value = values.getOrDefault(key, -1.0);
+        if (value < 0.0 || (inclusiveOne ? value > 1.0 : value >= 1.0)) {
+            throw new IllegalArgumentException("Engineer ratio is out of range: " + key);
         }
     }
 
@@ -3527,6 +3773,245 @@ public record TowerBalanceConfig(
         values.put("awakeningHeal", 600.0);
         values.put("awakeningDamage", 75.0);
         values.put("awakeningMoveSpeed", 0.30);
+        return values;
+    }
+
+    private static void addDemonLordTowers(LinkedHashMap<String, TowerStats> towers) {
+        DemonLordTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addGambleTowers(LinkedHashMap<String, TowerStats> towers) {
+        GambleTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putGambleUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
+        putUpgrade(upgradeCosts, GambleTowers.DICE_T1, GambleTowers.DICE_T2.id(), 100);
+        putUpgrade(upgradeCosts, GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), 200);
+        putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2.id(), 100);
+        putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), 200);
+        for (TowerType gambler : List.of(
+                GambleTowers.GAMBLER, GambleTowers.KING, GambleTowers.DARK_KING)) {
+            for (GambleBet bet : GambleBet.values()) {
+                putUpgrade(upgradeCosts, gambler, bet.upgradeId(),
+                        bet == GambleBet.TWO_DICE ? 100 : 50);
+            }
+        }
+    }
+
+    private static void putGambleAbilities(LinkedHashMap<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("oddEvenWinScore", GambleBalance.ODD_EVEN_WIN_SCORE);
+        global.put("oddEvenLossScore", GambleBalance.ODD_EVEN_LOSS_SCORE);
+        global.put("maxHealthPerScore", GambleBalance.MAX_HEALTH_PER_SCORE);
+        global.put("damagePerScore", GambleBalance.DAMAGE_PER_SCORE);
+        global.put("rangePerScore", GambleBalance.RANGE_PER_SCORE);
+        global.put("splashRadiusPerScore", GambleBalance.SPLASH_RADIUS_PER_SCORE);
+        global.put("baseSplashRadius", GambleBalance.BASE_SPLASH_RADIUS);
+        global.put("splashDamageRatio", GambleBalance.SPLASH_DAMAGE_RATIO);
+        global.put("twoDiceLoss2", 70.0);
+        global.put("twoDiceLoss3", 50.0);
+        global.put("twoDiceLoss4", 30.0);
+        global.put("twoDiceLoss5", 10.0);
+        global.put("twoDiceGain6", 20.0);
+        global.put("twoDiceGain7", 40.0);
+        global.put("twoDiceGain8", 50.0);
+        global.put("twoDiceGain9", 60.0);
+        global.put("twoDiceGain10", 90.0);
+        global.put("twoDiceGain11", 120.0);
+        global.put("twoDiceGain12", 150.0);
+        global.put("abilityRewardChance", GambleBalance.ABILITY_REWARD_CHANCE);
+        global.put("lossInsuranceReduction", GambleBalance.LOSS_INSURANCE_REDUCTION);
+        global.put("twoDiceCompoundMinSum", (double) GambleBalance.TWO_DICE_COMPOUND_MIN_SUM);
+        global.put("supportVfxIntervalTicks", (double) GambleBalance.SUPPORT_VFX_INTERVAL_TICKS);
+        global.put("supportPositiveRangeUnit", GambleBalance.SUPPORT_POSITIVE_RANGE_UNIT);
+        global.put("supportPositiveRegenUnit", GambleBalance.SUPPORT_POSITIVE_REGEN_UNIT);
+        global.put("supportPositiveDamageUnit", GambleBalance.SUPPORT_POSITIVE_DAMAGE_UNIT);
+        global.put("supportPositiveMaxHealthUnit", GambleBalance.SUPPORT_POSITIVE_MAX_HEALTH_UNIT);
+        global.put("supportNegativeRangeUnit", GambleBalance.SUPPORT_NEGATIVE_RANGE_UNIT);
+        global.put("supportNegativeHealthLossUnit", GambleBalance.SUPPORT_NEGATIVE_HEALTH_LOSS_UNIT);
+        global.put("supportNegativeDamageUnit", GambleBalance.SUPPORT_NEGATIVE_DAMAGE_UNIT);
+        global.put("supportNegativeMaxHealthUnit", GambleBalance.SUPPORT_NEGATIVE_MAX_HEALTH_UNIT);
+        global.put("maxSpectatorsPerGambler", (double) GambleBalance.MAX_SPECTATORS_PER_GAMBLER);
+        global.put("kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
+        global.put("darkKingPromotionScoreMagnitude", Math.abs(GambleBalance.DARK_KING_PROMOTION_SCORE));
+        global.put("maxGambleScore", GambleBalance.MAX_GAMBLE_SCORE);
+        putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
+
+        putAbilities(abilities, GambleTowers.KING.id(), Map.of(
+                "splashRadiusBonus", GambleBalance.KING_SPLASH_RADIUS_BONUS
+        ));
+        putAbilities(abilities, GambleTowers.DARK_KING.id(), Map.of(
+                "splashRadiusBonus", GambleBalance.DARK_KING_SPLASH_RADIUS_BONUS
+        ));
+
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1.0, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 2.0, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T3, 3.5, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T1, 1.0, 5);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T2, 2.0, 15);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T3, 3.5, 35);
+    }
+
+    private static void putGambleSupportAbilities(
+            LinkedHashMap<String, Map<String, Double>> abilities,
+            TowerType type,
+            double supportPowerMultiplier,
+            int faceSixDiamondReward
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "minimumRoll", 1.0,
+                "supportPowerMultiplier", supportPowerMultiplier,
+                "faceSixDiamondReward", (double) faceSixDiamondReward
+        ));
+    }
+
+    /** Upgrade price is the target tier's own diamond cost, so the shop and the tooltip agree. */
+    private static void putDemonLordUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier < DemonLordSkill.MAX_TIER; tier++) {
+                TowerType next = DemonLordTowers.tower(skill, tier + 1);
+                putUpgrade(upgradeCosts, DemonLordTowers.tower(skill, tier), next.id(), next.mineralCost());
+            }
+        }
+    }
+
+    private static void putDemonLordAbilities(LinkedHashMap<String, Map<String, Double>> abilities) {
+        // 마왕 본체. 레벨은 라운드를 넘어 유지되고, 체력 풀은 라운드마다 이 값으로 다시 채워집니다.
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("baseMaxHealth", 450.0);
+        global.put("maxHealthPerLevel", 52.5);
+        global.put("maxLevel", 30.0);
+        // 처치한 몹의 최대 체력에 비례해 경험치를 줍니다. 단단한 적을 잡을수록 크게 성장합니다.
+        global.put("experiencePerMaxHealth", 0.02);
+        global.put("experienceBase", 12.0);
+        global.put("experienceGrowth", 1.25);
+        // 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 만렙에서 2.45배가 됩니다.
+        global.put("damagePerLevel", 0.05);
+        global.put("bladeDamage", 19.0);
+        global.put("bladeAttackIntervalTicks", 12.0);
+        // 몹을 하나도 못 잡은 라운드에도 주는 기본 경험치입니다. 한 번 밀린 마왕이 영영
+        // 따라잡지 못하는 상황을 막습니다. 직접 잡는 편이 여전히 훨씬 빠릅니다.
+        global.put("passiveExperiencePerRound", 6.0);
+        // 스탯 포인트. 레벨업마다 받아 원하는 능력치에 넣습니다.
+        global.put("statPointsPerLevel", 3.0);
+        global.put("statHealthPerPoint", 40.0);
+        global.put("statAttackPerPoint", 0.04);
+        global.put("statDefensePerPoint", 0.02);
+        global.put("statDefenseCap", 0.6);
+        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 40 이면 50%, 80 이면 25% 가 되고
+        // 0 에는 닿지 않습니다. 선형이면 어느 지점에서 쿨타임이 사라져 버립니다.
+        //
+        // 다른 스탯보다 포인트를 많이 요구합니다. 쿨감은 모든 스킬에 한꺼번에 곱해지는 데다
+        // 딜뿐 아니라 생존기와 이동기 회전율까지 같이 올려서, 같은 효율로 두면 다른 선택지가
+        // 존재할 이유가 없어집니다.
+        global.put("statCooldownHalvingPoints", 40.0);
+        global.put("statSkillRangePerPoint", 0.03);
+        global.put("statMoveSpeedPerPoint", 0.03);
+        global.put("statMoveSpeedCap", 0.5);
+        putAbilities(abilities, DemonLordTowers.GLOBAL_CONFIG_ID, global);
+
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+                LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+                // 빌더의 "코스트". 라운드 타워 한도를 이만큼 차지합니다.
+                values.put(TowerCapacity.CONFIG_KEY, (double) skill.slotCost());
+                values.put("cooldownTicks", (double) (skill.cooldownSecondsForTier(tier) * 20));
+                values.putAll(demonLordSkillValues(skill, tier));
+                putAbilities(abilities, skill.towerId(tier), values);
+            }
+        }
+    }
+
+    /** Per-tier skill numbers. Index 0 is tier 1. */
+    private static Map<String, Double> demonLordSkillValues(DemonLordSkill skill, int tier) {
+        int index = tier - 1;
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>();
+        switch (skill) {
+            case WAVE_OF_MALICE -> {
+                values.put("coneDegrees", 60.0);
+                values.put("range", new double[] {6.0, 6.5, 7.0, 8.0}[index]);
+                values.put("damage", new double[] {34.0, 53.0, 75.0, 105.0}[index]);
+                values.put("knockback", new double[] {0.8, 0.9, 1.0, 1.2}[index]);
+            }
+            case DEMON_WINGS -> {
+                values.put("leapPower", new double[] {1.0, 1.1, 1.2, 1.3}[index]);
+                values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {23.0, 36.0, 53.0, 71.0}[index]);
+                values.put("knockback", new double[] {0.7, 0.8, 0.9, 1.0}[index]);
+                values.put("healRatio", new double[] {0.10, 0.13, 0.16, 0.20}[index]);
+            }
+            case SKY_BREAKER -> {
+                values.put("dashDistance", new double[] {8.0, 9.0, 10.0, 12.0}[index]);
+                values.put("hitRadius", new double[] {2.0, 2.2, 2.4, 2.6}[index]);
+                values.put("damage", new double[] {68.0, 105.0, 150.0, 206.0}[index]);
+                values.put("liftPower", new double[] {0.8, 0.85, 0.9, 1.0}[index]);
+                values.put("stunTicks", new double[] {40.0, 45.0, 50.0, 60.0}[index]);
+            }
+            case ARCANE_BOMBARDMENT -> {
+                values.put("jumpPower", new double[] {0.9, 0.95, 1.0, 1.1}[index]);
+                // 솟아오른 뒤 정점에서 발사할 때까지의 대기 시간입니다.
+                values.put("castDelayTicks", new double[] {10.0, 10.0, 9.0, 8.0}[index]);
+                values.put("projectileRange", new double[] {18.0, 20.0, 22.0, 25.0}[index]);
+                values.put("blastRadius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {53.0, 83.0, 116.0, 158.0}[index]);
+            }
+            case DEMON_BARRIER -> {
+                values.put("shieldRatio", new double[] {0.25, 0.32, 0.40, 0.50}[index]);
+                values.put("shieldDurationTicks", new double[] {160.0, 180.0, 200.0, 240.0}[index]);
+            }
+            case HELLFIRE_BRAND -> {
+                // 시선이 닿는 지점에 깝니다. 길목에 미리 깔거나 뭉친 무리를 노릴 수 있어야 합니다.
+                values.put("placementRange", new double[] {10.0, 11.0, 12.0, 14.0}[index]);
+                values.put("zoneRadius", new double[] {3.5, 4.0, 4.5, 5.0}[index]);
+                values.put("zoneDurationTicks", new double[] {100.0, 120.0, 140.0, 160.0}[index]);
+                values.put("tickIntervalTicks", 20.0);
+                // 장판은 지속으로 여러 번 들어가므로 1회 피해를 낮게 잡습니다.
+                values.put("damage", new double[] {14.0, 21.0, 30.0, 41.0}[index]);
+                values.put("damageTakenBonus", new double[] {0.10, 0.15, 0.20, 0.25}[index]);
+            }
+            case SOUL_DRAIN -> {
+                values.put("range", new double[] {7.0, 8.0, 9.0, 10.0}[index]);
+                values.put("width", new double[] {1.6, 1.8, 2.0, 2.2}[index]);
+                values.put("damage", new double[] {26.0, 41.0, 60.0, 83.0}[index]);
+                values.put("lifeStealRatio", new double[] {0.25, 0.30, 0.35, 0.40}[index]);
+                // 다수를 꿰뚫어도 한 번에 회복할 수 있는 양에 상한을 둡니다.
+                values.put("lifeStealCap", new double[] {0.12, 0.15, 0.18, 0.22}[index]);
+                // 꿰뚫린 적은 이동 속도가 100% 깎여 그 자리에 묶입니다. 공격은 계속하므로
+                // 붙어 있는 적에게 쓰면 의미가 없고, 지나가려는 줄을 세우는 데 씁니다.
+                values.put("rootDurationTicks", new double[] {40.0, 50.0, 60.0, 70.0}[index]);
+            }
+            case GRIP_OF_DOOM -> {
+                values.put("range", new double[] {9.0, 10.0, 11.0, 12.0}[index]);
+                // 처형 임계값. 대상 최대 체력의 이 비율 이하면 즉사시킵니다. 1.0 으로 올리면
+                // 체력과 무관하게 무조건 즉사하지만, 상대가 비싸게 산 유닛을 대응 없이 지우게 됩니다.
+                values.put("executeHealthRatio", new double[] {0.50, 0.55, 0.60, 0.70}[index]);
+                // 처형 시 시체가 터집니다. 폭발 피해 = 처형 시점 체력 × 비율 + areaDamage.
+                values.put("explosionHealthRatio", new double[] {0.80, 0.90, 1.00, 1.20}[index]);
+                values.put("explosionRadius", new double[] {4.0, 4.5, 5.0, 6.0}[index]);
+                values.put("areaDamage", new double[] {30.0, 49.0, 71.0, 98.0}[index]);
+                // 임계값 위인 대상에게 들어가는 일반 피해입니다.
+                values.put("damage", new double[] {98.0, 150.0, 214.0, 293.0}[index]);
+                values.put("missingHealthRatio", new double[] {0.10, 0.14, 0.18, 0.24}[index]);
+                values.put("killRefundTicks", new double[] {60.0, 70.0, 80.0, 100.0}[index]);
+                values.put("pullStrength", new double[] {0.5, 0.55, 0.6, 0.7}[index]);
+            }
+            case HELL_GUILLOTINE -> {
+                values.put("range", new double[] {10.0, 12.0, 14.0, 16.0}[index]);
+                values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
+                values.put("damage", new double[] {45.0, 71.0, 101.0, 139.0}[index]);
+                // 마왕이 잃은 체력 비율에 비례해 피해가 커집니다. 체력 0 에 가까울 때의 최대 증가폭.
+                values.put("missingHealthDamageBonus", new double[] {1.00, 1.20, 1.40, 1.80}[index]);
+            }
+            case ROAR_OF_DREAD -> {
+                values.put("radius", new double[] {5.0, 5.5, 6.0, 7.0}[index]);
+                values.put("damage", new double[] {19.0, 30.0, 44.0, 60.0}[index]);
+                values.put("knockback", new double[] {1.0, 1.1, 1.2, 1.4}[index]);
+                values.put("moveSpeedReduction", new double[] {0.50, 0.58, 0.66, 0.75}[index]);
+                values.put("dreadDurationTicks", new double[] {50.0, 60.0, 70.0, 80.0}[index]);
+            }
+            default -> {
+            }
+        }
         return values;
     }
 

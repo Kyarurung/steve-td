@@ -40,7 +40,9 @@ public final class QueenTower extends ProductionTower {
 
     @Override
     public double effectBaseMaxHealth() {
-        return type().maxHealth() + Math.max(0, currentRound() - 1) * QueenBalance.queenMaxHealthPerRound();
+        double roundHealth = type().maxHealth()
+                + Math.max(0, currentRound() - 1) * QueenBalance.queenMaxHealthPerRound();
+        return roundHealth * (1.0 + QueenStates.state(ownerPlayer()).pokerHealthBonus());
     }
 
     @Override
@@ -51,8 +53,14 @@ public final class QueenTower extends ProductionTower {
 
     @Override
     public Optional<SemionMonsterEntity> selectForcedAttackTarget(SemionTowerEntity source, List<SemionMonsterEntity> candidates) {
-        return candidates.stream().filter(target -> target.runtimeMonster() != null)
-                .max(Comparator.comparingDouble(target -> target.runtimeMonster().maxHealth()));
+        List<SemionMonsterEntity> valid = candidates.stream()
+                .filter(target -> target.runtimeMonster() != null)
+                .toList();
+        return valid.stream()
+                .filter(target -> !QueenGiantRunner.hasRequiredVisualShrink(target.runtimeMonster()))
+                .min(Comparator.comparingDouble(target -> target.runtimeMonster().permanentStatScale()))
+                .or(() -> valid.stream()
+                        .max(Comparator.comparingDouble(target -> target.runtimeMonster().maxHealth())));
     }
 
     @Override
@@ -92,8 +100,8 @@ public final class QueenTower extends ProductionTower {
     public void onWaveStarted(PlayerLane lane, int currentRound) {
         this.lane = lane;
         waveActive = true;
-        refreshRoundHealth(true);
         QueenPoker.snapshot(lane, ownerPlayer());
+        refreshRoundHealth(true);
         showAccelerationRange(lane);
         rangePulseTicks = QueenBalance.rangeVfxIntervalTicks();
     }
@@ -146,9 +154,17 @@ public final class QueenTower extends ProductionTower {
         return List.of(
                 "축소 위력: " + oneDecimal(QueenBalance.queenShrinkPoints())
                         + "점 (점당 " + percentInteger(1.0 - QueenBalance.shrinkFactorPerPoint()) + " 감소)",
+                "족보 체력 누적: +" + percentInteger(state.pokerHealthBonus())
+                        + " / +" + percentInteger(QueenBalance.queenPokerHealthBonusCap()),
                 "능력치 하한: 원본의 " + percentInteger(QueenBalance.minimumStatScale()),
                 "외형 하한: 원본의 " + percentInteger(QueenBalance.minimumVisualScale()),
-                "처형선: 현재 체력 " + oneDecimal(state.executionHealth()),
+                "처형 조건: 원본보다 외형 "
+                        + percentInteger(QueenGiantRunner.REQUIRED_EXECUTION_VISUAL_SHRINK)
+                        + " 이상 축소 + 현재 체력 " + oneDecimal(state.executionHealth()) + " 이하",
+                "처형선 성장: 최소 " + oneDecimal(QueenBalance.giantInitialExecutionHealth()
+                        * QueenBalance.giantExecutionGrowthRatio()) + " · 최대 현재 수치의 "
+                        + percentInteger(QueenBalance.giantGrowthTargetCapMultiplier()
+                        * QueenBalance.giantExecutionGrowthRatio()),
                 "저놈의 목을 쳐라!: " + current + "/" + required,
                 "남은 충전: " + oneDecimal(Math.max(0.0, required - state.charge()) / 20.0) + "초",
                 "가속: " + (accelerationActive ? "활성 (2배)" : "비활성")

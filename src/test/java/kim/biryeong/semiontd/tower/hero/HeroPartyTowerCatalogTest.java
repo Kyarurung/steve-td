@@ -218,6 +218,7 @@ class HeroPartyTowerCatalogTest {
 
     @Test
     void equipmentAndQuestNumbersMatchTheApprovedProgression() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         HeroPartyState state = HeroPartyStates.state(OWNER);
         assertTrue(state.owns(HeroWeapon.SWORD));
         assertTrue(state.addWeapon(HeroWeapon.LONGBOW));
@@ -241,26 +242,130 @@ class HeroPartyTowerCatalogTest {
         assertTrue(state.toggleArmorVisibility());
         assertEquals(5, HeroPlayerVisuals.displayedArmorLevel(hero));
 
-        assertEquals(2, HeroPartyState.questReward(1));
-        assertEquals(3, HeroPartyState.questReward(5));
-        assertEquals(4, HeroPartyState.questReward(10));
-        assertEquals(6, HeroPartyState.questReward(20));
-        assertEquals(9, HeroPartyState.questReward(41));
+        assertEquals(5, HeroPartyState.questReward(1));
+        assertEquals(10, HeroPartyState.questReward(5));
+        assertEquals(15, HeroPartyState.questReward(10));
+        assertEquals(21, HeroPartyState.questReward(20));
+        assertEquals(24, HeroPartyState.questReward(41));
         assertEquals(2.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_KILLS, 1, 8, 1000, 500));
         assertEquals(3.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_KILLS, 20, 10, 1000, 500));
-        assertEquals(3.0, HeroPartyState.questTarget(HeroQuestKind.HERO_KILLS, 20, 10, 1000, 500));
-        assertEquals(250.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_DAMAGE, 20, 10, 1000, 500));
-        assertEquals(250.0, HeroPartyState.questTarget(HeroQuestKind.LONGBOW_MARK_DAMAGE, 20, 10, 1000, 500));
-        assertEquals(350.0, HeroPartyState.questTarget(HeroQuestKind.TOME_HEALING, 20, 10, 1000, 500));
+        assertEquals(5.0, HeroPartyState.questTarget(HeroQuestKind.HERO_KILLS, 20, 20, 1000, 500));
+        assertEquals(175.0, HeroPartyState.questTarget(HeroQuestKind.WEAPON_DAMAGE, 20, 10, 1000, 500));
+        assertEquals(175.0, HeroPartyState.questTarget(HeroQuestKind.LONGBOW_MARK_DAMAGE, 20, 10, 1000, 500));
+        assertEquals(245.0, HeroPartyState.questTarget(HeroQuestKind.TOME_HEALING, 20, 10, 1000, 500));
         assertEquals(20, HeroQuestKind.values().length);
         assertEquals(1.0, HeroPartyState.questTarget(HeroQuestKind.PARTY_SURVIVAL, 20, 10, 1000, 500));
-        assertEquals(5.0, HeroPartyState.questTarget(HeroQuestKind.COMPANION_KILLS, 20, 10, 1000, 500));
-        assertEquals(400.0, HeroPartyState.questTarget(HeroQuestKind.PARTY_DAMAGE, 20, 10, 1000, 500));
-        assertEquals(350.0, HeroPartyState.questTarget(HeroQuestKind.PRIEST_HEALING, 20, 10, 1000, 500));
+        assertEquals(4.0, HeroPartyState.questTarget(HeroQuestKind.COMPANION_KILLS, 20, 10, 1000, 500));
+        assertEquals(280.0, HeroPartyState.questTarget(HeroQuestKind.PARTY_DAMAGE, 20, 10, 1000, 500));
+        assertEquals(245.0, HeroPartyState.questTarget(HeroQuestKind.PRIEST_HEALING, 20, 10, 1000, 500));
         assertEquals(10.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 1, 1, 100, 100));
         assertEquals(10.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 1, 100, 10000, 100));
-        assertEquals(50.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 1, 100, 100));
-        assertEquals(50.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 100, 10000, 100));
+        assertEquals(35.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 1, 100, 100));
+        assertEquals(35.0, HeroPartyState.questTarget(HeroQuestKind.BARD_AURA_SUPPORT, 20, 100, 10000, 100));
+        assertEquals(1.30, HeroPartyBalance.partyDamageMultiplier(100), 0.0001);
+        assertEquals(1.30, HeroPartyBalance.partyHealingMultiplier(100), 0.0001);
+        assertEquals(1.45, HeroPartyBalance.partyHealthMultiplier(100), 0.0001);
+    }
+
+    @Test
+    void weaponProfilesPreserveHealthRatioAndScaleArmor() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        HeroPartyState state = HeroPartyStates.state(OWNER);
+        assertTrue(state.upgradeArmor());
+        HeroTower hero = (HeroTower) hero(testContext(), new GridPosition(1, 64, 1));
+        hero.refreshPartyStats(null);
+
+        assertEquals(275.0, hero.currentMaxHealth(), 0.0001);
+        assertEquals(60, hero.aggroPriority());
+        hero.syncHealth(137.5);
+
+        assertTrue(state.addWeapon(HeroWeapon.LONGBOW));
+        assertTrue(state.equip(HeroWeapon.LONGBOW));
+        hero.refreshPartyStats(null);
+
+        assertEquals(187.0, hero.currentMaxHealth(), 0.0001);
+        assertEquals(93.5, hero.health(), 0.0001);
+        assertEquals(5, hero.aggroPriority());
+        assertEquals(11, hero.adjustAttackInterval(hero.type().attackIntervalTicks()));
+        for (int level = 1; level <= HeroPartyBalance.MAX_WEAPON_LEVEL; level++) {
+            assertTrue(state.upgradeWeapon(HeroWeapon.LONGBOW));
+            assertEquals(11 - level, hero.adjustAttackInterval(hero.type().attackIntervalTicks()));
+        }
+
+        hero.syncEffectMaxHealth(hero.effectBaseMaxHealth() * 1.50, 0.0, false);
+        assertEquals(280.5, hero.currentMaxHealth(), 0.0001);
+        hero.syncEffectMaxHealth(hero.effectBaseMaxHealth(), 0.0, false);
+        assertEquals(187.0, hero.currentMaxHealth(), 0.0001);
+    }
+
+    @Test
+    void weaponBalanceDefaultsMergeValidateAndMatchBundledConfig() throws Exception {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        defaults.validateForRuntime();
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+
+        Map<HeroWeapon, Double> healthMultipliers = Map.of(
+                HeroWeapon.SWORD, 1.25,
+                HeroWeapon.GREATSWORD, 1.15,
+                HeroWeapon.LONGBOW, 0.85,
+                HeroWeapon.STAFF, 0.90,
+                HeroWeapon.TOME, 1.05
+        );
+        Map<HeroWeapon, Integer> aggroPriorities = Map.of(
+                HeroWeapon.SWORD, 60,
+                HeroWeapon.GREATSWORD, 40,
+                HeroWeapon.LONGBOW, 5,
+                HeroWeapon.STAFF, 0,
+                HeroWeapon.TOME, -10
+        );
+        for (HeroWeapon weapon : HeroWeapon.values()) {
+            assertEquals(healthMultipliers.get(weapon), HeroPartyBalance.weaponMaxHealthMultiplier(weapon), 0.0001);
+            assertEquals(aggroPriorities.get(weapon), HeroPartyBalance.weaponAggroPriority(weapon));
+            for (int level = 0; level <= HeroPartyBalance.MAX_WEAPON_LEVEL; level++) {
+                assertEquals(Math.max(1, weapon.defaultAttackIntervalTicks() - level),
+                        HeroPartyBalance.weaponAttackInterval(weapon, level));
+            }
+        }
+
+        TowerBalanceConfig merged = new TowerBalanceConfig(
+                Map.of(),
+                Map.of(),
+                Map.of(
+                        HeroPartyBalance.GLOBAL_CONFIG_ID,
+                        Map.of("weaponAttackIntervalReductionPerLevel", 2.0),
+                        HeroWeapon.SWORD.configId(),
+                        Map.of("maxHealthMultiplier", 1.40, "aggroPriority", 55.0)
+                )
+        ).withMissingDefaults(defaults);
+        merged.validateForRuntime();
+        ProductionTowerCatalogs.reloadBuiltIns(merged);
+        assertEquals(1.40, HeroPartyBalance.weaponMaxHealthMultiplier(HeroWeapon.SWORD), 0.0001);
+        assertEquals(55, HeroPartyBalance.weaponAggroPriority(HeroWeapon.SWORD));
+        assertEquals(10, HeroPartyBalance.weaponAttackInterval(HeroWeapon.SWORD, 1));
+        assertEquals(0.35, merged.ability(HeroWeapon.SWORD.configId(), "incomeDamageBonus", -1.0), 0.0001);
+
+        assertInvalidAbility(defaults, HeroWeapon.SWORD.configId(), "maxHealthMultiplier", 0.0);
+        assertInvalidAbility(defaults, HeroWeapon.TOME.configId(), "aggroPriority", -101.0);
+        assertInvalidAbility(defaults, HeroWeapon.TOME.configId(), "aggroPriority", 1.5);
+        assertInvalidAbility(defaults, HeroPartyBalance.GLOBAL_CONFIG_ID,
+                "weaponAttackIntervalReductionPerLevel", 0.0);
+        assertInvalidAbility(defaults, HeroPartyBalance.GLOBAL_CONFIG_ID,
+                "weaponAttackIntervalReductionPerLevel", 1.5);
+
+        try (var input = HeroPartyTowerCatalogTest.class.getResourceAsStream(
+                "/semiontd/balance-defaults/tower_balance.json")) {
+            var bundledAbilities = JsonParser.parseReader(new InputStreamReader(
+                    java.util.Objects.requireNonNull(input), StandardCharsets.UTF_8))
+                    .getAsJsonObject().getAsJsonObject("abilities");
+            for (HeroWeapon weapon : HeroWeapon.values()) {
+                var bundled = bundledAbilities.getAsJsonObject(weapon.configId());
+                Map<String, Double> javaDefaults = defaults.abilities().get(weapon.configId());
+                assertEquals(javaDefaults.keySet(), bundled.keySet(), weapon.configId());
+                javaDefaults.forEach((key, value) -> assertEquals(
+                        value, bundled.get(key).getAsDouble(), 0.0001, weapon.configId() + "." + key
+                ));
+            }
+        }
     }
 
     @Test
@@ -337,8 +442,16 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
-    void companionDamageAndTierAbilitiesMatchTheApprovedProgression() {
+    void companionPricesDamageAndTierAbilitiesMatchTheApprovedProgression() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<HeroCompanionRole, long[]> expectedCosts = Map.of(
+                HeroCompanionRole.KNIGHT, new long[]{84, 126, 196, 308},
+                HeroCompanionRole.ARCHER, new long[]{77, 119, 182, 280},
+                HeroCompanionRole.MAGE, new long[]{98, 147, 231, 364},
+                HeroCompanionRole.PRIEST, new long[]{91, 140, 217, 336},
+                HeroCompanionRole.ROGUE, new long[]{70, 105, 168, 259},
+                HeroCompanionRole.BARD, new long[]{84, 126, 196, 308}
+        );
         Map<HeroCompanionRole, double[]> expectedDamage = Map.of(
                 HeroCompanionRole.KNIGHT, new double[]{7.2, 10.8, 15.6, 21.6},
                 HeroCompanionRole.ARCHER, new double[]{14.4, 20.4, 28.8, 38.4},
@@ -350,9 +463,27 @@ class HeroPartyTowerCatalogTest {
         for (HeroCompanionRole role : HeroCompanionRole.values()) {
             for (int tier = 1; tier <= 4; tier++) {
                 var type = HeroPartyTowers.companion(role, tier);
+                assertEquals(expectedCosts.get(role)[tier - 1], defaults.statsFor(type).mineralCost());
                 assertEquals(expectedDamage.get(role)[tier - 1], defaults.statsFor(type).damage(), 0.0001);
+                if (tier < 4) {
+                    var next = HeroPartyTowers.companion(role, tier + 1);
+                    assertEquals(expectedCosts.get(role)[tier], defaults.upgradeCost(type.id(), next.id(), -1));
+                }
             }
         }
+        assertEquals(112, defaults.statsFor(HeroPartyTowers.HERO).mineralCost());
+        assertEquals(List.of(15, 13, 10, 7),
+                java.util.stream.IntStream.rangeClosed(1, 4)
+                        .mapToObj(tier -> defaults.statsFor(
+                                HeroPartyTowers.companion(HeroCompanionRole.ARCHER, tier)
+                        ).attackIntervalTicks())
+                        .toList());
+        assertEquals(List.of(126L, 210L, 322L, 476L, 672L),
+                java.util.stream.IntStream.rangeClosed(1, 5)
+                        .mapToObj(HeroPartyBalance::armorUpgradeCost).toList());
+        assertEquals(List.of(80L, 140L, 220L, 320L, 450L),
+                java.util.stream.IntStream.rangeClosed(1, 5)
+                        .mapToObj(HeroPartyBalance::weaponUpgradeCost).toList());
 
         assertEquals(0.0, defaults.ability("hero_party_knight_1", "shieldBashEvery", -1.0), 0.0001);
         assertEquals(4.0, defaults.ability("hero_party_knight_2", "shieldBashEvery", -1.0), 0.0001);
@@ -360,6 +491,7 @@ class HeroPartyTowerCatalogTest {
         assertEquals(0.75, defaults.ability("hero_party_archer_4", "pierceDamageRatio", -1.0), 0.0001);
         assertEquals(1.50, defaults.ability("hero_party_mage_3", "empoweredSplashMultiplier", -1.0), 0.0001);
         assertEquals(0.50, defaults.ability("hero_party_priest_3", "secondTargetRatio", -1.0), 0.0001);
+        assertEquals(90.0, defaults.ability("hero_party_priest_4", "healAmount", -1.0), 0.0001);
         assertEquals(0.20, defaults.ability("hero_party_rogue_3", "killAttackSpeedBonus", -1.0), 0.0001);
         assertEquals(4.0, defaults.ability("hero_party_bard_4", "encoreEveryPulses", -1.0), 0.0001);
 
@@ -474,7 +606,7 @@ class HeroPartyTowerCatalogTest {
     @Test
     void heroShopShowsEffectiveDamageAndEverySkillUnlock() {
         assertEquals(12.0, HeroShopGui.effectiveWeaponDamage(HeroWeapon.SWORD, 0, 0));
-        assertEquals(24.24, HeroShopGui.effectiveWeaponDamage(HeroWeapon.SWORD, 5, 4), 0.0001);
+        assertEquals(24.288, HeroShopGui.effectiveWeaponDamage(HeroWeapon.SWORD, 5, 4), 0.0001);
         assertEquals(HeroShopGui.WeaponStatus.EQUIPPED,
                 HeroShopGui.weaponStatus(true, true, true, 0, 0));
         assertEquals(HeroShopGui.WeaponStatus.OWNED,

@@ -172,6 +172,7 @@ public final class EngineerGolemTower extends Tower {
             plateCooldowns.put(targetPlate, EngineerBalance.plateCooldownTicks());
             lastPressedPlate = targetPlate;
             pressesThisWave++;
+            EngineerPressStates.recordPress(ownerPlayer());
             showPlatePressed(lane, plate);
             targetPlate = null;
             return;
@@ -187,6 +188,8 @@ public final class EngineerGolemTower extends Tower {
                 ? "<gray>다음 <aqua>발판</aqua> 탐색 중</gray>"
                 : "<aqua>이동 목표</aqua> <white>" + targetPlate.x() + ", " + targetPlate.z() + "</white>");
         lines.add("<gold>이번 웨이브 발판 작동</gold> <white>" + pressesThisWave + "회</white>");
+        lines.add("<yellow>이번 매치 발판 작동</yellow> <white>"
+                + EngineerPressStates.count(ownerPlayer()) + "회</white>");
         return List.copyOf(lines);
     }
 
