@@ -385,7 +385,7 @@ public final class GambleGameTest {
             );
             GambleState darkState = new GambleState(
                     -20.0, -2.0, -0.5, 0.0,
-                    -400.0, Set.of(), 4, "어둠의 도박왕 전직 테스트"
+                    -200.0, Set.of(), 4, "어둠의 도박왕 전직 테스트"
             );
             kingCandidate.setData(GamblerTower.STATE, kingState);
             darkCandidate.setData(GamblerTower.STATE, darkState);
@@ -401,7 +401,7 @@ public final class GambleGameTest {
                     "A +400 score gambler must become the Gamble King.");
             require(darkTower instanceof GamblerTower
                             && darkTower.type().id().equals(GambleTowers.DARK_KING.id()),
-                    "A -400 score gambler must become the Dark Gamble King.");
+                    "A -200 score gambler must become the Dark Gamble King.");
             GamblerTower king = (GamblerTower) kingTower;
             GamblerTower dark = (GamblerTower) darkTower;
             require(king.state().equals(kingState) && dark.state().equals(darkState),

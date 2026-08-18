@@ -345,9 +345,9 @@ final class GambleTowerTest {
         assertEquals(GambleTowers.KING,
                 GambleTowers.promotionTarget(GambleTowers.GAMBLER, 400.0));
         assertEquals(GambleTowers.DARK_KING,
-                GambleTowers.promotionTarget(GambleTowers.GAMBLER, -400.0));
+                GambleTowers.promotionTarget(GambleTowers.GAMBLER, -200.0));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, 399.999));
-        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, -399.999));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, -199.999));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.KING, -1_000.0));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.DARK_KING, 1_000.0));
 
@@ -443,7 +443,7 @@ final class GambleTowerTest {
         assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
         assertEquals(400.0, GambleBalance.kingPromotionScore(), EPSILON);
-        assertEquals(-400.0, GambleBalance.darkKingPromotionScore(), EPSILON);
+        assertEquals(-200.0, GambleBalance.darkKingPromotionScore(), EPSILON);
         assertEquals(500.0, GambleBalance.maxGambleScore(), EPSILON);
     }
 
@@ -469,7 +469,7 @@ final class GambleTowerTest {
         assertEquals(440, partial.towers().get(GambleTowers.DARK_KING.id()).maxHealth(), EPSILON);
         assertEquals(400.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "kingPromotionScore", -1), EPSILON);
-        assertEquals(400.0, partial.ability(
+        assertEquals(200.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", -1), EPSILON);
         assertEquals(500.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "maxGambleScore", -1), EPSILON);
