@@ -13,11 +13,15 @@ import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * 균사 계열 전투 타워. 공격하지 않고 묻혀 있다가 적이 밟으면 터집니다.
@@ -39,6 +43,9 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 public class PlantMineTower extends PlantCombatTower {
     /** 이번 라운드에 이미 터졌는지. 라운드가 새로 시작될 때만 풀립니다. */
     private boolean spentThisRound;
+
+    /** 점화됐고 아직 안 터졌는지. 섬광이 뜬 뒤 도화선이 타는 동안 켜져 있습니다. */
+    private boolean fuseLit;
 
     public PlantMineTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -86,26 +93,69 @@ public class PlantMineTower extends PlantCombatTower {
     public void resetForRound(PlayerLane lane) {
         super.resetForRound(lane);
         spentThisRound = false;
+        fuseLit = false;
     }
 
+    /**
+     * 밟으면 먼저 섬광이 뜨고, 도화선이 다 타면 터집니다.
+     *
+     * <p>즉발이면 밟는 순간 이미 맞은 뒤라 피할 여지가 없습니다. 섬광은 "여기 밟았다"는 신호이고,
+     * 도화선이 타는 동안 빠져나가면 폭발을 피할 수 있습니다 - 폭발 판정은 터지는 시점에 다시
+     * 잡으므로, 그 사이에 나간 적은 실제로 안 맞습니다.
+     *
+     * <p>점화된 뒤에는 적이 사라져도 취소하지 않습니다. 도화선에 불이 붙었으면 타야 하고, 취소를
+     * 허용하면 적이 스치듯 지나갈 때마다 무료로 예열해 두는 짓이 가능해집니다.
+     */
     @Override
     protected boolean execute(PlayerLane lane) {
         if (lane == null || spentThisRound || health() <= 0.0) {
             return true;
         }
         SemionTowerEntity source = towerEntity(lane).orElse(null);
-        if (source == null || !triggered(lane)) {
+        if (source == null) {
             return true;
         }
-        detonate(lane, source);
-        spentThisRound = true;
+        if (fuseLit) {
+            detonate(lane, source);
+            fuseLit = false;
+            spentThisRound = true;
+            return true;
+        }
+        if (!triggered(lane)) {
+            return true;
+        }
+        lightFuse(source);
+        fuseLit = true;
         return true;
     }
 
     @Override
     protected int cooldownTicksAfterExecute(PlayerLane lane) {
-        // 밟자마자 터져야 하므로 촘촘하게 확인합니다.
+        // 도화선이 타는 동안은 그 길이만큼 기다렸다가 터뜨립니다.
+        if (fuseLit) {
+            return Math.max(1, abilityTicks("fuseTicks"));
+        }
+        // 밟자마자 점화돼야 하므로 평소에는 촘촘하게 확인합니다.
         return Math.max(1, abilityTicks("triggerIntervalTicks"));
+    }
+
+    /** 지뢰가 점화됐음을 알리는 섬광 하나와 도화선 소리. */
+    private void lightFuse(SemionTowerEntity source) {
+        Vec3 center = source.position();
+        TowerVfxService.showAreaEffect(
+                source,
+                AreaEffectIds.tower(this, "spore_mine_fuse"),
+                PlantVfx.MINE_FUSE,
+                center,
+                Math.max(1.0, ability("explosionRadius")),
+                List.of(),
+                0,
+                0,
+                0
+        );
+        source.level().playSound(
+                null, center.x, center.y, center.z,
+                SoundEvents.CREEPER_PRIMED, SoundSource.BLOCKS, 0.8f, 1.4f);
     }
 
     private boolean triggered(PlayerLane lane) {
@@ -181,10 +231,15 @@ public class PlantMineTower extends PlantCombatTower {
                 + " · 폭발 반경 " + oneDecimal(ability("explosionRadius")));
         lines.add("폭발 피해 " + oneDecimal(explosionDamage())
                 + " (체력 " + oneDecimal(health() * ability("explosionHealthRatio")) + " 포함)");
-        lines.add("무력화 " + oneDecimal(abilityTicks("explosionDisableTicks") / 20.0) + "초");
-        lines.add(spentThisRound
-                ? "이번 라운드에 이미 터졌습니다 · 라운드가 끝나면 한 단계 삭습니다"
-                : "라운드당 한 번 터집니다");
+        lines.add("무력화 " + oneDecimal(abilityTicks("explosionDisableTicks") / 20.0) + "초"
+                + " · 도화선 " + oneDecimal(abilityTicks("fuseTicks") / 20.0) + "초");
+        if (spentThisRound) {
+            lines.add("이번 라운드에 이미 터졌습니다 · 라운드가 끝나면 한 단계 삭습니다");
+        } else if (fuseLit) {
+            lines.add("점화됨");
+        } else {
+            lines.add("라운드당 한 번 터집니다");
+        }
         return lines;
     }
 }

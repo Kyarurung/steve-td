@@ -1099,9 +1099,9 @@ public record TowerBalanceConfig(
                 "novaDamageRatio", 0.75
         ));
         // 균사 계열은 라운드당 한 번 터지는 지뢰입니다.
-        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0);
-        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0);
-        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0);
+        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 8.0);
+        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 10.0);
+        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 12.0);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1158,7 +1158,8 @@ public record TowerBalanceConfig(
             double triggerRadius,
             double explosionRadius,
             double moveSpeedReduction,
-            double disableTicks
+            double disableTicks,
+            double fuseTicks
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "triggerRadius", triggerRadius,
@@ -1168,7 +1169,10 @@ public record TowerBalanceConfig(
                 // 남은 체력도 함께 터집니다. 온전할수록 세게 터집니다.
                 "explosionHealthRatio", 0.25,
                 "explosionMoveSpeedReduction", moveSpeedReduction,
-                "explosionDisableTicks", disableTicks
+                "explosionDisableTicks", disableTicks,
+                // 밟은 뒤 터지기까지의 도화선 길이. 이 동안 섬광이 떠 있고, 빠져나가면 맞지
+                // 않습니다. 길수록 경고가 후하고 짧을수록 즉발에 가깝습니다.
+                "fuseTicks", fuseTicks
         ));
     }
 
@@ -1484,8 +1488,8 @@ public record TowerBalanceConfig(
 
         for (TowerType mine : List.of(
                 PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
-            validatePositive(mine.id(), "triggerIntervalTicks");
-            validateIntegral(mine.id(), false, "triggerIntervalTicks");
+            validatePositive(mine.id(), "triggerIntervalTicks", "fuseTicks");
+            validateIntegral(mine.id(), false, "triggerIntervalTicks", "fuseTicks");
         }
 
         Double minRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMinRadius");

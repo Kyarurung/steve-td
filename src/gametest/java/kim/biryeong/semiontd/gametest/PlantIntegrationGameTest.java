@@ -268,7 +268,15 @@ public final class PlantIntegrationGameTest {
             Monster first = spawnMonster(context, lane, "plant-mine-first", position(context, 4, 1, 3));
             Monster second = spawnMonster(context, lane, "plant-mine-second", position(context, 6, 1, 3));
             Monster outside = spawnMonster(context, lane, "plant-mine-outside", position(context, 7, 1, 7));
+
+            // 밟는 즉시 터지지 않습니다. 먼저 섬광이 뜨고 도화선이 탑니다.
             mine.tick(lane);
+            requireClose(1_000.0, first.health(), "A mine must not damage anything while its fuse burns.");
+            // 점화 틱이 쿨다운을 도화선 길이로 세우므로, 실제 폭발은 그다음 틱입니다.
+            int fuseTicks = (int) defaults.ability(PlantTowers.T1_MYCELIUM_TOWER.id(), "fuseTicks", 8.0);
+            for (int tick = 0; tick <= fuseTicks; tick++) {
+                mine.tick(lane);
+            }
 
             require(lane.towers().contains(mine), "A triggered mine must stay until the round ends.");
             requireClose(900.6875, first.health(), "The trigger target must take the tuned T1 explosion.");
@@ -291,10 +299,14 @@ public final class PlantIntegrationGameTest {
             }
             requireClose(afterFirstBlast, first.health(), "A spent mine must not detonate again in the same round.");
 
-            // 라운드가 새로 시작되면 다시 장전됩니다.
+            // 라운드가 새로 시작되면 다시 장전됩니다. 도화선은 그때도 그대로 탑니다.
             mine.resetForRound(lane);
             require(!mine.spentThisRound(), "A new round must rearm the mine.");
             mine.tick(lane);
+            requireClose(afterFirstBlast, first.health(), "The next round's fuse must burn before it hurts anyone.");
+            for (int tick = 0; tick <= fuseTicks; tick++) {
+                mine.tick(lane);
+            }
             require(first.health() < afterFirstBlast, "A rearmed mine must detonate again in the next round.");
             context.succeed();
         } catch (RuntimeException | Error failure) {

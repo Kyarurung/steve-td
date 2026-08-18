@@ -95,6 +95,11 @@ public final class PlantTowers {
     private static final String MYCELIUM_REARM_LINE =
             "<green>한 라운드에 한 번 터집니다. 터진 뒤에는 그 라운드 동안 빈 껍데기로 남습니다.</green>";
 
+    /** 즉발이 아니라는 사실은 상대도 알아야 공평합니다. 툴팁에 도화선 길이를 밝혀 둡니다. */
+    private static final String MYCELIUM_FUSE_LINE =
+            "<gray>밟으면 섬광이 뜨고 <aqua>{ability.fuseTicks:seconds}</aqua> 뒤에 터집니다. "
+                    + "그 사이에 빠져나간 적은 맞지 않습니다.</gray>";
+
     /** 라운드마다 한 단계씩 삭습니다. 지뢰가 치르는 값이 폭발 한 번에서 라운드 하나로 옮겨갔습니다. */
     private static final String MYCELIUM_DECAY_LINE =
             "<red>라운드가 끝나면 한 단계 아래로 삭습니다. 붉은 버섯은 사라집니다.</red>";
@@ -216,6 +221,7 @@ public final class PlantTowers {
                     "<gray>균사 위에만 심는 지뢰입니다.</gray>",
                     "<green>적이 밟으면 터져 주변에 피해를 줍니다.</green>",
                     "<green>맞은 적은 느려지고 잠시 공격하지 못합니다.</green>",
+                    MYCELIUM_FUSE_LINE,
                     MYCELIUM_REARM_LINE,
                     "<red>라운드가 끝나면 사라집니다.</red>"
             ));
@@ -225,6 +231,7 @@ public final class PlantTowers {
             List.of(
                     "<gray>균사 위에만 심는 지뢰입니다.</gray>",
                     "<green>폭발 범위와 피해, 무력화 시간이 늘어납니다.</green>",
+                    MYCELIUM_FUSE_LINE,
                     MYCELIUM_REARM_LINE,
                     MYCELIUM_DECAY_LINE
             ));
@@ -234,6 +241,7 @@ public final class PlantTowers {
             List.of(
                     "<gray>식물 빌더의 최종 지뢰입니다.</gray>",
                     "<green>폭발 범위와 피해, 무력화 시간이 가장 깁니다.</green>",
+                    MYCELIUM_FUSE_LINE,
                     MYCELIUM_REARM_LINE,
                     MYCELIUM_DECAY_LINE
             ));

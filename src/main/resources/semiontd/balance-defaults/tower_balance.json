@@ -5976,7 +5976,8 @@
       "explosionRadius": 3.0,
       "explosionMoveSpeedReduction": 0.35,
       "triggerIntervalTicks": 5.0,
-      "explosionDisableTicks": 40.0
+      "explosionDisableTicks": 40.0,
+      "fuseTicks": 8.0
     },
     "t2_mycelium_tower": {
       "explosionHealthRatio": 0.25,
@@ -5985,7 +5986,8 @@
       "explosionRadius": 3.5,
       "explosionMoveSpeedReduction": 0.45,
       "triggerIntervalTicks": 5.0,
-      "explosionDisableTicks": 60.0
+      "explosionDisableTicks": 60.0,
+      "fuseTicks": 10.0
     },
     "t3_mycelium_tower": {
       "explosionHealthRatio": 0.25,
@@ -5994,7 +5996,8 @@
       "explosionRadius": 4.0,
       "explosionMoveSpeedReduction": 0.55,
       "triggerIntervalTicks": 5.0,
-      "explosionDisableTicks": 80.0
+      "explosionDisableTicks": 80.0,
+      "fuseTicks": 12.0
     },
     "t1_desert_tower": {
       "soilPower": 0.6

@@ -18,15 +18,20 @@ import net.minecraft.world.phys.Vec3;
 public final class PlantVfx {
     public static final ResourceLocation LOBBED_SPLASH = id("plant_lobbed_splash");
 
+    /** 지뢰가 점화됐다는 신호. 터지기 전 짧은 순간에만 보입니다. */
+    public static final ResourceLocation MINE_FUSE = id("plant_mine_fuse");
+
     private static final AreaVfxParticle SHOT = particle(ParticleTypes.FALLING_WATER, "falling_water");
     private static final AreaVfxParticle RIM = particle(ParticleTypes.SPORE_BLOSSOM_AIR, "spore_blossom_air");
     private static final AreaVfxParticle IMPACT = particle(ParticleTypes.SPLASH, "splash");
+    private static final AreaVfxParticle FLASH = particle(ParticleTypes.FLASH, "flash");
 
     private PlantVfx() {
     }
 
     public static void register(AreaVfxStyleRegistry registry) {
         registry.register(LOBBED_SPLASH, PlantVfx::lobbedSplash);
+        registry.register(MINE_FUSE, PlantVfx::mineFuse);
     }
 
     public static void showDebug(SemionTowerEntity tower, ServerPlayer player) {
@@ -46,6 +51,16 @@ public final class PlantVfx {
                 1,
                 0
         );
+    }
+
+    /**
+     * 점화 섬광. 지뢰 자리에 딱 하나 터뜨립니다.
+     *
+     * <p>{@code essential} 로 올려 두는 것이 중요합니다. 이 파티클이 예산에 밀려 잘리면 경고 없이
+     * 터지는 것과 같아, 딜레이를 넣은 이유가 통째로 사라집니다.
+     */
+    private static void mineFuse(AreaVfxContext context, AreaVfxOutput output) {
+        output.sphere(FLASH, context.center().add(0.0, 0.35, 0.0), 0.01, 1, true);
     }
 
     private static void lobbedSplash(AreaVfxContext context, AreaVfxOutput output) {

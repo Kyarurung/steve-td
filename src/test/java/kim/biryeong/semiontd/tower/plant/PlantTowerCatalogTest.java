@@ -508,7 +508,12 @@ final class PlantTowerCatalogTest {
             // 따라 그 길목의 적이 영영 공격하지 못하는 장판이 만들어집니다.
             assertEquals(0.0, defaults.ability(mine.id(), "rearmTicks", 0.0), EPSILON,
                     mine.id() + ": 라운드당 한 번이라 재장전 값이 있으면 안 됩니다");
+            // 도화선이 있어야 밟은 쪽에 빠져나갈 여지가 생깁니다. 0 이면 즉발입니다.
+            assertTrue(defaults.ability(mine.id(), "fuseTicks", -1) > 0.0,
+                    mine.id() + ": 도화선이 0 이면 밟는 순간 이미 맞은 뒤라 피할 수 없습니다");
         }
+        assertPlantConfigRejected(defaults, PlantTowers.T1_MYCELIUM_TOWER.id(), "fuseTicks", 0.0);
+        assertPlantConfigRejected(defaults, PlantTowers.T1_MYCELIUM_TOWER.id(), "fuseTicks", 8.5);
     }
 
     /**
