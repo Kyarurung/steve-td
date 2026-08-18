@@ -25,14 +25,20 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
  * <p>폭발은 범위 피해와 함께 둔화, 그리고 공격 속도와 공격력을 동시에 100% 깎아 사실상 공격 불가
  * 상태를 만듭니다.
  *
- * <p>한 번 터지고 사라지는 소모품이 아니라 <b>재장전</b>합니다. 대신 라운드가 끝날 때마다 한 단계씩
- * 삭아 내려가고(뒤틀린 → 진홍빛 → 붉은), 붉은 버섯은 사라집니다. 소모되는 단위가 폭발 한 번에서
- * 라운드 하나로 옮겨간 것이라, 길목을 얼마나 오래 쥐고 있느냐가 값이 됩니다. 삭아 내리는 처리는
- * {@code PlantTowerJob#onRoundEnded} 가 맡습니다 - 라운드 경계를 아는 쪽은 타워가 아니라 직업입니다.
+ * <p><b>한 라운드에 한 번</b>만 터집니다. 터진 뒤에는 그 라운드 내내 빈 껍데기로 남고, 라운드가
+ * 끝나면 한 단계 삭아 내려갑니다(뒤틀린 → 진홍빛 → 붉은). 붉은 버섯은 사라집니다.
+ *
+ * <p>예전에는 터지는 즉시 사라졌습니다. 소모 단위를 폭발 한 번에서 라운드 하나로 옮긴 것이라,
+ * 뒤틀린 버섯을 심으면 세 라운드에 걸쳐 세 번 쓰는 셈입니다. 라운드 안에서 다시 장전하게 두면
+ * 지뢰 하나가 광역 기관총이 되고, 무력화 시간이 재장전보다 길면 그 길목의 적은 영영 공격하지
+ * 못합니다. 라운드당 한 번이면 그 두 가지를 값 조정 없이 구조로 막습니다.
+ *
+ * <p>삭아 내리는 처리는 {@code PlantTowerJob#onRoundEnded} 가 맡습니다 - 라운드 경계를 아는 쪽은
+ * 타워가 아니라 직업입니다.
  */
 public class PlantMineTower extends PlantCombatTower {
-    /** 이번 {@code execute} 에서 터졌는지. 재장전 대기와 평소 감시 간격을 가르는 값입니다. */
-    private boolean detonatedThisExecute;
+    /** 이번 라운드에 이미 터졌는지. 라운드가 새로 시작될 때만 풀립니다. */
+    private boolean spentThisRound;
 
     public PlantMineTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -49,10 +55,42 @@ public class PlantMineTower extends PlantCombatTower {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
     }
 
+    /**
+     * 몬스터는 지뢰를 때리지 않습니다.
+     *
+     * <p>터지고 사라지던 시절에는 어그로를 끌든 말든 상관이 없었습니다. 라운드 내내 남게 된
+     * 지금은 다릅니다 - 어그로를 끌면 지뢰가 값싼 고기방패가 되어, 방금 사암 계열에서 막은
+     * 도배 벽을 더 싼값에 세울 수 있습니다. 붉은 버섯은 30 다이아에 체력 110 으로 죽은 덤불보다
+     * 다이아당 체력이 좋습니다.
+     *
+     * <p>매설된 함정이라는 역할에도 이쪽이 맞습니다. 적은 버섯을 물어뜯는 게 아니라 밟고 지나가야
+     * 합니다. 무적은 아니라서 광역 피해로는 깎이고, 깎이면 폭발도 약해집니다.
+     */
+    @Override
+    public boolean drawsAggro() {
+        return false;
+    }
+
+    /** 터진 지뢰인지. 그 라운드 안에서는 다시 터지지 않습니다. */
+    public boolean spentThisRound() {
+        return spentThisRound;
+    }
+
+    /**
+     * 라운드가 새로 시작되면 다시 장전됩니다.
+     *
+     * <p>삭아 내리는 과정에서 타워를 새로 만들기 때문에 사실 대부분 새 인스턴스로 시작하지만,
+     * 그 사실에 기대지 않습니다. 되감기는 라운드 경계에서 벌어지는 일이고, 그건 이 훅의 몫입니다.
+     */
+    @Override
+    public void resetForRound(PlayerLane lane) {
+        super.resetForRound(lane);
+        spentThisRound = false;
+    }
+
     @Override
     protected boolean execute(PlayerLane lane) {
-        detonatedThisExecute = false;
-        if (lane == null || health() <= 0.0) {
+        if (lane == null || spentThisRound || health() <= 0.0) {
             return true;
         }
         SemionTowerEntity source = towerEntity(lane).orElse(null);
@@ -60,18 +98,13 @@ public class PlantMineTower extends PlantCombatTower {
             return true;
         }
         detonate(lane, source);
-        detonatedThisExecute = true;
+        spentThisRound = true;
         return true;
     }
 
     @Override
     protected int cooldownTicksAfterExecute(PlayerLane lane) {
-        // 터진 직후에는 재장전이 끝날 때까지 쉽니다. 이게 없으면 적이 서 있는 동안 감시 간격마다
-        // 다시 터져, 지뢰 하나가 초당 몇 번씩 광역을 뿌리는 기관총이 됩니다.
-        if (detonatedThisExecute) {
-            return Math.max(1, abilityTicks("rearmTicks"));
-        }
-        // 밟자마자 터져야 하므로 평소에는 촘촘하게 확인합니다.
+        // 밟자마자 터져야 하므로 촘촘하게 확인합니다.
         return Math.max(1, abilityTicks("triggerIntervalTicks"));
     }
 
@@ -148,8 +181,10 @@ public class PlantMineTower extends PlantCombatTower {
                 + " · 폭발 반경 " + oneDecimal(ability("explosionRadius")));
         lines.add("폭발 피해 " + oneDecimal(explosionDamage())
                 + " (체력 " + oneDecimal(health() * ability("explosionHealthRatio")) + " 포함)");
-        lines.add("무력화 " + oneDecimal(abilityTicks("explosionDisableTicks") / 20.0) + "초"
-                + " · 재장전 " + oneDecimal(abilityTicks("rearmTicks") / 20.0) + "초");
+        lines.add("무력화 " + oneDecimal(abilityTicks("explosionDisableTicks") / 20.0) + "초");
+        lines.add(spentThisRound
+                ? "이번 라운드에 이미 터졌습니다 · 라운드가 끝나면 한 단계 삭습니다"
+                : "라운드당 한 번 터집니다");
         return lines;
     }
 }

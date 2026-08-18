@@ -218,8 +218,11 @@ final class PlantTowerCatalogTest {
         }
         for (TowerType type : PlantTowers.COMBAT_TOWERS) {
             Tower tower = create(type);
+            // 전투 타워는 무적이 아닙니다. 지뢰도 광역 피해로는 깎이고, 깎이면 약하게 터집니다.
             assertFalse(tower.invulnerable(), type.id());
-            assertTrue(tower.drawsAggro(), type.id());
+            // 어그로는 다릅니다. 지뢰는 밟고 지나가는 함정이지 물어뜯을 몸이 아닙니다.
+            // 자세한 이유는 minesAreTrapsNotBodiesToChewOn 을 봅니다.
+            assertEquals(!(tower instanceof PlantMineTower), tower.drawsAggro(), type.id());
         }
     }
 
@@ -499,14 +502,36 @@ final class PlantTowerCatalogTest {
                 "다른 계열은 삭지 않습니다.");
 
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        double t1 = defaults.ability(PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", -1);
-        double t3 = defaults.ability(PlantTowers.T3_MYCELIUM_TOWER.id(), "rearmTicks", -1);
-        assertTrue(t1 > 0.0 && t3 > 0.0, "재장전이 0 이면 지뢰가 감시 간격마다 다시 터집니다");
-        assertTrue(t3 < t1, "티어가 오르면 더 빨리 장전돼야 올릴 이유가 생깁니다");
-        assertTrue(t3 > defaults.ability(PlantTowers.T3_MYCELIUM_TOWER.id(), "triggerIntervalTicks", 5.0),
-                "재장전이 감시 간격보다 짧으면 재장전이 없는 것과 같습니다");
-        assertPlantConfigRejected(defaults, PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", 0.0);
-        assertPlantConfigRejected(defaults, PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", 20.5);
+        for (TowerType mine : List.of(
+                PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
+            // 라운드 안에서 다시 장전하는 값은 두지 않습니다. 두는 순간 무력화 시간과의 관계에
+            // 따라 그 길목의 적이 영영 공격하지 못하는 장판이 만들어집니다.
+            assertEquals(0.0, defaults.ability(mine.id(), "rearmTicks", 0.0), EPSILON,
+                    mine.id() + ": 라운드당 한 번이라 재장전 값이 있으면 안 됩니다");
+        }
+    }
+
+    /**
+     * 지뢰는 몬스터의 표적이 아닙니다.
+     *
+     * <p>터지고 사라지던 시절에는 상관없었지만, 라운드 내내 남게 된 지금 어그로를 끌면 지뢰가
+     * 사암 탱커보다 싼 고기방패가 됩니다. 붉은 버섯은 다이아당 체력이 죽은 덤불보다 높습니다.
+     */
+    @Test
+    void minesAreTrapsNotBodiesToChewOn() {
+        for (TowerType type : List.of(
+                PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
+            assertFalse(create(type).drawsAggro(),
+                    type.id() + ": 지뢰가 어그로를 끌면 도배 벽이 사암보다 싸게 세워집니다");
+        }
+        assertTrue(create(PlantTowers.T1_DESERT_TOWER).drawsAggro(),
+                "탱커는 계속 어그로를 끌어야 합니다. 그게 그 계열의 역할입니다.");
+
+        var t1Mine = TowerBalanceRuntime.resolve(PlantTowers.T1_MYCELIUM_TOWER);
+        var t1Tank = TowerBalanceRuntime.resolve(PlantTowers.T1_DESERT_TOWER);
+        assertTrue(t1Mine.maxHealth() / t1Mine.mineralCost() > t1Tank.maxHealth() / t1Tank.mineralCost(),
+                "이 테스트의 전제입니다. 지뢰가 탱커보다 다이아당 체력이 낮아지면 어그로 여부를 "
+                        + "다시 판단해도 됩니다.");
     }
 
     /**

@@ -344,8 +344,7 @@
 | `plant_soil_mycelium` | `environmentWeakness`, `environmentDamageTakenBonus`, `environmentDurationTicks` | 균사 위 적의 공격력 감소, 받는 타워 피해 증가, 지속 시간입니다. 균사 전투 타워는 지뢰라 상주하지 않으므로 딜증도 지형이 담당합니다. |
 | 균사 계열 id | `triggerRadius`, `triggerIntervalTicks` | 지뢰 발동 반경과 확인 주기입니다. |
 | 균사 계열 id | `explosionRadius`, `explosionDamageMultiplier`, `explosionHealthRatio` | 폭발 반경, 공격력 배율, 남은 체력 반영 비율입니다. 실제 피해는 `(damage × 배율 + 현재 체력 × 체력 비율) × (1+개화)`입니다. |
-| 균사 계열 id | `explosionMoveSpeedReduction`, `explosionDisableTicks` | 폭발 둔화율과 무력화 시간입니다. 무력화 동안 공격 속도·공격력이 100% 깎입니다. |
-| 균사 계열 id | `rearmTicks` | 터진 뒤 다시 장전될 때까지의 시간입니다. 지뢰는 폭발 한 번으로 사라지지 않고 라운드마다 한 단계씩 삭으므로, **실질 화력을 정하는 값은 여기입니다.** `triggerIntervalTicks`(기본 5틱)보다 짧게 두면 재장전이 없는 것과 같아져 지뢰 하나가 광역 기관총이 됩니다. |
+| 균사 계열 id | `explosionMoveSpeedReduction`, `explosionDisableTicks` | 폭발 둔화율과 무력화 시간입니다. 무력화 동안 공격 속도·공격력이 100% 깎입니다. 지뢰는 **라운드당 한 번**만 터지므로 이 시간이 그대로 라운드당 무력화 총량입니다. 라운드 안에서 다시 장전하는 값은 일부러 두지 않았습니다 — 재장전보다 무력화가 길면 그 길목의 적이 영영 공격하지 못합니다. |
 | `plant_soil_desert` | `environmentAttackSpeedReduction` | 사암 위 적의 공격 속도 감소입니다. |
 | `plant_soil_desert` | `environmentMaxHealthDamagePerSecond` | 사암 위 적이 초당 잃는 **최대 체력 비율**입니다. 펄스 간격을 바꿔도 초당 피해량은 유지됩니다. |
 | `plant_soil_meadow` | `supportRadius`, `healPercentPerPulse` | 잔디 지원 범위와 펄스마다 주변 아군을 회복시키는 최대 체력 비율입니다. |

@@ -91,9 +91,9 @@ public final class PlantTowers {
             "<gray>위 지형 수치에는 이 티어의 계열 배율 "
                     + "<aqua>{ability.soilPower:percent}</aqua>가 곱해집니다.</gray>";
 
-    /** 지뢰는 소모품이 아니라 재장전합니다. 얼마나 자주 다시 터지는지가 실질 화력을 정합니다. */
+    /** 라운드당 한 번. 라운드 안에서 다시 장전하게 두면 지뢰 하나가 광역 기관총이 됩니다. */
     private static final String MYCELIUM_REARM_LINE =
-            "<green>터진 뒤 <aqua>{ability.rearmTicks:seconds}</aqua> 만에 다시 장전됩니다.</green>";
+            "<green>한 라운드에 한 번 터집니다. 터진 뒤에는 그 라운드 동안 빈 껍데기로 남습니다.</green>";
 
     /** 라운드마다 한 단계씩 삭습니다. 지뢰가 치르는 값이 폭발 한 번에서 라운드 하나로 옮겨갔습니다. */
     private static final String MYCELIUM_DECAY_LINE =
@@ -208,7 +208,7 @@ public final class PlantTowers {
                     SOIL_POWER_LINE
             ));
 
-    // 균사 - 재장전 지뢰. 공격하지 않고 밟히면 터지며, 라운드마다 한 단계씩 삭습니다.
+    // 균사 - 라운드당 한 번 터지는 지뢰. 라운드가 끝나면 한 단계씩 삭습니다.
     public static final TowerType T1_MYCELIUM_TOWER = combatTower(
             "t1_mycelium_tower", "붉은 버섯", 30, 110, 0.0, 30, 20, 35,
             plantVisual(Blocks.RED_MUSHROOM, 1.0), PlantSoil.MYCELIUM, 1,

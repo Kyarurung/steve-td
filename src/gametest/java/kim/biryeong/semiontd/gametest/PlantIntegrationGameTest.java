@@ -270,7 +270,7 @@ public final class PlantIntegrationGameTest {
             Monster outside = spawnMonster(context, lane, "plant-mine-outside", position(context, 7, 1, 7));
             mine.tick(lane);
 
-            require(lane.towers().contains(mine), "A triggered mine must stay and rearm instead of vanishing.");
+            require(lane.towers().contains(mine), "A triggered mine must stay until the round ends.");
             requireClose(900.6875, first.health(), "The trigger target must take the tuned T1 explosion.");
             requireClose(900.6875, second.health(), "A second target inside the blast must take splash damage.");
             requireClose(1_000.0, outside.health(), "A target outside the blast must remain unharmed.");
@@ -281,20 +281,21 @@ public final class PlantIntegrationGameTest {
                     "The mine must disable attacks.");
             requireClose(198.625, mine.roundMagicDamageDealt(), "Mine splash damage must be attributed as magic damage.");
 
-            // 재장전 중에는 적이 계속 서 있어도 다시 터지지 않아야 합니다. 이게 없으면 지뢰
-            // 하나가 감시 간격마다 광역을 뿌립니다.
+            // 라운드 안에서는 적이 계속 서 있어도 다시 터지지 않아야 합니다. 다시 터지게 두면
+            // 지뢰 하나가 광역 기관총이 되고, 무력화가 끊기지 않아 그 길목의 적이 영영 공격하지
+            // 못합니다.
+            require(mine.spentThisRound(), "A detonated mine must be spent for the rest of the round.");
             double afterFirstBlast = first.health();
-            for (int tick = 0; tick < 20; tick++) {
+            for (int tick = 0; tick < 400; tick++) {
                 mine.tick(lane);
             }
-            requireClose(afterFirstBlast, first.health(), "A rearming mine must not detonate again while reloading.");
+            requireClose(afterFirstBlast, first.health(), "A spent mine must not detonate again in the same round.");
 
-            // 재장전이 끝나면 같은 자리에서 한 번 더 터집니다.
-            int rearmTicks = (int) defaults.ability(PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", 100.0);
-            for (int tick = 0; tick < rearmTicks + 5; tick++) {
-                mine.tick(lane);
-            }
-            require(first.health() < afterFirstBlast, "A mine must detonate again once it finishes reloading.");
+            // 라운드가 새로 시작되면 다시 장전됩니다.
+            mine.resetForRound(lane);
+            require(!mine.spentThisRound(), "A new round must rearm the mine.");
+            mine.tick(lane);
+            require(first.health() < afterFirstBlast, "A rearmed mine must detonate again in the next round.");
             context.succeed();
         } catch (RuntimeException | Error failure) {
             failure.printStackTrace();
