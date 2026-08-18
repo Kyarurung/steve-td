@@ -23,7 +23,12 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
+import kim.biryeong.semiontd.SemionTd;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
@@ -43,6 +48,9 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
 
@@ -57,14 +65,40 @@ import xyz.nucleoid.map_templates.BlockBounds;
 public final class DemonLordService {
     private static final Map<UUID, ServerBossEvent> BOSS_BARS = new ConcurrentHashMap<>();
 
-    /** Keeps a leashed player just inside the boundary instead of exactly on it. */
-    private static final double EDGE_MARGIN = 0.3;
+    /** 전투 진입 직전의 핫바. 전투가 끝나면 우리가 치운 자리만 이걸로 되돌립니다. */
+    private static final Map<UUID, List<ItemStack>> PRE_COMBAT_HOTBAR = new ConcurrentHashMap<>();
+
+    private static final int HOTBAR_SLOTS = 9;
 
     /** Falling this far below the lane floor means something threw the player out of the map. */
     private static final double FALL_RESCUE_DEPTH = 4.0;
 
+    /** 이동기 착지 지점을 되짚어 볼 때의 간격. 한 블록보다 촘촘해야 좁은 틈을 놓치지 않습니다. */
+    private static final double LANDING_STEP = 0.5;
+
+    /** 착지 지점에서 발밑 땅을 찾아 내려가는 깊이. 이보다 깊으면 허공으로 봅니다. */
+    private static final double GROUND_PROBE_DEPTH = 6.0;
+
+    /** 몸 검사 시 줄여 두는 여유. 벽에 스치듯 붙는 착지까지 막지는 않습니다. */
+    private static final double BODY_MARGIN = 0.05;
+
     /** How often a knocked-out demon lord shakes off lingering monster targets. */
     private static final int AGGRO_RELEASE_INTERVAL = 5;
+
+    /** 스스로 전투에서 물러나는 자리. 스킬 슬롯과 마검 사이의 마지막 빈칸입니다. */
+    private static final int RETREAT_SLOT = 7;
+
+    /** 준비 단계에만 놓이는 스탯 분배 도구 자리. 기존 매치 도구(0~2) 바로 뒤입니다. */
+    private static final int STAT_TOOL_SLOT = 3;
+
+    private static final Component STAT_TOOL_NAME =
+            Component.literal("스탯 포인트 분배").withStyle(ChatFormatting.LIGHT_PURPLE);
+
+    private static final ResourceLocation MOVE_SPEED_MODIFIER_ID =
+            ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "demon_lord_move_speed");
+
+    private static final Component RETREAT_NAME =
+            Component.literal("전투 이탈").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 
     private static final Component BLADE_NAME =
             Component.literal("마검").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD);
@@ -77,12 +111,22 @@ public final class DemonLordService {
      * stops protecting a demon lord while they are in combat.
      */
     public static void register(SemionGameManager gameManager) {
-        // 우클릭 시전 슬롯. 손에 들고 조준한 뒤 우클릭해야 나갑니다.
+        // 다섯 번째 스킬은 마검을 우클릭해 씁니다.
+        //
+        // 손은 시전이 끝날 때마다 마검으로 돌아오므로, 마검에 걸어 두면 슬롯을 옮기는 동작 없이
+        // 바로 조준해 쏠 수 있습니다. 스킬 슬롯을 들고 우클릭하게 하면 매번 슬롯을 바꿨다가
+        // 되돌아오는 왕복이 생겨 불편합니다.
         UseItemCallback.EVENT.register((player, world, hand) -> {
             if (world.isClientSide() || hand != InteractionHand.MAIN_HAND || !(player instanceof ServerPlayer serverPlayer)) {
                 return InteractionResult.PASS;
             }
-            if (serverPlayer.getInventory().getSelectedSlot() != DemonLordBinding.RIGHT_CLICK.hotbarSlot()) {
+            // 준비 단계의 스탯 분배 도구.
+            if (isStatTool(serverPlayer.getMainHandItem())
+                    && DemonLordStates.get(serverPlayer.getUUID()) != null) {
+                new DemonLordStatGui(serverPlayer).open();
+                return InteractionResult.SUCCESS;
+            }
+            if (serverPlayer.getInventory().getSelectedSlot() != DemonLordSkill.BLADE_SLOT) {
                 return InteractionResult.PASS;
             }
             return handleKeyBinding(gameManager, serverPlayer, DemonLordBinding.RIGHT_CLICK)
@@ -177,6 +221,7 @@ public final class DemonLordService {
             state.clearLoadoutDirty();
         }
         syncBossBar(player, state);
+        syncMoveSpeed(player, state);
 
         if (!state.inCombat()) {
             restoreFlight(player);
@@ -189,7 +234,7 @@ public final class DemonLordService {
         }
         state.expireShieldIfNeeded(gameTime);
         lockFlight(player);
-        leashToLane(player, lane);
+        rescueFromVoid(player, lane);
         DemonLordSkills.tickPending(player, lane, state, gameTime);
         detectSkillCast(player, lane, state, gameTime);
     }
@@ -283,8 +328,38 @@ public final class DemonLordService {
         clearPlayerState(player.getUUID());
     }
 
+    /**
+     * 웨이브가 시작될 때 마왕을 전투 상태로 넣습니다.
+     *
+     * <p>준비 단계가 아니라 여기인 것이 중요합니다. 준비 단계에 전투로 들어가면 핫바가 스킬로
+     * 덮여 타워를 살 수 없고, 8번으로 스스로 물러난 뒤에는 웨이브가 시작돼도 복귀할 방법이
+     * 없어 레인이 그대로 뚫립니다. 웨이브마다 다시 들어오므로 물러남의 대가는 그 웨이브 하나로
+     * 끝납니다.
+     */
+    public static void beginWave(UUID playerId) {
+        DemonLordState state = DemonLordStates.get(playerId);
+        if (state != null) {
+            state.enterCombat();
+        }
+    }
+
+    /**
+     * 라운드가 끝나면 전투를 해제합니다.
+     *
+     * <p>{@link #beginWave}의 짝입니다. 이게 없으면 전투 플래그가 웨이브를 넘어 살아남아 다음
+     * 준비 단계까지 스킬 핫바가 유지되고, 상점을 열 수 없습니다. 체력이 남아 있었다면 그대로
+     * 두고 [대기]로만 표시합니다.
+     */
+    public static void endRound(UUID playerId) {
+        DemonLordState state = DemonLordStates.get(playerId);
+        if (state != null) {
+            state.standDown();
+        }
+    }
+
     public static void clearPlayerState(UUID playerId) {
         clearBossBar(playerId);
+        PRE_COMBAT_HOTBAR.remove(playerId);
         DemonLordStates.clear(playerId);
     }
 
@@ -295,12 +370,18 @@ public final class DemonLordService {
     }
 
     private static void knockOutOfCombat(ServerPlayer player, DemonLordState state) {
+        knockOutOfCombat(player, state, false);
+    }
+
+    private static void knockOutOfCombat(ServerPlayer player, DemonLordState state, boolean voluntary) {
         state.leaveCombat();
         restoreFlight(player);
         setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
         player.displayClientMessage(
-                Component.literal("전투에서 제외되었습니다. 다음 라운드에 부활합니다.")
-                        .withStyle(ChatFormatting.DARK_RED),
+                Component.literal(voluntary
+                                ? "스스로 전투에서 물러났습니다. 다음 라운드에 복귀합니다."
+                                : "전투에서 제외되었습니다. 다음 라운드에 부활합니다.")
+                        .withStyle(voluntary ? ChatFormatting.GOLD : ChatFormatting.DARK_RED),
                 false
         );
     }
@@ -378,10 +459,13 @@ public final class DemonLordService {
             bar.setColor(BossEvent.BossBarColor.RED);
             bar.setProgress((float) state.healthRatio());
         } else {
-            bar.setName(Component.literal("마왕 Lv." + state.level() + "  [전투 제외]")
-                    .withStyle(ChatFormatting.DARK_GRAY));
+            // 체력이 남아 있으면 웨이브를 버티고 내려온 것이고, 0이면 실제로 쓰러진 것입니다.
+            boolean knockedOut = state.health() <= 0.0;
+            bar.setName(Component.literal(
+                            "마왕 Lv." + state.level() + (knockedOut ? "  [전투 제외]" : "  [대기]"))
+                    .withStyle(knockedOut ? ChatFormatting.DARK_GRAY : ChatFormatting.GRAY));
             bar.setColor(BossEvent.BossBarColor.WHITE);
-            bar.setProgress(0.0f);
+            bar.setProgress(knockedOut ? 0.0f : (float) state.healthRatio());
         }
     }
 
@@ -407,6 +491,33 @@ public final class DemonLordService {
         }
     }
 
+    /**
+     * 이동 속도 스탯을 바닐라 속성으로 반영합니다.
+     *
+     * <p>속도 물약 효과가 아니라 속성 수정자를 쓰는 것은 포인트당 3% 같은 잔단위를 표현하려면
+     * 등급 단위(20%)로는 불가능하기 때문입니다. 일시(transient) 수정자라 저장되지 않고, 값이
+     * 달라질 때만 갱신해 매 틱 속성을 흔들지 않습니다.
+     */
+    private static void syncMoveSpeed(ServerPlayer player, DemonLordState state) {
+        AttributeInstance attribute = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (attribute == null) {
+            return;
+        }
+        double bonus = state.inCombat() ? state.moveSpeedBonus() : 0.0;
+        AttributeModifier existing = attribute.getModifier(MOVE_SPEED_MODIFIER_ID);
+        if (bonus <= 0.0) {
+            if (existing != null) {
+                attribute.removeModifier(MOVE_SPEED_MODIFIER_ID);
+            }
+            return;
+        }
+        if (existing != null && Math.abs(existing.amount() - bonus) < 1.0E-6) {
+            return;
+        }
+        attribute.addOrUpdateTransientModifier(new AttributeModifier(
+                MOVE_SPEED_MODIFIER_ID, bonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+    }
+
     private static void lockFlight(ServerPlayer player) {
         if (player.isCreative() || player.isSpectator()) {
             return;
@@ -429,54 +540,72 @@ public final class DemonLordService {
     }
 
     /**
-     * Keeps the demon lord inside their own lane. Rather than a hard wall we snap them back onto the
-     * lane path at whatever progress they had reached, which reads as being yanked back by the lane.
+     * 맵 아래로 떨어진 마왕을 자기 레인 중앙으로 되돌립니다.
+     *
+     * <p>레인 밖으로 나가는 것 자체는 막지 않습니다. 다만 허공으로 빠지는 것만은 되돌려야
+     * 합니다. 전투 중에는 비행이 잠겨 있어 한 번 떨어지면 스스로 올라올 방법이 없고, 그대로
+     * 두면 낙사 외에는 결말이 없습니다.
      */
-    private static void leashToLane(ServerPlayer player, PlayerLane lane) {
-        // 레인을 다 정리했으면 중앙 방어 웨이브로 넘어가야 하므로 묶어두지 않습니다.
-        if (lane.laneLayout() == null || lane.clearedThisRound()) {
+    private static void rescueFromVoid(ServerPlayer player, PlayerLane lane) {
+        if (lane.laneLayout() == null) {
             return;
         }
-        Vec3 position = player.position();
-
-        // 맵 아래로 떨어지면 X/Z 만 잡아 봐야 계속 낙하합니다. 이 경우는 레인 중앙으로 되돌립니다.
         double floor = lane.laneLayout().laneArea().min().getY();
-        if (position.y < floor - FALL_RESCUE_DEPTH) {
-            Vec3 centre = laneCentre(lane.laneLayout());
-            player.teleportTo(centre.x, centre.y, centre.z);
-            player.setDeltaMovement(Vec3.ZERO);
-            player.resetFallDistance();
+        if (player.getY() >= floor - FALL_RESCUE_DEPTH) {
             return;
         }
-
-        Vec3 clamped = clampToLane(lane, position);
-        if (clamped.x == position.x && clamped.z == position.z) {
-            return;
-        }
-        player.teleportTo(clamped.x, position.y, clamped.z);
+        Vec3 centre = laneCentre(lane.laneLayout());
+        player.teleportTo(centre.x, centre.y, centre.z);
+        player.setDeltaMovement(Vec3.ZERO);
+        player.resetFallDistance();
     }
 
     /**
-     * Clamps a position into the player's own {@code lane_path} box.
+     * 이동기가 실제로 설 수 있는 지점을 고릅니다.
      *
-     * <p>Used both by the per-tick leash and by 하늘 부수기, which would otherwise teleport straight
-     * through the arena barrier and drop the player out of the map.
+     * <p>순간이동은 충돌을 무시합니다. 목표를 그대로 쓰면 벽 속에 박히거나 허공에 놓여, 비행이
+     * 잠긴 채로 맵 밖으로 떨어집니다. 그래서 목표에서 시작점 쪽으로 되짚어 오며 몸이 들어갈
+     * 틈이 있고 발밑에 땅이 있는 첫 지점을 씁니다. 어디에도 설 수 없으면 제자리입니다.
+     *
+     * <p>레인 경계는 보지 않습니다. 마왕은 어디든 갈 수 있고, 여기서 막는 것은 벽과 허공뿐입니다.
      */
-    static Vec3 clampToLane(PlayerLane lane, Vec3 position) {
-        if (lane.laneLayout() == null) {
-            return position;
+    static Vec3 safeLanding(ServerPlayer player, Vec3 from, Vec3 to) {
+        Vec3 delta = to.subtract(from);
+        double distance = delta.length();
+        if (distance < 1.0E-4) {
+            Vec3 spot = standingSpot(player, to);
+            return spot == null ? from : spot;
         }
-        BlockBounds area = lane.laneLayout().laneArea();
-        double slack = TowerBalanceRuntime.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "laneLeashSlack", 1.5);
-        double minX = area.min().getX() - slack + EDGE_MARGIN;
-        double maxX = area.max().getX() + 1.0 + slack - EDGE_MARGIN;
-        double minZ = area.min().getZ() - slack + EDGE_MARGIN;
-        double maxZ = area.max().getZ() + 1.0 + slack - EDGE_MARGIN;
-        return new Vec3(
-                Mth.clamp(position.x, Math.min(minX, maxX), Math.max(minX, maxX)),
-                position.y,
-                Mth.clamp(position.z, Math.min(minZ, maxZ), Math.max(minZ, maxZ))
-        );
+        int steps = (int) Math.ceil(distance / LANDING_STEP);
+        for (int i = steps; i >= 1; i--) {
+            Vec3 spot = standingSpot(player, from.add(delta.scale((double) i / steps)));
+            if (spot != null) {
+                return spot;
+            }
+        }
+        return from;
+    }
+
+    /**
+     * 후보 지점에 설 수 있으면 발이 닿는 좌표, 아니면 {@code null}.
+     *
+     * <p>탐침을 후보보다 위에서 시작하지 않는 것이 중요합니다. 위에서 쏘면 벽 속을 노렸을 때
+     * 그 벽의 윗면을 짚어 아레나 배리어 위에 올려놓게 됩니다. 후보가 블록 안이면 탐침이 즉시
+     * 막히고 몸 검사에서 걸러져, 한 걸음 뒤로 물러난 지점을 보게 됩니다.
+     */
+    private static Vec3 standingSpot(ServerPlayer player, Vec3 candidate) {
+        HitResult ground = player.level().clip(new ClipContext(
+                candidate.add(0.0, 0.05, 0.0),
+                candidate.subtract(0.0, GROUND_PROBE_DEPTH, 0.0),
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                player));
+        if (ground.getType() == HitResult.Type.MISS) {
+            return null;
+        }
+        Vec3 foot = ground.getLocation();
+        AABB body = player.getBoundingBox().move(foot.subtract(player.position()));
+        return player.level().noCollision(player, body.deflate(BODY_MARGIN)) ? foot : null;
     }
 
     /**
@@ -491,9 +620,24 @@ public final class DemonLordService {
         }
         state.setLastSelectedSlot(selected);
 
+        // 8번 슬롯은 스스로 전투에서 빠지는 자리입니다. 다음 라운드까지 스킬을 못 쓰지만
+        // 어그로에서도 벗어나므로, 이길 수 없는 웨이브를 버티다 죽는 대신 물러설 수 있습니다.
+        if (selected == RETREAT_SLOT) {
+            setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
+            state.setLastSelectedSlot(DemonLordSkill.BLADE_SLOT);
+            knockOutOfCombat(player, state, true);
+            return;
+        }
+
         DemonLordBinding binding = DemonLordBinding.forHotbarSlot(selected);
-        // 우클릭 슬롯은 손에 들고 조준해야 하므로 선택만으로는 발동하지 않습니다.
-        if (binding == null || !binding.castOnSelect()) {
+        if (binding == null) {
+            return;
+        }
+        // 우클릭 스킬은 마검에 걸려 있습니다. 그 슬롯은 쿨타임을 보여 주는 자리일 뿐이라,
+        // 집어 들면 아무것도 못 하는 아이템을 든 채로 남지 않게 마검으로 되돌립니다.
+        if (!binding.castOnSelect()) {
+            setHeldSlot(player, DemonLordSkill.BLADE_SLOT);
+            state.setLastSelectedSlot(DemonLordSkill.BLADE_SLOT);
             return;
         }
         tryCast(player, lane, state, binding, gameTime);
@@ -525,7 +669,9 @@ public final class DemonLordService {
             return true;
         }
         int refund = DemonLordSkills.cast(player, lane, state, skill, altar, gameTime);
-        int cooldown = Math.max(1, altar.cooldownTicks() - Math.max(0, refund));
+        // 쿨감 스탯은 곱연산이라 0 에 닿지 않고, 환급은 그 뒤에 뺍니다.
+        int base = (int) Math.round(altar.cooldownTicks() * state.cooldownMultiplier());
+        int cooldown = Math.max(1, base - Math.max(0, refund));
         state.startCooldown(skill, gameTime, cooldown);
         player.getCooldowns().addCooldown(new ItemStack(skill.item()), cooldown);
         return true;
@@ -596,19 +742,23 @@ public final class DemonLordService {
      * Rebuilds the bar.
      *
      * <p>In combat the hotbar belongs entirely to the demon lord kit: the first four altars sit on
-     * keys 1-4 and the 마검 waits in slot 9. Out of combat the kit is stripped and the normal match
-     * tools come back, because that is when the player is actually shopping for towers.
+     * keys 1-4 and the 마검 waits in slot 9. Out of combat the kit is stripped and whatever the bar
+     * held before combat comes back, because that is when the player is actually shopping for towers.
      */
     private static void syncHotbar(ServerPlayer player, PlayerLane lane, DemonLordState state) {
         if (!state.inCombat()) {
             if (state.combatKitGranted()) {
                 clearCombatKit(player);
-                SemionHotbarService.grantMatchTools(player);
+                restoreHotbar(player);
                 state.setCombatKitGranted(false);
             }
+            ensureStatTool(player);
             return;
         }
 
+        if (!state.combatKitGranted()) {
+            rememberHotbar(player);
+        }
         SemionHotbarService.clearMatchTools(player);
         clearCombatKit(player);
         List<DemonLordSkillTower> altars = orderedAltars(lane, player.getUUID());
@@ -627,6 +777,10 @@ public final class DemonLordService {
             }
             player.getInventory().setItem(binding.hotbarSlot(), skillStack(altars.get(index), binding));
         }
+        ItemStack retreat = new ItemStack(Items.TOTEM_OF_UNDYING);
+        retreat.set(DataComponents.CUSTOM_NAME, RETREAT_NAME);
+        player.getInventory().setItem(RETREAT_SLOT, DemonLordKitItems.mark(retreat));
+
         ItemStack blade = new ItemStack(Items.NETHERITE_SWORD);
         blade.set(DataComponents.CUSTOM_NAME, BLADE_NAME);
         player.getInventory().setItem(DemonLordSkill.BLADE_SLOT, DemonLordKitItems.mark(blade));
@@ -644,6 +798,59 @@ public final class DemonLordService {
 
     private static void clearCombatKit(ServerPlayer player) {
         DemonLordKitItems.clear(player.getInventory());
+    }
+
+    /**
+     * 준비 단계에만 놓이는 스탯 분배 도구입니다.
+     *
+     * <p>전투 중에는 핫바가 스킬로 꽉 차므로 자리가 없고, 어차피 분배는 다음 웨이브를 준비하며
+     * 하는 일입니다. 이미 올바른 아이템이 있으면 건드리지 않아 매 틱 인벤토리를 흔들지 않습니다.
+     */
+    private static void ensureStatTool(ServerPlayer player) {
+        if (isStatTool(player.getInventory().getItem(STAT_TOOL_SLOT))) {
+            return;
+        }
+        ItemStack tool = new ItemStack(Items.EXPERIENCE_BOTTLE);
+        tool.set(DataComponents.CUSTOM_NAME, STAT_TOOL_NAME);
+        player.getInventory().setItem(STAT_TOOL_SLOT, tool);
+    }
+
+    /**
+     * 전투에 들어가기 직전의 핫바를 그대로 찍어 둡니다.
+     *
+     * <p>전에는 전투가 끝날 때 {@code grantMatchTools} 로 되돌렸는데, 그건 일반 매치의 타워·소환
+     * 도구만 아는 함수입니다. 샌드박스의 라운드 이동 도구나 팀장 도구처럼 다른 경로로 받은
+     * 것들은 전투 진입에 지워진 뒤 영영 돌아오지 않았습니다. 무엇을 들고 있었는지 기억해 두면
+     * 이 서비스가 도구 종류를 하나도 몰라도 됩니다.
+     */
+    static void rememberHotbar(ServerPlayer player) {
+        List<ItemStack> saved = new ArrayList<>(HOTBAR_SLOTS);
+        for (int slot = 0; slot < HOTBAR_SLOTS; slot++) {
+            saved.add(player.getInventory().getItem(slot).copy());
+        }
+        PRE_COMBAT_HOTBAR.put(player.getUUID(), List.copyOf(saved));
+    }
+
+    static void restoreHotbar(ServerPlayer player) {
+        List<ItemStack> saved = PRE_COMBAT_HOTBAR.remove(player.getUUID());
+        if (saved == null) {
+            return;
+        }
+        for (int slot = 0; slot < saved.size(); slot++) {
+            // 이미 뭔가 들어 있는 칸은 건드리지 않습니다. 라운드 시작에 게임이 새로 쥐여 준
+            // 도구가 우선이고, 우리는 우리가 비워 둔 자리만 되돌립니다.
+            if (player.getInventory().getItem(slot).isEmpty()) {
+                player.getInventory().setItem(slot, saved.get(slot).copy());
+            }
+        }
+    }
+
+    private static boolean isStatTool(ItemStack stack) {
+        if (stack == null || !stack.is(Items.EXPERIENCE_BOTTLE)) {
+            return false;
+        }
+        Component name = stack.get(DataComponents.CUSTOM_NAME);
+        return name != null && name.getString().equals(STAT_TOOL_NAME.getString());
     }
 
     /** Shared damage entry point for the blade and every skill. */
@@ -666,7 +873,10 @@ public final class DemonLordService {
         if (source != null) {
             Tower.DamageResult result = altar.damageTargetResult(source, monsterEntity, amount, type);
             if (result.dealtDamage() > 0.0) {
-                TowerVfxService.showAttack(source, monsterEntity, result.killed(), false);
+                // 제단은 쏘지 않습니다. showAttack 을 쓰면 건축 구역의 제단에서 몹까지 직선이
+                // 뻗어 나가, 아무것도 하지 않는 기둥이 공격한 것처럼 보입니다. 타격 표시와
+                // 처치 연출만 남기고 궤적은 뺍니다.
+                TowerVfxService.showRemoteHit(source, monsterEntity, result.killed());
             }
             return result;
         }

@@ -167,7 +167,9 @@ final class DemonLordTowerCatalogTest {
             assertNotEquals(DemonLordSkill.BLADE_SLOT, binding.hotbarSlot(),
                     binding + " must not take the blade slot");
         }
-        assertEquals(5, slots.size(), "1-4 와 우클릭 슬롯이 실제 핫바를 씁니다");
+        // 일곱 바인딩 모두 핫바에 자리를 갖습니다. 1~4 는 눌러서 쓰고, 나머지 셋은
+        // 쿨타임을 보여 주기만 하는 자리입니다(마검 우클릭 / F / Q).
+        assertEquals(7, slots.size(), "일곱 바인딩 모두 쿨타임을 보여 줄 자리가 있어야 합니다");
         assertEquals(7, DemonLordBinding.values().length);
         assertEquals("1", DemonLordBinding.forIndex(0).label());
         assertEquals("4", DemonLordBinding.forIndex(3).label());
@@ -182,19 +184,23 @@ final class DemonLordTowerCatalogTest {
     }
 
     /**
-     * 우클릭 슬롯만 손에 들 수 있어야 합니다. 나머지 핫바 바인딩은 고르는 순간 나가므로
-     * castOnSelect 가 켜져 있어야 하고, 우클릭 슬롯은 반대로 꺼져 있어야 조준이 됩니다.
+     * 숫자 키 넷만 고르는 즉시 나갑니다.
+     *
+     * <p>나머지 셋(마검 우클릭·F·Q)은 다른 입력으로 쓰므로 자리는 쿨타임 표시 전용이고,
+     * 집어 들어도 발동하면 안 됩니다. 쿨다운은 아이템 위에만 그려져서 자리가 없으면
+     * 남은 시간을 알 방법이 아예 없습니다.
      */
     @Test
-    void onlyTheRightClickBindingIsHoldable() {
+    void onlyTheNumberKeysCastOnSelect() {
+        Set<DemonLordBinding> displayOnly = Set.of(
+                DemonLordBinding.RIGHT_CLICK, DemonLordBinding.OFFHAND, DemonLordBinding.DROP);
         for (DemonLordBinding binding : DemonLordBinding.values()) {
-            if (binding == DemonLordBinding.RIGHT_CLICK) {
-                assertFalse(binding.castOnSelect(), "우클릭 슬롯은 선택만으로 나가면 안 됩니다");
-                assertTrue(binding.isHotbarSlot(), "우클릭 슬롯은 손에 들 수 있어야 합니다");
-                continue;
+            assertTrue(binding.isHotbarSlot(), binding + " 는 쿨타임을 보여 줄 자리가 필요합니다");
+            if (displayOnly.contains(binding)) {
+                assertFalse(binding.castOnSelect(), binding + " 는 고르는 것만으로 나가면 안 됩니다");
+            } else {
+                assertTrue(binding.castOnSelect(), binding + " 는 고르는 즉시 나가야 합니다");
             }
-            assertEquals(binding.isHotbarSlot(), binding.castOnSelect(),
-                    binding + ": 핫바 바인딩은 선택 즉시 발동해야 합니다");
         }
     }
 
@@ -350,6 +356,31 @@ final class DemonLordTowerCatalogTest {
         assertTrue(state.isSkillReady(DemonLordSkill.WAVE_OF_MALICE, 0L));
         assertTrue(state.consumePendingSpawn(), "Round start should queue the teleport to lane centre");
         assertFalse(state.consumePendingSpawn(), "The teleport request is one-shot");
+    }
+
+    /**
+     * 웨이브를 살아서 끝낸 마왕은 쓰러진 것이 아닙니다.
+     *
+     * <p>라운드 끝에 전투를 풀지 않으면 다음 준비 단계까지 스킬 핫바가 남아 상점을 못 엽니다.
+     * 그렇다고 {@code leaveCombat} 으로 풀면 체력이 0이 되어 쓰러진 것처럼 보입니다.
+     */
+    @Test
+    void standingDownEndsCombatWithoutEmptyingThePool() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.enterCombat();
+        state.applyDamage(state.maxHealth() * 0.25);
+        double survived = state.health();
+        assertTrue(survived > 0.0);
+
+        state.standDown();
+        assertFalse(state.inCombat(), "라운드가 끝나면 전투가 풀려야 준비 단계에서 상점을 엽니다");
+        assertEquals(survived, state.health(), EPSILON, "살아서 내려온 체력은 그대로 둡니다");
+        assertTrue(state.loadoutDirty(), "핫바를 비전투 구성으로 다시 깔아야 합니다");
+
+        // 다음 웨이브에는 다시 만피로 들어갑니다.
+        state.enterCombat();
+        assertTrue(state.inCombat());
+        assertEquals(state.maxHealth(), state.health(), EPSILON);
     }
 
     @Test
@@ -542,6 +573,108 @@ final class DemonLordTowerCatalogTest {
                 previous = damage;
             }
         }
+    }
+
+    /**
+     * 레벨은 한 경기 동안 상태가 없어졌다 다시 생겨도 유지돼야 합니다.
+     *
+     * <p>상태는 전투 제외, 직업 변경, 플레이어를 못 찾는 레인 틱 등으로 여러 번 버려지고 다시
+     * 만들어집니다. 새로 만든 상태는 레벨 1 이므로, 진행도를 따로 붙들지 않으면 그동안 쌓은
+     * 성장이 통째로 날아갑니다. 레벨은 마왕의 유일한 성장 축이라 그러면 판이 끝납니다.
+     */
+    @Test
+    void levelSurvivesStateTeardownWithinAMatch() {
+        UUID player = UUID.randomUUID();
+        DemonLordState state = DemonLordStates.getOrCreate(player);
+        state.enterCombat();
+        state.addExperience(500.0);
+        int grownLevel = state.level();
+        assertTrue(grownLevel > 1, "테스트 전제: 경험치를 넣으면 레벨이 올라야 합니다");
+
+        DemonLordStates.clear(player);
+        assertEquals(grownLevel, DemonLordStates.getOrCreate(player).level(),
+                "상태가 다시 만들어져도 레벨은 유지돼야 합니다");
+
+        // 새 경기는 잊습니다.
+        DemonLordStates.clear(player);
+        DemonLordStates.resetProgression(player);
+        assertEquals(1, DemonLordStates.getOrCreate(player).level(),
+                "새 경기는 레벨 1 부터 시작해야 합니다");
+    }
+
+    /** 다섯 번째 스킬은 마검 우클릭으로 나갑니다. 슬롯을 들고 있을 필요가 없습니다. */
+    @Test
+    void theRightClickSkillIsBoundToTheBladeNotItsOwnSlot() {
+        assertFalse(DemonLordBinding.RIGHT_CLICK.castOnSelect(),
+                "고르는 것만으로 나가면 조준할 수 없습니다");
+        assertTrue(DemonLordBinding.RIGHT_CLICK.isHotbarSlot(),
+                "쿨타임을 보여 주려면 핫바에 자리가 있어야 합니다");
+        assertTrue(DemonLordBinding.OFFHAND.isHotbarSlot() && DemonLordBinding.DROP.isHotbarSlot(),
+                "F 와 Q 도 쿨타임을 볼 자리가 있어야 합니다");
+        assertNotEquals(DemonLordSkill.BLADE_SLOT, DemonLordBinding.RIGHT_CLICK.hotbarSlot(),
+                "표시 슬롯과 마검 자리는 달라야 합니다");
+        assertTrue(DemonLordBinding.RIGHT_CLICK.label().contains("우클릭"),
+                "라벨이 조작 방법을 알려야 합니다: " + DemonLordBinding.RIGHT_CLICK.label());
+    }
+
+    /** 레벨업마다 포인트를 받고, 찍은 만큼 실제 능력치가 움직여야 합니다. */
+    @Test
+    void levellingGrantsPointsAndSpendingThemChangesTheNumbers() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.enterCombat();
+        assertEquals(0, state.unspentPoints(), "레벨 1 은 아직 받을 포인트가 없습니다");
+
+        int gained = state.addExperience(500.0);
+        assertTrue(gained > 0);
+        int perLevel = (int) TowerBalanceRuntime.ability(
+                DemonLordTowers.GLOBAL_CONFIG_ID, "statPointsPerLevel", 3.0);
+        assertTrue(perLevel > 1, "레벨당 여러 포인트를 줘야 스탯 하나하나가 체감됩니다");
+        assertEquals(gained * perLevel, state.unspentPoints(), "레벨업마다 정해진 수만큼 받아야 합니다");
+
+        double beforeHealth = state.maxHealth();
+        double beforeDamage = state.damageMultiplier();
+        assertTrue(state.allocate(DemonLordStat.MAX_HEALTH));
+        assertTrue(state.allocate(DemonLordStat.ATTACK));
+        assertTrue(state.maxHealth() > beforeHealth, "체력 포인트가 최대 체력을 올려야 합니다");
+        assertTrue(state.damageMultiplier() > beforeDamage, "공격력 포인트가 피해 배율을 올려야 합니다");
+        assertEquals(gained * perLevel - 2, state.unspentPoints());
+    }
+
+    /** 포인트를 아무리 쌓아도 쿨타임 0 과 피해 감소 100% 에는 닿으면 안 됩니다. */
+    @Test
+    void cooldownAndDefenceApproachTheirFloorWithoutCrossingIt() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.enterCombat();
+        state.addExperience(1.0E9);
+
+        assertEquals(1.0, state.cooldownMultiplier(), EPSILON, "찍기 전에는 100% 그대로여야 합니다");
+        // 기본값은 40 포인트마다 절반입니다. 다른 스탯보다 비싼 것은 의도된 것으로,
+        // 쿨감은 모든 스킬에 한꺼번에 곱해져 같은 효율이면 다른 선택지가 없어집니다.
+        for (int i = 0; i < 40; i++) {
+            assertTrue(state.allocate(DemonLordStat.COOLDOWN));
+        }
+        assertEquals(0.5, state.cooldownMultiplier(), EPSILON, "40 포인트면 절반");
+        for (int i = 0; i < 40; i++) {
+            assertTrue(state.allocate(DemonLordStat.COOLDOWN));
+        }
+        assertEquals(0.25, state.cooldownMultiplier(), EPSILON, "80 포인트면 4분의 1");
+
+        for (int i = 0; i < 200 && state.unspentPoints() > 0; i++) {
+            state.allocate(DemonLordStat.COOLDOWN);
+            state.allocate(DemonLordStat.DEFENSE);
+        }
+        assertTrue(state.cooldownMultiplier() > 0.0, "쿨타임이 0 이 되면 스킬을 무한히 씁니다");
+        assertTrue(state.damageReduction() < 1.0, "피해 감소가 100% 가 되면 죽지 않습니다");
+    }
+
+    /** 몹을 못 잡아도 라운드를 넘기면 조금은 자라야 합니다. */
+    @Test
+    void roundsGrantPassiveExperience() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertTrue(defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "passiveExperiencePerRound", -1) > 0.0,
+                "라운드 경과 경험치가 설정에 있어야 합니다");
+        assertTrue(defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "statPointsPerLevel", -1) > 0.0,
+                "레벨업 보상 포인트가 설정에 있어야 합니다");
     }
 
     private static void assertInvalidAbility(String configId, String key, double value) {

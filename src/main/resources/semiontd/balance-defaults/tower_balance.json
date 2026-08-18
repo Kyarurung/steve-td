@@ -6169,7 +6169,16 @@
       "damagePerLevel": 0.05,
       "bladeDamage": 19.0,
       "bladeAttackIntervalTicks": 12.0,
-      "laneLeashSlack": 1.5
+      "passiveExperiencePerRound": 6.0,
+      "statPointsPerLevel": 3.0,
+      "statHealthPerPoint": 40.0,
+      "statAttackPerPoint": 0.04,
+      "statDefensePerPoint": 0.02,
+      "statDefenseCap": 0.6,
+      "statCooldownHalvingPoints": 40.0,
+      "statSkillRangePerPoint": 0.03,
+      "statMoveSpeedPerPoint": 0.03,
+      "statMoveSpeedCap": 0.5
     },
     "t1_wave_of_malice_tower": {
       "towerSlotCost": 3.0,
@@ -6382,7 +6391,8 @@
       "width": 1.6,
       "damage": 26.0,
       "lifeStealRatio": 0.25,
-      "lifeStealCap": 0.12
+      "lifeStealCap": 0.12,
+      "rootDurationTicks": 40.0
     },
     "t2_soul_drain_tower": {
       "towerSlotCost": 2.0,
@@ -6391,7 +6401,8 @@
       "width": 1.8,
       "damage": 41.0,
       "lifeStealRatio": 0.3,
-      "lifeStealCap": 0.15
+      "lifeStealCap": 0.15,
+      "rootDurationTicks": 50.0
     },
     "t3_soul_drain_tower": {
       "towerSlotCost": 2.0,
@@ -6400,7 +6411,8 @@
       "width": 2.0,
       "damage": 60.0,
       "lifeStealRatio": 0.35,
-      "lifeStealCap": 0.18
+      "lifeStealCap": 0.18,
+      "rootDurationTicks": 60.0
     },
     "t4_soul_drain_tower": {
       "towerSlotCost": 2.0,
@@ -6409,7 +6421,8 @@
       "width": 2.2,
       "damage": 83.0,
       "lifeStealRatio": 0.4,
-      "lifeStealCap": 0.22
+      "lifeStealCap": 0.22,
+      "rootDurationTicks": 70.0
     },
     "t1_roar_of_dread_tower": {
       "towerSlotCost": 3.0,

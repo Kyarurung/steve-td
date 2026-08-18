@@ -9,6 +9,8 @@ import kim.biryeong.semiontd.skybox.SemionSkyboxService;
 import kim.biryeong.semiontd.tip.SemionTipService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordBinding;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordStates;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -89,6 +91,10 @@ public final class Events {
         });
 
         // Q 키. 드롭 패킷을 가로채 일곱 번째 스킬로 씁니다.
+        //
+        // 이 이벤트는 바닐라가 스레드를 넘기기 전, 즉 <b>네티 채널 스레드</b>에서 돕니다. 여기서
+        // 레인·엔티티·파티클을 건드리면 서버 스레드 밖에서 월드를 만지게 되어 연결이 끊깁니다.
+        // 그래서 여기서는 값싼 상태 확인만 하고, 실제 시전은 서버 스레드로 넘깁니다.
         Stimuli.global().listen(PlayerC2SPacketEvent.EVENT, (player, packet) -> {
             if (!(packet instanceof ServerboundPlayerActionPacket action)) {
                 return EventResult.PASS;
@@ -98,9 +104,22 @@ public final class Events {
                     && kind != ServerboundPlayerActionPacket.Action.DROP_ALL_ITEMS) {
                 return EventResult.PASS;
             }
-            return DemonLordService.handleKeyBinding(gameManager, player, DemonLordBinding.DROP)
-                    ? EventResult.DENY
-                    : EventResult.PASS;
+            if (!DemonLordStates.isInCombat(player.getUUID())) {
+                return EventResult.PASS;
+            }
+            MinecraftServer server = player.getServer();
+            if (server == null) {
+                return EventResult.PASS;
+            }
+            server.execute(() -> {
+                DemonLordService.handleKeyBinding(gameManager, player, DemonLordBinding.DROP);
+                // 패킷을 막아도 클라이언트는 이미 제 화면에서 아이템을 빼 버립니다. 서버는 그대로라
+                // 아무 변화가 없으니 자동 동기화도 일어나지 않고, 클라는 빈 손이라 믿은 채로 남아
+                // 마검을 다시 못 씁니다. 그래서 되돌려 보냅니다.
+                player.containerMenu.sendAllDataToRemote();
+            });
+            // 전투 중인 마왕의 Q 는 아이템을 버리는 키가 아니므로 드롭 자체는 항상 막습니다.
+            return EventResult.DENY;
         });
     }
 

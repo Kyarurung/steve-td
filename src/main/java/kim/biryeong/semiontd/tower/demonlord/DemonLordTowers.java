@@ -132,6 +132,8 @@ public final class DemonLordTowers {
                         "<green>맞은 적마다 <yellow>{ability.damage:number}</yellow> 피해를 주고, "
                                 + "입힌 피해의 <aqua>{ability.lifeStealRatio:percent}</aqua>를 체력으로 흡수합니다.</green>",
                         "<gray>흡수량은 한 번에 최대 체력의 <aqua>{ability.lifeStealCap:percent}</aqua>까지입니다.</gray>",
+                        "<green>꿰뚫린 적은 <aqua>{ability.rootDurationTicks:seconds}</aqua>간 이동이 완전히 묶입니다. "
+                                + "묶여도 공격은 계속합니다.</green>",
                         "<yellow>여럿을 꿰뚫을수록 많이 회복하는 지속력 기술입니다.</yellow>"
                 )
         );
