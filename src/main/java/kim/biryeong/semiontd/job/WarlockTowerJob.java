@@ -1,9 +1,15 @@
 package kim.biryeong.semiontd.job;
 
+import static kim.biryeong.semiontd.tower.warlock.WarlockFormatting.warlockText;
+
 import java.util.List;
 import kim.biryeong.semiontd.SemionTd;
+import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
+import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.network.chat.Component;
@@ -25,6 +31,15 @@ public final class WarlockTowerJob extends SemionJob {
     }
 
     @Override
+    public List<Component> description() {
+        return List.of(
+                SemionText.mini("<green><bold>시작</bold></green> <gray>아군을 희생하며 영구적으로 강해지고, 원거리 또는 근거리 흑마법사를 선택해 마지막까지 살아남아 " + warlockText("각성") + "하세요.</gray>"),
+                SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>원거리는 누적 흡수로 생명력 흡수·광역 범위를, 근거리는 라운드 흡수로 공격 속도·폭발력을 키웁니다. " + awakeningKills() + "킬에 도달하면 " + warlockText("각성") + "을 습득합니다.</gray>"),
+                SemionText.mini("<yellow><bold>주의</bold></yellow> <gray>흑마법사는 라인마다 1기만 운용할 수 있고, 각성은 라운드 종료 시 해제됩니다.</gray>")
+        );
+    }
+
+    @Override
     public boolean canUseTower(JobContext context, TowerType towerType) {
         if (!WarlockTowers.isWarlockTower(towerType)) {
             return false;
@@ -42,5 +57,28 @@ public final class WarlockTowerJob extends SemionJob {
     @Override
     public boolean includesTowerInCatalog(TowerType towerType) {
         return WarlockTowers.isWarlockTower(towerType);
+    }
+
+    @Override
+    public void onMatchStarted(JobContext context) {
+        WarlockAwakeningProgress.clear(context.player().uuid());
+    }
+
+    @Override
+    public void onMonsterKilled(JobContext context, Monster monster, long mineralReward) {
+        if (!WarlockAwakeningProgress.recordKill(context.player().uuid())) {
+            return;
+        }
+        context.game().playerLane(context.player().uuid())
+                .ifPresent(lane -> WarlockTower.onAwakeningUnlocked(lane, context.player().uuid()));
+    }
+
+    @Override
+    public void onEliminated(JobContext context) {
+        WarlockAwakeningProgress.clear(context.player().uuid());
+    }
+
+    private static int awakeningKills() {
+        return TowerBalanceRuntime.abilityInt(WarlockTowers.CONFIG_ID, "awakeningKills", 1350);
     }
 }
