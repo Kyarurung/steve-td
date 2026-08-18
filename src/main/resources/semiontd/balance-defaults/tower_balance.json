@@ -2628,7 +2628,7 @@
       "mineralCost": 65,
       "maxHealth": 220.0,
       "range": 5.0,
-      "damage": 7.0,
+      "damage": 7.5,
       "attackIntervalTicks": 26,
       "aggroPriority": 45
     },
@@ -2636,7 +2636,7 @@
       "mineralCost": 175,
       "maxHealth": 440.0,
       "range": 5.0,
-      "damage": 18.0,
+      "damage": 19.0,
       "attackIntervalTicks": 24,
       "aggroPriority": 52
     },

@@ -177,7 +177,7 @@ public final class PlantTowers {
 
     // 튤립 계열: 자기 자신을 중심으로 터지는 광역 딜러.
     public static final TowerType T1_MEADOW_NOVA_TOWER = combatTower(
-            "t1_meadow_nova_tower", "빨간 튤립", 65, 220, 5.0, 7, 26, 45,
+            "t1_meadow_nova_tower", "빨간 튤립", 65, 220, 5.0, 7.5, 26, 45,
             plantVisual(Blocks.RED_TULIP, 1.0), PlantSoil.MEADOW, 1,
             List.of(
                     "<gray>잔디 위에만 심는 광역 타워입니다.</gray>",
@@ -189,7 +189,7 @@ public final class PlantTowers {
                     SOIL_POWER_LINE
             ));
     public static final TowerType T2_MEADOW_NOVA_TOWER = combatTower(
-            "t2_meadow_nova_tower", "양귀비", 175, 440, 5.0, 18, 24, 52,
+            "t2_meadow_nova_tower", "양귀비", 175, 440, 5.0, 19, 24, 52,
             plantVisual(Blocks.POPPY, 1.15), PlantSoil.MEADOW, 2,
             List.of(
                     "<gray>잔디 위에만 심는 광역 타워입니다.</gray>",
