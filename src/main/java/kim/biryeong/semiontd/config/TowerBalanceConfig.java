@@ -926,10 +926,10 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER.id(), 240);
         putUpgrade(upgradeCosts, PlantTowers.T1_MEADOW_NOVA_TOWER, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), 175);
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_NOVA_TOWER, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), 275);
-        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 110);
-        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 180);
-        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 160);
-        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 250);
+        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 80);
+        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 130);
+        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 190);
+        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 300);
         putUpgrade(upgradeCosts, PlantTowers.T1_PODZOL_TOWER, PlantTowers.T2_PODZOL_TOWER.id(), 170);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_LILAC_TOWER.id(), 285);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_ROSE_TOWER.id(), 285);
@@ -1032,7 +1032,7 @@ public record TowerBalanceConfig(
         // 잔디는 후방 지원 지형입니다. 자기 회복이 아니라 주변 아군을 회복시키고 성장 체력을 나눠 줍니다.
         putAbilities(abilities, PlantSoil.MEADOW.configId(), Map.of(
                 "supportRadius", 6.0,
-                "healPercentPerPulse", 0.015,
+                "healPercentPerPulse", 0.012,
                 // T3 기준 자기 최대 체력은 라운드당 +2.1%, 최대 +70%까지 성장합니다.
                 "maxHealthGrowthPerRound", 0.015,
                 "maxHealthGrowthCap", 0.5,
@@ -1077,15 +1077,15 @@ public record TowerBalanceConfig(
         // 민들레 계열은 지원 배율에 더해 생존한 웨이브 정산 다이아를 만들어 냅니다.
         putAbilities(abilities, PlantTowers.T1_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 0.6,
-                "diamondPerWave", 3.0
+                "diamondPerWave", 4.0
         ));
         putAbilities(abilities, PlantTowers.T2_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.0,
-                "diamondPerWave", 9.0
+                "diamondPerWave", 11.0
         ));
         putAbilities(abilities, PlantTowers.T3_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.4,
-                "diamondPerWave", 24.0
+                "diamondPerWave", 28.0
         ));
 
         // 튤립 계열은 자기 중심 광역이라 novaRadius/novaDamageRatio 를 씁니다.
@@ -1104,10 +1104,10 @@ public record TowerBalanceConfig(
                 "novaRadius", 5.5,
                 "novaDamageRatio", 0.75
         ));
-        // 균사 계열은 소모성 지뢰입니다.
-        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0);
-        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0);
-        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0);
+        // 균사 계열은 라운드당 한 번 터지는 지뢰입니다.
+        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 8.0);
+        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 10.0);
+        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 12.0);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1164,7 +1164,8 @@ public record TowerBalanceConfig(
             double triggerRadius,
             double explosionRadius,
             double moveSpeedReduction,
-            double disableTicks
+            double disableTicks,
+            double fuseTicks
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "triggerRadius", triggerRadius,
@@ -1174,7 +1175,10 @@ public record TowerBalanceConfig(
                 // 남은 체력도 함께 터집니다. 온전할수록 세게 터집니다.
                 "explosionHealthRatio", 0.25,
                 "explosionMoveSpeedReduction", moveSpeedReduction,
-                "explosionDisableTicks", disableTicks
+                "explosionDisableTicks", disableTicks,
+                // 밟은 뒤 터지기까지의 도화선 길이. 이 동안 섬광이 떠 있고, 빠져나가면 맞지
+                // 않습니다. 길수록 경고가 후하고 짧을수록 즉발에 가깝습니다.
+                "fuseTicks", fuseTicks
         ));
     }
 
@@ -1311,7 +1315,7 @@ public record TowerBalanceConfig(
         validatePositive(global,
                 "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks");
         validateAtLeast(global, 0.0,
-                "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage", "laneLeashSlack");
+                "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage");
         validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks");
         validateAtLeast(global, 1.0, "experienceGrowth");
 
@@ -1349,7 +1353,8 @@ public record TowerBalanceConfig(
                         validateRatios(id, "damageTakenBonus");
                     }
                     case SOUL_DRAIN -> {
-                        validatePositive(id, "range", "width");
+                        validatePositive(id, "range", "width", "rootDurationTicks");
+                        validateIntegral(id, false, "rootDurationTicks");
                         validateRatios(id, "lifeStealRatio", "lifeStealCap");
                     }
                     case ROAR_OF_DREAD -> {
@@ -1542,6 +1547,12 @@ public record TowerBalanceConfig(
         validateIntegral(PlantSoil.PODZOL.configId(), false, "supportDurationTicks");
         validateIntegral(PlantSoil.MYCELIUM.configId(), false, "environmentDurationTicks");
         validateIntegral(PlantSoil.DESERT.configId(), false, "environmentDurationTicks", "debuffDurationTicks");
+
+        for (TowerType mine : List.of(
+                PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
+            validatePositive(mine.id(), "triggerIntervalTicks", "fuseTicks");
+            validateIntegral(mine.id(), false, "triggerIntervalTicks", "fuseTicks");
+        }
 
         Double minRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMinRadius");
         Double maxRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMaxRadius");
@@ -3465,8 +3476,8 @@ public record TowerBalanceConfig(
         values.put(HEALTH_SCALE.key(), 500.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
-        values.put(DAMAGE_THRESHOLD.key(), 150.0);
-        values.put(DAMAGE_SCALE.key(), 25.0);
+        values.put(DAMAGE_THRESHOLD.key(), 140.0);
+        values.put(DAMAGE_SCALE.key(), 20.0);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);
@@ -3805,8 +3816,25 @@ public record TowerBalanceConfig(
         global.put("damagePerLevel", 0.05);
         global.put("bladeDamage", 19.0);
         global.put("bladeAttackIntervalTicks", 12.0);
-        // 레인 이탈 방지: lane_path 영역 밖으로 이만큼까지만 나갈 수 있습니다.
-        global.put("laneLeashSlack", 1.5);
+        // 몹을 하나도 못 잡은 라운드에도 주는 기본 경험치입니다. 한 번 밀린 마왕이 영영
+        // 따라잡지 못하는 상황을 막습니다. 직접 잡는 편이 여전히 훨씬 빠릅니다.
+        global.put("passiveExperiencePerRound", 6.0);
+        // 스탯 포인트. 레벨업마다 받아 원하는 능력치에 넣습니다.
+        global.put("statPointsPerLevel", 3.0);
+        global.put("statHealthPerPoint", 40.0);
+        global.put("statAttackPerPoint", 0.04);
+        global.put("statDefensePerPoint", 0.02);
+        global.put("statDefenseCap", 0.6);
+        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 40 이면 50%, 80 이면 25% 가 되고
+        // 0 에는 닿지 않습니다. 선형이면 어느 지점에서 쿨타임이 사라져 버립니다.
+        //
+        // 다른 스탯보다 포인트를 많이 요구합니다. 쿨감은 모든 스킬에 한꺼번에 곱해지는 데다
+        // 딜뿐 아니라 생존기와 이동기 회전율까지 같이 올려서, 같은 효율로 두면 다른 선택지가
+        // 존재할 이유가 없어집니다.
+        global.put("statCooldownHalvingPoints", 40.0);
+        global.put("statSkillRangePerPoint", 0.03);
+        global.put("statMoveSpeedPerPoint", 0.03);
+        global.put("statMoveSpeedCap", 0.5);
         putAbilities(abilities, DemonLordTowers.GLOBAL_CONFIG_ID, global);
 
         for (DemonLordSkill skill : DemonLordSkill.values()) {
@@ -3875,6 +3903,9 @@ public record TowerBalanceConfig(
                 values.put("lifeStealRatio", new double[] {0.25, 0.30, 0.35, 0.40}[index]);
                 // 다수를 꿰뚫어도 한 번에 회복할 수 있는 양에 상한을 둡니다.
                 values.put("lifeStealCap", new double[] {0.12, 0.15, 0.18, 0.22}[index]);
+                // 꿰뚫린 적은 이동 속도가 100% 깎여 그 자리에 묶입니다. 공격은 계속하므로
+                // 붙어 있는 적에게 쓰면 의미가 없고, 지나가려는 줄을 세우는 데 씁니다.
+                values.put("rootDurationTicks", new double[] {40.0, 50.0, 60.0, 70.0}[index]);
             }
             case GRIP_OF_DOOM -> {
                 values.put("range", new double[] {9.0, 10.0, 11.0, 12.0}[index]);

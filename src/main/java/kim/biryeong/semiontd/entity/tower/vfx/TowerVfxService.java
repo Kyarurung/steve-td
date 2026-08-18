@@ -187,6 +187,36 @@ public final class TowerVfxService {
         }
     }
 
+    /**
+     * Impact feedback for damage the tower did not fire: the mark and the kill flourish, no trail.
+     *
+     * <p>{@link #showAttack} draws a line from the tower to the target, which only reads correctly
+     * when the tower is what hit it. The demon lord's altars are inert pedestals standing in the
+     * build area - the damage comes from the player's skill, so a beam from the altar points at
+     * nothing. The tower is still needed to resolve who sees the effect.
+     */
+    public static void showRemoteHit(
+            SemionTowerEntity tower,
+            SemionMonsterEntity target,
+            boolean killedPrimaryTarget
+    ) {
+        if (!config.enabled() || tower == null || target == null) {
+            return;
+        }
+        Vec3 impact = targetCenter(target);
+        EventContext context = context(tower, impact);
+        if (context == null) {
+            return;
+        }
+        if (!killedPrimaryTarget
+                && target.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS) > 0.0) {
+            enqueue(new MarkEvent(context, impact, Math.max(0.4, target.getBbWidth() * 0.75), Math.max(0.5, target.getBbHeight() * 0.45)));
+        }
+        if (killedPrimaryTarget) {
+            enqueue(new KillEvent(context, impact));
+        }
+    }
+
     public static void showSecondaryAttack(SemionTowerEntity tower, SemionMonsterEntity target) {
         if (!config.enabled() || tower == null || target == null) {
             return;

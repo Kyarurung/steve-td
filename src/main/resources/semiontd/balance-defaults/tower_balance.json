@@ -2628,7 +2628,7 @@
       "mineralCost": 65,
       "maxHealth": 220.0,
       "range": 5.0,
-      "damage": 7.0,
+      "damage": 7.5,
       "attackIntervalTicks": 26,
       "aggroPriority": 45
     },
@@ -2636,7 +2636,7 @@
       "mineralCost": 175,
       "maxHealth": 440.0,
       "range": 5.0,
-      "damage": 18.0,
+      "damage": 19.0,
       "attackIntervalTicks": 24,
       "aggroPriority": 52
     },
@@ -2644,12 +2644,12 @@
       "mineralCost": 275,
       "maxHealth": 780.0,
       "range": 7.0,
-      "damage": 32.0,
+      "damage": 34.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 60
     },
     "t1_mycelium_tower": {
-      "mineralCost": 40,
+      "mineralCost": 30,
       "maxHealth": 110.0,
       "range": 0.0,
       "damage": 30.0,
@@ -2657,7 +2657,7 @@
       "aggroPriority": 35
     },
     "t2_mycelium_tower": {
-      "mineralCost": 110,
+      "mineralCost": 80,
       "maxHealth": 260.0,
       "range": 0.0,
       "damage": 45.0,
@@ -2665,7 +2665,7 @@
       "aggroPriority": 40
     },
     "t3_mycelium_tower": {
-      "mineralCost": 180,
+      "mineralCost": 130,
       "maxHealth": 460.0,
       "range": 0.0,
       "damage": 50.0,
@@ -2674,23 +2674,23 @@
     },
     "t1_desert_tower": {
       "mineralCost": 50,
-      "maxHealth": 190.0,
+      "maxHealth": 100.0,
       "range": 0.0,
       "damage": 8.0,
       "attackIntervalTicks": 22,
       "aggroPriority": 58
     },
     "t2_desert_tower": {
-      "mineralCost": 160,
-      "maxHealth": 500.0,
+      "mineralCost": 190,
+      "maxHealth": 420.0,
       "range": 0.0,
       "damage": 20.0,
       "attackIntervalTicks": 22,
       "aggroPriority": 66
     },
     "t3_desert_tower": {
-      "mineralCost": 250,
-      "maxHealth": 900.0,
+      "mineralCost": 300,
+      "maxHealth": 750.0,
       "range": 0.0,
       "damage": 32.0,
       "attackIntervalTicks": 20,
@@ -3655,10 +3655,10 @@
     "t2_meadow_tower->t3_meadow_tower": 240,
     "t1_meadow_nova_tower->t2_meadow_nova_tower": 175,
     "t2_meadow_nova_tower->t3_meadow_nova_tower": 275,
-    "t1_mycelium_tower->t2_mycelium_tower": 110,
-    "t2_mycelium_tower->t3_mycelium_tower": 180,
-    "t1_desert_tower->t2_desert_tower": 160,
-    "t2_desert_tower->t3_desert_tower": 250,
+    "t1_mycelium_tower->t2_mycelium_tower": 80,
+    "t2_mycelium_tower->t3_mycelium_tower": 130,
+    "t1_desert_tower->t2_desert_tower": 190,
+    "t2_desert_tower->t3_desert_tower": 300,
     "t1_podzol_tower->t2_podzol_tower": 170,
     "t2_podzol_tower->t3_podzol_lilac_tower": 285,
     "t2_podzol_tower->t3_podzol_rose_tower": 285,
@@ -4791,8 +4791,8 @@
       "healthScale": 500.0,
       "roundDamageRatio": 0.66,
       "permanentDamageRatio": 0.04,
-      "damageThreshold": 150.0,
-      "damageScale": 25.0,
+      "damageThreshold": 140.0,
+      "damageScale": 20.0,
       "lifeStealStacks": 30.0,
       "lifeStealStep": 0.01,
       "lifeStealCap": 0.1,
@@ -5995,7 +5995,7 @@
       "soilPulseIntervalTicks": 20.0
     },
     "plant_soil_meadow": {
-      "healPercentPerPulse": 0.015,
+      "healPercentPerPulse": 0.012,
       "maxHealthGrowthCap": 0.5,
       "growthShareRatio": 0.15,
       "growthShareCap": 0.25,
@@ -6028,15 +6028,15 @@
       "supportDurationTicks": 60.0
     },
     "t1_meadow_tower": {
-      "diamondPerWave": 3.0,
+      "diamondPerWave": 4.0,
       "soilPower": 0.6
     },
     "t2_meadow_tower": {
-      "diamondPerWave": 9.0,
+      "diamondPerWave": 11.0,
       "soilPower": 1.0
     },
     "t3_meadow_tower": {
-      "diamondPerWave": 24.0,
+      "diamondPerWave": 28.0,
       "soilPower": 1.4
     },
     "t1_meadow_nova_tower": {
@@ -6061,7 +6061,8 @@
       "explosionRadius": 3.0,
       "explosionMoveSpeedReduction": 0.35,
       "triggerIntervalTicks": 5.0,
-      "explosionDisableTicks": 40.0
+      "explosionDisableTicks": 40.0,
+      "fuseTicks": 8.0
     },
     "t2_mycelium_tower": {
       "explosionHealthRatio": 0.25,
@@ -6070,7 +6071,8 @@
       "explosionRadius": 3.5,
       "explosionMoveSpeedReduction": 0.45,
       "triggerIntervalTicks": 5.0,
-      "explosionDisableTicks": 60.0
+      "explosionDisableTicks": 60.0,
+      "fuseTicks": 10.0
     },
     "t3_mycelium_tower": {
       "explosionHealthRatio": 0.25,
@@ -6079,7 +6081,8 @@
       "explosionRadius": 4.0,
       "explosionMoveSpeedReduction": 0.55,
       "triggerIntervalTicks": 5.0,
-      "explosionDisableTicks": 80.0
+      "explosionDisableTicks": 80.0,
+      "fuseTicks": 12.0
     },
     "t1_desert_tower": {
       "soilPower": 0.6
@@ -6254,7 +6257,16 @@
       "damagePerLevel": 0.05,
       "bladeDamage": 19.0,
       "bladeAttackIntervalTicks": 12.0,
-      "laneLeashSlack": 1.5
+      "passiveExperiencePerRound": 6.0,
+      "statPointsPerLevel": 3.0,
+      "statHealthPerPoint": 40.0,
+      "statAttackPerPoint": 0.04,
+      "statDefensePerPoint": 0.02,
+      "statDefenseCap": 0.6,
+      "statCooldownHalvingPoints": 40.0,
+      "statSkillRangePerPoint": 0.03,
+      "statMoveSpeedPerPoint": 0.03,
+      "statMoveSpeedCap": 0.5
     },
     "t1_wave_of_malice_tower": {
       "towerSlotCost": 3.0,
@@ -6467,7 +6479,8 @@
       "width": 1.6,
       "damage": 26.0,
       "lifeStealRatio": 0.25,
-      "lifeStealCap": 0.12
+      "lifeStealCap": 0.12,
+      "rootDurationTicks": 40.0
     },
     "t2_soul_drain_tower": {
       "towerSlotCost": 2.0,
@@ -6476,7 +6489,8 @@
       "width": 1.8,
       "damage": 41.0,
       "lifeStealRatio": 0.3,
-      "lifeStealCap": 0.15
+      "lifeStealCap": 0.15,
+      "rootDurationTicks": 50.0
     },
     "t3_soul_drain_tower": {
       "towerSlotCost": 2.0,
@@ -6485,7 +6499,8 @@
       "width": 2.0,
       "damage": 60.0,
       "lifeStealRatio": 0.35,
-      "lifeStealCap": 0.18
+      "lifeStealCap": 0.18,
+      "rootDurationTicks": 60.0
     },
     "t4_soul_drain_tower": {
       "towerSlotCost": 2.0,
@@ -6494,7 +6509,8 @@
       "width": 2.2,
       "damage": 83.0,
       "lifeStealRatio": 0.4,
-      "lifeStealCap": 0.22
+      "lifeStealCap": 0.22,
+      "rootDurationTicks": 70.0
     },
     "t1_roar_of_dread_tower": {
       "towerSlotCost": 3.0,

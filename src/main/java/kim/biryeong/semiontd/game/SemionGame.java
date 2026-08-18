@@ -1086,6 +1086,9 @@ public final class SemionGame {
         for (SemionTeam team : livingTeams()) {
             for (PlayerLane lane : team.laneGroup().lanes()) {
                 lane.tickTowers();
+                // 준비 단계는 lane.tick 을 돌리지 않습니다. 마왕은 이때 핫바를 준비 도구로
+                // 되돌리고 스탯 분배 도구를 쥐여 줘야 하므로 여기서도 한 번 봐 줍니다.
+                DemonLordService.tick(lane, players);
             }
         }
         if (phaseTicks % 80 == 0) {
