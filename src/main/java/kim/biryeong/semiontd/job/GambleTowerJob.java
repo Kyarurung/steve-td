@@ -56,6 +56,12 @@ public final class GambleTowerJob extends SemionJob {
         GambleSpectatorRewards.closeRound(context.player().uuid());
     }
 
+    @Override
+    public void onMatchClosed(JobContext context) {
+        clear(context);
+        GambleSpectatorRewards.closeRound(context.player().uuid());
+    }
+
     private static void clear(JobContext context) {
         context.game().playerLane(context.player().uuid())
                 .ifPresent(lane -> GambleRoundEffects.clearAll(lane, context.player().uuid()));

@@ -6,8 +6,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.AttackKind;
+import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.boss.BossMonster;
@@ -15,12 +17,20 @@ import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.AssignedParticipant;
+import kim.biryeong.semiontd.game.MatchMode;
+import kim.biryeong.semiontd.game.ParticipantSelectionPlan;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TeamLaneGroup;
+import kim.biryeong.semiontd.game.TowerUpgradeResult;
+import kim.biryeong.semiontd.gametest.SyntheticArenaFactory;
+import kim.biryeong.semiontd.job.JobContext;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
+import kim.biryeong.semiontd.tower.ProductionTowerService;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -308,7 +318,7 @@ public final class GambleGameTest {
         try {
             lane.addTower(original);
             GambleState upgradedState = new GambleState(
-                    50.0, 5.0, 0.5, 0.5,
+                    50.0, 35.0, 0.5, 0.5,
                     120.0, Set.of(), 4, "능력치 테스트"
             );
             original.setData(GamblerTower.STATE, upgradedState);
@@ -323,12 +333,17 @@ public final class GambleGameTest {
                     "A fixed max-health upgrade must preserve the exact 50% health ratio.");
             require(close(replacement.adjustAttackRange(6.5), 7.0),
                     "The range result must add the rolled amount to the base range.");
-            require(close(replacement.modifyAttackDamage(null, null, 10.0), 15.0),
+            require(close(replacement.modifyAttackDamage(null, null, 10.0), 45.0),
                     "The damage result must add the rolled amount to the base damage.");
             require(close(replacement.splashRadius(), 2.5),
                     "The basic splash radius must remain fixed despite legacy rolled state.");
 
             SemionTowerEntity source = entity(lane, replacement);
+            ResourceLocation supportDamage = supportTestSource("grown-damage-composition");
+            source.setPersistentEffect(TimedEffectType.TOWER_FLAT_DAMAGE_BONUS, supportDamage, 2.5);
+            require(close(source.attackDamageAmount(null), 47.5),
+                    "Fixed support damage must be added after the gambler's +35 growth without being multiplied.");
+            source.setPersistentEffect(TimedEffectType.TOWER_FLAT_DAMAGE_BONUS, supportDamage, 0.0);
             primary = spawnTarget(context, lane, source.position().add(0.0, 0.0, 2.0), "gamble-primary");
             splashTarget = spawnTarget(context, lane, primary.position().add(0.5, 0.0, 0.0), "gamble-splash");
             secondary = spawnTarget(context, lane, primary.position().add(2.75, 0.0, 0.0), "gamble-secondary");
@@ -364,11 +379,11 @@ public final class GambleGameTest {
             lane.addTower(darkCandidate);
             GambleState kingState = new GambleState(
                     50.0, 5.0, 0.5, 0.0,
-                    400.0, Set.of(GambleAbility.LOSS_INSURANCE), 12, "도박왕 전직 테스트"
+                    1_000.0, Set.of(GambleAbility.LOSS_INSURANCE), 12, "도박왕 전직 테스트"
             );
             GambleState darkState = new GambleState(
                     -20.0, -2.0, -0.5, 0.0,
-                    -200.0, Set.of(), 4, "어둠의 도박왕 전직 테스트"
+                    -400.0, Set.of(), 4, "어둠의 도박왕 전직 테스트"
             );
             kingCandidate.setData(GamblerTower.STATE, kingState);
             darkCandidate.setData(GamblerTower.STATE, darkState);
@@ -381,10 +396,10 @@ public final class GambleGameTest {
             Tower kingTower = lane.towerAt(kingCandidate.position());
             Tower darkTower = lane.towerAt(darkCandidate.position());
             require(kingTower instanceof GamblerTower && kingTower.type().id().equals(GambleTowers.KING.id()),
-                    "A +400 score gambler must become the Gamble King.");
+                    "A +1000 score gambler must become the Gamble King.");
             require(darkTower instanceof GamblerTower
                             && darkTower.type().id().equals(GambleTowers.DARK_KING.id()),
-                    "A -200 score gambler must become the Dark Gamble King.");
+                    "A -400 score gambler must become the Dark Gamble King.");
             GamblerTower king = (GamblerTower) kingTower;
             GamblerTower dark = (GamblerTower) darkTower;
             require(king.state().equals(kingState) && dark.state().equals(darkState),
@@ -404,6 +419,88 @@ public final class GambleGameTest {
         }
     }
 
+    @GameTest(maxTicks = 120)
+    public void forcedMatchCloseClearsEconomyBeforeTheSamePlayerStartsAgain(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        UUID owner = stableUuid("gamble-close-lifecycle-owner");
+        SemionGame first = null;
+        SemionGame second = null;
+        try {
+            first = startedGambleGame(context, owner, "gamble-first-match");
+            var firstPlayer = first.players().get(owner);
+            firstPlayer.job().orElseThrow().onRoundStarted(new JobContext(first, firstPlayer), 1);
+            var firstEconomy = firstPlayer.economy();
+            long firstDiamond = firstEconomy.diamond();
+            require(GambleSpectatorRewards.hasActiveEconomy(owner),
+                    "Starting a gamble round must register the active economy.");
+
+            first.close();
+            first = null;
+            require(!GambleSpectatorRewards.hasActiveEconomy(owner),
+                    "Forced match close must remove the active gamble economy.");
+
+            second = startedGambleGame(context, owner, "gamble-second-match");
+            var secondPlayer = second.players().get(owner);
+            secondPlayer.job().orElseThrow().onRoundStarted(new JobContext(second, secondPlayer), 1);
+            long secondDiamond = secondPlayer.economy().diamond();
+            require(GambleSpectatorRewards.awardFaceSix(
+                    owner, GambleTowers.SPECTATOR_T1, 6) == 5,
+                    "The second match must register a fresh economy for the same UUID.");
+            require(firstEconomy.diamond() == firstDiamond,
+                    "The closed first match economy must never receive the second match reward.");
+            require(secondPlayer.economy().diamond() == secondDiamond + 5,
+                    "The second match economy must receive the face-six reward exactly once.");
+
+            second.close();
+            second = null;
+            require(!GambleSpectatorRewards.hasActiveEconomy(owner),
+                    "Closing the second match must leave no active gamble economy.");
+            context.succeed();
+        } finally {
+            if (first != null) first.close();
+            if (second != null) second.close();
+            GambleSpectatorRewards.closeRound(owner);
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    @GameTest(maxTicks = 80)
+    public void maximumScoreClosesEveryBetBeforeChargingDiamonds(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(defaults);
+        ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        UUID owner = stableUuid("gamble-score-cap-owner");
+        SemionGame game = startedGambleGame(context, owner, "gamble-score-cap");
+        try {
+            PlayerLane lane = game.playerLane(owner).orElseThrow();
+            GridPosition position = emptyPosition(lane);
+            GamblerTower gambler = new GamblerTower(
+                    TowerBalanceRuntime.resolve(GambleTowers.GAMBLER), owner, TeamId.RED, 1,
+                    position, position);
+            gambler.setData(GamblerTower.STATE, new GambleState(
+                    10_000.0, 1_000.0, 100.0, 0.0,
+                    2_000.0, Set.of(GambleAbility.LOSS_INSURANCE), 99, "최대 점수"
+            ));
+            lane.addTower(gambler);
+            game.players().get(owner).economy().addMineral(1_000);
+            long before = game.players().get(owner).economy().mineral();
+
+            require(ProductionTowerService.availableUpgrades(game, owner, position).isEmpty(),
+                    "All three bet buttons must disappear at the maximum score.");
+            require(ProductionTowerService.upgradeTower(
+                            game, owner, position, GambleBet.ODD.upgradeId())
+                            == TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
+                    "A direct upgrade request must be rejected after the buttons close.");
+            require(game.players().get(owner).economy().mineral() == before,
+                    "Rejected capped gambling must not charge diamonds.");
+            context.succeed();
+        } finally {
+            game.close();
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
     private static GambleSupportTower support(kim.biryeong.semiontd.tower.TowerType type,
                                                UUID owner, GridPosition position) {
         return new GambleSupportTower(TowerBalanceRuntime.resolve(type), owner, TeamId.RED, 1, position, position);
@@ -412,6 +509,40 @@ public final class GambleGameTest {
     private static GamblerTower gambler(UUID owner, GridPosition position) {
         return new GamblerTower(TowerBalanceRuntime.resolve(GambleTowers.GAMBLER),
                 owner, TeamId.RED, 1, position, position);
+    }
+
+    private static SemionGame startedGambleGame(
+            GameTestHelper context, UUID owner, String playerName
+    ) {
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(),
+                SyntheticArenaFactory.create(context.getLevel(), context.absolutePos(BlockPos.ZERO))
+        );
+        require(game.selectJob(owner, kim.biryeong.semiontd.job.GambleTowerJob.ID),
+                "Gamble job selection must succeed.");
+        require(game.start(
+                context.getLevel().getServer(),
+                new ParticipantSelectionPlan(
+                        MatchMode.NORMAL,
+                        List.of(new AssignedParticipant(owner, playerName, TeamId.RED, 1)),
+                        Set.of(), 1
+                )
+        ), "Gamble test game must start.");
+        return game;
+    }
+
+    private static GridPosition emptyPosition(PlayerLane lane) {
+        var bounds = lane.laneLayout().laneArea();
+        for (int x = bounds.min().getX(); x <= bounds.max().getX(); x++) {
+            for (int z = bounds.min().getZ(); z <= bounds.max().getZ(); z++) {
+                BlockPos candidate = new BlockPos(x, bounds.min().getY(), z);
+                GridPosition position = GridPosition.from(candidate);
+                if (lane.canPlaceTowerAt(candidate) && !lane.hasTowerAt(position)) {
+                    return position;
+                }
+            }
+        }
+        throw new AssertionError("No empty Gamble tower position was found.");
     }
 
     private static SemionMonsterEntity spawnTarget(

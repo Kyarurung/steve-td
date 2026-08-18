@@ -427,8 +427,9 @@
 | `supportPositiveDamageUnit`, `supportNegativeDamageUnit` | 2.5, 2.5 | 공격력 강화·약화 기본 단위 |
 | `supportPositiveMaxHealthUnit`, `supportNegativeMaxHealthUnit` | 25, 25 | 최대 체력 강화·약화 기본 단위 |
 | `maxSpectatorsPerGambler` | 3 | 한 도박꾼에 연결할 수 있는 구경꾼 수 |
-| `kingPromotionScore` | 400 | 도박왕 전직에 필요한 누적 점수 |
-| `darkKingPromotionScoreMagnitude` | 200 | 어둠의 도박왕 전직에 필요한 음수 누적 점수의 절댓값 |
+| `kingPromotionScore` | 1000 | 도박왕 전직에 필요한 누적 점수 |
+| `darkKingPromotionScoreMagnitude` | 400 | 어둠의 도박왕 전직에 필요한 음수 누적 점수의 절댓값 |
+| `maxGambleScore` | 2000 | 누적 점수 상한. 도달하면 도박 업그레이드를 모두 닫고 능력치별 양수 변화도 같은 점수 환산 상한을 적용 |
 
 지원 타워 ID별 `minimumRoll`과 `supportPowerMultiplier`가 최저 눈과 긍정 효과 배율을 정합니다. 기본 배율은 T1/T2/T3 `1.0/2.0/3.5`이고 약화 효과에는 적용되지 않습니다. 주사위 타워는 범위 안의 자기 전투 타워를 모두 지원하고, 구경꾼은 누적 도박 점수가 가장 높은 도박꾼 하나를 지원합니다. 두 지원 계열의 체력은 전 티어 10이며 범위는 `3.5/5/6.5`입니다.
 

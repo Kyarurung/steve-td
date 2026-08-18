@@ -26,8 +26,9 @@ public final class GambleBalance {
     public static final double SUPPORT_NEGATIVE_DAMAGE_UNIT = 2.5;
     public static final double SUPPORT_NEGATIVE_MAX_HEALTH_UNIT = 25.0;
     public static final int MAX_SPECTATORS_PER_GAMBLER = 3;
-    public static final double KING_PROMOTION_SCORE = 400.0;
-    public static final double DARK_KING_PROMOTION_SCORE = -200.0;
+    public static final double KING_PROMOTION_SCORE = 1_000.0;
+    public static final double DARK_KING_PROMOTION_SCORE = -400.0;
+    public static final double MAX_GAMBLE_SCORE = 2_000.0;
     public static final double KING_SPLASH_RADIUS_BONUS = 0.5;
     public static final double DARK_KING_SPLASH_RADIUS_BONUS = 0.75;
 
@@ -64,6 +65,10 @@ public final class GambleBalance {
 
     public static double darkKingPromotionScore() {
         return -global("darkKingPromotionScoreMagnitude", Math.abs(DARK_KING_PROMOTION_SCORE));
+    }
+
+    public static double maxGambleScore() {
+        return global("maxGambleScore", MAX_GAMBLE_SCORE);
     }
 
     public static double gamblerSplashRadius(TowerType type) {

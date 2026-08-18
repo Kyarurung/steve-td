@@ -19,11 +19,11 @@ public record GambleState(
             0.0, 0.0, 0.0, 0.0, 0.0, Set.of(), 0, "도박 전");
 
     public GambleState {
-        maxHealthDelta = sanitizeDelta(maxHealthDelta);
-        damageDelta = sanitizeDelta(damageDelta);
-        rangeDelta = sanitizeDelta(rangeDelta);
-        splashRadiusDelta = sanitizeDelta(splashRadiusDelta);
-        cumulativeScore = sanitizeDelta(cumulativeScore);
+        maxHealthDelta = capPositiveDelta(GambleStat.MAX_HEALTH, maxHealthDelta);
+        damageDelta = capPositiveDelta(GambleStat.DAMAGE, damageDelta);
+        rangeDelta = capPositiveDelta(GambleStat.RANGE, rangeDelta);
+        splashRadiusDelta = capPositiveDelta(GambleStat.SPLASH_RADIUS, splashRadiusDelta);
+        cumulativeScore = capScore(cumulativeScore);
         EnumSet<GambleAbility> copied = abilities == null || abilities.isEmpty()
                 ? EnumSet.noneOf(GambleAbility.class)
                 : EnumSet.copyOf(abilities);
@@ -50,6 +50,10 @@ public record GambleState(
         return abilities.contains(ability);
     }
 
+    public boolean atScoreCap() {
+        return cumulativeScore >= GambleBalance.maxGambleScore();
+    }
+
     public GambleState recordStat(
             GambleStat stat, double amount, double baseValue, double score, String result
     ) {
@@ -66,15 +70,17 @@ public record GambleState(
                 continue;
             }
             double minimumDelta = -Math.max(0.0, change.baseValue()) * 0.80;
+            double maximumDelta = Math.max(0.0,
+                    GambleBalance.statDelta(change.stat(), GambleBalance.maxGambleScore()));
             switch (change.stat()) {
-                case MAX_HEALTH -> health = Math.max(
-                        minimumDelta, sanitizeDelta(health + change.amount()));
-                case DAMAGE -> damage = Math.max(
-                        minimumDelta, sanitizeDelta(damage + change.amount()));
-                case RANGE -> range = Math.max(
-                        minimumDelta, sanitizeDelta(range + change.amount()));
-                case SPLASH_RADIUS -> splashRadius = Math.max(
-                        minimumDelta, sanitizeDelta(splashRadius + change.amount()));
+                case MAX_HEALTH -> health = clampDelta(
+                        health + change.amount(), minimumDelta, maximumDelta);
+                case DAMAGE -> damage = clampDelta(
+                        damage + change.amount(), minimumDelta, maximumDelta);
+                case RANGE -> range = clampDelta(
+                        range + change.amount(), minimumDelta, maximumDelta);
+                case SPLASH_RADIUS -> splashRadius = clampDelta(
+                        splashRadius + change.amount(), minimumDelta, maximumDelta);
             }
         }
         return new GambleState(health, damage, range, splashRadius,
@@ -94,6 +100,19 @@ public record GambleState(
 
     private static double sanitizeDelta(double value) {
         return Double.isFinite(value) ? value : 0.0;
+    }
+
+    private static double capScore(double value) {
+        return Math.min(GambleBalance.maxGambleScore(), sanitizeDelta(value));
+    }
+
+    private static double capPositiveDelta(GambleStat stat, double value) {
+        return Math.min(GambleBalance.statDelta(stat, GambleBalance.maxGambleScore()),
+                sanitizeDelta(value));
+    }
+
+    private static double clampDelta(double value, double minimum, double maximum) {
+        return Math.min(maximum, Math.max(minimum, sanitizeDelta(value)));
     }
 
     public record StatChange(GambleStat stat, double amount, double baseValue) {

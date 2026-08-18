@@ -113,9 +113,7 @@ public final class GamblerTower extends ProductionTower {
     public double modifyAttackDamage(
             SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount
     ) {
-        double configuredBase = Math.max(0.001, type().damage());
-        double fixedBase = state().resolvedValue(GambleStat.DAMAGE, type().damage());
-        return damageAmount * fixedBase / configuredBase;
+        return damageAmount + state().damageDelta();
     }
 
     @Override
@@ -136,6 +134,11 @@ public final class GamblerTower extends ProductionTower {
         if (GambleBet.fromUpgradeId(option.id()).isPresent()) {
             promoteAfterBet(lane);
         }
+    }
+
+    @Override
+    public boolean meetsUpgradeRequirements(PlayerLane lane, TowerUpgradeOption option) {
+        return GambleBet.fromUpgradeId(option.id()).isEmpty() || !state().atScoreCap();
     }
 
     @Override
@@ -181,7 +184,11 @@ public final class GamblerTower extends ProductionTower {
         GambleState state = state();
         ArrayList<String> lines = new ArrayList<>();
         lines.add("도박 횟수: " + state.totalBets());
-        lines.add("누적 도박 점수: " + signed(state.cumulativeScore()));
+        lines.add("누적 도박 점수: " + signed(state.cumulativeScore())
+                + " / +" + oneDecimal(GambleBalance.maxGambleScore()));
+        if (state.atScoreCap()) {
+            lines.add("도박 상태: 종료 (최대 점수 도달)");
+        }
         lines.add("최대 체력 변화: " + signed(state.maxHealthDelta()));
         lines.add("공격력 변화: " + signed(state.damageDelta()));
         lines.add("사거리 변화: " + signed(state.rangeDelta()));
@@ -209,6 +216,9 @@ public final class GamblerTower extends ProductionTower {
     }
 
     private void resolveBet(PlayerLane lane, GambleBet bet) {
+        if (state().atScoreCap()) {
+            return;
+        }
         SemionTowerEntity source = GambleRoundEffects.towerEntity(this, lane).orElse(null);
         if (source == null) {
             return;

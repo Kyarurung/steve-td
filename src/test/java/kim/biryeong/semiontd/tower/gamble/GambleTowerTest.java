@@ -130,7 +130,7 @@ final class GambleTowerTest {
     }
 
     @Test
-    void stateStacksFixedDeltasHasNoUpperCapAndFloorsEachStatAtTwentyPercent() {
+    void stateCapsScoreAndPositiveDeltasAndFloorsEachStatAtTwentyPercent() {
         GambleState state = GambleState.EMPTY
                 .recordStat(GambleStat.MAX_HEALTH, 40, 100, 8, "hp")
                 .recordStat(GambleStat.DAMAGE, 4, 8, 8, "damage")
@@ -142,8 +142,8 @@ final class GambleTowerTest {
         assertEquals(2.5, state.resolvedValue(GambleStat.SPLASH_RADIUS, 1.5), EPSILON);
 
         assertEquals(76, state.cumulativeScore(), EPSILON);
-        state = state.recordStat(GambleStat.DAMAGE, 10_000, 8, 100, "uncapped");
-        assertEquals(10_012, state.resolvedValue(GambleStat.DAMAGE, 8), EPSILON);
+        state = state.recordStat(GambleStat.DAMAGE, 10_000, 8, 100, "capped");
+        assertEquals(1_008, state.resolvedValue(GambleStat.DAMAGE, 8), EPSILON);
         state = state.recordStat(GambleStat.DAMAGE, -20_000, 8, -140, "floor");
         assertEquals(1.6, state.resolvedValue(GambleStat.DAMAGE, 8), EPSILON);
         assertEquals(-6.4, state.damageDelta(), EPSILON);
@@ -151,6 +151,22 @@ final class GambleTowerTest {
         assertEquals(0.3, state.resolvedValue(GambleStat.SPLASH_RADIUS, 1.5), EPSILON);
         assertEquals(-1.2, state.splashRadiusDelta(), EPSILON);
         assertEquals(8, state.cumulativeScore(), EPSILON);
+
+        GambleState capped = GambleState.EMPTY.recordStat(
+                GambleStat.MAX_HEALTH, 20_000, 100, 2_500, "score cap");
+        assertEquals(2_000, capped.cumulativeScore(), EPSILON);
+        assertEquals(10_000, capped.maxHealthDelta(), EPSILON);
+        assertTrue(capped.atScoreCap());
+        GamblerTower cappedTower = new GamblerTower(GambleTowers.GAMBLER, OWNER, TeamId.RED, 1,
+                new GridPosition(0, 64, 0), new GridPosition(0, 64, 0));
+        cappedTower.setData(GamblerTower.STATE, capped);
+        for (GambleBet bet : GambleBet.values()) {
+            TowerUpgradeOption option = ProductionTowerCatalog.upgrade(
+                    GambleTowers.GAMBLER, bet.upgradeId()).orElseThrow();
+            assertFalse(cappedTower.meetsUpgradeRequirements(null, option));
+        }
+        assertTrue(cappedTower.runtimeDetailLines().stream()
+                .anyMatch(line -> line.contains("도박 상태: 종료")));
     }
 
     @Test
@@ -285,11 +301,11 @@ final class GambleTowerTest {
     @Test
     void promotionThresholdsCreateFinalFormsWithoutDiscardingGambleState() {
         assertEquals(GambleTowers.KING,
-                GambleTowers.promotionTarget(GambleTowers.GAMBLER, 400.0));
+                GambleTowers.promotionTarget(GambleTowers.GAMBLER, 1_000.0));
         assertEquals(GambleTowers.DARK_KING,
-                GambleTowers.promotionTarget(GambleTowers.GAMBLER, -200.0));
-        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, 399.999));
-        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, -199.999));
+                GambleTowers.promotionTarget(GambleTowers.GAMBLER, -400.0));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, 999.999));
+        assertEquals(null, GambleTowers.promotionTarget(GambleTowers.GAMBLER, -399.999));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.KING, -1_000.0));
         assertEquals(null, GambleTowers.promotionTarget(GambleTowers.DARK_KING, 1_000.0));
 
@@ -384,8 +400,9 @@ final class GambleTowerTest {
         assertEquals(3, GambleBalance.maxSpectatorsPerGambler());
         assertEquals(2.5, GambleBalance.baseSplashRadius(), EPSILON);
         assertEquals(0.60, GambleBalance.splashDamageRatio(), EPSILON);
-        assertEquals(400.0, GambleBalance.kingPromotionScore(), EPSILON);
-        assertEquals(-200.0, GambleBalance.darkKingPromotionScore(), EPSILON);
+        assertEquals(1_000.0, GambleBalance.kingPromotionScore(), EPSILON);
+        assertEquals(-400.0, GambleBalance.darkKingPromotionScore(), EPSILON);
+        assertEquals(2_000.0, GambleBalance.maxGambleScore(), EPSILON);
     }
 
     @Test
@@ -408,10 +425,12 @@ final class GambleTowerTest {
         assertEquals(110, partial.towers().get(GambleTowers.GAMBLER.id()).maxHealth(), EPSILON);
         assertEquals(400, partial.towers().get(GambleTowers.KING.id()).maxHealth(), EPSILON);
         assertEquals(440, partial.towers().get(GambleTowers.DARK_KING.id()).maxHealth(), EPSILON);
-        assertEquals(400.0, partial.ability(
+        assertEquals(1_000.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "kingPromotionScore", -1), EPSILON);
-        assertEquals(200.0, partial.ability(
+        assertEquals(400.0, partial.ability(
                 GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", -1), EPSILON);
+        assertEquals(2_000.0, partial.ability(
+                GambleBalance.GLOBAL_ID, "maxGambleScore", -1), EPSILON);
         assertEquals(0.5, partial.ability(
                 GambleTowers.KING.id(), "splashRadiusBonus", -1), EPSILON);
         assertEquals(0.75, partial.ability(
@@ -425,6 +444,7 @@ final class GambleTowerTest {
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "twoDiceLoss2", 1_000.0);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "kingPromotionScore", 0.0);
         assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "darkKingPromotionScoreMagnitude", 0.0);
+        assertInvalidAbility(defaults, GambleBalance.GLOBAL_ID, "maxGambleScore", 0.0);
         assertInvalidAbility(defaults, GambleTowers.KING.id(), "splashRadiusBonus", 0.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "minimumRoll", 7.0);
         assertInvalidAbility(defaults, GambleTowers.SPECTATOR_T3.id(), "supportPowerMultiplier", -1.0);

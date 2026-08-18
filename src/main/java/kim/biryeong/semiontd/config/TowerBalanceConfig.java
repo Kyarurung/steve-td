@@ -1263,7 +1263,7 @@ public record TowerBalanceConfig(
                 "supportNegativeRangeUnit", "supportNegativeHealthLossUnit",
                 "supportNegativeDamageUnit", "supportNegativeMaxHealthUnit",
                 "maxSpectatorsPerGambler",
-                "kingPromotionScore", "darkKingPromotionScoreMagnitude",
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore",
                 "twoDiceCompoundMinSum",
                 "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
                 "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
@@ -1273,7 +1273,8 @@ public record TowerBalanceConfig(
         validateIntegral(global, false, "supportVfxIntervalTicks", "maxSpectatorsPerGambler");
         validateRange(global, "twoDiceCompoundMinSum", 2.0, 12.0);
         validateIntegral(global, false, "twoDiceCompoundMinSum");
-        validateIntegral(global, false, "kingPromotionScore", "darkKingPromotionScoreMagnitude");
+        validateIntegral(global, false,
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore");
         validatePositive(GambleTowers.KING.id(), "splashRadiusBonus");
         validatePositive(GambleTowers.DARK_KING.id(), "splashRadiusBonus");
 
@@ -3749,6 +3750,7 @@ public record TowerBalanceConfig(
         global.put("maxSpectatorsPerGambler", (double) GambleBalance.MAX_SPECTATORS_PER_GAMBLER);
         global.put("kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
         global.put("darkKingPromotionScoreMagnitude", Math.abs(GambleBalance.DARK_KING_PROMOTION_SCORE));
+        global.put("maxGambleScore", GambleBalance.MAX_GAMBLE_SCORE);
         putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
 
         putAbilities(abilities, GambleTowers.KING.id(), Map.of(

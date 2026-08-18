@@ -24,6 +24,10 @@ public final class GambleSpectatorRewards {
         }
     }
 
+    static boolean hasActiveEconomy(UUID playerId) {
+        return playerId != null && ACTIVE_ECONOMIES.containsKey(playerId);
+    }
+
     public static long awardFaceSix(UUID playerId, TowerType type, int face) {
         if (face != 6 || playerId == null) {
             return 0L;
