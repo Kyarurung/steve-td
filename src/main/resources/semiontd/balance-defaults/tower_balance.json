@@ -3263,6 +3263,78 @@
       "damage": 0.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 0
+    },
+    "gamble_dice_t1": {
+      "mineralCost": 45,
+      "maxHealth": 10.0,
+      "range": 3.5,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_dice_t2": {
+      "mineralCost": 0,
+      "maxHealth": 10.0,
+      "range": 5.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_dice_t3": {
+      "mineralCost": 0,
+      "maxHealth": 10.0,
+      "range": 6.5,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_gambler": {
+      "mineralCost": 60,
+      "maxHealth": 110.0,
+      "range": 6.5,
+      "damage": 10.0,
+      "attackIntervalTicks": 13,
+      "aggroPriority": 0
+    },
+    "gamble_king": {
+      "mineralCost": 0,
+      "maxHealth": 400.0,
+      "range": 7.5,
+      "damage": 40.0,
+      "attackIntervalTicks": 8,
+      "aggroPriority": 0
+    },
+    "gamble_dark_king": {
+      "mineralCost": 0,
+      "maxHealth": 440.0,
+      "range": 8.0,
+      "damage": 44.0,
+      "attackIntervalTicks": 8,
+      "aggroPriority": 0
+    },
+    "gamble_spectator_t1": {
+      "mineralCost": 45,
+      "maxHealth": 10.0,
+      "range": 3.5,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_spectator_t2": {
+      "mineralCost": 0,
+      "maxHealth": 10.0,
+      "range": 5.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
+    },
+    "gamble_spectator_t3": {
+      "mineralCost": 0,
+      "maxHealth": 10.0,
+      "range": 6.5,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -20
     }
   },
   "upgradeCosts": {
@@ -3640,7 +3712,20 @@
     "t3_grip_of_doom_tower->t4_grip_of_doom_tower": 490,
     "t1_hell_guillotine_tower->t2_hell_guillotine_tower": 160,
     "t2_hell_guillotine_tower->t3_hell_guillotine_tower": 285,
-    "t3_hell_guillotine_tower->t4_hell_guillotine_tower": 440
+    "t3_hell_guillotine_tower->t4_hell_guillotine_tower": 440,
+    "gamble_dice_t1->gamble_dice_t2": 100,
+    "gamble_dice_t2->gamble_dice_t3": 200,
+    "gamble_spectator_t1->gamble_spectator_t2": 100,
+    "gamble_spectator_t2->gamble_spectator_t3": 200,
+    "gamble_gambler->bet_odd": 50,
+    "gamble_gambler->bet_even": 50,
+    "gamble_gambler->roll_two_dice": 100,
+    "gamble_king->bet_odd": 50,
+    "gamble_king->bet_even": 50,
+    "gamble_king->roll_two_dice": 100,
+    "gamble_dark_king->bet_odd": 50,
+    "gamble_dark_king->bet_even": 50,
+    "gamble_dark_king->roll_two_dice": 100
   },
   "abilities": {
     "villager_splash_t2": {
@@ -6552,6 +6637,79 @@
       "radius": 5.5,
       "damage": 139.0,
       "missingHealthDamageBonus": 1.8
+    },
+    "gamble_global": {
+      "oddEvenWinScore": 70.0,
+      "oddEvenLossScore": 40.0,
+      "maxHealthPerScore": 5.0,
+      "damagePerScore": 0.5,
+      "rangePerScore": 0.05,
+      "splashRadiusPerScore": 0.025,
+      "baseSplashRadius": 2.5,
+      "splashDamageRatio": 0.6,
+      "twoDiceLoss2": 70.0,
+      "twoDiceLoss3": 50.0,
+      "twoDiceLoss4": 30.0,
+      "twoDiceLoss5": 10.0,
+      "twoDiceGain6": 20.0,
+      "twoDiceGain7": 40.0,
+      "twoDiceGain8": 50.0,
+      "twoDiceGain9": 60.0,
+      "twoDiceGain10": 90.0,
+      "twoDiceGain11": 120.0,
+      "twoDiceGain12": 150.0,
+      "abilityRewardChance": 0.25,
+      "lossInsuranceReduction": 0.2,
+      "twoDiceCompoundMinSum": 10.0,
+      "supportVfxIntervalTicks": 40.0,
+      "supportPositiveRangeUnit": 0.25,
+      "supportPositiveRegenUnit": 2.5,
+      "supportPositiveDamageUnit": 2.5,
+      "supportPositiveMaxHealthUnit": 25.0,
+      "supportNegativeRangeUnit": 0.25,
+      "supportNegativeHealthLossUnit": 1.0,
+      "supportNegativeDamageUnit": 2.5,
+      "supportNegativeMaxHealthUnit": 25.0,
+      "maxSpectatorsPerGambler": 3.0,
+      "kingPromotionScore": 400.0,
+      "darkKingPromotionScoreMagnitude": 200.0,
+      "maxGambleScore": 500.0
+    },
+    "gamble_king": {
+      "splashRadiusBonus": 0.5
+    },
+    "gamble_dark_king": {
+      "splashRadiusBonus": 0.75
+    },
+    "gamble_dice_t1": {
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 1.0,
+      "faceSixDiamondReward": 0.0
+    },
+    "gamble_dice_t2": {
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 2.0,
+      "faceSixDiamondReward": 0.0
+    },
+    "gamble_dice_t3": {
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 3.5,
+      "faceSixDiamondReward": 0.0
+    },
+    "gamble_spectator_t1": {
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 1.0,
+      "faceSixDiamondReward": 5.0
+    },
+    "gamble_spectator_t2": {
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 2.0,
+      "faceSixDiamondReward": 15.0
+    },
+    "gamble_spectator_t3": {
+      "minimumRoll": 1.0,
+      "supportPowerMultiplier": 3.5,
+      "faceSixDiamondReward": 35.0
     }
   },
   "illusionCloneQueue": {

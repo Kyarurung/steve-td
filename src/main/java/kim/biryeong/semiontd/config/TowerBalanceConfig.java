@@ -29,6 +29,9 @@ import kim.biryeong.semiontd.tower.futureagency.FutureAgencyLeaderTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyPolicy;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.gamble.GambleBalance;
+import kim.biryeong.semiontd.tower.gamble.GambleBet;
+import kim.biryeong.semiontd.tower.gamble.GambleTowers;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroPartyBalance;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
@@ -238,6 +241,7 @@ public record TowerBalanceConfig(
         addArmyTowers(towers);
         addThunderTowers(towers);
         addDemonLordTowers(towers);
+        addGambleTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -320,6 +324,7 @@ public record TowerBalanceConfig(
         putArmyUpgrades(upgradeCosts);
         putThunderUpgrades(upgradeCosts);
         putDemonLordUpgrades(upgradeCosts);
+        putGambleUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -889,6 +894,7 @@ public record TowerBalanceConfig(
         putArmyAbilities(abilities);
         putThunderAbilities(abilities);
         putDemonLordAbilities(abilities);
+        putGambleAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -1251,6 +1257,68 @@ public record TowerBalanceConfig(
         validateArmyAbilities();
         validateThunderAbilities();
         validateDemonLordAbilities();
+        validateGambleAbilities();
+    }
+
+    private void validateGambleAbilities() {
+        String global = GambleBalance.GLOBAL_ID;
+        validatePositive(global,
+                "oddEvenWinScore", "oddEvenLossScore", "maxHealthPerScore", "damagePerScore",
+                "rangePerScore", "splashRadiusPerScore", "baseSplashRadius",
+                "supportVfxIntervalTicks",
+                "supportPositiveRangeUnit", "supportPositiveRegenUnit",
+                "supportPositiveDamageUnit", "supportPositiveMaxHealthUnit",
+                "supportNegativeRangeUnit", "supportNegativeHealthLossUnit",
+                "supportNegativeDamageUnit", "supportNegativeMaxHealthUnit",
+                "maxSpectatorsPerGambler",
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore",
+                "twoDiceCompoundMinSum",
+                "twoDiceLoss2", "twoDiceLoss3", "twoDiceLoss4", "twoDiceLoss5",
+                "twoDiceGain6", "twoDiceGain7", "twoDiceGain8", "twoDiceGain9",
+                "twoDiceGain10", "twoDiceGain11", "twoDiceGain12");
+        validateRatios(global,
+                "abilityRewardChance", "lossInsuranceReduction", "splashDamageRatio");
+        validateIntegral(global, false, "supportVfxIntervalTicks", "maxSpectatorsPerGambler");
+        validateRange(global, "twoDiceCompoundMinSum", 2.0, 12.0);
+        validateIntegral(global, false, "twoDiceCompoundMinSum");
+        validateIntegral(global, false,
+                "kingPromotionScore", "darkKingPromotionScoreMagnitude", "maxGambleScore");
+        double kingPromotionScore = ability(global, "kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
+        double maxGambleScore = ability(global, "maxGambleScore", GambleBalance.MAX_GAMBLE_SCORE);
+        if (maxGambleScore < kingPromotionScore) {
+            throw new IllegalArgumentException(
+                    "Gamble maximum score must be greater than or equal to the king promotion score."
+            );
+        }
+        validatePositive(GambleTowers.KING.id(), "splashRadiusBonus");
+        validatePositive(GambleTowers.DARK_KING.id(), "splashRadiusBonus");
+
+        for (TowerType type : List.of(
+                GambleTowers.DICE_T1, GambleTowers.DICE_T2, GambleTowers.DICE_T3,
+                GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3)) {
+            validateRange(type.id(), "minimumRoll", 1.0, 6.0);
+            validateIntegral(type.id(), false, "minimumRoll");
+            validatePositive(type.id(), "supportPowerMultiplier");
+            validateIntegral(type.id(), true, "faceSixDiamondReward");
+        }
+        if (configuredGambleExpectedScore() <= 0.0) {
+            throw new IllegalArgumentException("Gamble two-dice score must have a positive expectation.");
+        }
+    }
+
+    private double configuredGambleExpectedScore() {
+        double[] defaults = {0, 0, -70, -50, -30, -10, 20, 40, 50, 60, 90, 120, 150};
+        double total = 0.0;
+        for (int first = 1; first <= 6; first++) {
+            for (int second = 1; second <= 6; second++) {
+                int sum = first + second;
+                String key = sum <= 5 ? "twoDiceLoss" + sum : "twoDiceGain" + sum;
+                double score = ability(GambleBalance.GLOBAL_ID, key, Math.abs(defaults[sum]));
+                if (sum <= 5) score = -score;
+                total += score * (first == second ? 2.0 : 1.0);
+            }
+        }
+        return total / 36.0;
     }
 
     private void validateDemonLordAbilities() {
@@ -3665,6 +3733,91 @@ public record TowerBalanceConfig(
 
     private static void addDemonLordTowers(LinkedHashMap<String, TowerStats> towers) {
         DemonLordTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addGambleTowers(LinkedHashMap<String, TowerStats> towers) {
+        GambleTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putGambleUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
+        putUpgrade(upgradeCosts, GambleTowers.DICE_T1, GambleTowers.DICE_T2.id(), 100);
+        putUpgrade(upgradeCosts, GambleTowers.DICE_T2, GambleTowers.DICE_T3.id(), 200);
+        putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T1, GambleTowers.SPECTATOR_T2.id(), 100);
+        putUpgrade(upgradeCosts, GambleTowers.SPECTATOR_T2, GambleTowers.SPECTATOR_T3.id(), 200);
+        for (TowerType gambler : List.of(
+                GambleTowers.GAMBLER, GambleTowers.KING, GambleTowers.DARK_KING)) {
+            for (GambleBet bet : GambleBet.values()) {
+                putUpgrade(upgradeCosts, gambler, bet.upgradeId(),
+                        bet == GambleBet.TWO_DICE ? 100 : 50);
+            }
+        }
+    }
+
+    private static void putGambleAbilities(LinkedHashMap<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("oddEvenWinScore", GambleBalance.ODD_EVEN_WIN_SCORE);
+        global.put("oddEvenLossScore", GambleBalance.ODD_EVEN_LOSS_SCORE);
+        global.put("maxHealthPerScore", GambleBalance.MAX_HEALTH_PER_SCORE);
+        global.put("damagePerScore", GambleBalance.DAMAGE_PER_SCORE);
+        global.put("rangePerScore", GambleBalance.RANGE_PER_SCORE);
+        global.put("splashRadiusPerScore", GambleBalance.SPLASH_RADIUS_PER_SCORE);
+        global.put("baseSplashRadius", GambleBalance.BASE_SPLASH_RADIUS);
+        global.put("splashDamageRatio", GambleBalance.SPLASH_DAMAGE_RATIO);
+        global.put("twoDiceLoss2", 70.0);
+        global.put("twoDiceLoss3", 50.0);
+        global.put("twoDiceLoss4", 30.0);
+        global.put("twoDiceLoss5", 10.0);
+        global.put("twoDiceGain6", 20.0);
+        global.put("twoDiceGain7", 40.0);
+        global.put("twoDiceGain8", 50.0);
+        global.put("twoDiceGain9", 60.0);
+        global.put("twoDiceGain10", 90.0);
+        global.put("twoDiceGain11", 120.0);
+        global.put("twoDiceGain12", 150.0);
+        global.put("abilityRewardChance", GambleBalance.ABILITY_REWARD_CHANCE);
+        global.put("lossInsuranceReduction", GambleBalance.LOSS_INSURANCE_REDUCTION);
+        global.put("twoDiceCompoundMinSum", (double) GambleBalance.TWO_DICE_COMPOUND_MIN_SUM);
+        global.put("supportVfxIntervalTicks", (double) GambleBalance.SUPPORT_VFX_INTERVAL_TICKS);
+        global.put("supportPositiveRangeUnit", GambleBalance.SUPPORT_POSITIVE_RANGE_UNIT);
+        global.put("supportPositiveRegenUnit", GambleBalance.SUPPORT_POSITIVE_REGEN_UNIT);
+        global.put("supportPositiveDamageUnit", GambleBalance.SUPPORT_POSITIVE_DAMAGE_UNIT);
+        global.put("supportPositiveMaxHealthUnit", GambleBalance.SUPPORT_POSITIVE_MAX_HEALTH_UNIT);
+        global.put("supportNegativeRangeUnit", GambleBalance.SUPPORT_NEGATIVE_RANGE_UNIT);
+        global.put("supportNegativeHealthLossUnit", GambleBalance.SUPPORT_NEGATIVE_HEALTH_LOSS_UNIT);
+        global.put("supportNegativeDamageUnit", GambleBalance.SUPPORT_NEGATIVE_DAMAGE_UNIT);
+        global.put("supportNegativeMaxHealthUnit", GambleBalance.SUPPORT_NEGATIVE_MAX_HEALTH_UNIT);
+        global.put("maxSpectatorsPerGambler", (double) GambleBalance.MAX_SPECTATORS_PER_GAMBLER);
+        global.put("kingPromotionScore", GambleBalance.KING_PROMOTION_SCORE);
+        global.put("darkKingPromotionScoreMagnitude", Math.abs(GambleBalance.DARK_KING_PROMOTION_SCORE));
+        global.put("maxGambleScore", GambleBalance.MAX_GAMBLE_SCORE);
+        putAbilities(abilities, GambleBalance.GLOBAL_ID, global);
+
+        putAbilities(abilities, GambleTowers.KING.id(), Map.of(
+                "splashRadiusBonus", GambleBalance.KING_SPLASH_RADIUS_BONUS
+        ));
+        putAbilities(abilities, GambleTowers.DARK_KING.id(), Map.of(
+                "splashRadiusBonus", GambleBalance.DARK_KING_SPLASH_RADIUS_BONUS
+        ));
+
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T1, 1.0, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T2, 2.0, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.DICE_T3, 3.5, 0);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T1, 1.0, 5);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T2, 2.0, 15);
+        putGambleSupportAbilities(abilities, GambleTowers.SPECTATOR_T3, 3.5, 35);
+    }
+
+    private static void putGambleSupportAbilities(
+            LinkedHashMap<String, Map<String, Double>> abilities,
+            TowerType type,
+            double supportPowerMultiplier,
+            int faceSixDiamondReward
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "minimumRoll", 1.0,
+                "supportPowerMultiplier", supportPowerMultiplier,
+                "faceSixDiamondReward", (double) faceSixDiamondReward
+        ));
     }
 
     /** Upgrade price is the target tier's own diamond cost, so the shop and the tooltip agree. */

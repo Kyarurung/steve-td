@@ -50,6 +50,13 @@ public abstract class SemionJob {
     public void onEliminated(JobContext context) {
     }
 
+    /**
+     * Called when match runtime state is being closed, including cancellation and server shutdown.
+     * Implementations must keep this idempotent because an eliminated player may already be cleaned up.
+     */
+    public void onMatchClosed(JobContext context) {
+    }
+
     public long modifyStartingMineral(JobContext context, long baseMineral) {
         return baseMineral;
     }

@@ -782,6 +782,10 @@ public final class SemionGame {
 
     private void closeRuntimeState() {
         for (SemionPlayer semionPlayer : players.values()) {
+            semionPlayer.job().ifPresent(job ->
+                    job.onMatchClosed(new JobContext(this, semionPlayer)));
+        }
+        for (SemionPlayer semionPlayer : players.values()) {
             ServerPlayer online = arena.teamArena(semionPlayer.teamId())
                     .map(TeamArena::world)
                     .map(ServerLevel::getServer)
