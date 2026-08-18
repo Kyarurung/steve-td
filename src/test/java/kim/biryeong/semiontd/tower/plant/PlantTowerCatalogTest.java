@@ -96,11 +96,12 @@ final class PlantTowerCatalogTest {
 
         assertUpgrade(PlantTowers.T1_MEADOW_TOWER, PlantTowers.T2_MEADOW_TOWER, 150);
         assertUpgrade(PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER, 240);
-        assertUpgrade(PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, 110);
-        assertUpgrade(PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER, 180);
-        // 탱커 업그레이드는 실서버 기준값(160/250)에 맞춰 둡니다.
-        assertUpgrade(PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER, 160);
-        assertUpgrade(PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER, 250);
+        // 지뢰는 폭발 한 번이 아니라 라운드 하나를 사는 값이라 티어 비용을 낮춰 두었습니다.
+        assertUpgrade(PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, 80);
+        assertUpgrade(PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER, 130);
+        // 탱커는 싼값에 벽을 세우지 못하도록 상위 티어 값을 올렸습니다.
+        assertUpgrade(PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER, 190);
+        assertUpgrade(PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER, 300);
         assertUpgrade(PlantTowers.T1_PODZOL_TOWER, PlantTowers.T2_PODZOL_TOWER, 170);
 
         // 계열마다 자기 테라포머가 필요합니다. 다른 계열을 섞으면 지형값을 두 번 냅니다.
@@ -479,12 +480,63 @@ final class PlantTowerCatalogTest {
         assertEquals(344.0, explosion, EPSILON);
     }
 
+    /**
+     * 지뢰는 폭발 한 번이 아니라 라운드 하나를 삽니다.
+     *
+     * <p>재장전이 없으면 감시 간격(5틱)마다 다시 터져 지뢰 하나가 광역 기관총이 됩니다. 삭는
+     * 사슬이 끊기면 지뢰가 영원히 남습니다. 둘 다 값 하나만 잘못 들어가도 조용히 깨지는 곳이라
+     * 여기서 붙잡습니다.
+     */
+    @Test
+    void minesRearmAndDecayOneTierPerRound() {
+        assertEquals(PlantTowers.T2_MYCELIUM_TOWER,
+                PlantTowers.previousMyceliumTier(PlantTowers.T3_MYCELIUM_TOWER));
+        assertEquals(PlantTowers.T1_MYCELIUM_TOWER,
+                PlantTowers.previousMyceliumTier(PlantTowers.T2_MYCELIUM_TOWER));
+        assertNull(PlantTowers.previousMyceliumTier(PlantTowers.T1_MYCELIUM_TOWER),
+                "붉은 버섯 아래는 없습니다. 라운드가 끝나면 사라져야 합니다.");
+        assertNull(PlantTowers.previousMyceliumTier(PlantTowers.T3_DESERT_TOWER),
+                "다른 계열은 삭지 않습니다.");
+
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        double t1 = defaults.ability(PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", -1);
+        double t3 = defaults.ability(PlantTowers.T3_MYCELIUM_TOWER.id(), "rearmTicks", -1);
+        assertTrue(t1 > 0.0 && t3 > 0.0, "재장전이 0 이면 지뢰가 감시 간격마다 다시 터집니다");
+        assertTrue(t3 < t1, "티어가 오르면 더 빨리 장전돼야 올릴 이유가 생깁니다");
+        assertTrue(t3 > defaults.ability(PlantTowers.T3_MYCELIUM_TOWER.id(), "triggerIntervalTicks", 5.0),
+                "재장전이 감시 간격보다 짧으면 재장전이 없는 것과 같습니다");
+        assertPlantConfigRejected(defaults, PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", 0.0);
+        assertPlantConfigRejected(defaults, PlantTowers.T1_MYCELIUM_TOWER.id(), "rearmTicks", 20.5);
+    }
+
+    /**
+     * 죽은 덤불을 도배해 레인을 막는 것을 막습니다.
+     *
+     * <p>벽의 값은 개수가 아니라 총 체력입니다. 시작 다이아 안에서 살 수 있는 T1 탱커 벽의 체력이
+     * 그대로면 비용만 만져 봐야 소용이 없습니다.
+     */
+    @Test
+    void tierOneTankCannotWallTheLaneOnTheOpeningBudget() {
+        var t1 = TowerBalanceRuntime.resolve(PlantTowers.T1_DESERT_TOWER);
+        var t2 = TowerBalanceRuntime.resolve(PlantTowers.T2_DESERT_TOWER);
+        var t3 = TowerBalanceRuntime.resolve(PlantTowers.T3_DESERT_TOWER);
+
+        // 오프닝 예산은 그대로 둡니다. 여기를 올리면 사암 계열로는 시작조차 못 합니다.
+        assertEquals(50L, t1.mineralCost());
+        // 다이아당 체력이 상위 티어보다 높으면, 올리는 것보다 도배하는 쪽이 언제나 이깁니다.
+        double t1PerMineral = t1.maxHealth() / t1.mineralCost();
+        assertTrue(t1PerMineral <= t2.maxHealth() / t2.mineralCost(),
+                "T1 다이아당 체력 " + t1PerMineral + " 이 T2 보다 높으면 도배가 정답이 됩니다");
+        assertTrue(t1PerMineral <= t3.maxHealth() / t3.mineralCost(),
+                "T1 다이아당 체력 " + t1PerMineral + " 이 T3 보다 높으면 도배가 정답이 됩니다");
+    }
+
     @Test
     void midAndLateTiersPayBackTheirTerrainInvestment() {
         assertEquals(20.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MEADOW_TOWER).damage(), EPSILON);
         assertEquals(32.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MEADOW_NOVA_TOWER).damage(), EPSILON);
         assertEquals(460.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MYCELIUM_TOWER).maxHealth(), EPSILON);
-        assertEquals(900.0, TowerBalanceRuntime.resolve(PlantTowers.T3_DESERT_TOWER).maxHealth(), EPSILON);
+        assertEquals(750.0, TowerBalanceRuntime.resolve(PlantTowers.T3_DESERT_TOWER).maxHealth(), EPSILON);
         assertEquals(34.0, TowerBalanceRuntime.resolve(PlantTowers.T3_PODZOL_LILAC_TOWER).damage(), EPSILON);
         assertEquals(48.0, TowerBalanceRuntime.resolve(PlantTowers.T3_PODZOL_PITCHER_TOWER).damage(), EPSILON);
     }

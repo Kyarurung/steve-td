@@ -91,6 +91,14 @@ public final class PlantTowers {
             "<gray>위 지형 수치에는 이 티어의 계열 배율 "
                     + "<aqua>{ability.soilPower:percent}</aqua>가 곱해집니다.</gray>";
 
+    /** 지뢰는 소모품이 아니라 재장전합니다. 얼마나 자주 다시 터지는지가 실질 화력을 정합니다. */
+    private static final String MYCELIUM_REARM_LINE =
+            "<green>터진 뒤 <aqua>{ability.rearmTicks:seconds}</aqua> 만에 다시 장전됩니다.</green>";
+
+    /** 라운드마다 한 단계씩 삭습니다. 지뢰가 치르는 값이 폭발 한 번에서 라운드 하나로 옮겨갔습니다. */
+    private static final String MYCELIUM_DECAY_LINE =
+            "<red>라운드가 끝나면 한 단계 아래로 삭습니다. 붉은 버섯은 사라집니다.</red>";
+
     // ------------------------------------------------------------------
     // 테라포밍 타워 - 전투 능력 없음 (사거리 0, 피해 0). 지형만 깝니다.
     // ------------------------------------------------------------------
@@ -200,36 +208,39 @@ public final class PlantTowers {
                     SOIL_POWER_LINE
             ));
 
-    // 균사 - 소모성 지뢰. 공격하지 않고 밟히면 한 번 터집니다.
+    // 균사 - 재장전 지뢰. 공격하지 않고 밟히면 터지며, 라운드마다 한 단계씩 삭습니다.
     public static final TowerType T1_MYCELIUM_TOWER = combatTower(
-            "t1_mycelium_tower", "붉은 버섯", 40, 110, 0.0, 30, 20, 35,
+            "t1_mycelium_tower", "붉은 버섯", 30, 110, 0.0, 30, 20, 35,
             plantVisual(Blocks.RED_MUSHROOM, 1.0), PlantSoil.MYCELIUM, 1,
             List.of(
-                    "<gray>균사 위에만 심는 소모성 지뢰입니다.</gray>",
+                    "<gray>균사 위에만 심는 지뢰입니다.</gray>",
                     "<green>적이 밟으면 터져 주변에 피해를 줍니다.</green>",
                     "<green>맞은 적은 느려지고 잠시 공격하지 못합니다.</green>",
-                    "<red>한 번 터지면 사라집니다.</red>"
+                    MYCELIUM_REARM_LINE,
+                    "<red>라운드가 끝나면 사라집니다.</red>"
             ));
     public static final TowerType T2_MYCELIUM_TOWER = combatTower(
-            "t2_mycelium_tower", "진홍빛 버섯", 110, 260, 0.0, 45, 20, 40,
+            "t2_mycelium_tower", "진홍빛 버섯", 80, 260, 0.0, 45, 20, 40,
             plantVisual(Blocks.CRIMSON_FUNGUS, 1.1), PlantSoil.MYCELIUM, 2,
             List.of(
-                    "<gray>균사 위에만 심는 소모성 지뢰입니다.</gray>",
+                    "<gray>균사 위에만 심는 지뢰입니다.</gray>",
                     "<green>폭발 범위와 피해, 무력화 시간이 늘어납니다.</green>",
-                    "<red>한 번 터지면 사라집니다.</red>"
+                    MYCELIUM_REARM_LINE,
+                    MYCELIUM_DECAY_LINE
             ));
     public static final TowerType T3_MYCELIUM_TOWER = combatTower(
-            "t3_mycelium_tower", "뒤틀린 버섯", 180, 460, 0.0, 50, 20, 45,
+            "t3_mycelium_tower", "뒤틀린 버섯", 130, 460, 0.0, 50, 20, 45,
             plantVisual(Blocks.WARPED_FUNGUS, 1.25), PlantSoil.MYCELIUM, 3,
             List.of(
                     "<gray>식물 빌더의 최종 지뢰입니다.</gray>",
                     "<green>폭발 범위와 피해, 무력화 시간이 가장 깁니다.</green>",
-                    "<red>한 번 터지면 사라집니다.</red>"
+                    MYCELIUM_REARM_LINE,
+                    MYCELIUM_DECAY_LINE
             ));
 
     // 사암 - 반사 탱커. 스스로 공격하지 않고 맞은 만큼 되돌려줍니다.
     public static final TowerType T1_DESERT_TOWER = combatTower(
-            "t1_desert_tower", "죽은 덤불", 50, 190, 0.0, 8, 22, 58,
+            "t1_desert_tower", "죽은 덤불", 50, 100, 0.0, 8, 22, 58,
             plantVisual(Blocks.DEAD_BUSH, 1.0), PlantSoil.DESERT, 1,
             List.of(
                     "<gray>사암 위에만 심는 반사 탱커입니다.</gray>",
@@ -238,7 +249,7 @@ public final class PlantTowers {
                     "<green>주변 사암 위의 적은 공격 속도가 느려집니다.</green>"
             ));
     public static final TowerType T2_DESERT_TOWER = combatTower(
-            "t2_desert_tower", "선인장", 160, 500, 0.0, 20, 22, 66,
+            "t2_desert_tower", "선인장", 190, 420, 0.0, 20, 22, 66,
             plantVisual(Blocks.CACTUS, 1.15), PlantSoil.DESERT, 2,
             List.of(
                     "<gray>사암 위에만 심는 반사 탱커입니다.</gray>",
@@ -246,7 +257,7 @@ public final class PlantTowers {
                     "<green>반사 비율과 얹히는 공격력이 늘어납니다.</green>"
             ));
     public static final TowerType T3_DESERT_TOWER = combatTower(
-            "t3_desert_tower", "꽃선인장", 250, 900, 0.0, 32, 20, 74,
+            "t3_desert_tower", "꽃선인장", 300, 750, 0.0, 32, 20, 74,
             stackedPlantVisual(Blocks.CACTUS, Blocks.CACTUS_FLOWER, 1.3), PlantSoil.DESERT, 3,
             List.of(
                     "<gray>식물 빌더의 최종 반사 탱커입니다.</gray>",
@@ -385,6 +396,23 @@ public final class PlantTowers {
             return -1;
         }
         return Math.max(0, TowerBalanceRuntime.abilityInt(type.id(), "terraformRadius", definition.tier()));
+    }
+
+    /**
+     * 균사 지뢰가 라운드 끝에 삭아 내려갈 한 단계 아래 타워. 붉은 버섯이면 {@code null} 입니다.
+     *
+     * <p>업그레이드 그래프를 거꾸로 읽는 대신 계열과 티어로 찾습니다. 균사 계열은 갈래가 없어
+     * 한 티어에 타워가 하나뿐이라, 역방향 탐색이 애매해질 여지가 없습니다.
+     */
+    public static TowerType previousMyceliumTier(TowerType type) {
+        if (soilOf(type) != PlantSoil.MYCELIUM) {
+            return null;
+        }
+        return switch (tierOf(type)) {
+            case 3 -> T2_MYCELIUM_TOWER;
+            case 2 -> T1_MYCELIUM_TOWER;
+            default -> null;
+        };
     }
 
     public static boolean matches(TowerType type, TowerType other) {

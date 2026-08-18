@@ -920,10 +920,10 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER.id(), 240);
         putUpgrade(upgradeCosts, PlantTowers.T1_MEADOW_NOVA_TOWER, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), 175);
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_NOVA_TOWER, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), 275);
-        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 110);
-        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 180);
-        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 160);
-        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 250);
+        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 80);
+        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 130);
+        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 190);
+        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 300);
         putUpgrade(upgradeCosts, PlantTowers.T1_PODZOL_TOWER, PlantTowers.T2_PODZOL_TOWER.id(), 170);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_LILAC_TOWER.id(), 285);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_ROSE_TOWER.id(), 285);
@@ -1098,10 +1098,10 @@ public record TowerBalanceConfig(
                 "novaRadius", 5.5,
                 "novaDamageRatio", 0.75
         ));
-        // 균사 계열은 소모성 지뢰입니다.
-        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0);
-        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0);
-        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0);
+        // 균사 계열은 재장전 지뢰입니다. 티어가 오를수록 빨리 다시 장전됩니다.
+        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 100.0);
+        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 80.0);
+        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 60.0);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1158,7 +1158,8 @@ public record TowerBalanceConfig(
             double triggerRadius,
             double explosionRadius,
             double moveSpeedReduction,
-            double disableTicks
+            double disableTicks,
+            double rearmTicks
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "triggerRadius", triggerRadius,
@@ -1168,7 +1169,10 @@ public record TowerBalanceConfig(
                 // 남은 체력도 함께 터집니다. 온전할수록 세게 터집니다.
                 "explosionHealthRatio", 0.25,
                 "explosionMoveSpeedReduction", moveSpeedReduction,
-                "explosionDisableTicks", disableTicks
+                "explosionDisableTicks", disableTicks,
+                // 터진 뒤 다시 장전될 때까지의 시간. 지뢰가 소모품이 아니게 된 대신 실질 화력을
+                // 정하는 값입니다. 0 에 가까우면 지뢰 하나가 광역 기관총이 됩니다.
+                "rearmTicks", rearmTicks
         ));
     }
 
@@ -1481,6 +1485,13 @@ public record TowerBalanceConfig(
         validateIntegral(PlantSoil.PODZOL.configId(), false, "supportDurationTicks");
         validateIntegral(PlantSoil.MYCELIUM.configId(), false, "environmentDurationTicks");
         validateIntegral(PlantSoil.DESERT.configId(), false, "environmentDurationTicks", "debuffDurationTicks");
+
+        // 재장전이 0 이면 지뢰가 감시 간격마다 다시 터져 광역 기관총이 됩니다.
+        for (TowerType mine : List.of(
+                PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
+            validatePositive(mine.id(), "rearmTicks", "triggerIntervalTicks");
+            validateIntegral(mine.id(), false, "rearmTicks", "triggerIntervalTicks");
+        }
 
         Double minRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMinRadius");
         Double maxRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMaxRadius");

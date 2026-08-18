@@ -20,12 +20,20 @@ import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 
 /**
- * 균사 계열 전투 타워. 공격하지 않고 묻혀 있다가 적이 밟으면 한 번 터지고 사라집니다.
+ * 균사 계열 전투 타워. 공격하지 않고 묻혀 있다가 적이 밟으면 터집니다.
  *
  * <p>폭발은 범위 피해와 함께 둔화, 그리고 공격 속도와 공격력을 동시에 100% 깎아 사실상 공격 불가
- * 상태를 만듭니다. 한 번 쓰면 없어지므로 웨이브를 읽고 길목에 미리 심는 소모품입니다.
+ * 상태를 만듭니다.
+ *
+ * <p>한 번 터지고 사라지는 소모품이 아니라 <b>재장전</b>합니다. 대신 라운드가 끝날 때마다 한 단계씩
+ * 삭아 내려가고(뒤틀린 → 진홍빛 → 붉은), 붉은 버섯은 사라집니다. 소모되는 단위가 폭발 한 번에서
+ * 라운드 하나로 옮겨간 것이라, 길목을 얼마나 오래 쥐고 있느냐가 값이 됩니다. 삭아 내리는 처리는
+ * {@code PlantTowerJob#onRoundEnded} 가 맡습니다 - 라운드 경계를 아는 쪽은 타워가 아니라 직업입니다.
  */
 public class PlantMineTower extends PlantCombatTower {
+    /** 이번 {@code execute} 에서 터졌는지. 재장전 대기와 평소 감시 간격을 가르는 값입니다. */
+    private boolean detonatedThisExecute;
+
     public PlantMineTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
     }
@@ -43,6 +51,7 @@ public class PlantMineTower extends PlantCombatTower {
 
     @Override
     protected boolean execute(PlayerLane lane) {
+        detonatedThisExecute = false;
         if (lane == null || health() <= 0.0) {
             return true;
         }
@@ -51,12 +60,18 @@ public class PlantMineTower extends PlantCombatTower {
             return true;
         }
         detonate(lane, source);
+        detonatedThisExecute = true;
         return true;
     }
 
     @Override
     protected int cooldownTicksAfterExecute(PlayerLane lane) {
-        // 밟자마자 터져야 하므로 촘촘하게 확인합니다.
+        // 터진 직후에는 재장전이 끝날 때까지 쉽니다. 이게 없으면 적이 서 있는 동안 감시 간격마다
+        // 다시 터져, 지뢰 하나가 초당 몇 번씩 광역을 뿌리는 기관총이 됩니다.
+        if (detonatedThisExecute) {
+            return Math.max(1, abilityTicks("rearmTicks"));
+        }
+        // 밟자마자 터져야 하므로 평소에는 촘촘하게 확인합니다.
         return Math.max(1, abilityTicks("triggerIntervalTicks"));
     }
 
@@ -114,9 +129,6 @@ public class PlantMineTower extends PlantCombatTower {
             }
             return AreaEffectOutcome.APPLIED;
         });
-
-        // 소모품이라 터지면 사라집니다. tickTowers 가 복사본을 순회하므로 여기서 제거해도 안전합니다.
-        lane.removeTower(this);
     }
 
     /**
@@ -136,7 +148,8 @@ public class PlantMineTower extends PlantCombatTower {
                 + " · 폭발 반경 " + oneDecimal(ability("explosionRadius")));
         lines.add("폭발 피해 " + oneDecimal(explosionDamage())
                 + " (체력 " + oneDecimal(health() * ability("explosionHealthRatio")) + " 포함)");
-        lines.add("무력화 " + oneDecimal(abilityTicks("explosionDisableTicks") / 20.0) + "초");
+        lines.add("무력화 " + oneDecimal(abilityTicks("explosionDisableTicks") / 20.0) + "초"
+                + " · 재장전 " + oneDecimal(abilityTicks("rearmTicks") / 20.0) + "초");
         return lines;
     }
 }
