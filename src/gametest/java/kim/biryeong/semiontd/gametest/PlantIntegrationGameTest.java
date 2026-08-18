@@ -213,9 +213,9 @@ public final class PlantIntegrationGameTest {
             require(dandelion.bloomBonus() > 0.0,
                     "A plant at final defense must keep its family terrain effect.");
             new PlantTowerJob().onRoundEnded(new JobContext(game, game.players().get(owner)), 1);
-            require(game.players().get(owner).economy().mineral() == beforeSettlement + 3,
-                    "A surviving T1 dandelion must pay three diamonds exactly once at settlement.");
-            require(dandelion.diamondPerWave() == 3,
+            require(game.players().get(owner).economy().mineral() == beforeSettlement + 4,
+                    "A surviving T1 dandelion must pay four diamonds exactly once at settlement.");
+            require(dandelion.diamondPerWave() == 4,
                     "Final-defense movement must preserve the original meadow settlement claim.");
 
             game.teams().get(TeamId.RED).resetForRound();

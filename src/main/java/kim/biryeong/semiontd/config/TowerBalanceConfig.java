@@ -1026,7 +1026,7 @@ public record TowerBalanceConfig(
         // 잔디는 후방 지원 지형입니다. 자기 회복이 아니라 주변 아군을 회복시키고 성장 체력을 나눠 줍니다.
         putAbilities(abilities, PlantSoil.MEADOW.configId(), Map.of(
                 "supportRadius", 6.0,
-                "healPercentPerPulse", 0.015,
+                "healPercentPerPulse", 0.012,
                 // T3 기준 자기 최대 체력은 라운드당 +2.1%, 최대 +70%까지 성장합니다.
                 "maxHealthGrowthPerRound", 0.015,
                 "maxHealthGrowthCap", 0.5,
@@ -1071,15 +1071,15 @@ public record TowerBalanceConfig(
         // 민들레 계열은 지원 배율에 더해 생존한 웨이브 정산 다이아를 만들어 냅니다.
         putAbilities(abilities, PlantTowers.T1_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 0.6,
-                "diamondPerWave", 3.0
+                "diamondPerWave", 4.0
         ));
         putAbilities(abilities, PlantTowers.T2_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.0,
-                "diamondPerWave", 9.0
+                "diamondPerWave", 11.0
         ));
         putAbilities(abilities, PlantTowers.T3_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.4,
-                "diamondPerWave", 24.0
+                "diamondPerWave", 28.0
         ));
 
         // 튤립 계열은 자기 중심 광역이라 novaRadius/novaDamageRatio 를 씁니다.

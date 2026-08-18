@@ -201,7 +201,7 @@ public final class PlantTowers {
                     SOIL_POWER_LINE
             ));
     public static final TowerType T3_MEADOW_NOVA_TOWER = combatTower(
-            "t3_meadow_nova_tower", "횃불꽃", 275, 780, 7.0, 32, 20, 60,
+            "t3_meadow_nova_tower", "횃불꽃", 275, 780, 7.0, 34, 20, 60,
             plantVisual(Blocks.TORCHFLOWER, 1.35), PlantSoil.MEADOW, 3,
             List.of(
                     "<gray>식물 빌더의 최종 광역 타워입니다.</gray>",

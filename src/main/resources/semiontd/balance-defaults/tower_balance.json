@@ -2644,7 +2644,7 @@
       "mineralCost": 275,
       "maxHealth": 780.0,
       "range": 7.0,
-      "damage": 32.0,
+      "damage": 34.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 60
     },
@@ -5910,7 +5910,7 @@
       "soilPulseIntervalTicks": 20.0
     },
     "plant_soil_meadow": {
-      "healPercentPerPulse": 0.015,
+      "healPercentPerPulse": 0.012,
       "maxHealthGrowthCap": 0.5,
       "growthShareRatio": 0.15,
       "growthShareCap": 0.25,
@@ -5943,15 +5943,15 @@
       "supportDurationTicks": 60.0
     },
     "t1_meadow_tower": {
-      "diamondPerWave": 3.0,
+      "diamondPerWave": 4.0,
       "soilPower": 0.6
     },
     "t2_meadow_tower": {
-      "diamondPerWave": 9.0,
+      "diamondPerWave": 11.0,
       "soilPower": 1.0
     },
     "t3_meadow_tower": {
-      "diamondPerWave": 24.0,
+      "diamondPerWave": 28.0,
       "soilPower": 1.4
     },
     "t1_meadow_nova_tower": {

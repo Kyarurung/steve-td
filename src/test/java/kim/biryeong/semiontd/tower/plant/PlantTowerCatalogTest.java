@@ -320,9 +320,9 @@ final class PlantTowerCatalogTest {
         assertEquals(PlantSoil.MEADOW, PlantTowers.soilOf(PlantTowers.T3_MEADOW_NOVA_TOWER));
 
         // 민들레 계열만 웨이브 정산 다이아를, 튤립 계열만 자기 중심 광역을 가집니다.
-        assertEquals(3.0, defaults.ability(PlantTowers.T1_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
-        assertEquals(9.0, defaults.ability(PlantTowers.T2_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
-        assertEquals(24.0, defaults.ability(PlantTowers.T3_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
+        assertEquals(4.0, defaults.ability(PlantTowers.T1_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
+        assertEquals(11.0, defaults.ability(PlantTowers.T2_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
+        assertEquals(28.0, defaults.ability(PlantTowers.T3_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
         assertEquals(0.0, defaults.ability(PlantTowers.T3_MEADOW_TOWER.id(), "novaRadius", 0.0), EPSILON);
         assertEquals(5.5, defaults.ability(PlantTowers.T3_MEADOW_NOVA_TOWER.id(), "novaRadius", -1), EPSILON);
         assertEquals(0.0, defaults.ability(PlantTowers.T3_MEADOW_NOVA_TOWER.id(), "diamondPerWave", 0.0), EPSILON);
@@ -430,7 +430,7 @@ final class PlantTowerCatalogTest {
         assertEquals(0.015, defaults.ability(PlantTowers.GLOBAL_CONFIG_ID, "bloomDamagePerTile", -1), EPSILON);
         assertEquals(1.0, defaults.ability(PlantTowers.T1_OAK_SEED_TOWER.id(), "terraformRadius", -1), EPSILON);
         assertEquals(20.0, defaults.ability(PlantTowers.GLOBAL_CONFIG_ID, "soilPulseIntervalTicks", -1), EPSILON);
-        assertEquals(0.015, defaults.ability(PlantSoil.MEADOW.configId(), "healPercentPerPulse", -1), EPSILON);
+        assertEquals(0.012, defaults.ability(PlantSoil.MEADOW.configId(), "healPercentPerPulse", -1), EPSILON);
         assertEquals(6.0, defaults.ability(PlantSoil.MEADOW.configId(), "supportRadius", -1), EPSILON);
         assertEquals(0.15, defaults.ability(PlantSoil.MEADOW.configId(), "growthShareRatio", -1), EPSILON);
         assertEquals(0.25, defaults.ability(PlantSoil.MEADOW.configId(), "growthShareCap", -1), EPSILON);
@@ -564,7 +564,7 @@ final class PlantTowerCatalogTest {
     @Test
     void midAndLateTiersPayBackTheirTerrainInvestment() {
         assertEquals(20.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MEADOW_TOWER).damage(), EPSILON);
-        assertEquals(32.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MEADOW_NOVA_TOWER).damage(), EPSILON);
+        assertEquals(34.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MEADOW_NOVA_TOWER).damage(), EPSILON);
         assertEquals(460.0, TowerBalanceRuntime.resolve(PlantTowers.T3_MYCELIUM_TOWER).maxHealth(), EPSILON);
         assertEquals(750.0, TowerBalanceRuntime.resolve(PlantTowers.T3_DESERT_TOWER).maxHealth(), EPSILON);
         assertEquals(34.0, TowerBalanceRuntime.resolve(PlantTowers.T3_PODZOL_LILAC_TOWER).damage(), EPSILON);
@@ -596,7 +596,7 @@ final class PlantTowerCatalogTest {
         );
         TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
         assertEquals(5.0, merged.ability(PlantTowers.T1_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
-        assertEquals(9.0, merged.ability(PlantTowers.T2_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
+        assertEquals(11.0, merged.ability(PlantTowers.T2_MEADOW_TOWER.id(), "diamondPerWave", -1), EPSILON);
         assertEquals(0.2, merged.ability(PlantSoil.PODZOL.configId(), "growthShareRatio", -1), EPSILON);
     }
 
