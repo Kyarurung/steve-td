@@ -920,10 +920,10 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER.id(), 240);
         putUpgrade(upgradeCosts, PlantTowers.T1_MEADOW_NOVA_TOWER, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), 175);
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_NOVA_TOWER, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), 275);
-        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 110);
-        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 180);
-        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 160);
-        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 250);
+        putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 80);
+        putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 130);
+        putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 190);
+        putUpgrade(upgradeCosts, PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER.id(), 300);
         putUpgrade(upgradeCosts, PlantTowers.T1_PODZOL_TOWER, PlantTowers.T2_PODZOL_TOWER.id(), 170);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_LILAC_TOWER.id(), 285);
         putUpgrade(upgradeCosts, PlantTowers.T2_PODZOL_TOWER, PlantTowers.T3_PODZOL_ROSE_TOWER.id(), 285);
@@ -1026,7 +1026,7 @@ public record TowerBalanceConfig(
         // 잔디는 후방 지원 지형입니다. 자기 회복이 아니라 주변 아군을 회복시키고 성장 체력을 나눠 줍니다.
         putAbilities(abilities, PlantSoil.MEADOW.configId(), Map.of(
                 "supportRadius", 6.0,
-                "healPercentPerPulse", 0.015,
+                "healPercentPerPulse", 0.012,
                 // T3 기준 자기 최대 체력은 라운드당 +2.1%, 최대 +70%까지 성장합니다.
                 "maxHealthGrowthPerRound", 0.015,
                 "maxHealthGrowthCap", 0.5,
@@ -1071,15 +1071,15 @@ public record TowerBalanceConfig(
         // 민들레 계열은 지원 배율에 더해 생존한 웨이브 정산 다이아를 만들어 냅니다.
         putAbilities(abilities, PlantTowers.T1_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 0.6,
-                "diamondPerWave", 3.0
+                "diamondPerWave", 4.0
         ));
         putAbilities(abilities, PlantTowers.T2_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.0,
-                "diamondPerWave", 9.0
+                "diamondPerWave", 11.0
         ));
         putAbilities(abilities, PlantTowers.T3_MEADOW_TOWER.id(), Map.of(
                 "soilPower", 1.4,
-                "diamondPerWave", 24.0
+                "diamondPerWave", 28.0
         ));
 
         // 튤립 계열은 자기 중심 광역이라 novaRadius/novaDamageRatio 를 씁니다.
@@ -1098,10 +1098,10 @@ public record TowerBalanceConfig(
                 "novaRadius", 5.5,
                 "novaDamageRatio", 0.75
         ));
-        // 균사 계열은 소모성 지뢰입니다.
-        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0);
-        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0);
-        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0);
+        // 균사 계열은 라운드당 한 번 터지는 지뢰입니다.
+        putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 8.0);
+        putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 10.0);
+        putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 12.0);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1158,7 +1158,8 @@ public record TowerBalanceConfig(
             double triggerRadius,
             double explosionRadius,
             double moveSpeedReduction,
-            double disableTicks
+            double disableTicks,
+            double fuseTicks
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "triggerRadius", triggerRadius,
@@ -1168,7 +1169,10 @@ public record TowerBalanceConfig(
                 // 남은 체력도 함께 터집니다. 온전할수록 세게 터집니다.
                 "explosionHealthRatio", 0.25,
                 "explosionMoveSpeedReduction", moveSpeedReduction,
-                "explosionDisableTicks", disableTicks
+                "explosionDisableTicks", disableTicks,
+                // 밟은 뒤 터지기까지의 도화선 길이. 이 동안 섬광이 떠 있고, 빠져나가면 맞지
+                // 않습니다. 길수록 경고가 후하고 짧을수록 즉발에 가깝습니다.
+                "fuseTicks", fuseTicks
         ));
     }
 
@@ -1482,6 +1486,12 @@ public record TowerBalanceConfig(
         validateIntegral(PlantSoil.PODZOL.configId(), false, "supportDurationTicks");
         validateIntegral(PlantSoil.MYCELIUM.configId(), false, "environmentDurationTicks");
         validateIntegral(PlantSoil.DESERT.configId(), false, "environmentDurationTicks", "debuffDurationTicks");
+
+        for (TowerType mine : List.of(
+                PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
+            validatePositive(mine.id(), "triggerIntervalTicks", "fuseTicks");
+            validateIntegral(mine.id(), false, "triggerIntervalTicks", "fuseTicks");
+        }
 
         Double minRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMinRadius");
         Double maxRadius = configuredAbility(PlantTowers.GLOBAL_CONFIG_ID, "soilAuraMaxRadius");

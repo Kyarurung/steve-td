@@ -213,9 +213,9 @@ public final class PlantIntegrationGameTest {
             require(dandelion.bloomBonus() > 0.0,
                     "A plant at final defense must keep its family terrain effect.");
             new PlantTowerJob().onRoundEnded(new JobContext(game, game.players().get(owner)), 1);
-            require(game.players().get(owner).economy().mineral() == beforeSettlement + 3,
-                    "A surviving T1 dandelion must pay three diamonds exactly once at settlement.");
-            require(dandelion.diamondPerWave() == 3,
+            require(game.players().get(owner).economy().mineral() == beforeSettlement + 4,
+                    "A surviving T1 dandelion must pay four diamonds exactly once at settlement.");
+            require(dandelion.diamondPerWave() == 4,
                     "Final-defense movement must preserve the original meadow settlement claim.");
 
             game.teams().get(TeamId.RED).resetForRound();
@@ -268,9 +268,17 @@ public final class PlantIntegrationGameTest {
             Monster first = spawnMonster(context, lane, "plant-mine-first", position(context, 4, 1, 3));
             Monster second = spawnMonster(context, lane, "plant-mine-second", position(context, 6, 1, 3));
             Monster outside = spawnMonster(context, lane, "plant-mine-outside", position(context, 7, 1, 7));
-            mine.tick(lane);
 
-            require(!lane.towers().contains(mine), "A triggered mine must remove itself.");
+            // 밟는 즉시 터지지 않습니다. 먼저 섬광이 뜨고 도화선이 탑니다.
+            mine.tick(lane);
+            requireClose(1_000.0, first.health(), "A mine must not damage anything while its fuse burns.");
+            // 점화 틱이 쿨다운을 도화선 길이로 세우므로, 실제 폭발은 그다음 틱입니다.
+            int fuseTicks = (int) defaults.ability(PlantTowers.T1_MYCELIUM_TOWER.id(), "fuseTicks", 8.0);
+            for (int tick = 0; tick <= fuseTicks; tick++) {
+                mine.tick(lane);
+            }
+
+            require(lane.towers().contains(mine), "A triggered mine must stay until the round ends.");
             requireClose(900.6875, first.health(), "The trigger target must take the tuned T1 explosion.");
             requireClose(900.6875, second.health(), "A second target inside the blast must take splash damage.");
             requireClose(1_000.0, outside.health(), "A target outside the blast must remain unharmed.");
@@ -280,12 +288,92 @@ public final class PlantIntegrationGameTest {
             requireClose(1.0, firstEntity.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION),
                     "The mine must disable attacks.");
             requireClose(198.625, mine.roundMagicDamageDealt(), "Mine splash damage must be attributed as magic damage.");
+
+            // 라운드 안에서는 적이 계속 서 있어도 다시 터지지 않아야 합니다. 다시 터지게 두면
+            // 지뢰 하나가 광역 기관총이 되고, 무력화가 끊기지 않아 그 길목의 적이 영영 공격하지
+            // 못합니다.
+            require(mine.spentThisRound(), "A detonated mine must be spent for the rest of the round.");
+            double afterFirstBlast = first.health();
+            for (int tick = 0; tick < 400; tick++) {
+                mine.tick(lane);
+            }
+            requireClose(afterFirstBlast, first.health(), "A spent mine must not detonate again in the same round.");
+
+            // 라운드가 새로 시작되면 다시 장전됩니다. 도화선은 그때도 그대로 탑니다.
+            mine.resetForRound(lane);
+            require(!mine.spentThisRound(), "A new round must rearm the mine.");
+            mine.tick(lane);
+            requireClose(afterFirstBlast, first.health(), "The next round's fuse must burn before it hurts anyone.");
+            for (int tick = 0; tick <= fuseTicks; tick++) {
+                mine.tick(lane);
+            }
+            require(first.health() < afterFirstBlast, "A rearmed mine must detonate again in the next round.");
             context.succeed();
         } catch (RuntimeException | Error failure) {
             failure.printStackTrace();
             context.fail(Component.literal("Plant mine failed: " + failure.getMessage()));
         } finally {
             group.closeRuntime();
+            PlantSoilStates.clear(owner);
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    /**
+     * 지뢰는 라운드가 끝날 때마다 한 단계씩 삭고, 붉은 버섯은 사라집니다.
+     *
+     * <p>실제 레인에서 확인하는 이유는 삭는 과정이 타워를 갈아 끼우기 때문입니다. 판매가와 체력이
+     * 새 티어 기준으로 잡히는지, 자리와 소유자가 그대로인지는 카탈로그 값만 봐서는 알 수 없습니다.
+     */
+    @GameTest
+    public void myceliumMinesDecayOneTierEachRoundUntilTheyDisappear(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        UUID owner = stableUuid("plant-mine-decay-owner");
+        SemionGame game = null;
+        try {
+            TowerBalanceRuntime.apply(defaults);
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
+            game = startedPlantGame(context, owner);
+            game.players().get(owner).economy().addMineral(1_000);
+            PlayerLane lane = game.playerLane(owner).orElseThrow();
+            BlockPos terraformerPos = BlockPos.containing(lane.laneLayout().positionAt(0.35));
+            require(ProductionTowerService.placeTower(
+                    game, owner, terraformerPos, PlantTowers.T1_MUSHROOM_SPORE_TOWER.id())
+                    == TowerPlacementResult.SUCCESS, "Mycelium terraformer placement must succeed.");
+
+            BlockPos minePos = claimedEmptyPosition(lane, owner, PlantSoil.MYCELIUM, terraformerPos);
+            require(ProductionTowerService.placeTower(
+                    game, owner, minePos, PlantTowers.T1_MYCELIUM_TOWER.id()) == TowerPlacementResult.SUCCESS,
+                    "Mine placement must succeed.");
+            require(ProductionTowerService.upgradeTower(
+                    game, owner, GridPosition.from(minePos), PlantTowers.T2_MYCELIUM_TOWER.id())
+                    == TowerUpgradeResult.SUCCESS, "Mine upgrade must succeed.");
+
+            GridPosition grid = GridPosition.from(minePos);
+            JobContext jobContext = new JobContext(game, game.players().get(owner));
+
+            new PlantTowerJob().onRoundEnded(jobContext, 1);
+            var decayed = lane.towerAt(grid);
+            require(decayed instanceof PlantMineTower, "A decayed mine must still be a mine.");
+            require(PlantTowers.matches(decayed.type(), PlantTowers.T1_MYCELIUM_TOWER),
+                    "진홍빛 버섯 must decay into 붉은 버섯, found " + decayed.type().id());
+            require(owner.equals(decayed.ownerPlayer()), "Decay must keep the owner.");
+            requireClose(TowerBalanceRuntime.resolve(PlantTowers.T1_MYCELIUM_TOWER).maxHealth(), decayed.health(),
+                    "A decayed mine must carry the health of the tier it became.");
+            require(decayed.paidMineralCost()
+                            == TowerBalanceRuntime.resolve(PlantTowers.T1_MYCELIUM_TOWER).mineralCost(),
+                    "A decayed mine must be worth its new tier, not the one it was bought at.");
+
+            new PlantTowerJob().onRoundEnded(jobContext, 2);
+            require(lane.towerAt(grid) == null, "붉은 버섯 must disappear at the end of the next round.");
+            context.succeed();
+        } catch (RuntimeException | Error failure) {
+            failure.printStackTrace();
+            context.fail(Component.literal("Plant mine decay failed: " + failure.getMessage()));
+        } finally {
+            if (game != null) {
+                game.close();
+            }
             PlantSoilStates.clear(owner);
             TowerBalanceRuntime.apply(defaults);
         }
