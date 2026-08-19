@@ -2551,6 +2551,7 @@ public record TowerBalanceConfig(
         values.put("giantChargeTicks", 400.0);
         values.put("giantAccelerationRadius", 6.0);
         values.put("giantAccelerationMemoryTicks", 40.0);
+        values.put("giantExecutionVisualShrink", 0.20);
         values.put("giantInitialExecutionHealth", 5.0);
         values.put("giantExecutionGrowthRatio", 0.05);
         values.put("giantGrowthTargetCapMultiplier", 2.0);
@@ -2603,7 +2604,8 @@ public record TowerBalanceConfig(
         if (minimumStatScale <= 0.0 || minimumStatScale > 1.0) {
             throw new IllegalArgumentException("Queen minimumStatScale must be between 0 (exclusive) and 1.");
         }
-        for (String key : java.util.List.of("clubDamageReduction", "giantExecutionGrowthRatio", "giantSlow")) {
+        for (String key : java.util.List.of(
+                "clubDamageReduction", "giantExecutionVisualShrink", "giantExecutionGrowthRatio", "giantSlow")) {
             double value = values.getOrDefault(key, -1.0);
             if (value < 0.0 || value > 1.0) throw new IllegalArgumentException("Queen ratio must be between 0 and 1: " + key);
         }
