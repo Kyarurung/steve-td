@@ -1439,17 +1439,6 @@ public record TowerBalanceConfig(
         validateIntegral(ThunderTowers.SQUIRREL_T3.id(), false, "chainTargets");
     }
 
-    private void validateIntegralAbility(String configId, String key) {
-        Map<String, Double> values = abilities.get(configId);
-        Double value = values == null ? null : values.get(key);
-        if (value != null && (value > Integer.MAX_VALUE || value != Math.rint(value))) {
-            throw new IllegalArgumentException(
-                    "Tower balance count ability must be a whole number no greater than "
-                            + Integer.MAX_VALUE + ": " + configId + "." + key
-            );
-        }
-    }
-
     private void validateAtlantisAbilities() {
         String global = AtlantisBalance.CONFIG_ID;
         validateRatios(global,
