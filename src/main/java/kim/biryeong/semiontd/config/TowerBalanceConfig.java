@@ -3697,9 +3697,10 @@ public record TowerBalanceConfig(
     private static Map<String, Double> warlockGlobalAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("sacrificeRadius", 25.0);
+        values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1350.0);
+        values.put("awakeningKills", 1200.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -3716,7 +3717,7 @@ public record TowerBalanceConfig(
     private static Map<String, Double> rangedWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("threshold", 0.55);
-        values.put("roundStat", 0.40);
+        values.put("roundStat", 0.50);
         values.put("permanentHealth", 0.025);
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
@@ -3729,7 +3730,7 @@ public record TowerBalanceConfig(
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
-        values.put("splashDamage", 0.45);
+        values.put("splashDamage", 0.50);
         values.put("defenseThreshold", 3.0);
         values.put("defense", 0.15);
         values.put("petHealth", 0.04);
@@ -3753,7 +3754,7 @@ public record TowerBalanceConfig(
         values.put("damageThreshold", 200.0);
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
-        values.put("lifeCap", 0.12);
+        values.put("lifeCap", 0.14);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);
