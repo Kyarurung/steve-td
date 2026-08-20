@@ -24,6 +24,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 public final class SemionAdvancementService {
+    public static final ResourceLocation ROOT = id("root");
     public static final ResourceLocation TEAM_GAP_GG = id("team_gap_gg");
     public static final ResourceLocation CLUTCH = id("clutch");
     public static final ResourceLocation WHY_SO_FAST = id("why_so_fast");
@@ -37,6 +38,7 @@ public final class SemionAdvancementService {
     public static final ResourceLocation NEWBIE_EXIT = id("newbie_exit");
     public static final ResourceLocation VETERAN_100 = id("veteran_100");
     public static final Set<ResourceLocation> IDS = Set.of(
+            ROOT,
             TEAM_GAP_GG,
             CLUTCH,
             WHY_SO_FAST,

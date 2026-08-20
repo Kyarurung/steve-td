@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.gametest;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.advancements.AdvancementVisibilityEvaluator;
 
 public final class SemionAdvancementGameTest {
     @GameTest
@@ -32,7 +34,7 @@ public final class SemionAdvancementGameTest {
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(AdvancementHolder::id, advancement -> advancement));
         if (!loadedAdvancements.keySet().equals(SemionAdvancementService.IDS)) {
-            context.fail(Component.literal("All 12 Semion TD advancements should load: " + loadedAdvancements.keySet()));
+            context.fail(Component.literal("All Semion TD advancements and their root should load: " + loadedAdvancements.keySet()));
             return;
         }
         List<ResourceLocation> missingParents = loadedAdvancements.values().stream()
@@ -46,6 +48,36 @@ public final class SemionAdvancementGameTest {
             return;
         }
         context.succeed();
+    }
+
+    @GameTest
+    public void allSemionAdvancementsAreVisibleToNewPlayer(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        var manager = context.getLevel().getServer().getAdvancements();
+        AdvancementHolder root = manager.get(SemionAdvancementService.ROOT);
+        context.assertTrue(root != null, Component.literal("The Semion TD advancement root should load."));
+        player.getAdvancements().revoke(root, "visible");
+
+        context.succeedWhen(() -> {
+            context.assertTrue(
+                    player.getAdvancements().getOrStartProgress(root).isDone(),
+                    Component.literal("The Semion TD advancement root should unlock automatically.")
+            );
+            Set<ResourceLocation> visible = new HashSet<>();
+            AdvancementVisibilityEvaluator.evaluateVisibility(
+                    manager.tree().get(root),
+                    node -> player.getAdvancements().getOrStartProgress(node.holder()).isDone(),
+                    (node, isVisible) -> {
+                        if (isVisible) {
+                            visible.add(node.holder().id());
+                        }
+                    }
+            );
+            context.assertTrue(
+                    visible.containsAll(SemionAdvancementService.IDS),
+                    Component.literal("All Semion TD advancements should be visible: " + visible)
+            );
+        });
     }
 
     @GameTest

@@ -1,4 +1,5 @@
 {
+  "parent": "semion-td:root",
   "criteria": {
     "seen": {
       "trigger": "minecraft:impossible"
