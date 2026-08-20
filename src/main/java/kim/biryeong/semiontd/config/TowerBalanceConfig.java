@@ -3784,7 +3784,7 @@ public record TowerBalanceConfig(
                 GambleTowers.GAMBLER, GambleTowers.KING, GambleTowers.DARK_KING)) {
             for (GambleBet bet : GambleBet.values()) {
                 putUpgrade(upgradeCosts, gambler, bet.upgradeId(),
-                        bet == GambleBet.TWO_DICE ? 100 : 50);
+                        bet == GambleBet.TWO_DICE ? 160 : 80);
             }
         }
     }
