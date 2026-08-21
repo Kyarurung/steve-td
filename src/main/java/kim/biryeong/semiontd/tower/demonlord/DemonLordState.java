@@ -67,13 +67,12 @@ public final class DemonLordState {
         double base = global("baseMaxHealth", 450.0);
         double perLevel = global("maxHealthPerLevel", 52.5);
         double allocated = points(DemonLordStat.MAX_HEALTH) * global("statHealthPerPoint", 40.0);
-        double rawBonus = perLevel * (level - 1) + allocated;
-        double scaledBonus = LogarithmicScaling.logarithmicBonus(
-                rawBonus,
+        double scaledLevelBonus = LogarithmicScaling.logarithmicBonus(
+                perLevel * (level - 1),
                 global("healthBonusThreshold", 500.0),
                 global("healthBonusScale", 500.0)
         );
-        return Math.max(1.0, base + scaledBonus);
+        return Math.max(1.0, base + scaledLevelBonus + allocated);
     }
 
     // ------------------------------------------------------------------ 스탯
@@ -287,13 +286,13 @@ public final class DemonLordState {
 
     /** Scales every skill and blade hit. Levels grow it, and 공격력 points grow it further. */
     public double damageMultiplier() {
-        double rawBonus = global("damagePerLevel", 0.05) * (level - 1)
-                + points(DemonLordStat.ATTACK) * global("statAttackPerPoint", 0.04);
-        return 1.0 + LogarithmicScaling.logarithmicBonus(
-                rawBonus,
+        double scaledLevelBonus = LogarithmicScaling.logarithmicBonus(
+                global("damagePerLevel", 0.05) * (level - 1),
                 global("damageBonusThreshold", 0.5),
                 global("damageBonusScale", 0.5)
         );
+        double allocated = points(DemonLordStat.ATTACK) * global("statAttackPerPoint", 0.04);
+        return 1.0 + scaledLevelBonus + allocated;
     }
 
     public double bladeDamage() {

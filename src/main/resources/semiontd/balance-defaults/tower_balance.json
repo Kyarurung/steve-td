@@ -6299,7 +6299,6 @@
       "bladeAttackIntervalTicks": 12.0,
       "passiveExperiencePerRound": 6.0,
       "statPointsPerLevel": 3.0,
-      "statDiamondCost": 50.0,
       "statHealthPerPoint": 40.0,
       "statAttackPerPoint": 0.04,
       "statDefensePerPoint": 0.02,

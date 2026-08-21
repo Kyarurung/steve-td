@@ -1328,11 +1328,10 @@ public record TowerBalanceConfig(
         String global = DemonLordTowers.GLOBAL_CONFIG_ID;
         validatePositive(global,
                 "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks",
-                "healthBonusThreshold", "healthBonusScale", "damageBonusThreshold", "damageBonusScale",
-                "statDiamondCost");
+                "healthBonusThreshold", "healthBonusScale", "damageBonusThreshold", "damageBonusScale");
         validateAtLeast(global, 0.0,
                 "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage");
-        validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks", "statDiamondCost");
+        validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks");
         validateAtLeast(global, 1.0, "experienceGrowth");
 
         for (DemonLordSkill skill : DemonLordSkill.values()) {
@@ -3892,7 +3891,8 @@ public record TowerBalanceConfig(
         global.put("experiencePerMaxHealth", 0.02);
         global.put("experienceBase", 12.0);
         global.put("experienceGrowth", 1.25);
-        // 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 만렙에서 2.45배가 됩니다.
+        // 스킬과 평타 모두에 곱해집니다. 레벨 보너스만 로그 소프트캡을 적용하고,
+        // 공격력 포인트는 DemonLordState 에서 제한 없이 더합니다.
         global.put("damagePerLevel", 0.05);
         global.put("healthBonusThreshold", 500.0);
         global.put("healthBonusScale", 500.0);
@@ -3905,7 +3905,6 @@ public record TowerBalanceConfig(
         global.put("passiveExperiencePerRound", 6.0);
         // 스탯 포인트. 레벨업마다 받아 원하는 능력치에 넣습니다.
         global.put("statPointsPerLevel", 3.0);
-        global.put("statDiamondCost", 50.0);
         global.put("statHealthPerPoint", 40.0);
         global.put("statAttackPerPoint", 0.04);
         global.put("statDefensePerPoint", 0.02);

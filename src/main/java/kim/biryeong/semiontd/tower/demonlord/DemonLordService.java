@@ -129,7 +129,7 @@ public final class DemonLordService {
                         .map(game -> game.players().get(serverPlayer.getUUID()))
                         .orElse(null);
                 if (semionPlayer != null) {
-                    new DemonLordStatGui(serverPlayer, semionPlayer.economy()).open();
+                    new DemonLordStatGui(serverPlayer).open();
                     return InteractionResult.SUCCESS;
                 }
             }
