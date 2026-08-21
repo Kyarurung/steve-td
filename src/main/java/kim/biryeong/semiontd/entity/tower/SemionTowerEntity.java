@@ -527,7 +527,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
 
     public Tower.DamageResult damageTargetResult(SemionMonsterEntity target, double baseDamage) {
         if (runtimeTower == null || target == null) {return Tower.DamageResult.NONE;}
-        return runtimeTower.damageTargetResult(this, target, baseDamage);
+        return runtimeTower.damageBasicAttackTargetResult(this, target, baseDamage);
     }
 
     public Tower.DamageResult damageBasicAttackSecondaryTargetResult(SemionMonsterEntity target, double baseDamage) {

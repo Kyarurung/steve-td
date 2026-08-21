@@ -206,6 +206,7 @@ public final class SuccubusTower extends ProductionTower {
                 SuccubusDreams.add(target, lane, this, 1) ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED).appliedCount();
 
         Set<Tower> towers = lane.towers().stream().filter(tower -> tower.health() > 0.0)
+                .filter(tower -> !SuccubusTowers.isSuccubus(tower.type()))
                 .filter(tower -> distanceSqr(tower, this) <= radius * radius)
                 .sorted(Comparator.comparingInt(SuccubusDreams::stacks)).limit(allyLimit).collect(java.util.stream.Collectors.toSet());
         TowerAreaEffectRequest towerRequest = new TowerAreaEffectRequest(

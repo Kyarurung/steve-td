@@ -38,7 +38,8 @@ public final class SuccubusDreams {
     }
 
     public static boolean add(Tower target, PlayerLane lane, Tower source, int amount) {
-        if (target == null || lane == null || source == null || amount <= 0 || target.health() <= 0.0) return false;
+        if (target == null || lane == null || source == null || amount <= 0 || target.health() <= 0.0
+                || SuccubusTowers.isSuccubus(target.type())) return false;
         DreamState state = TOWERS.computeIfAbsent(TowerKey.of(target), ignored -> new DreamState());
         boolean wasAsleep = state.asleep;
         boolean changed = add(state, lane, source, amount, SuccubusBalance.towerSleepDurationTicks());

@@ -543,7 +543,41 @@ public abstract class Tower {
         return damageResolvedTargetResult(towerEntity, target, outgoingDamage, damageType);
     }
 
+    public DamageResult damageBasicAttackTargetResult(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage
+    ) {
+        return damageBasicAttackTargetResult(towerEntity, target, baseDamage, primaryDamageType());
+    }
+
+    public DamageResult damageBasicAttackTargetResult(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage,
+            DamageType damageType
+    ) {
+        if (towerEntity == null || target == null || !Double.isFinite(baseDamage)) {
+            return DamageResult.NONE;
+        }
+        double outgoingDamage = resolveBasicAttackOutgoingDamage(towerEntity, target, baseDamage);
+        return damageResolvedTargetResult(towerEntity, target, outgoingDamage, damageType);
+    }
+
     public double resolveOutgoingDamage(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double baseDamage
+    ) {
+        if (towerEntity == null || !Double.isFinite(baseDamage)) {
+            return 0.0;
+        }
+        double damageWithTimedBonus = baseDamage * (1.0
+                + towerEntity.activeEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS));
+        return resolveBasicAttackOutgoingDamage(towerEntity, target, damageWithTimedBonus);
+    }
+
+    public double resolveBasicAttackOutgoingDamage(
             SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
             double baseDamage

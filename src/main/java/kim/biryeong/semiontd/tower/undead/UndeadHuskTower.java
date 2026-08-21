@@ -73,7 +73,14 @@ public class UndeadHuskTower extends UndeadTowerSupport {
                 AreaEffectIds.tower(this, "thorns"), towerEntity, thornRadius(),
                 AreaVfxSpec.onTrigger(AreaVfxStyles.PULSE)
         );
-        int hitCount = TowerAreaDamage.apply(this, towerEntity, request, towerEntity::attackDamageAmount, true).appliedCount();
+        int hitCount = TowerAreaDamage.applyResolved(
+                this,
+                towerEntity,
+                request,
+                target -> resolveBasicAttackOutgoingDamage(towerEntity, target, towerEntity.attackDamageAmount(target)),
+                true,
+                (target, damage, killed) -> {}
+        ).appliedCount();
         if (hitCount > 0) {
             towerEntity.healTarget(towerEntity, value("thornHealPerHit") * hitCount);
             thornCooldownTicks = thornCooldownTicks();

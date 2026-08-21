@@ -10,6 +10,7 @@ import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
@@ -207,6 +208,65 @@ public final class SuccubusGameTest {
         } finally {
             SuccubusDreams.clearLane(lane);
             AreaEffectLaneIndex.unregister(lane);
+        }
+    }
+
+    @GameTest
+    public void succubusTowerCannotReceiveDreamStacksOrConsumeLullabyTargets(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        PlayerLane lane = testLane(context);
+        AreaEffectLaneIndex.register(lane);
+        SuccubusTower succubus = tower(SuccubusTowers.SUCCUBUS, position(context, 3, 2, 4));
+        SuccubusTower lullaby = tower(SuccubusTowers.LULLABY_T1, position(context, 4, 2, 4));
+        lane.addTower(succubus);
+        lane.addTower(lullaby);
+        lane.addTower(tower(SuccubusTowers.DREAM_DUST_T1, position(context, 5, 2, 4)));
+        lane.addTower(tower(SuccubusTowers.DREAM_DUST_T1, position(context, 6, 2, 4)));
+        try {
+            require(!SuccubusDreams.add(succubus, lane, lullaby, 10),
+                    "The unique Succubus tower must reject direct dream stacks.");
+            require(lullaby.execute(lane), "Lullaby pulse must execute.");
+            require(SuccubusDreams.stacks(succubus) == 0 && !SuccubusDreams.isAsleep(succubus),
+                    "The unique Succubus tower must remain outside dream state.");
+            long dreamedTowers = lane.towers().stream().filter(tower -> SuccubusDreams.stacks(tower) > 0).count();
+            require(dreamedTowers == 2, "Excluded Succubus must not consume a Lullaby ally target slot.");
+            context.succeed();
+        } finally {
+            SuccubusDreams.clearLane(lane);
+            AreaEffectLaneIndex.unregister(lane);
+        }
+    }
+
+    @GameTest
+    public void dreamDamageBonusAppliesOnceToBasicAndMagicAbilityDamage(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        PlayerLane lane = testLane(context);
+        SuccubusTower source = tower(SuccubusTowers.DREAM_DUST_T1, position(context, 2, 2, 4));
+        SuccubusTower recipient = tower(SuccubusTowers.DREAM_DUST_T1, position(context, 4, 2, 4));
+        lane.addTower(source);
+        lane.addTower(recipient);
+        SemionTowerEntity recipientEntity = (SemionTowerEntity) context.getLevel()
+                .getEntity(recipient.entityId().orElseThrow());
+        SemionMonsterEntity basicTarget = spawnMonster(context, lane, "dream-basic", position(context, 5, 2, 4));
+        SemionMonsterEntity magicTarget = spawnMonster(context, lane, "dream-magic", position(context, 6, 2, 4));
+        SemionMonsterEntity resolvedTarget = spawnMonster(context, lane, "dream-resolved", position(context, 7, 2, 4));
+        try {
+            require(SuccubusDreams.add(recipient, lane, source, 1), "Dream stack must apply to the recipient.");
+            double expectedBasic = recipient.type().damage() * 1.10;
+            double basicDamage = recipientEntity.attackDamageAmount(basicTarget);
+            requireClose(expectedBasic, basicDamage, "Dream basic damage preview");
+            requireClose(expectedBasic, recipientEntity.damageTargetResult(basicTarget, basicDamage).outgoingDamage(),
+                    "Dream basic damage must not double apply");
+            requireClose(110.0,
+                    recipient.damageTargetResult(recipientEntity, magicTarget, 100.0, DamageType.MAGIC).outgoingDamage(),
+                    "Dream magic ability damage");
+            requireClose(100.0,
+                    recipient.damageResolvedTargetResult(recipientEntity, resolvedTarget, 100.0, DamageType.MAGIC)
+                            .outgoingDamage(),
+                    "Resolved damage must remain excluded");
+            context.succeed();
+        } finally {
+            SuccubusDreams.clearLane(lane);
         }
     }
 

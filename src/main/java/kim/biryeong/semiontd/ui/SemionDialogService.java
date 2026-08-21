@@ -54,6 +54,7 @@ import kim.biryeong.semiontd.tower.hero.HeroPartyState;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.hero.HeroTower;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.trait.SemionTrait;
@@ -1331,14 +1332,14 @@ public final class SemionDialogService {
             return 0.0;
         }
         double baseDamage = towerPrimaryDamage(tower);
-        if (tower.primaryDamageType() == DamageType.MAGIC) {
+        if (tower.primaryDamageType() == DamageType.MAGIC && !SuccubusTowers.isSuccubusTower(tower.type())) {
             return towerEntity == null
                     ? baseDamage
                     : tower.resolveOutgoingDamage(towerEntity, null, baseDamage);
         }
         return towerEntity == null
                 ? tower.modifyAttackDamage(null, null, baseDamage)
-                : tower.resolveOutgoingDamage(towerEntity, null, towerEntity.attackDamageAmount(null));
+                : tower.resolveBasicAttackOutgoingDamage(towerEntity, null, towerEntity.attackDamageAmount(null));
     }
 
     private static double primaryDamage(TowerType type, DamageType damageType) {

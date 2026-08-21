@@ -39,6 +39,7 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.description.TowerDescriptionRegistry;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
@@ -114,6 +115,8 @@ class HeroPartyTowerCatalogTest {
         assertEquals(19.5F, FakePlayerTowerVisuals.correctedPitch(-18.0F, true));
         assertEquals(-18.0F, FakePlayerTowerVisuals.correctedPitch(-18.0F, false));
         assertEquals(90.0F, FakePlayerTowerVisuals.correctedPitch(80.0F, true));
+        assertEquals(0.0F, FakePlayerTowerVisuals.visualPitch(SuccubusTowers.SUCCUBUS, -18.0F, true));
+        assertEquals(0.0F, FakePlayerTowerVisuals.visualPitch(SuccubusTowers.SUCCUBUS, 42.0F, false));
     }
 
     @Test

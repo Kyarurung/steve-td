@@ -348,7 +348,7 @@ public final class FakePlayerTowerVisuals {
             double y = anchor.getY();
             double z = anchor.getZ();
             float yaw = anchor.getYHeadRot();
-            float pitch = correctedPitch(anchor.getXRot(), anchor.currentAttackTarget() != null);
+            float pitch = visualPitch(tower.type(), anchor.getXRot(), anchor.currentAttackTarget() != null);
             if (forceMove || ticks % 2 == 0 && (x != lastX || y != lastY || z != lastZ
                     || yaw != lastYaw || pitch != lastPitch)) {
                 fakePlayer.snapTo(x, y, z, yaw, pitch);
@@ -431,5 +431,9 @@ public final class FakePlayerTowerVisuals {
 
     static float correctedPitch(float pitch, boolean hasTarget) {
         return hasTarget ? Mth.clamp(pitch + COMBAT_PITCH_CORRECTION, -90.0F, 90.0F) : pitch;
+    }
+
+    static float visualPitch(TowerType type, float pitch, boolean hasTarget) {
+        return SuccubusTowers.isSuccubus(type) ? 0.0F : correctedPitch(pitch, hasTarget);
     }
 }
