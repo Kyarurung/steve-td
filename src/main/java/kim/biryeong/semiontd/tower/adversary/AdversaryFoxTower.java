@@ -1505,19 +1505,13 @@ public final class AdversaryFoxTower extends EntityBackedTower {
         );
     }
 
-    /**
-     * Reproduces the generic pre-trait damage bonuses for attacks whose ordinary
-     * basic hit is intentionally zero.  The returned value still goes through
-     * {@link #damageTargetResult}, so traits, final multipliers and monster
-     * defenses are each applied exactly once.
-     */
+    /** Applies the target-category bonuses that are not part of the shared damage pipeline. */
     private double specialAttackDamage(
             SemionTowerEntity source,
             SemionMonsterEntity target,
             double baseDamage
     ) {
-        double damage = baseDamage * (1.0
-                + source.activeEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS));
+        double damage = baseDamage;
         if (target != null && target.runtimeMonster() != null) {
             TimedEffectType specialization = target.runtimeMonster().senderTeam().isPresent()
                     ? TimedEffectType.TOWER_INCOME_DAMAGE_BONUS

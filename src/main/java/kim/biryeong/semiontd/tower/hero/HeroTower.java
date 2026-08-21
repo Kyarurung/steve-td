@@ -137,7 +137,7 @@ public final class HeroTower extends HeroPartyTower {
             double dealtDamage,
             boolean killedTarget
     ) {
-        HeroPlayerVisuals.playAttack(this);
+        FakePlayerTowerVisuals.playAttack(this);
         HeroWeapon weapon = weapon();
         int level = state().weaponLevel(weapon);
         int attackNumber = ++attackCount;
@@ -292,7 +292,9 @@ public final class HeroTower extends HeroPartyTower {
                 .limit(ratios.length)
                 .toList();
         for (int index = 0; index < candidates.size(); index++) {
-            DamageResult result = damageTargetResult(source, candidates.get(index), damage * ratios[index]);
+            DamageResult result = damageBasicAttackTargetResult(
+                    source, candidates.get(index), damage * ratios[index], primaryDamageType()
+            );
             if (result.killed()) {
                 onKill(source, candidates.get(index), damage * ratios[index]);
             }
@@ -323,11 +325,11 @@ public final class HeroTower extends HeroPartyTower {
                 radius,
                 AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
         );
-        TowerAreaDamage.apply(
+        TowerAreaDamage.applyResolved(
                 this,
                 source,
                 request,
-                ignored -> damage,
+                target -> resolveBasicAttackOutgoingDamage(source, target, damage),
                 true,
                 (target, dealt, killed) -> {
                     state().recordWeaponAttack(weapon, dealt, killed, onlineOwner(source));

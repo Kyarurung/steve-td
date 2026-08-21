@@ -31,6 +31,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerRoundMetricsTracker;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
+import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
 import kim.biryeong.semiontd.tower.plant.PlantSoilEnvironment;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
 import kim.biryeong.semiontd.tower.resonance.ResonanceService;
@@ -210,6 +211,7 @@ public final class PlayerLane {
         // markWaveStarted 의 짝: 여기서 전투를 풀지 않으면 준비 단계까지 스킬 핫바가 유지됩니다.
         DemonLordService.endRound(ownerPlayer);
         clearTranscendence();
+        SuccubusDreams.clearLane(this);
         clearedThisRound = false;
         leakedThisRound = false;
         towersMovedToFinalDefense = false;
@@ -414,6 +416,7 @@ public final class PlayerLane {
         spawnQueuedMonster(summonedMonsterSpawnQueue, players, false);
 
         applyTranscendenceIfReady(roundElapsedTicks);
+        SuccubusDreams.tick(this);
         tickTowers();
         PlantSoilEnvironment.tick(this);
         DemonLordService.tick(this, players);

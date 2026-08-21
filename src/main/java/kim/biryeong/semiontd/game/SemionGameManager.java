@@ -84,7 +84,7 @@ import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.engineer.EngineerRedstoneBossBarService;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkins;
-import kim.biryeong.semiontd.tower.hero.HeroPlayerVisuals;
+import kim.biryeong.semiontd.tower.hero.FakePlayerTowerVisuals;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidBossBarService;
 import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
 import kim.biryeong.semiontd.tower.mage.MageManaBossBarService;
@@ -886,7 +886,7 @@ public final class SemionGameManager {
             return false;
         }
         HeroCompanionSkins.set(playerId, role, skin);
-        HeroPlayerVisuals.refreshSkin(playerId, role);
+        FakePlayerTowerVisuals.refreshSkin(playerId, role);
         return true;
     }
 
