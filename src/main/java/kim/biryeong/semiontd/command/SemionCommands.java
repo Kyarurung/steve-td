@@ -470,6 +470,13 @@ public final class SemionCommands {
                                         gameManager,
                                         StringArgumentType.getString(context, "title")
                                 ))))
+                .then(literal("추적")
+                        .then(argument("code", StringArgumentType.word())
+                                .executes(context -> trackBuild(
+                                        context.getSource(),
+                                        gameManager,
+                                        StringArgumentType.getString(context, "code")
+                                ))))
                 .then(literal("목록")
                         .executes(context -> buildListDialog(context.getSource(), gameManager))));
 
