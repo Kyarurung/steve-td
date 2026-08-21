@@ -45,7 +45,7 @@ class SuccubusTowerCatalogTest {
         assertEquals(5, entries.stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count());
         assertEquals("succubus", SuccubusTowers.SUCCUBUS.id());
         assertEquals("서큐버스 타워", SuccubusTowers.SUCCUBUS.displayName());
-        assertEquals(500, SuccubusTowers.SUCCUBUS.mineralCost());
+        assertEquals(120, SuccubusTowers.SUCCUBUS.mineralCost());
     }
 
     @Test
@@ -69,12 +69,30 @@ class SuccubusTowerCatalogTest {
         assertUpgrade(SuccubusTowers.LULLABY_T1, SuccubusTowers.LULLABY_T2, 120);
         assertUpgrade(SuccubusTowers.NIGHTMARE_T2, SuccubusTowers.NIGHTMARE_T3, 270);
         assertEquals(10, config.abilityInt(SuccubusBalance.CONFIG_ID, "maxStacks", -1));
+        assertEquals(100, config.abilityInt(SuccubusBalance.CONFIG_ID, "sleepDurationTicks", -1));
+        assertEquals(40, config.abilityInt(SuccubusBalance.CONFIG_ID, "towerSleepDurationTicks", -1));
         assertEquals(0.50, config.ability(SuccubusBalance.CONFIG_ID, "succubusAmplification", -1));
+        assertEquals(0.30, config.ability(SuccubusBalance.CONFIG_ID, "monsterWakeBonusDamage", -1));
         assertEquals(0.10, config.ability(SuccubusTowers.SLEEPWALKER_T1.id(), "dreamDamageReduction", -1));
         assertEquals(0.15, config.ability(SuccubusTowers.SLEEPWALKER_T2.id(), "dreamDamageReduction", -1));
         assertEquals(0.20, config.ability(SuccubusTowers.SLEEPWALKER_T3.id(), "dreamDamageReduction", -1));
         assertEquals(0.03, config.ability(SuccubusBalance.CONFIG_ID, "absorbAttackRatio", -1));
         assertEquals(0.01, config.ability(SuccubusBalance.CONFIG_ID, "absorbMaxHealthRatio", -1));
+        assertEquals(1, config.abilityInt(SuccubusTowers.SLEEPWALKER_T1.id(), "counterStacks", -1));
+        assertEquals(2, config.abilityInt(SuccubusTowers.SLEEPWALKER_T2.id(), "counterStacks", -1));
+        assertEquals(3, config.abilityInt(SuccubusTowers.SLEEPWALKER_T3.id(), "counterStacks", -1));
+        assertEquals(2, config.abilityInt(SuccubusTowers.LULLABY_T1.id(), "allyMaxTargets", -1));
+        assertEquals(3, config.abilityInt(SuccubusTowers.LULLABY_T1.id(), "enemyMaxTargets", -1));
+        assertEquals(3, config.abilityInt(SuccubusTowers.LULLABY_T2.id(), "allyMaxTargets", -1));
+        assertEquals(5, config.abilityInt(SuccubusTowers.LULLABY_T2.id(), "enemyMaxTargets", -1));
+        assertEquals(4, config.abilityInt(SuccubusTowers.LULLABY_T3.id(), "allyMaxTargets", -1));
+        assertEquals(7, config.abilityInt(SuccubusTowers.LULLABY_T3.id(), "enemyMaxTargets", -1));
+        assertEquals(14, SuccubusTowers.DREAM_DUST_T1.attackIntervalTicks());
+        assertEquals(12, SuccubusTowers.DREAM_DUST_T2.attackIntervalTicks());
+        assertEquals(10, SuccubusTowers.DREAM_DUST_T3.attackIntervalTicks());
+        assertEquals(16, SuccubusTowers.NIGHTMARE_T1.attackIntervalTicks());
+        assertEquals(14, SuccubusTowers.NIGHTMARE_T2.attackIntervalTicks());
+        assertEquals(12, SuccubusTowers.NIGHTMARE_T3.attackIntervalTicks());
     }
 
     @Test

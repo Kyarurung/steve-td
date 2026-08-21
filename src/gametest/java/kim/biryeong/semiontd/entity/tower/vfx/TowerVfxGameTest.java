@@ -387,6 +387,19 @@ public final class TowerVfxGameTest {
     }
 
     @GameTest
+    public void succubusDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("stack", "sleep", "smoke", "wake", "absorb")) {
+            String command = "semiontd-debug vfx succubus " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void plantLobDebugCommandParses(GameTestHelper context) {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         var parsed = dispatcher.parse(

@@ -646,6 +646,12 @@ public final class SemionCommands {
                                 .then(literal("sleep")
                                         .executes(context -> debugSuccubusVfx(
                                                 context.getSource(), SuccubusVfx.DebugKind.SLEEP)))
+                                .then(literal("smoke")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.SMOKE)))
+                                .then(literal("wake")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.WAKE)))
                                 .then(literal("absorb")
                                         .executes(context -> debugSuccubusVfx(
                                                 context.getSource(), SuccubusVfx.DebugKind.ABSORB))))

@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.entity.tower;
 import de.tomalbrc.bil.api.AnimatedEntity;
 import de.tomalbrc.bil.api.AnimatedEntityHolder;
 import de.tomalbrc.bil.core.holder.entity.living.LivingEntityHolder;
+import com.mojang.datafixers.util.Pair;
 import eu.pb4.polymer.core.api.entity.PolymerEntityUtils;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.EntityAttachment;
@@ -51,6 +52,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
@@ -59,6 +61,7 @@ import com.faboslav.friendsandfoes.common.entity.MoobloomEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -937,6 +940,21 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             return EntityType.ARMOR_STAND;
         }
         return polymerEntityType;
+    }
+
+    @Override
+    public List<Pair<EquipmentSlot, ItemStack>> getPolymerVisibleEquipment(
+            List<Pair<EquipmentSlot, ItemStack>> items,
+            ServerPlayer player
+    ) {
+        if (polymerEntityType != EntityType.ALLAY) {
+            return items;
+        }
+        return items.stream()
+                .map(item -> item.getFirst() == EquipmentSlot.MAINHAND || item.getFirst() == EquipmentSlot.OFFHAND
+                        ? Pair.of(item.getFirst(), ItemStack.EMPTY)
+                        : item)
+                .toList();
     }
 
     @Override

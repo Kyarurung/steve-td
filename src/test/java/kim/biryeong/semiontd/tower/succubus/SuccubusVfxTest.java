@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.tower.succubus;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
@@ -33,12 +34,16 @@ class SuccubusVfxTest {
         CapturingRegistry registry = new CapturingRegistry();
         SuccubusVfx.register(registry);
 
-        for (ResourceLocation id : List.of(SuccubusVfx.STACK, SuccubusVfx.SLEEP, SuccubusVfx.ABSORB)) {
+        for (ResourceLocation id : List.of(SuccubusVfx.STACK, SuccubusVfx.SLEEP,
+                SuccubusVfx.SLEEP_SMOKE, SuccubusVfx.ABSORB)) {
             CountingOutput output = new CountingOutput();
             registry.find(id).orElseThrow().plan(context(id), output);
             assertTrue(output.instructions > 0, id + " must emit geometry");
             assertTrue(output.points <= 100, id + " exceeds its particle instruction budget");
             assertTrue(output.finite, id + " emitted a non-finite coordinate");
+            if (id.equals(SuccubusVfx.SLEEP_SMOKE)) {
+                assertFalse(output.essential, "sleep smoke must yield to the non-essential particle budget");
+            }
         }
     }
 
@@ -62,22 +67,24 @@ class SuccubusVfxTest {
         private int instructions;
         private int points;
         private boolean finite = true;
+        private boolean essential;
 
         @Override public void line(AreaVfxParticle particle, Vec3 start, Vec3 end, int count, boolean essential) {
-            record(count, start, end);
+            record(count, essential, start, end);
         }
         @Override public void circle(AreaVfxParticle particle, Vec3 center, double radius, int count, boolean essential) {
-            record(count, center); finite &= Double.isFinite(radius);
+            record(count, essential, center); finite &= Double.isFinite(radius);
         }
         @Override public void sphere(AreaVfxParticle particle, Vec3 center, double radius, int count, boolean essential) {
-            record(count, center); finite &= Double.isFinite(radius);
+            record(count, essential, center); finite &= Double.isFinite(radius);
         }
         @Override public void trail(AreaVfxParticle particle, Vec3 start, Vec3 control, Vec3 end, int count, boolean essential) {
-            record(count, start, control, end);
+            record(count, essential, start, control, end);
         }
-        private void record(int count, Vec3... positions) {
+        private void record(int count, boolean essential, Vec3... positions) {
             instructions++;
             points += count;
+            this.essential |= essential;
             for (Vec3 position : positions) {
                 finite &= Double.isFinite(position.x) && Double.isFinite(position.y) && Double.isFinite(position.z);
             }

@@ -931,6 +931,7 @@ public record TowerBalanceConfig(
                 Map.entry("maxStacks", (double) SuccubusBalance.MAX_STACKS),
                 Map.entry("stackDurationTicks", (double) SuccubusBalance.STACK_DURATION_TICKS),
                 Map.entry("sleepDurationTicks", (double) SuccubusBalance.SLEEP_DURATION_TICKS),
+                Map.entry("towerSleepDurationTicks", (double) SuccubusBalance.TOWER_SLEEP_DURATION_TICKS),
                 Map.entry("awakenedImmunityTicks", (double) SuccubusBalance.AWAKENED_IMMUNITY_TICKS),
                 Map.entry("spreadStacks", (double) SuccubusBalance.SPREAD_STACKS),
                 Map.entry("spreadRadius", SuccubusBalance.SPREAD_RADIUS),
@@ -950,31 +951,33 @@ public record TowerBalanceConfig(
         putAbilities(abilities, SuccubusTowers.DREAM_DUST_T1.id(), Map.of("stackEvery", 3.0));
         putAbilities(abilities, SuccubusTowers.DREAM_DUST_T2.id(), Map.of("stackEvery", 2.0));
         putAbilities(abilities, SuccubusTowers.DREAM_DUST_T3.id(), Map.of("stackEvery", 1.0));
-        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T1, 60, 0.10);
-        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T2, 40, 0.15);
-        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T3, 30, 0.20);
-        putLullaby(abilities, SuccubusTowers.LULLABY_T1, 120, 4.5, 2);
-        putLullaby(abilities, SuccubusTowers.LULLABY_T2, 100, 5.0, 3);
-        putLullaby(abilities, SuccubusTowers.LULLABY_T3, 80, 5.5, 4);
+        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T1, 60, 1, 0.10);
+        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T2, 40, 2, 0.15);
+        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T3, 30, 3, 0.20);
+        putLullaby(abilities, SuccubusTowers.LULLABY_T1, 120, 4.5, 2, 3);
+        putLullaby(abilities, SuccubusTowers.LULLABY_T2, 100, 5.0, 3, 5);
+        putLullaby(abilities, SuccubusTowers.LULLABY_T3, 80, 5.5, 4, 7);
         putNightmare(abilities, SuccubusTowers.NIGHTMARE_T1, 5, 0.0);
         putNightmare(abilities, SuccubusTowers.NIGHTMARE_T2, 3, 0.25);
         putNightmare(abilities, SuccubusTowers.NIGHTMARE_T3, 0, 0.50);
     }
 
     private static void putSleepwalker(Map<String, Map<String, Double>> abilities, TowerType type,
-                                       int cooldownTicks, double reduction) {
+                                       int cooldownTicks, int counterStacks, double reduction) {
         putAbilities(abilities, type.id(), Map.of(
                 "counterCooldownTicks", (double) cooldownTicks,
+                "counterStacks", (double) counterStacks,
                 "dreamDamageReduction", reduction
         ));
     }
 
     private static void putLullaby(Map<String, Map<String, Double>> abilities, TowerType type,
-                                   int intervalTicks, double radius, int maxTargets) {
+                                   int intervalTicks, double radius, int allyMaxTargets, int enemyMaxTargets) {
         putAbilities(abilities, type.id(), Map.of(
                 "pulseIntervalTicks", (double) intervalTicks,
                 "radius", radius,
-                "maxTargets", (double) maxTargets
+                "allyMaxTargets", (double) allyMaxTargets,
+                "enemyMaxTargets", (double) enemyMaxTargets
         ));
     }
 
@@ -1346,9 +1349,9 @@ public record TowerBalanceConfig(
 
     private void validateSuccubusAbilities() {
         String global = SuccubusBalance.CONFIG_ID;
-        validatePositive(global, "maxStacks", "stackDurationTicks", "sleepDurationTicks",
+        validatePositive(global, "maxStacks", "stackDurationTicks", "sleepDurationTicks", "towerSleepDurationTicks",
                 "awakenedImmunityTicks", "spreadStacks", "spreadRadius", "executionSleepCount");
-        validateIntegral(global, false, "maxStacks", "stackDurationTicks", "sleepDurationTicks",
+        validateIntegral(global, false, "maxStacks", "stackDurationTicks", "sleepDurationTicks", "towerSleepDurationTicks",
                 "awakenedImmunityTicks", "spreadStacks", "executionSleepCount");
         validateRatios(global, "allyDamagePerStack", "allyAttackSpeedPerStack",
                 "enemyAttackSpeedPerStack", "enemyMoveSpeedPerStack", "succubusAmplification",
@@ -1358,8 +1361,13 @@ public record TowerBalanceConfig(
         for (TowerType type : List.of(SuccubusTowers.SLEEPWALKER_T1, SuccubusTowers.SLEEPWALKER_T2,
                 SuccubusTowers.SLEEPWALKER_T3)) {
             validateRatios(type.id(), "dreamDamageReduction");
-            validatePositive(type.id(), "counterCooldownTicks");
-            validateIntegral(type.id(), false, "counterCooldownTicks");
+            validatePositive(type.id(), "counterCooldownTicks", "counterStacks");
+            validateIntegral(type.id(), false, "counterCooldownTicks", "counterStacks");
+        }
+        for (TowerType type : List.of(SuccubusTowers.LULLABY_T1, SuccubusTowers.LULLABY_T2,
+                SuccubusTowers.LULLABY_T3)) {
+            validatePositive(type.id(), "pulseIntervalTicks", "radius", "allyMaxTargets", "enemyMaxTargets");
+            validateIntegral(type.id(), false, "pulseIntervalTicks", "allyMaxTargets", "enemyMaxTargets");
         }
     }
 

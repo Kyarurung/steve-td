@@ -160,7 +160,8 @@ public final class SuccubusTower extends ProductionTower {
         long now = towerEntity.level().getGameTime();
         long ready = counterReadyAt.getOrDefault(monster.getUUID(), 0L);
         if (now >= ready) {
-            SuccubusDreams.add(monster, lane, this, 1);
+            int stacks = Math.max(1, SuccubusBalance.abilityInt(type().id(), "counterStacks", 1));
+            SuccubusDreams.add(monster, lane, this, stacks);
             int cooldown = Math.max(1, SuccubusBalance.abilityInt(type().id(), "counterCooldownTicks", 60));
             counterReadyAt.put(monster.getUUID(), now + cooldown);
         }
@@ -188,14 +189,16 @@ public final class SuccubusTower extends ProductionTower {
         SemionTowerEntity source = entity(lane);
         if (source == null || !source.isAlive()) return false;
         double radius = SuccubusBalance.ability(type().id(), "radius", 4.5);
-        int limit = Math.max(1, SuccubusBalance.abilityInt(type().id(), "maxTargets", 2));
+        int legacyLimit = Math.max(1, SuccubusBalance.abilityInt(type().id(), "maxTargets", 2));
+        int enemyLimit = Math.max(1, SuccubusBalance.abilityInt(type().id(), "enemyMaxTargets", legacyLimit));
+        int allyLimit = Math.max(1, SuccubusBalance.abilityInt(type().id(), "allyMaxTargets", legacyLimit));
 
         Set<UUID> monsters = lane.activeMonsters().stream().filter(monster -> monster.minecraftEntityId() >= 0)
                 .map(monster -> lane.arenaWorld().getEntity(monster.minecraftEntityId()))
                 .filter(SemionMonsterEntity.class::isInstance).map(SemionMonsterEntity.class::cast)
                 .filter(monster -> monster.isAlive() && monster.position().distanceToSqr(source.position()) <= radius * radius)
                 .sorted(Comparator.comparingInt((SemionMonsterEntity monster) -> SuccubusDreams.stacks(monster)).reversed())
-                .limit(limit).map(SemionMonsterEntity::getUUID).collect(java.util.stream.Collectors.toSet());
+                .limit(enemyLimit).map(SemionMonsterEntity::getUUID).collect(java.util.stream.Collectors.toSet());
         MonsterAreaEffectRequest monsterRequest = MonsterAreaEffectRequest.aroundTower(
                 LULLABY_MONSTERS, source, radius, AreaVfxSpec.onChange(AreaVfxStyles.DEBUFF))
                 .withFilter(target -> monsters.contains(target.getUUID()));
@@ -204,7 +207,7 @@ public final class SuccubusTower extends ProductionTower {
 
         Set<Tower> towers = lane.towers().stream().filter(tower -> tower.health() > 0.0)
                 .filter(tower -> distanceSqr(tower, this) <= radius * radius)
-                .sorted(Comparator.comparingInt(SuccubusDreams::stacks)).limit(limit).collect(java.util.stream.Collectors.toSet());
+                .sorted(Comparator.comparingInt(SuccubusDreams::stacks)).limit(allyLimit).collect(java.util.stream.Collectors.toSet());
         TowerAreaEffectRequest towerRequest = new TowerAreaEffectRequest(
                 LULLABY_TOWERS, source, source.position(), radius, TowerAreaTargetMode.REGISTERED,
                 true, target -> towers.contains(target.tower()), AreaVfxSpec.onChange(AreaVfxStyles.BUFF));
