@@ -20,6 +20,7 @@ import kim.biryeong.semiontd.tower.army.ArmyBalance;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisBalance;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
+import kim.biryeong.semiontd.tower.body.BodyTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerBalance;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
@@ -245,6 +246,7 @@ public record TowerBalanceConfig(
         addDemonLordTowers(towers);
         addGambleTowers(towers);
         addSuccubusTowers(towers);
+        addBodyTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -329,6 +331,7 @@ public record TowerBalanceConfig(
         putDemonLordUpgrades(upgradeCosts);
         putGambleUpgrades(upgradeCosts);
         putSuccubusUpgrades(upgradeCosts);
+        putBodyUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -900,6 +903,7 @@ public record TowerBalanceConfig(
         putDemonLordAbilities(abilities);
         putGambleAbilities(abilities);
         putSuccubusAbilities(abilities);
+        putBodyAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -986,6 +990,84 @@ public record TowerBalanceConfig(
         putAbilities(abilities, type.id(), Map.of(
                 "minimumStacks", (double) minimumStacks,
                 "sleepingDamageBonus", sleepingDamageBonus
+        ));
+    }
+
+    private static void addBodyTowers(Map<String, TowerStats> towers) {
+        BodyTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putBodyUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, BodyTowers.HEART_T1, BodyTowers.HEART_T2.id(), 145);
+        putUpgrade(upgrades, BodyTowers.HEART_T2, BodyTowers.HEART_T3.id(), 270);
+        putUpgrade(upgrades, BodyTowers.BRAIN_T1, BodyTowers.BRAIN_T2.id(), 110);
+        putUpgrade(upgrades, BodyTowers.BRAIN_T2, BodyTowers.BRAIN_T3.id(), 200);
+        putUpgrade(upgrades, BodyTowers.SKIN_T1, BodyTowers.SKIN_T2.id(), 110);
+        putUpgrade(upgrades, BodyTowers.SKIN_T2, BodyTowers.SKIN_T3.id(), 210);
+        putUpgrade(upgrades, BodyTowers.EYE_T1, BodyTowers.EYE_T2.id(), 110);
+        putUpgrade(upgrades, BodyTowers.EYE_T2, BodyTowers.EYE_T3.id(), 220);
+        putUpgrade(upgrades, BodyTowers.GENITAL_T1, BodyTowers.GENITAL_T2.id(), 100);
+        putUpgrade(upgrades, BodyTowers.GENITAL_T2, BodyTowers.GENITAL_T3.id(), 205);
+    }
+
+    private static void putBodyAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, BodyTowers.HEART_T2.id(), Map.of(
+                "maxDeathStacks", 60.0,
+                "stacksPerIntervalReduction", 15.0
+        ));
+        putAbilities(abilities, BodyTowers.HEART_T3.id(), Map.of(
+                "maxDeathStacks", 120.0,
+                "stacksPerIntervalReduction", 15.0
+        ));
+        putAbilities(abilities, BodyTowers.BRAIN_T1.id(), Map.of(
+                "splashRadius", 2.5,
+                "damageTaken", 0.10,
+                "attackReduction", 0.08,
+                "debuffTicks", 100.0
+        ));
+        putAbilities(abilities, BodyTowers.BRAIN_T2.id(), Map.of(
+                "splashRadius", 3.5,
+                "damageTaken", 0.15,
+                "attackReduction", 0.12,
+                "debuffTicks", 100.0
+        ));
+        putAbilities(abilities, BodyTowers.BRAIN_T3.id(), Map.of(
+                "splashRadius", 4.5,
+                "damageTaken", 0.20,
+                "attackReduction", 0.16,
+                "debuffTicks", 100.0
+        ));
+        putAbilities(abilities, BodyTowers.SKIN_T2.id(), Map.of(
+                "damageReductionPerStack", 0.06,
+                "damageReductionTicks", 80.0
+        ));
+        putAbilities(abilities, BodyTowers.SKIN_T3.id(), Map.of(
+                "damageReductionPerStack", 0.11,
+                "damageReductionTicks", 80.0
+        ));
+        putAbilities(abilities, BodyTowers.EYE_T1.id(), Map.of("lineWidth", 1.25));
+        putAbilities(abilities, BodyTowers.EYE_T2.id(), Map.of("lineWidth", 1.6));
+        putAbilities(abilities, BodyTowers.EYE_T3.id(), Map.of("lineWidth", 2.0));
+        putAbilities(abilities, BodyTowers.GENITAL_T1.id(), Map.of(
+                "extraTargets", 0.0,
+                "extraTargetRadius", 4.0,
+                "magicProcDamage", 5.0,
+                "slow", 0.35,
+                "slowTicks", 40.0
+        ));
+        putAbilities(abilities, BodyTowers.GENITAL_T2.id(), Map.of(
+                "extraTargets", 1.0,
+                "extraTargetRadius", 4.0,
+                "magicProcDamage", 14.0,
+                "slow", 0.35,
+                "slowTicks", 40.0
+        ));
+        putAbilities(abilities, BodyTowers.GENITAL_T3.id(), Map.of(
+                "extraTargets", 2.0,
+                "extraTargetRadius", 4.0,
+                "magicProcDamage", 27.0,
+                "slow", 0.35,
+                "slowTicks", 40.0
         ));
     }
 
@@ -1345,6 +1427,28 @@ public record TowerBalanceConfig(
         validateDemonLordAbilities();
         validateGambleAbilities();
         validateSuccubusAbilities();
+        validateBodyAbilities();
+    }
+
+    private void validateBodyAbilities() {
+        for (TowerType type : List.of(BodyTowers.HEART_T2, BodyTowers.HEART_T3)) {
+            String id = type.id();
+            validatePositive(id, "maxDeathStacks", "stacksPerIntervalReduction");
+            validateIntegral(id, false, "maxDeathStacks", "stacksPerIntervalReduction");
+            Double maxStacks = configuredAbility(id, "maxDeathStacks");
+            Double stacksPerReduction = configuredAbility(id, "stacksPerIntervalReduction");
+            if (maxStacks != null && stacksPerReduction != null
+                    && maxStacks % stacksPerReduction != 0.0) {
+                throw new IllegalArgumentException(
+                        "Body heart maximum stacks must be divisible by stacks per interval reduction: " + id
+                );
+            }
+        }
+        Double tierTwoMax = configuredAbility(BodyTowers.HEART_T2.id(), "maxDeathStacks");
+        Double tierThreeMax = configuredAbility(BodyTowers.HEART_T3.id(), "maxDeathStacks");
+        if (tierTwoMax != null && tierThreeMax != null && tierThreeMax < tierTwoMax) {
+            throw new IllegalArgumentException("Body heart maximum stacks must not decrease by tier.");
+        }
     }
 
     private void validateSuccubusAbilities() {
