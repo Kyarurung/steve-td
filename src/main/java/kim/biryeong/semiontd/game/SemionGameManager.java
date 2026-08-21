@@ -105,8 +105,6 @@ import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.util.Scheduler;
 import kim.biryeong.semiontd.web.WebCatalogExporter;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -455,6 +453,7 @@ public final class SemionGameManager {
         Path ratingProfilePath = this.configDir == null ? null : this.configDir.resolve("ratings.json");
         Path ratingEventPath = this.configDir == null ? null : this.configDir.resolve("rating-events.json");
         Path sqlitePath = resolveSqlitePath(this.configDir, this.persistenceConfig);
+        Path buildGuideDatabasePath = resolveConfiguredSqlitePath(this.configDir, this.persistenceConfig);
         Path appliedMatchesPath = progressionStorePath == null
                 ? null
                 : progressionStorePath.resolveSibling("progression-applied-matches.json");
@@ -479,7 +478,16 @@ public final class SemionGameManager {
                 matchResultPath,
                 this.configDir == null ? null : this.configDir.resolve("job-statistics.db")
         );
-        this.buildGuideService.configure(this.configDir == null ? null : this.configDir.resolve("build_guides.json"));
+        this.buildGuideService.configure(
+                buildGuideDatabasePath,
+                this.configDir == null ? null : this.configDir.resolve("build_guides.json")
+        );
+        int backfilledBuilds = this.matchResultRepository.findAllMatchResults().values().stream()
+                .mapToInt(this.buildGuideService::publishMatchBuilds)
+                .sum();
+        if (backfilledBuilds > 0) {
+            SemionTd.LOGGER.info("Backfilled {} Semion TD match build guide(s).", backfilledBuilds);
+        }
         ProductionTowerCatalogs.reloadBuiltIns(this.towerBalanceConfig);
         IncomeSummons.reloadBuiltIns(this.summonConfig);
         if (webIntegrationConfig.enabled()) {
@@ -496,6 +504,13 @@ public final class SemionGameManager {
 
     private static Path resolveSqlitePath(Path configDir, SemionPersistenceConfig persistenceConfig) {
         if (configDir == null || persistenceConfig.backend() != SemionPersistenceBackendType.SQLITE) {
+            return null;
+        }
+        return resolveConfiguredSqlitePath(configDir, persistenceConfig);
+    }
+
+    private static Path resolveConfiguredSqlitePath(Path configDir, SemionPersistenceConfig persistenceConfig) {
+        if (configDir == null) {
             return null;
         }
         Path configured = Path.of(persistenceConfig.sqlitePath());
@@ -2540,6 +2555,7 @@ public final class SemionGameManager {
         if (result.isPresent()) {
             lastMatchResult = result.get();
             matchResultRepository.saveMatchResult(result.get());
+            buildGuideService.publishMatchBuilds(result.get());
             jobStatisticsService.record(result.get());
             ratingResult = applyRatingOrQueueRetry(server, result.get());
             finalizeBuildGuideRecording(finishedGame, result);
@@ -2677,10 +2693,6 @@ public final class SemionGameManager {
 
         for (MatchParticipantResult participant : matchResult.participants()) {
             ServerPlayer player = server.getPlayerList().getPlayer(participant.playerId());
-            if (player != null) {
-                player.sendSystemMessage(buildGuideSavePrompt());
-            }
-
             MatchProgressionReward reward = rewards.get(participant.playerId());
             if (reward == null) {
                 continue;
@@ -2696,14 +2708,6 @@ public final class SemionGameManager {
                             + " <gray>보유</gray> <aqua>" + reward.profile().cosmeticCurrency() + "</aqua>"
             ));
         }
-    }
-
-    private static Component buildGuideSavePrompt() {
-        return SemionText.prefixed(Component.empty()
-                .append(Component.literal("이번 게임 빌드를 저장하시겠어요? ").withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal("저장하시려면 ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("/빌드 기록 <제목>").withStyle(ChatFormatting.AQUA))
-                .append(Component.literal(" 를 입력해서 저장해주세요!").withStyle(ChatFormatting.GRAY)));
     }
 
     private void showMatchResultDialogs(
