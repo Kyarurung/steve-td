@@ -1,0 +1,23 @@
+{
+  "criteria": {
+    "visible": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:gui/advancements/backgrounds/stone",
+    "description": {
+      "text": "경기에서 달성할 수 있는 발전 과제를 확인하세요."
+    },
+    "frame": "task",
+    "icon": {
+      "count": 1,
+      "id": "minecraft:target"
+    },
+    "show_toast": false,
+    "title": {
+      "text": "세미온 TD"
+    }
+  }
+}

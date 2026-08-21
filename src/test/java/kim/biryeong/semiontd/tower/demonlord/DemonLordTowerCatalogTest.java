@@ -17,10 +17,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.PlayerEconomy;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.job.DemonLordTowerJob;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
@@ -284,6 +286,61 @@ final class DemonLordTowerCatalogTest {
         assertTrue(state.level() <= state.maxLevel());
     }
 
+    @Test
+    void everySkillUpgradeCostsOneAndAHalfTimesTheNextTierRoundedUp() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        for (DemonLordSkill skill : DemonLordSkill.values()) {
+            for (int tier = 1; tier < DemonLordSkill.MAX_TIER; tier++) {
+                TowerType from = DemonLordTowers.tower(skill, tier);
+                TowerType to = DemonLordTowers.tower(skill, tier + 1);
+                assertEquals((long) Math.ceil(to.mineralCost() * 1.5),
+                        defaults.upgradeCost(from.id(), to.id(), -1), from.id().toString());
+            }
+        }
+    }
+
+    @Test
+    void logarithmicGrowthStartsOnlyAfterTheConfiguredThresholds() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(DemonLordTowers.GLOBAL_CONFIG_ID));
+        global.put("maxHealthPerLevel", 100.0);
+        global.put("damagePerLevel", 0.1);
+        global.put("experienceBase", 1.0);
+        global.put("experienceGrowth", 1.0);
+        global.put("maxLevel", 7.0);
+        abilities.put(DemonLordTowers.GLOBAL_CONFIG_ID, global);
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
+
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.addExperience(5.0);
+        assertEquals(6, state.level());
+        assertEquals(950.0, state.maxHealth(), EPSILON);
+        assertEquals(1.5, state.damageMultiplier(), EPSILON);
+
+        state.addExperience(1.0);
+        assertTrue(state.maxHealth() > 950.0 && state.maxHealth() < 1_050.0);
+        assertTrue(state.damageMultiplier() > 1.5 && state.damageMultiplier() < 1.6);
+    }
+
+    @Test
+    void statAllocationSpendsFiftyDiamondsAtomically() {
+        DemonLordState state = new DemonLordState(UUID.randomUUID());
+        state.addExperience(state.experienceForNextLevel());
+        PlayerEconomy economy = new PlayerEconomy(EconomyConfig.defaultConfig());
+        economy.overrideStartingValues(50, 0, 0, 0);
+
+        assertTrue(DemonLordStatGui.tryAllocate(state, DemonLordStat.ATTACK, economy));
+        assertEquals(0, economy.diamond());
+        assertEquals(1, state.points(DemonLordStat.ATTACK));
+        int remainingPoints = state.unspentPoints();
+
+        assertFalse(DemonLordStatGui.tryAllocate(state, DemonLordStat.DEFENSE, economy));
+        assertEquals(0, economy.diamond());
+        assertEquals(remainingPoints, state.unspentPoints());
+        assertEquals(0, state.points(DemonLordStat.DEFENSE));
+    }
+
     /** 레벨업으로 늘어난 체력은 즉시 채워져야 전투 중 레벨업이 의미가 있습니다. */
     @Test
     void levelUpGrantsTheNewHeadroomImmediately() {
@@ -383,6 +440,41 @@ final class DemonLordTowerCatalogTest {
         assertEquals(state.maxHealth(), state.health(), EPSILON);
     }
 
+    /**
+     * 튕겼다 돌아와도 찍어 둔 스탯과 남은 포인트가 남아 있어야 합니다.
+     *
+     * <p>예전에는 레벨과 경험치만 챙겨서, 상태가 한 번 버려지면 스탯 배분이 통째로 사라졌습니다.
+     * 레벨업으로 받은 포인트는 경험치를 다시 넣어 주는 경로가 없어 영영 돌아오지 않습니다.
+     */
+    @Test
+    void statAllocationSurvivesStateTeardownJustLikeTheLevel() {
+        UUID playerId = UUID.randomUUID();
+        try {
+            DemonLordState state = DemonLordStates.getOrCreate(playerId);
+            state.enterCombat();
+            state.addExperience(500.0);
+            int granted = state.unspentPoints();
+            assertTrue(granted >= 2, "레벨업으로 포인트를 받아야 이 테스트가 의미가 있습니다");
+            assertTrue(state.allocate(DemonLordStat.ATTACK));
+            assertTrue(state.allocate(DemonLordStat.DEFENSE));
+            int level = state.level();
+            double damage = state.damageMultiplier();
+
+            // 튕김: 상태를 버렸다가 다시 만듭니다.
+            DemonLordStates.clear(playerId);
+            DemonLordState restored = DemonLordStates.getOrCreate(playerId);
+
+            assertEquals(level, restored.level());
+            assertEquals(1, restored.points(DemonLordStat.ATTACK), "찍어 둔 공격력이 남아야 합니다");
+            assertEquals(1, restored.points(DemonLordStat.DEFENSE), "찍어 둔 방어력이 남아야 합니다");
+            assertEquals(granted - 2, restored.unspentPoints(), "안 쓴 포인트도 남아야 합니다");
+            assertEquals(damage, restored.damageMultiplier(), EPSILON);
+        } finally {
+            DemonLordStates.clear(playerId);
+            DemonLordStates.resetProgression(playerId);
+        }
+    }
+
     @Test
     void balanceConfigCarriesEverySkillNumber() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
@@ -400,9 +492,17 @@ final class DemonLordTowerCatalogTest {
         assertEquals(450.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "baseMaxHealth", -1), EPSILON);
         assertEquals(52.5, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "maxHealthPerLevel", -1), EPSILON);
         assertEquals(19.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "bladeDamage", -1), EPSILON);
+        assertEquals(500.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "healthBonusThreshold", -1), EPSILON);
+        assertEquals(500.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "healthBonusScale", -1), EPSILON);
+        assertEquals(0.5, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "damageBonusThreshold", -1), EPSILON);
+        assertEquals(0.5, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "damageBonusScale", -1), EPSILON);
+        assertEquals(50.0, defaults.ability(DemonLordTowers.GLOBAL_CONFIG_ID, "statDiamondCost", -1), EPSILON);
         assertEquals(34.0, defaults.ability(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "damage", -1), EPSILON);
         assertEquals(98.0, defaults.ability(DemonLordSkill.GRIP_OF_DOOM.towerId(1), "damage", -1), EPSILON);
         assertEquals(30.0, defaults.ability(DemonLordSkill.GRIP_OF_DOOM.towerId(1), "areaDamage", -1), EPSILON);
+        for (int tier = 1; tier <= DemonLordSkill.MAX_TIER; tier++) {
+            assertFalse(defaults.abilities().get(DemonLordSkill.DEMON_WINGS.towerId(tier)).containsKey("healRatio"));
+        }
         assertFalse(defaults.abilities().get(DemonLordTowers.GLOBAL_CONFIG_ID).containsKey("bladeReach"));
     }
 
@@ -431,8 +531,8 @@ final class DemonLordTowerCatalogTest {
 
                 if (tier < DemonLordSkill.MAX_TIER) {
                     String next = skill.towerId(tier + 1);
-                    assertTrue(bundled.upgradeCosts().getOrDefault(id + "->" + next, 0L) > 0L,
-                            id + " upgrade cost missing from the bundled resource");
+                    assertEquals(code.upgradeCost(id, next, -1), bundled.upgradeCost(id, next, -2),
+                            id + " upgrade cost drifted between code and the bundled resource");
                 }
             }
         }
@@ -463,7 +563,8 @@ final class DemonLordTowerCatalogTest {
         assertInvalidAbility(DemonLordTowers.GLOBAL_CONFIG_ID, "experienceGrowth", 0.99);
         assertInvalidAbility(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "range", 0.0);
         assertInvalidAbility(DemonLordSkill.WAVE_OF_MALICE.towerId(1), "coneDegrees", 361.0);
-        assertInvalidAbility(DemonLordSkill.DEMON_WINGS.towerId(1), "healRatio", 1.01);
+        assertInvalidAbility(DemonLordTowers.GLOBAL_CONFIG_ID, "statDiamondCost", 1.5);
+        assertInvalidAbility(DemonLordTowers.GLOBAL_CONFIG_ID, "healthBonusThreshold", 0.0);
         assertInvalidAbility(DemonLordSkill.SKY_BREAKER.towerId(1), "stunTicks", 1.5);
         assertInvalidAbility(DemonLordSkill.GRIP_OF_DOOM.towerId(1), "executeHealthRatio", 1.0);
     }
@@ -643,28 +744,38 @@ final class DemonLordTowerCatalogTest {
     /** 포인트를 아무리 쌓아도 쿨타임 0 과 피해 감소 100% 에는 닿으면 안 됩니다. */
     @Test
     void cooldownAndDefenceApproachTheirFloorWithoutCrossingIt() {
-        DemonLordState state = new DemonLordState(UUID.randomUUID());
-        state.enterCombat();
-        state.addExperience(1.0E9);
+        int halving = (int) TowerBalanceRuntime.ability(
+                DemonLordTowers.GLOBAL_CONFIG_ID, "statCooldownHalvingPoints", 60.0);
 
-        assertEquals(1.0, state.cooldownMultiplier(), EPSILON, "찍기 전에는 100% 그대로여야 합니다");
-        // 기본값은 40 포인트마다 절반입니다. 다른 스탯보다 비싼 것은 의도된 것으로,
+        DemonLordState cooldown = new DemonLordState(UUID.randomUUID());
+        cooldown.enterCombat();
+        cooldown.addExperience(1.0E9);
+        assertEquals(1.0, cooldown.cooldownMultiplier(), EPSILON, "찍기 전에는 100% 그대로여야 합니다");
+
+        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 다른 스탯보다 비싼 것은 의도된 것으로,
         // 쿨감은 모든 스킬에 한꺼번에 곱해져 같은 효율이면 다른 선택지가 없어집니다.
-        for (int i = 0; i < 40; i++) {
-            assertTrue(state.allocate(DemonLordStat.COOLDOWN));
+        assertTrue(cooldown.unspentPoints() >= halving,
+                "만렙까지 모은 포인트로 절반은 찍을 수 있어야 의미 있는 선택지입니다: "
+                        + cooldown.unspentPoints() + " / " + halving);
+        for (int i = 0; i < halving; i++) {
+            assertTrue(cooldown.allocate(DemonLordStat.COOLDOWN));
         }
-        assertEquals(0.5, state.cooldownMultiplier(), EPSILON, "40 포인트면 절반");
-        for (int i = 0; i < 40; i++) {
-            assertTrue(state.allocate(DemonLordStat.COOLDOWN));
-        }
-        assertEquals(0.25, state.cooldownMultiplier(), EPSILON, "80 포인트면 4분의 1");
+        assertEquals(0.5, cooldown.cooldownMultiplier(), EPSILON, halving + " 포인트면 절반");
 
-        for (int i = 0; i < 200 && state.unspentPoints() > 0; i++) {
-            state.allocate(DemonLordStat.COOLDOWN);
-            state.allocate(DemonLordStat.DEFENSE);
+        // 남은 포인트를 전부 쿨감에 부어도 0 에 닿지 않습니다. 닿으면 스킬을 무한히 씁니다.
+        while (cooldown.unspentPoints() > 0) {
+            assertTrue(cooldown.allocate(DemonLordStat.COOLDOWN));
         }
-        assertTrue(state.cooldownMultiplier() > 0.0, "쿨타임이 0 이 되면 스킬을 무한히 씁니다");
-        assertTrue(state.damageReduction() < 1.0, "피해 감소가 100% 가 되면 죽지 않습니다");
+        assertTrue(cooldown.cooldownMultiplier() > 0.0, "쿨타임이 0 이 되면 스킬을 무한히 씁니다");
+        assertTrue(cooldown.cooldownMultiplier() < 0.5, "더 부었으면 더 줄어야 합니다");
+
+        DemonLordState defence = new DemonLordState(UUID.randomUUID());
+        defence.enterCombat();
+        defence.addExperience(1.0E9);
+        while (defence.unspentPoints() > 0) {
+            assertTrue(defence.allocate(DemonLordStat.DEFENSE));
+        }
+        assertTrue(defence.damageReduction() < 1.0, "피해 감소가 100% 가 되면 죽지 않습니다");
     }
 
     /** 몹을 못 잡아도 라운드를 넘기면 조금은 자라야 합니다. */

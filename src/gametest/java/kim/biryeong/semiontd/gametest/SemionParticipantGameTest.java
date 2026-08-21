@@ -3774,6 +3774,72 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void disconnectClearsReadyStateAndCancelsPendingStart(GameTestHelper context) {
+        MinecraftServer server = context.getLevel().getServer();
+        var leavingPlayer = context.makeMockServerPlayerInLevel();
+        UUID leavingId = leavingPlayer.getUUID();
+        UUID stayingId = stableUuid("ready-disconnect-staying");
+        SemionGame game = new SemionGame(EconomyConfig.defaultConfig(), WaveConfig.defaultConfig(), SyntheticArenaFactory.create(
+                context.getLevel(),
+                context.absolutePos(BlockPos.ZERO)
+        ));
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+        ParticipantSelectionPlan plan = new ParticipantSelectionPlan(
+                MatchMode.NORMAL,
+                List.of(
+                        new AssignedParticipant(leavingId, "ready-disconnect-leaving", TeamId.RED, 1),
+                        new AssignedParticipant(stayingId, "ready-disconnect-staying", TeamId.BLUE, 1)
+                ),
+                Set.of(),
+                2
+        );
+
+        try {
+            game.markReady(stayingId);
+            manager.handlePlayerDisconnect(leavingPlayer);
+            if (!assertEquals(context, 1, game.readyPlayerCount(), "An unready disconnect should not change the ready count.")) {
+                return;
+            }
+
+            game.markReady(leavingId);
+            manager.handlePlayerDisconnect(leavingPlayer);
+            if (!assertTrue(context, !game.isReady(leavingId), "A ready disconnect should remove the leaving player from the ready roster.")) {
+                return;
+            }
+            if (!assertEquals(context, 1, game.readyPlayerCount(), "The remaining ready player should stay ready after another player disconnects.")) {
+                return;
+            }
+
+            game.markReady(leavingId);
+            manager.configureTraits(new TraitSelectionConfig(false, 45));
+            if (!assertEquals(context, SemionGameManager.StartCountdownResult.SCHEDULED, manager.scheduleStart(server, plan), "Normal start countdown should be scheduled.")) {
+                return;
+            }
+            manager.handlePlayerDisconnect(leavingPlayer);
+            if (!assertTrue(context, !manager.startCountdownActive(), "A selected participant disconnect should cancel the normal start countdown.")) {
+                return;
+            }
+
+            game.markReady(leavingId);
+            manager.configureTraits(new TraitSelectionConfig(true, 45));
+            if (!assertEquals(context, SemionGameManager.StartCountdownResult.SCHEDULED, manager.scheduleStart(server, plan), "Trait selection should be scheduled.")) {
+                return;
+            }
+            if (!assertTrue(context, manager.traitSelectionActive(), "Trait selection should be active before the selected participant disconnects.")) {
+                return;
+            }
+            manager.handlePlayerDisconnect(leavingPlayer);
+            if (!assertTrue(context, !manager.startCountdownActive(), "A selected participant disconnect should cancel trait selection.")) {
+                return;
+            }
+            context.succeed();
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @GameTest
     public void buildGuideRemainsPublishableUntilNextCountdownCompletes(GameTestHelper context) {
         MinecraftServer server = context.getLevel().getServer();
         var player = context.makeMockServerPlayerInLevel();
@@ -11549,6 +11615,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                         TowerBalanceRuntime.ability(core.type().id(), "roundStat")
                                 + TowerBalanceRuntime.ability(core.type().id(), "permanentHealth")
                 );
+        double maxHealthBeforeAbsorption = core.type().maxHealth()
+                * (1.0 + TowerBalanceRuntime.ability(core.type().id(), "petHealth"));
+        double expectedHealthAfterAbsorption = Math.min(
+                expectedMaxHealth,
+                10.0 + (expectedMaxHealth - maxHealthBeforeAbsorption)
+                        + TowerBalanceRuntime.ability(WarlockTower.CONFIG_ID, "absorptionHeal")
+        );
         double expectedDamage = (
                 core.type().damage()
                         + sacrificedDamage * (
@@ -11568,6 +11641,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         core.syncHealth(10.0);
         coreEntity.setHealth(10.0F);
         core.onDamaged(coreEntity, null, 50.0, 60.0, 10.0);
+
+        if (!assertClose(context, expectedHealthAfterAbsorption, core.health(), "Ranged warlock should heal its max-health increase plus 30 after a successful absorption.")) {
+            return;
+        }
 
         if (!assertTrue(context, lane.towers().contains(t1Ranged), "Ranged warlock should leave the higher-numbered aggro tower alive after absorbing lowest priority.")) {
             return;
@@ -11654,6 +11731,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                         TowerBalanceRuntime.ability(core.type().id(), "roundStat")
                                 + TowerBalanceRuntime.ability(core.type().id(), "permanentHealth")
                 );
+        double maxHealthBeforeAbsorption = core.type().maxHealth()
+                * (1.0 + TowerBalanceRuntime.ability(core.type().id(), "petHealth"));
+        double expectedHealthAfterAbsorption = Math.min(
+                expectedMaxHealth,
+                20.0 + (expectedMaxHealth - maxHealthBeforeAbsorption)
+                        + TowerBalanceRuntime.ability(WarlockTower.CONFIG_ID, "absorptionHeal")
+        );
         double expectedDamage = (
                 core.type().damage()
                         + sacrificedDamage * (
@@ -11666,6 +11750,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         core.syncHealth(20.0);
         coreEntity.setHealth(20.0F);
         core.onDamaged(coreEntity, null, 80.0, 100.0, 20.0);
+
+        if (!assertClose(context, expectedHealthAfterAbsorption, core.health(), "Melee warlock should heal its max-health increase plus 30 after a successful absorption.")) {
+            return;
+        }
 
         if (!assertTrue(context, lane.towers().contains(t1Melee), "Melee warlock should leave the lower-priority sacrifice tower alive.")) {
             return;
@@ -11776,10 +11864,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void rangedWarlockAwakensWithoutSacrificeRequirementAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-ranged-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1349; kill++) {
+        for (int kill = 0; kill < 1199; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
-        if (!assertEquals(context, 1349L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
+        if (!assertEquals(context, 1199L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
             return;
         }
         PlayerLane lane = redLane(game, 1);
@@ -11797,7 +11885,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         coreEntity.setHealth(40.0F);
 
         String lockedDetails = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
-        if (!assertTrue(context, lockedDetails.contains("각성 해금: 1349/1350킬"), "Ranged awakening should stay locked before the kill requirement.")) {
+        if (!assertTrue(context, lockedDetails.contains("각성 해금: 1199/1200킬"), "Ranged awakening should stay locked before the kill requirement.")) {
             return;
         }
         Monster creditedKill = new Monster(
@@ -11816,12 +11904,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         creditedKill.recordLastHit(playerId, KillSourceKind.TOWER);
         creditedKill.syncHealth(0.0);
         new EconomyService(game.economyConfig(), game).awardMonsterKillReward(creditedKill, game.players());
-        if (!assertEquals(context, 1350L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1350th kill should unlock awakening.")) {
+        if (!assertEquals(context, 1200L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1200th kill should unlock awakening.")) {
             return;
         }
 
         String awakenedDetails = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
-        if (!assertTrue(context, awakenedDetails.contains("각성 상태: 각성 완료"), "The 1350th kill should immediately awaken a ranged warlock that already satisfies the combat conditions.")) {
+        if (!assertTrue(context, awakenedDetails.contains("각성 상태: 각성 완료"), "The 1200th kill should immediately awaken a ranged warlock that already satisfies the combat conditions.")) {
             return;
         }
         if (!assertTrue(context, awakenedDetails.contains("라운드 흡수: 0기"), "Ranged awakening should not require sacrifices.")) {
@@ -11852,7 +11940,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void rangedWarlockUsesPostSacrificeHealthForAwakening(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-post-sacrifice-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1350; kill++) {
+        for (int kill = 0; kill < 1200; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
@@ -11900,7 +11988,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void meleeWarlockAwakeningCreatesRoundBurstAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-melee-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1350; kill++) {
+        for (int kill = 0; kill < 1200; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);

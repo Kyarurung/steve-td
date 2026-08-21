@@ -27,6 +27,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -88,7 +89,7 @@ public final class DemonLordSkills {
 
         SemionMonsterEntity target = null;
         double bestScore = Double.MAX_VALUE;
-        for (SemionMonsterEntity candidate : monstersNear(lane, origin, range)) {
+        for (SemionMonsterEntity candidate : monstersNear(lane, state, origin, range)) {
             Vec3 toTarget = horizontal(candidate.position().subtract(origin));
             // 정면 90도 안쪽만 후보로 봅니다. 뒤에 있는 적이 잡히면 조준이 안 됩니다.
             if (look.dot(toTarget) < Math.cos(Math.toRadians(45.0))) {
@@ -182,7 +183,8 @@ public final class DemonLordSkills {
             DemonLordSkillTower altar) {
         double radius = reach(state, altar, "radius", 4.0);
         Vec3 landing = DemonLordService.safeLanding(
-                player, player.position(), lookTarget(player, reach(state, altar, "range", 10.0)));
+                player, lane, state, player.position(),
+                lookTarget(player, reach(state, altar, "range", 10.0)));
 
         // 잃은 체력 비율 0(만피)~1(빈사). 빈사에서 missingHealthDamageBonus 만큼 증가합니다.
         double missingRatio = Math.max(0.0, Math.min(1.0, 1.0 - state.healthRatio()));
@@ -325,8 +327,6 @@ public final class DemonLordSkills {
             push(monster, horizontal(monster.position().subtract(origin)), knockback, 0.4);
             return damageOutcome(result);
         });
-        state.heal(state.maxHealth() * ability(altar, "healRatio", 0.10));
-
         Vec3 look = horizontal(player.getLookAngle());
         player.setDeltaMovement(look.x * leapPower, 0.62, look.z * leapPower);
         player.hurtMarked = true;
@@ -351,7 +351,7 @@ public final class DemonLordSkills {
 
         Vec3 start = player.position();
         Vec3 look = horizontal(player.getLookAngle());
-        Vec3 end = resolveDashEnd(player, lane, start, look, distance);
+        Vec3 end = resolveDashEnd(player, lane, state, start, look, distance);
         double travelled = start.distanceTo(end);
 
         applyArea(altar, lane, start.lerp(end, 0.5), travelled / 2.0 + hitRadius,
@@ -378,10 +378,17 @@ public final class DemonLordSkills {
      *
      * <p>텔레포트는 충돌을 무시하므로 그냥 목표 지점으로 옮기면 아레나 배리어를 뚫고 맵 밖으로
      * 나가 떨어집니다. 그래서 두 겹으로 막습니다 — 먼저 블록에 레이캐스트해 벽 앞에서 멈추고,
-     * 그다음 실제로 설 수 있는 자리인지(벽 속이 아닌지, 발밑이 허공이 아닌지) 확인합니다.
-     * 레인 경계는 보지 않습니다 — 마왕은 어디로든 돌진할 수 있습니다.
+     * 그다음 전투 영역 안에서 실제로 설 수 있는 자리인지(벽 속이 아닌지, 발밑이 허공이 아닌지)
+     * 확인합니다.
      */
-    private static Vec3 resolveDashEnd(ServerPlayer player, PlayerLane lane, Vec3 start, Vec3 look, double distance) {
+    private static Vec3 resolveDashEnd(
+            ServerPlayer player,
+            PlayerLane lane,
+            DemonLordState state,
+            Vec3 start,
+            Vec3 look,
+            double distance
+    ) {
         Vec3 from = start.add(0.0, 0.6, 0.0);
         Vec3 to = from.add(look.scale(distance));
         HitResult clip = player.level().clip(new ClipContext(
@@ -395,7 +402,7 @@ public final class DemonLordSkills {
         if (horizontal(end.subtract(start)).dot(look) <= 0.0) {
             end = start;
         }
-        return DemonLordService.safeLanding(player, start, end);
+        return DemonLordService.safeLanding(player, lane, state, start, end);
     }
 
     /**
@@ -547,6 +554,10 @@ public final class DemonLordSkills {
                 filter,
                 AreaVfxSpec.onTrigger(style)
         );
+        DemonLordState state = DemonLordStates.get(altar.ownerPlayer());
+        if (state != null && state.centralDefense()) {
+            request = request.acrossLanes();
+        }
         return SemionTdApi.areaEffects().applyToMonsters(request, action);
     }
 
@@ -561,23 +572,23 @@ public final class DemonLordSkills {
         return Math.min(Math.max(0.0, dealtDamage) * ratio, Math.max(0.0, maxHealth) * capRatio);
     }
 
-    /** Live monsters of this lane whose entity sits within {@code radius} of {@code center}. */
-    private static List<SemionMonsterEntity> monstersNear(PlayerLane lane, Vec3 center, double radius) {
-        List<SemionMonsterEntity> found = new ArrayList<>();
+    private static List<SemionMonsterEntity> monstersNear(
+            PlayerLane lane,
+            DemonLordState state,
+            Vec3 center,
+            double radius
+    ) {
+        AABB box = new AABB(
+                center.x - radius, center.y - radius, center.z - radius,
+                center.x + radius, center.y + radius, center.z + radius);
         double radiusSqr = radius * radius;
-        for (Monster monster : List.copyOf(lane.activeMonsters())) {
-            if (monster == null || !monster.isAlive() || !monster.hasMinecraftEntity()) {
-                continue;
-            }
-            if (!(lane.arenaWorld().getEntity(monster.minecraftEntityId()) instanceof SemionMonsterEntity entity)
-                    || entity.isRemoved()) {
-                continue;
-            }
-            if (entity.position().distanceToSqr(center) <= radiusSqr) {
-                found.add(entity);
-            }
-        }
-        return found;
+        return lane.arenaWorld().getEntitiesOfClass(SemionMonsterEntity.class, box, entity ->
+                entity.isAlive()
+                        && !entity.isRemoved()
+                        && entity.runtimeMonster() != null
+                        && entity.runtimeMonster().isAlive()
+                        && state.canFight(entity.runtimeMonster())
+                        && entity.position().distanceToSqr(center) <= radiusSqr);
     }
 
     private static Vec3 horizontal(Vec3 vector) {

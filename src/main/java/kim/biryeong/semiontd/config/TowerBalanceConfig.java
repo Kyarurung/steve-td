@@ -1027,7 +1027,10 @@ public record TowerBalanceConfig(
                 // 지형 효과 범위는 사거리를 따라가되, 사거리를 2배로 늘린 뒤에도 장판이 과해지지 않게 상한을 둡니다.
                 "soilAuraMinRadius", 3.0,
                 "soilAuraMaxRadius", 6.0,
-                "environmentTickIntervalTicks", 20.0
+                "environmentTickIntervalTicks", 20.0,
+                // 한 대상을 여러 잔디가 함께 회복시킬 때, 두 번째부터 깎는 비율입니다. 겹치기
+                // 자체는 유효하되 잔디 개수만큼 선형으로 늘어나지는 않게 합니다.
+                "meadowHealOverlapReduction", 0.5
         ));
         // 잔디는 후방 지원 지형입니다. 자기 회복이 아니라 주변 아군을 회복시키고 성장 체력을 나눠 줍니다.
         putAbilities(abilities, PlantSoil.MEADOW.configId(), Map.of(
@@ -1324,10 +1327,12 @@ public record TowerBalanceConfig(
     private void validateDemonLordAbilities() {
         String global = DemonLordTowers.GLOBAL_CONFIG_ID;
         validatePositive(global,
-                "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks");
+                "baseMaxHealth", "experienceBase", "experienceGrowth", "bladeAttackIntervalTicks",
+                "healthBonusThreshold", "healthBonusScale", "damageBonusThreshold", "damageBonusScale",
+                "statDiamondCost");
         validateAtLeast(global, 0.0,
                 "maxHealthPerLevel", "experiencePerMaxHealth", "damagePerLevel", "bladeDamage");
-        validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks");
+        validateIntegral(global, false, "maxLevel", "bladeAttackIntervalTicks", "statDiamondCost");
         validateAtLeast(global, 1.0, "experienceGrowth");
 
         for (DemonLordSkill skill : DemonLordSkill.values()) {
@@ -1342,7 +1347,6 @@ public record TowerBalanceConfig(
                     }
                     case DEMON_WINGS -> {
                         validatePositive(id, "leapPower", "radius");
-                        validateRatios(id, "healRatio");
                     }
                     case SKY_BREAKER -> {
                         validatePositive(id, "dashDistance", "hitRadius", "liftPower", "stunTicks");
@@ -1543,7 +1547,8 @@ public record TowerBalanceConfig(
     }
 
     private void validatePlantAbilities() {
-        validateRatios(PlantTowers.GLOBAL_CONFIG_ID, "bloomDamagePerTile", "bloomDamageCap");
+        validateRatios(PlantTowers.GLOBAL_CONFIG_ID,
+                "bloomDamagePerTile", "bloomDamageCap", "meadowHealOverlapReduction");
         validateRatios(PlantSoil.MEADOW.configId(),
                 "healPercentPerPulse", "growthShareRatio");
         validateRatios(PlantSoil.MYCELIUM.configId(),
@@ -2289,6 +2294,8 @@ public record TowerBalanceConfig(
         global.put("tntFuseVfxIntervalTicks", (double) EngineerBalance.TNT_FUSE_VFX_INTERVAL_TICKS);
         putAbilities(abilities, EngineerBalance.GLOBAL_ID, global);
         putAbilities(abilities, EngineerTowers.REDSTONE_DUST.id(), Map.of(TowerCapacity.CONFIG_KEY, 0.0));
+        EngineerTowers.repeaters().values().forEach(type ->
+                putAbilities(abilities, type.id(), Map.of(TowerCapacity.CONFIG_KEY, 0.0)));
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 LinkedHashMap<String, Double> values = new LinkedHashMap<>();
@@ -2551,6 +2558,7 @@ public record TowerBalanceConfig(
         values.put("giantChargeTicks", 400.0);
         values.put("giantAccelerationRadius", 6.0);
         values.put("giantAccelerationMemoryTicks", 40.0);
+        values.put("giantExecutionVisualShrink", 0.20);
         values.put("giantInitialExecutionHealth", 5.0);
         values.put("giantExecutionGrowthRatio", 0.05);
         values.put("giantGrowthTargetCapMultiplier", 2.0);
@@ -2603,7 +2611,8 @@ public record TowerBalanceConfig(
         if (minimumStatScale <= 0.0 || minimumStatScale > 1.0) {
             throw new IllegalArgumentException("Queen minimumStatScale must be between 0 (exclusive) and 1.");
         }
-        for (String key : java.util.List.of("clubDamageReduction", "giantExecutionGrowthRatio", "giantSlow")) {
+        for (String key : java.util.List.of(
+                "clubDamageReduction", "giantExecutionVisualShrink", "giantExecutionGrowthRatio", "giantSlow")) {
             double value = values.getOrDefault(key, -1.0);
             if (value < 0.0 || value > 1.0) throw new IllegalArgumentException("Queen ratio must be between 0 and 1: " + key);
         }
@@ -2856,6 +2865,8 @@ public record TowerBalanceConfig(
             throw new IllegalArgumentException("Engineer dispenser distance cap must not exceed maxRedstone.");
         }
         validateIntegral(EngineerTowers.REDSTONE_DUST.id(), true, TowerCapacity.CONFIG_KEY);
+        EngineerTowers.repeaters().values().forEach(type ->
+                validateIntegral(type.id(), true, TowerCapacity.CONFIG_KEY));
         for (EngineerTowers.TrapKind kind : EngineerTowers.TrapKind.values()) {
             for (int tier = 1; tier <= 3; tier++) {
                 String id = EngineerTowers.trap(kind, tier).id();
@@ -3691,9 +3702,10 @@ public record TowerBalanceConfig(
     private static Map<String, Double> warlockGlobalAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("sacrificeRadius", 25.0);
+        values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1350.0);
+        values.put("awakeningKills", 1200.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -3710,7 +3722,7 @@ public record TowerBalanceConfig(
     private static Map<String, Double> rangedWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("threshold", 0.55);
-        values.put("roundStat", 0.40);
+        values.put("roundStat", 0.50);
         values.put("permanentHealth", 0.025);
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
@@ -3723,7 +3735,7 @@ public record TowerBalanceConfig(
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
-        values.put("splashDamage", 0.45);
+        values.put("splashDamage", 0.50);
         values.put("defenseThreshold", 3.0);
         values.put("defense", 0.15);
         values.put("petHealth", 0.04);
@@ -3747,7 +3759,7 @@ public record TowerBalanceConfig(
         values.put("damageThreshold", 200.0);
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
-        values.put("lifeCap", 0.12);
+        values.put("lifeCap", 0.14);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);
@@ -3782,7 +3794,7 @@ public record TowerBalanceConfig(
                 GambleTowers.GAMBLER, GambleTowers.KING, GambleTowers.DARK_KING)) {
             for (GambleBet bet : GambleBet.values()) {
                 putUpgrade(upgradeCosts, gambler, bet.upgradeId(),
-                        bet == GambleBet.TWO_DICE ? 100 : 50);
+                        bet == GambleBet.TWO_DICE ? 160 : 80);
             }
         }
     }
@@ -3854,12 +3866,13 @@ public record TowerBalanceConfig(
         ));
     }
 
-    /** Upgrade price is the target tier's own diamond cost, so the shop and the tooltip agree. */
+    /** Demon lord upgrades cost 1.5 times the target tier's placement price, rounded up. */
     private static void putDemonLordUpgrades(LinkedHashMap<String, Long> upgradeCosts) {
         for (DemonLordSkill skill : DemonLordSkill.values()) {
             for (int tier = 1; tier < DemonLordSkill.MAX_TIER; tier++) {
                 TowerType next = DemonLordTowers.tower(skill, tier + 1);
-                putUpgrade(upgradeCosts, DemonLordTowers.tower(skill, tier), next.id(), next.mineralCost());
+                putUpgrade(upgradeCosts, DemonLordTowers.tower(skill, tier), next.id(),
+                        (long) Math.ceil(next.mineralCost() * 1.5));
             }
         }
     }
@@ -3876,6 +3889,10 @@ public record TowerBalanceConfig(
         global.put("experienceGrowth", 1.25);
         // 스킬과 평타 모두에 곱해지는 유일한 성장 배율입니다. 만렙에서 2.45배가 됩니다.
         global.put("damagePerLevel", 0.05);
+        global.put("healthBonusThreshold", 500.0);
+        global.put("healthBonusScale", 500.0);
+        global.put("damageBonusThreshold", 0.5);
+        global.put("damageBonusScale", 0.5);
         global.put("bladeDamage", 19.0);
         global.put("bladeAttackIntervalTicks", 12.0);
         // 몹을 하나도 못 잡은 라운드에도 주는 기본 경험치입니다. 한 번 밀린 마왕이 영영
@@ -3883,17 +3900,18 @@ public record TowerBalanceConfig(
         global.put("passiveExperiencePerRound", 6.0);
         // 스탯 포인트. 레벨업마다 받아 원하는 능력치에 넣습니다.
         global.put("statPointsPerLevel", 3.0);
+        global.put("statDiamondCost", 50.0);
         global.put("statHealthPerPoint", 40.0);
         global.put("statAttackPerPoint", 0.04);
         global.put("statDefensePerPoint", 0.02);
         global.put("statDefenseCap", 0.6);
-        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 40 이면 50%, 80 이면 25% 가 되고
+        // 쿨감은 이 포인트마다 절반이 되는 곱연산입니다. 60 이면 50%, 120 이면 25% 가 되고
         // 0 에는 닿지 않습니다. 선형이면 어느 지점에서 쿨타임이 사라져 버립니다.
         //
         // 다른 스탯보다 포인트를 많이 요구합니다. 쿨감은 모든 스킬에 한꺼번에 곱해지는 데다
         // 딜뿐 아니라 생존기와 이동기 회전율까지 같이 올려서, 같은 효율로 두면 다른 선택지가
         // 존재할 이유가 없어집니다.
-        global.put("statCooldownHalvingPoints", 40.0);
+        global.put("statCooldownHalvingPoints", 60.0);
         global.put("statSkillRangePerPoint", 0.03);
         global.put("statMoveSpeedPerPoint", 0.03);
         global.put("statMoveSpeedCap", 0.5);
@@ -3927,7 +3945,6 @@ public record TowerBalanceConfig(
                 values.put("radius", new double[] {4.0, 4.5, 5.0, 5.5}[index]);
                 values.put("damage", new double[] {23.0, 36.0, 53.0, 71.0}[index]);
                 values.put("knockback", new double[] {0.7, 0.8, 0.9, 1.0}[index]);
-                values.put("healRatio", new double[] {0.10, 0.13, 0.16, 0.20}[index]);
             }
             case SKY_BREAKER -> {
                 values.put("dashDistance", new double[] {8.0, 9.0, 10.0, 12.0}[index]);

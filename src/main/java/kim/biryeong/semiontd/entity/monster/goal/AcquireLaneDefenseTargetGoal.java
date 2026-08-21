@@ -61,15 +61,17 @@ public final class AcquireLaneDefenseTargetGoal extends Goal {
      *
      * <p>마왕 빌더의 제단은 어그로를 끌지 않으므로, 방어 타워를 못 찾았을 때만 마왕 본인을 노리게
      * 하면 다른 빌더의 타게팅은 전혀 건드리지 않으면서 마왕만 표적이 됩니다.
+     *
+     * <p>남의 레인 타워의 어그로를 뺏지는 않습니다. 이 경로는 방어 대상을 하나도 못
+     * 찾았을 때만 도는 차선책이라, 그 레인에 지킬 타워가 있으면 그쪽이 먼저입니다.
      */
     private LivingEntity findDemonLordTarget() {
-        int laneId = monster.runtimeMonster().targetLaneId();
         return monster.level().getEntities(monster, monster.defenseSearchBox(), entity -> {
                     if (!(entity instanceof ServerPlayer player) || !player.isAlive()) {
                         return false;
                     }
                     DemonLordState state = DemonLordStates.get(player.getUUID());
-                    return state != null && state.inCombat() && state.laneId() == laneId;
+                    return state != null && state.inCombat() && state.canFight(monster.runtimeMonster());
                 }).stream()
                 .filter(LivingEntity.class::isInstance)
                 .map(LivingEntity.class::cast)

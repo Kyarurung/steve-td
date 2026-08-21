@@ -514,9 +514,9 @@ public final class EngineerGameTest {
             lane.addTower(gold);
             lane.addTower(wood);
             Vec3 center = Vec3.atCenterOf(new BlockPos(tntPosition.x(), tntPosition.y() + 1, tntPosition.z()));
-            for (int index = 0; index < 18; index++) {
-                double radius = index < 16 ? 1.0 + index * 0.08 : 3.4 + (index - 16) * 0.3;
-                double angle = index * Math.PI * 2.0 / 18.0;
+            for (int index = 0; index < 20; index++) {
+                double radius = 1.0 + index * 0.14;
+                double angle = index * Math.PI * 2.0 / 20.0;
                 SemionMonsterEntity target = spawnMonster(
                         context,
                         lane,
@@ -545,8 +545,8 @@ public final class EngineerGameTest {
             }
 
             for (int index = 0; index < targets.size(); index++) {
-                requireClose(376.0, targets.get(index).runtimeMonster().health(),
-                        "TNT target " + index + " health");
+                requireClose(index < 18 ? 376.0 : 1_000.0, targets.get(index).runtimeMonster().health(),
+                        "TNT nearest-target cap " + index + " health");
             }
             require(tnt.runtimeDetailLines().stream().anyMatch(line -> line.contains("+2/20기")),
                     "TNT details must show the current accumulated target bonus.");
@@ -606,10 +606,10 @@ public final class EngineerGameTest {
 
             lane.markWaveStarted(20);
             require(plate.pressPlate(lane), "The gold plate must power the dispenser through the circuit.");
-            recordPresses(owner, 200);
+            recordPresses(owner, 500);
             dispenser.tick(lane);
 
-            requireClose(771.85, target.runtimeMonster().health(),
+            requireClose(657.775, target.runtimeMonster().health(),
                     "The dispenser shot must multiply base, distance, plate, and capped match bonuses.");
             require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("금 발판")),
                     "Dispenser details must show the activating plate grade.");
@@ -617,7 +617,7 @@ public final class EngineerGameTest {
                     "Dispenser details must show the gold plate damage bonus.");
             require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("3/10칸")),
                     "Dispenser details must show the applied circuit distance.");
-            require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("+200%/200%")),
+            require(dispenser.runtimeDetailLines().stream().anyMatch(line -> line.contains("+350%/350%")),
                     "Dispenser details must show the capped match damage bonus.");
             context.succeed();
         } catch (Throwable failure) {
