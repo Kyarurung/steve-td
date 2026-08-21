@@ -61,6 +61,8 @@ import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.plant.PlantVfx;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusVfx;
 import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
 import kim.biryeong.semiontd.tower.thunder.ThunderVfx;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
@@ -637,6 +639,16 @@ public final class SemionCommands {
                                 .then(literal("discharge")
                                         .executes(context -> debugThunderVfx(
                                                 context.getSource(), gameManager, ThunderVfx.DebugKind.DISCHARGE))))
+                        .then(literal("succubus")
+                                .then(literal("stack")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.STACK)))
+                                .then(literal("sleep")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.SLEEP)))
+                                .then(literal("absorb")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.ABSORB))))
                         .then(literal("demon_lord")
                                 .then(argument("skill", StringArgumentType.word())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
@@ -974,6 +986,16 @@ public final class SemionCommands {
         }
         failure(source, "살아 있는 " + requiredType.displayName() + " 타워가 필요합니다.");
         return 0;
+    }
+
+    private static int debugSuccubusVfx(
+            CommandSourceStack source,
+            SuccubusVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SuccubusVfx.showDebug(player, kind);
+        success(source, "서큐버스 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+        return 1;
     }
 
     private static int debugArmyVfx(

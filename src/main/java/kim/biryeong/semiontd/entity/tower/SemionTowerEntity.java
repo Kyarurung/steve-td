@@ -36,6 +36,7 @@ import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowerState;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanWaterTower;
+import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -1049,6 +1050,7 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             runtimeTower.syncHealth(currentHealth);
             runtimeTower.recordDamageTaken(Math.max(0.0, previousHealth - currentHealth));
             runtimeTower.onDamaged(this, damageSource, damageAmount, previousHealth, currentHealth);
+            SuccubusDreams.onTowerDamaged(this, damageSource, previousHealth, currentHealth);
         }
     }
 

@@ -137,7 +137,7 @@ public final class HeroTower extends HeroPartyTower {
             double dealtDamage,
             boolean killedTarget
     ) {
-        HeroPlayerVisuals.playAttack(this);
+        FakePlayerTowerVisuals.playAttack(this);
         HeroWeapon weapon = weapon();
         int level = state().weaponLevel(weapon);
         int attackNumber = ++attackCount;

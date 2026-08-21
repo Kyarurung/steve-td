@@ -44,6 +44,8 @@ import kim.biryeong.semiontd.tower.legion.LegionTowers;
 import kim.biryeong.semiontd.tower.mage.MageBalance;
 import kim.biryeong.semiontd.tower.mage.MageSpell;
 import kim.biryeong.semiontd.tower.mage.MageTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusBalance;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTower;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTower;
@@ -242,6 +244,7 @@ public record TowerBalanceConfig(
         addThunderTowers(towers);
         addDemonLordTowers(towers);
         addGambleTowers(towers);
+        addSuccubusTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -325,6 +328,7 @@ public record TowerBalanceConfig(
         putThunderUpgrades(upgradeCosts);
         putDemonLordUpgrades(upgradeCosts);
         putGambleUpgrades(upgradeCosts);
+        putSuccubusUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -895,6 +899,7 @@ public record TowerBalanceConfig(
         putThunderAbilities(abilities);
         putDemonLordAbilities(abilities);
         putGambleAbilities(abilities);
+        putSuccubusAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -904,6 +909,81 @@ public record TowerBalanceConfig(
                 VillagerAdvConfig.defaultConfig()
         );
         return fallback;
+    }
+
+    private static void addSuccubusTowers(Map<String, TowerStats> towers) {
+        SuccubusTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putSuccubusUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, SuccubusTowers.DREAM_DUST_T1, SuccubusTowers.DREAM_DUST_T2.id(), 100);
+        putUpgrade(upgrades, SuccubusTowers.DREAM_DUST_T2, SuccubusTowers.DREAM_DUST_T3.id(), 210);
+        putUpgrade(upgrades, SuccubusTowers.SLEEPWALKER_T1, SuccubusTowers.SLEEPWALKER_T2.id(), 110);
+        putUpgrade(upgrades, SuccubusTowers.SLEEPWALKER_T2, SuccubusTowers.SLEEPWALKER_T3.id(), 230);
+        putUpgrade(upgrades, SuccubusTowers.LULLABY_T1, SuccubusTowers.LULLABY_T2.id(), 120);
+        putUpgrade(upgrades, SuccubusTowers.LULLABY_T2, SuccubusTowers.LULLABY_T3.id(), 240);
+        putUpgrade(upgrades, SuccubusTowers.NIGHTMARE_T1, SuccubusTowers.NIGHTMARE_T2.id(), 135);
+        putUpgrade(upgrades, SuccubusTowers.NIGHTMARE_T2, SuccubusTowers.NIGHTMARE_T3.id(), 270);
+    }
+
+    private static void putSuccubusAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, SuccubusBalance.CONFIG_ID, Map.ofEntries(
+                Map.entry("maxStacks", (double) SuccubusBalance.MAX_STACKS),
+                Map.entry("stackDurationTicks", (double) SuccubusBalance.STACK_DURATION_TICKS),
+                Map.entry("sleepDurationTicks", (double) SuccubusBalance.SLEEP_DURATION_TICKS),
+                Map.entry("awakenedImmunityTicks", (double) SuccubusBalance.AWAKENED_IMMUNITY_TICKS),
+                Map.entry("spreadStacks", (double) SuccubusBalance.SPREAD_STACKS),
+                Map.entry("spreadRadius", SuccubusBalance.SPREAD_RADIUS),
+                Map.entry("allyDamagePerStack", SuccubusBalance.ALLY_DAMAGE_PER_STACK),
+                Map.entry("allyAttackSpeedPerStack", SuccubusBalance.ALLY_ATTACK_SPEED_PER_STACK),
+                Map.entry("enemyAttackSpeedPerStack", SuccubusBalance.ENEMY_ATTACK_SPEED_PER_STACK),
+                Map.entry("enemyMoveSpeedPerStack", SuccubusBalance.ENEMY_MOVE_SPEED_PER_STACK),
+                Map.entry("succubusAmplification", SuccubusBalance.SUCCUBUS_AMPLIFICATION),
+                Map.entry("monsterWakeDamageThreshold", SuccubusBalance.MONSTER_WAKE_DAMAGE_THRESHOLD),
+                Map.entry("towerWakeDamageThreshold", SuccubusBalance.TOWER_WAKE_DAMAGE_THRESHOLD),
+                Map.entry("monsterWakeBonusDamage", SuccubusBalance.MONSTER_WAKE_BONUS_DAMAGE),
+                Map.entry("towerWakeBonusDamage", SuccubusBalance.TOWER_WAKE_BONUS_DAMAGE),
+                Map.entry("executionSleepCount", (double) SuccubusBalance.EXECUTION_SLEEP_COUNT),
+                Map.entry("absorbAttackRatio", SuccubusBalance.ABSORB_ATTACK_RATIO),
+                Map.entry("absorbMaxHealthRatio", SuccubusBalance.ABSORB_MAX_HEALTH_RATIO)
+        ));
+        putAbilities(abilities, SuccubusTowers.DREAM_DUST_T1.id(), Map.of("stackEvery", 3.0));
+        putAbilities(abilities, SuccubusTowers.DREAM_DUST_T2.id(), Map.of("stackEvery", 2.0));
+        putAbilities(abilities, SuccubusTowers.DREAM_DUST_T3.id(), Map.of("stackEvery", 1.0));
+        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T1, 60, 0.10);
+        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T2, 40, 0.15);
+        putSleepwalker(abilities, SuccubusTowers.SLEEPWALKER_T3, 30, 0.20);
+        putLullaby(abilities, SuccubusTowers.LULLABY_T1, 120, 4.5, 2);
+        putLullaby(abilities, SuccubusTowers.LULLABY_T2, 100, 5.0, 3);
+        putLullaby(abilities, SuccubusTowers.LULLABY_T3, 80, 5.5, 4);
+        putNightmare(abilities, SuccubusTowers.NIGHTMARE_T1, 5, 0.0);
+        putNightmare(abilities, SuccubusTowers.NIGHTMARE_T2, 3, 0.25);
+        putNightmare(abilities, SuccubusTowers.NIGHTMARE_T3, 0, 0.50);
+    }
+
+    private static void putSleepwalker(Map<String, Map<String, Double>> abilities, TowerType type,
+                                       int cooldownTicks, double reduction) {
+        putAbilities(abilities, type.id(), Map.of(
+                "counterCooldownTicks", (double) cooldownTicks,
+                "dreamDamageReduction", reduction
+        ));
+    }
+
+    private static void putLullaby(Map<String, Map<String, Double>> abilities, TowerType type,
+                                   int intervalTicks, double radius, int maxTargets) {
+        putAbilities(abilities, type.id(), Map.of(
+                "pulseIntervalTicks", (double) intervalTicks,
+                "radius", radius,
+                "maxTargets", (double) maxTargets
+        ));
+    }
+
+    private static void putNightmare(Map<String, Map<String, Double>> abilities, TowerType type,
+                                     int minimumStacks, double sleepingDamageBonus) {
+        putAbilities(abilities, type.id(), Map.of(
+                "minimumStacks", (double) minimumStacks,
+                "sleepingDamageBonus", sleepingDamageBonus
+        ));
     }
 
     private static void addPlantTowers(LinkedHashMap<String, TowerStats> towers) {
@@ -1261,6 +1341,26 @@ public record TowerBalanceConfig(
         validateThunderAbilities();
         validateDemonLordAbilities();
         validateGambleAbilities();
+        validateSuccubusAbilities();
+    }
+
+    private void validateSuccubusAbilities() {
+        String global = SuccubusBalance.CONFIG_ID;
+        validatePositive(global, "maxStacks", "stackDurationTicks", "sleepDurationTicks",
+                "awakenedImmunityTicks", "spreadStacks", "spreadRadius", "executionSleepCount");
+        validateIntegral(global, false, "maxStacks", "stackDurationTicks", "sleepDurationTicks",
+                "awakenedImmunityTicks", "spreadStacks", "executionSleepCount");
+        validateRatios(global, "allyDamagePerStack", "allyAttackSpeedPerStack",
+                "enemyAttackSpeedPerStack", "enemyMoveSpeedPerStack", "succubusAmplification",
+                "monsterWakeDamageThreshold", "towerWakeDamageThreshold",
+                "monsterWakeBonusDamage", "towerWakeBonusDamage",
+                "absorbAttackRatio", "absorbMaxHealthRatio");
+        for (TowerType type : List.of(SuccubusTowers.SLEEPWALKER_T1, SuccubusTowers.SLEEPWALKER_T2,
+                SuccubusTowers.SLEEPWALKER_T3)) {
+            validateRatios(type.id(), "dreamDamageReduction");
+            validatePositive(type.id(), "counterCooldownTicks");
+            validateIntegral(type.id(), false, "counterCooldownTicks");
+        }
     }
 
     private void validateGambleAbilities() {

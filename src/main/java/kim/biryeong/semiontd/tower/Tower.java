@@ -14,6 +14,7 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
+import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -617,6 +618,7 @@ public abstract class Tower {
         if (runtimeMonster != null && dealtDamage > 0.0) {
             runtimeMonster.recordLastHit(ownerPlayer, KillSourceKind.TOWER);
         }
+        SuccubusDreams.onMonsterDamaged(target, this, dealtDamage);
         return new DamageResult(killed, dealtDamage, outgoingDamage);
     }
 
@@ -790,7 +792,7 @@ public abstract class Tower {
     }
 
     public void tick(PlayerLane lane) {
-        if (health <= 0.0) {
+        if (health <= 0.0 || SuccubusDreams.isAsleep(this)) {
             return;
         }
         if (cooldownTicks > 0) {

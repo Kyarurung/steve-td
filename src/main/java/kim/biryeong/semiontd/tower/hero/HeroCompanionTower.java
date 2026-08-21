@@ -154,7 +154,7 @@ public final class HeroCompanionTower extends HeroPartyTower {
             double dealtDamage,
             boolean killedTarget
     ) {
-        HeroPlayerVisuals.playAttack(this);
+        FakePlayerTowerVisuals.playAttack(this);
         HeroCompanionRole role = role().orElse(null);
         state().recordCompanionAttack(role, dealtDamage, killedTarget, isBoss(target), onlineOwner(towerEntity));
         if (role == HeroCompanionRole.ROGUE && executeAttackPending && dealtDamage > 0.0) {

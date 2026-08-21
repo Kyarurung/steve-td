@@ -39,6 +39,7 @@ import kim.biryeong.semiontd.tower.mage.MageTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTower;
 import kim.biryeong.semiontd.tower.nether.NetherTowerState;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.plant.PlantVfx;
@@ -96,6 +97,7 @@ public final class TowerVfxGameTest {
         assertPalette(GambleTowers.DICE_T1, BuilderPalette.GAMBLE);
         assertPalette(GambleTowers.GAMBLER, BuilderPalette.GAMBLE);
         assertPalette(GambleTowers.SPECTATOR_T3, BuilderPalette.GAMBLE);
+        assertPalette(SuccubusTowers.SUCCUBUS, BuilderPalette.SUCCUBUS);
         context.succeed();
     }
 

@@ -477,6 +477,10 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         return timedEffects.hasSource(type, sourceId);
     }
 
+    public boolean setPersistentEffect(TimedEffectType type, ResourceLocation sourceId, double magnitude) {
+        return timedEffects.setPersistent(type, sourceId, magnitude);
+    }
+
     public double movementSpeedMultiplier() {
         double baseMultiplier = runtimeMonster == null ? 1.0 : runtimeMonster.movementSpeedMultiplier();
         double speedBonus = timedEffects.magnitude(TimedEffectType.MONSTER_MOVE_SPEED_BONUS);

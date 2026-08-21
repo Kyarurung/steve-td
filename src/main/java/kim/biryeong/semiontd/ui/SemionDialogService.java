@@ -53,6 +53,7 @@ import kim.biryeong.semiontd.tower.hero.HeroPartyBalance;
 import kim.biryeong.semiontd.tower.hero.HeroPartyState;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
 import kim.biryeong.semiontd.tower.hero.HeroTower;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.trait.SemionTrait;
@@ -1288,6 +1289,7 @@ public final class SemionDialogService {
             lines.add("경험치 " + oneDecimal(VillagerAdvStates.experience(tower))
                     + "/" + oneDecimal(TowerBalanceRuntime.villagerAdv().resolvedExperienceMax()));
         }
+        lines.addAll(SuccubusDreams.detailLines(tower));
         lines.addAll(tower.runtimeDetailLines());
         return lines;
     }

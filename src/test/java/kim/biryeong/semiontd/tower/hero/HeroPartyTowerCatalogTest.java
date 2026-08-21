@@ -77,19 +77,19 @@ class HeroPartyTowerCatalogTest {
         assertEquals(25, ProductionTowerCatalog.all().stream()
                 .filter(entry -> job.includesTowerInCatalog(entry.type()))
                 .count());
-        assertEquals("용사 타워", HeroPlayerVisuals.displayProfileName(HeroPartyTowers.HERO));
+        assertEquals("용사 타워", FakePlayerTowerVisuals.displayProfileName(HeroPartyTowers.HERO));
         assertEquals("견습 사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 1).displayName());
         assertEquals("중견 사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 2).displayName());
         assertEquals("베테랑 사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 3).displayName());
         assertEquals("대사제", HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 4).displayName());
-        assertEquals("견습 사제 타워", HeroPlayerVisuals.displayProfileName(
+        assertEquals("견습 사제 타워", FakePlayerTowerVisuals.displayProfileName(
                 HeroPartyTowers.companion(HeroCompanionRole.PRIEST, 1)
         ));
 
         Set<String> ids = HeroPartyTowers.all().stream().map(type -> type.id()).collect(Collectors.toSet());
         assertTrue(ids.contains(HeroPartyTowers.HERO_ID));
         assertEquals(6, java.util.Arrays.stream(HeroCompanionRole.values())
-                .map(HeroPlayerVisuals::companionProfileId)
+                .map(FakePlayerTowerVisuals::companionProfileId)
                 .mapToInt(uuid -> Math.floorMod(uuid.hashCode(), 18))
                 .distinct()
                 .count());
@@ -111,9 +111,9 @@ class HeroPartyTowerCatalogTest {
 
     @Test
     void correctsFakePlayerCombatPitchDownward() {
-        assertEquals(19.5F, HeroPlayerVisuals.correctedPitch(-18.0F, true));
-        assertEquals(-18.0F, HeroPlayerVisuals.correctedPitch(-18.0F, false));
-        assertEquals(90.0F, HeroPlayerVisuals.correctedPitch(80.0F, true));
+        assertEquals(19.5F, FakePlayerTowerVisuals.correctedPitch(-18.0F, true));
+        assertEquals(-18.0F, FakePlayerTowerVisuals.correctedPitch(-18.0F, false));
+        assertEquals(90.0F, FakePlayerTowerVisuals.correctedPitch(80.0F, true));
     }
 
     @Test
@@ -236,11 +236,11 @@ class HeroPartyTowerCatalogTest {
         assertTrue(state.owns(HeroWeapon.SWORD));
         assertTrue(state.owns(HeroWeapon.LONGBOW));
         HeroPartyTower hero = (HeroPartyTower) hero(testContext(), new GridPosition(1, 64, 1));
-        assertEquals(5, HeroPlayerVisuals.displayedArmorLevel(hero));
+        assertEquals(5, FakePlayerTowerVisuals.displayedArmorLevel(hero));
         assertFalse(state.toggleArmorVisibility());
-        assertEquals(0, HeroPlayerVisuals.displayedArmorLevel(hero));
+        assertEquals(0, FakePlayerTowerVisuals.displayedArmorLevel(hero));
         assertTrue(state.toggleArmorVisibility());
-        assertEquals(5, HeroPlayerVisuals.displayedArmorLevel(hero));
+        assertEquals(5, FakePlayerTowerVisuals.displayedArmorLevel(hero));
 
         assertEquals(5, HeroPartyState.questReward(1));
         assertEquals(10, HeroPartyState.questReward(5));
