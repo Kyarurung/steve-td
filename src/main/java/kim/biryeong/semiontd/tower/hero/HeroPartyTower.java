@@ -41,18 +41,18 @@ public abstract class HeroPartyTower extends ProductionTower {
     @Override
     protected void configureEntityAfterSpawn(SemionTowerEntity entity, PlayerLane lane) {
         entity.setCustomNameVisible(false);
-        HeroPlayerVisuals.attach(entity, this);
+        FakePlayerTowerVisuals.attach(entity, this);
     }
 
     @Override
     public void onStateChanged(PlayerLane lane) {
         super.onStateChanged(lane);
-        HeroPlayerVisuals.refresh(this);
+        FakePlayerTowerVisuals.refresh(this);
     }
 
     @Override
     public void onRemoved(PlayerLane lane) {
-        HeroPlayerVisuals.remove(this);
+        FakePlayerTowerVisuals.remove(this);
         super.onRemoved(lane);
         if (currentLane == lane) {
             currentLane = null;
@@ -62,13 +62,13 @@ public abstract class HeroPartyTower extends ProductionTower {
     @Override
     public void onDeath(PlayerLane lane) {
         HeroPartyStates.state(ownerPlayer()).recordPartyDeath();
-        HeroPlayerVisuals.remove(this);
+        FakePlayerTowerVisuals.remove(this);
     }
 
     @Override
     public void tick(PlayerLane lane) {
         super.tick(lane);
-        HeroPlayerVisuals.tick(this);
+        FakePlayerTowerVisuals.tick(this);
     }
 
     @Override
@@ -144,7 +144,7 @@ public abstract class HeroPartyTower extends ProductionTower {
             return 0.0;
         }
         double previous = target.getHealth();
-        target.receiveHealing(amount * HeroPartyBalance.partyHealingMultiplier(state().adventurePoints()));
+        healTarget(target, amount * HeroPartyBalance.partyHealingMultiplier(state().adventurePoints()));
         return Math.max(0.0, target.getHealth() - previous);
     }
 
