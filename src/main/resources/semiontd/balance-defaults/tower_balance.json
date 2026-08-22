@@ -1256,6 +1256,14 @@
       "attackIntervalTicks": 16,
       "aggroPriority": 0
     },
+    "ancient_city_warden_t4": {
+      "mineralCost": 650,
+      "maxHealth": 240.0,
+      "range": 9.5,
+      "damage": 18.0,
+      "attackIntervalTicks": 14,
+      "aggroPriority": 0
+    },
     "adversary_fox": {
       "mineralCost": 100,
       "maxHealth": 300.0,
@@ -2074,7 +2082,7 @@
     },
     "future_agent_combat_g5": {
       "mineralCost": 50,
-      "maxHealth": 85.0,
+      "maxHealth": 80.0,
       "range": 7.0,
       "damage": 8.0,
       "attackIntervalTicks": 16,
@@ -2082,7 +2090,7 @@
     },
     "future_agent_combat_g4": {
       "mineralCost": 0,
-      "maxHealth": 140.0,
+      "maxHealth": 125.0,
       "range": 7.5,
       "damage": 13.0,
       "attackIntervalTicks": 15,
@@ -2090,7 +2098,7 @@
     },
     "future_agent_combat_g3": {
       "mineralCost": 0,
-      "maxHealth": 230.0,
+      "maxHealth": 190.0,
       "range": 8.0,
       "damage": 21.0,
       "attackIntervalTicks": 13,
@@ -2098,7 +2106,7 @@
     },
     "future_agent_combat_g2": {
       "mineralCost": 0,
-      "maxHealth": 380.0,
+      "maxHealth": 285.0,
       "range": 8.5,
       "damage": 33.0,
       "attackIntervalTicks": 11,
@@ -2106,7 +2114,7 @@
     },
     "future_agent_combat_g1": {
       "mineralCost": 0,
-      "maxHealth": 650.0,
+      "maxHealth": 390.0,
       "range": 9.0,
       "damage": 48.0,
       "attackIntervalTicks": 10,
@@ -2114,7 +2122,7 @@
     },
     "future_agent_suppression_g5": {
       "mineralCost": 50,
-      "maxHealth": 100.0,
+      "maxHealth": 95.0,
       "range": 6.0,
       "damage": 6.0,
       "attackIntervalTicks": 20,
@@ -2122,7 +2130,7 @@
     },
     "future_agent_suppression_g4": {
       "mineralCost": 0,
-      "maxHealth": 160.0,
+      "maxHealth": 145.0,
       "range": 6.5,
       "damage": 10.0,
       "attackIntervalTicks": 18,
@@ -2130,7 +2138,7 @@
     },
     "future_agent_suppression_g3": {
       "mineralCost": 0,
-      "maxHealth": 260.0,
+      "maxHealth": 215.0,
       "range": 7.0,
       "damage": 16.0,
       "attackIntervalTicks": 16,
@@ -2138,7 +2146,7 @@
     },
     "future_agent_suppression_g2": {
       "mineralCost": 0,
-      "maxHealth": 430.0,
+      "maxHealth": 320.0,
       "range": 7.5,
       "damage": 25.0,
       "attackIntervalTicks": 14,
@@ -2146,7 +2154,7 @@
     },
     "future_agent_suppression_g1": {
       "mineralCost": 0,
-      "maxHealth": 700.0,
+      "maxHealth": 420.0,
       "range": 8.0,
       "damage": 38.0,
       "attackIntervalTicks": 13,
@@ -2154,7 +2162,7 @@
     },
     "future_agent_protection_g5": {
       "mineralCost": 50,
-      "maxHealth": 200.0,
+      "maxHealth": 190.0,
       "range": 2.5,
       "damage": 5.0,
       "attackIntervalTicks": 22,
@@ -2162,7 +2170,7 @@
     },
     "future_agent_protection_g4": {
       "mineralCost": 0,
-      "maxHealth": 330.0,
+      "maxHealth": 300.0,
       "range": 2.7,
       "damage": 8.0,
       "attackIntervalTicks": 20,
@@ -2170,7 +2178,7 @@
     },
     "future_agent_protection_g3": {
       "mineralCost": 0,
-      "maxHealth": 540.0,
+      "maxHealth": 450.0,
       "range": 3.0,
       "damage": 13.0,
       "attackIntervalTicks": 18,
@@ -2178,7 +2186,7 @@
     },
     "future_agent_protection_g2": {
       "mineralCost": 0,
-      "maxHealth": 850.0,
+      "maxHealth": 640.0,
       "range": 3.2,
       "damage": 21.0,
       "attackIntervalTicks": 16,
@@ -2186,7 +2194,7 @@
     },
     "future_agent_protection_g1": {
       "mineralCost": 0,
-      "maxHealth": 1300.0,
+      "maxHealth": 780.0,
       "range": 3.5,
       "damage": 32.0,
       "attackIntervalTicks": 14,
@@ -3550,6 +3558,7 @@
     "ancient_city_shrieker_t2->ancient_city_shrieker_t3": 220,
     "ancient_city_warden_t1->ancient_city_warden_t2": 160,
     "ancient_city_warden_t2->ancient_city_warden_t3": 300,
+    "ancient_city_warden_t3->ancient_city_warden_t4": 650,
     "adversary_fox->adversary_fox_form_breeze": 200,
     "adversary_fox_form_breeze->adversary_fox_form_golden_fang": 400,
     "adversary_fox_form_breeze->adversary_fox_form_shield_bearer": 400,
@@ -4583,8 +4592,10 @@
     },
     "illager_raid": {
       "timedEffectDurationTicks": 40.0,
-      "damagePercentPerTower": 0.08,
-      "attackSpeedPercentPerTower": 0.03,
+      "damagePercentPerTower": 0.06,
+      "attackSpeedPercentPerTower": 0.02,
+      "damageBonusCap": 0.6,
+      "attackSpeedBonusCap": 0.2,
       "illagerTowerDeathGauge": 25.0,
       "markedKillBonusGauge": 10.0,
       "incomeKillGauge": 6.0,
@@ -5167,6 +5178,13 @@
       "sculkExtraTargets": 2.0,
       "secondaryDamageRatio": 0.75
     },
+    "ancient_city_warden_t4": {
+      "magicDamage": 68.0,
+      "magicCooldownTicks": 46.0,
+      "targetCount": 5.0,
+      "sculkExtraTargets": 2.0,
+      "secondaryDamageRatio": 0.75
+    },
     "adversary_global": {
       "maxFoxTowers": 4.0,
       "evolvedSplashDamageRatio": 0.5,
@@ -5175,8 +5193,8 @@
       "baseRivalKillHealRatio": 0.2,
       "enhancedRivalKillHealRatio": 0.3,
       "rivalKillHealCapRatioPerWave": 2.0,
-      "focusFireDamageReductionPerExtraAttacker": 0.04,
-      "focusFireDamageReductionCap": 0.45,
+      "focusFireDamageReductionPerExtraAttacker": 0.05,
+      "focusFireDamageReductionCap": 0.55,
       "sculkSelfDamageFloorRatio": 0.4,
       "baseSplashDamageRatio": 0.5,
       "bellHealIntervalTicks": 60.0,
@@ -5578,7 +5596,7 @@
       "escapeeSurvivorDamageMultiplier": 1.0,
       "rebuilderSurvivorDamageMultiplier": 2.0,
       "commanderSurvivorDamageMultiplier": 3.0,
-      "survivorDamageCap": 3.0,
+      "survivorDamageCap": 2.5,
       "damageReductionCap": 0.65,
       "slowCap": 0.6,
       "suppressionDenseCap": 0.3,
@@ -6027,7 +6045,7 @@
       "maxSlow": 0.45,
       "maxZoneAllyDamageReduction": 0.35,
       "waterPressureDamageRatio": 0.16,
-      "waterPressureDamageCap": 2.5,
+      "waterPressureDamageCap": 2.0,
       "waterPressureRadius": 3.0,
       "zoneStackMultiplier": 2.0,
       "maxZoneCount": 6.0,
@@ -6324,12 +6342,15 @@
       "powerDraw": 6.0
     },
     "thunder_squirrel_t2": {
-      "powerDraw": 14.0
+      "powerDraw": 14.0,
+      "chainTargets": 2.0,
+      "chainRadius": 3.0,
+      "chainDamageRatio": 0.35
     },
     "thunder_squirrel_t3": {
       "powerDraw": 24.0,
-      "chainTargets": 3.0,
-      "chainRadius": 3.5,
+      "chainTargets": 4.0,
+      "chainRadius": 4.0,
       "chainDamageRatio": 0.48
     },
     "thunder_surge_t2": {
@@ -6861,14 +6882,14 @@
       "awakenedImmunityTicks": 60.0,
       "spreadStacks": 2.0,
       "spreadRadius": 2.5,
-      "allyDamagePerStack": 0.1,
-      "allyAttackSpeedPerStack": 0.05,
+      "allyDamagePerStack": 0.07,
+      "allyAttackSpeedPerStack": 0.035,
       "enemyAttackSpeedPerStack": 0.05,
       "enemyMoveSpeedPerStack": 0.05,
       "succubusAmplification": 0.5,
       "monsterWakeDamageThreshold": 0.4,
       "towerWakeDamageThreshold": 0.1,
-      "monsterWakeBonusDamage": 0.3,
+      "monsterWakeBonusDamage": 0.2,
       "towerWakeBonusDamage": 0.1,
       "executionSleepCount": 3.0,
       "absorbAttackRatio": 0.03,

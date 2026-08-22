@@ -302,6 +302,49 @@ class HeroPartyTowerCatalogTest {
     }
 
     @Test
+    void armorKeepsFullEffectOnTheHeroAndSharesHalfWithCompanions() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        HeroPartyState state = HeroPartyStates.state(OWNER);
+        for (int level = 1; level <= HeroPartyBalance.MAX_ARMOR_LEVEL; level++) {
+            assertTrue(state.upgradeArmor());
+        }
+        HeroPartyTower hero = (HeroPartyTower) hero(testContext(), new GridPosition(1, 64, 1));
+        HeroPartyTower archer = (HeroPartyTower) companion(
+                testContext(), HeroCompanionRole.ARCHER, 1, new GridPosition(2, 64, 1));
+        double armorHealth = HeroPartyBalance.armorHealth(HeroPartyBalance.MAX_ARMOR_LEVEL);
+
+        assertEquals(armorHealth, hero.bonusFlatHealth(), 0.0001);
+        assertEquals(armorHealth * 0.50, archer.bonusFlatHealth(), 0.0001);
+        assertEquals(80.0, hero.modifyIncomingDamage(null, null, 100.0), 0.0001);
+        assertEquals(90.0, archer.modifyIncomingDamage(null, null, 100.0), 0.0001);
+    }
+
+    @Test
+    void adventureHealthScalingIncludesArmorInTheLateGame() throws Exception {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
+        HeroPartyState state = HeroPartyStates.state(OWNER);
+        for (int level = 1; level <= HeroPartyBalance.MAX_ARMOR_LEVEL; level++) {
+            assertTrue(state.upgradeArmor());
+        }
+        var adventurePoints = HeroPartyState.class.getDeclaredField("adventurePoints");
+        adventurePoints.setAccessible(true);
+        adventurePoints.setInt(state, 100);
+        HeroPartyTower hero = (HeroPartyTower) hero(testContext(), new GridPosition(1, 64, 1));
+        HeroPartyTower archer = (HeroPartyTower) companion(
+                testContext(), HeroCompanionRole.ARCHER, 1, new GridPosition(2, 64, 1));
+        double multiplier = HeroPartyBalance.partyHealthMultiplier(100);
+        double armorHealth = HeroPartyBalance.armorHealth(HeroPartyBalance.MAX_ARMOR_LEVEL);
+
+        assertEquals((hero.type().maxHealth() + armorHealth) * multiplier
+                        * HeroPartyBalance.weaponMaxHealthMultiplier(HeroWeapon.SWORD),
+                hero.effectBaseMaxHealth(), 0.0001);
+        assertEquals((archer.type().maxHealth() + armorHealth * HeroPartyBalance.COMPANION_ARMOR_SHARE)
+                        * multiplier,
+                archer.effectBaseMaxHealth(), 0.0001);
+        assertTrue(hero.runtimeDetailLines().stream().anyMatch(line -> line.contains("갑옷 포함")));
+    }
+
+    @Test
     void weaponBalanceDefaultsMergeValidateAndMatchBundledConfig() throws Exception {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         defaults.validateForRuntime();

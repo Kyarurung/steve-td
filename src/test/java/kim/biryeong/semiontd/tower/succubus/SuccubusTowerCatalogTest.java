@@ -72,7 +72,9 @@ class SuccubusTowerCatalogTest {
         assertEquals(100, config.abilityInt(SuccubusBalance.CONFIG_ID, "sleepDurationTicks", -1));
         assertEquals(40, config.abilityInt(SuccubusBalance.CONFIG_ID, "towerSleepDurationTicks", -1));
         assertEquals(0.50, config.ability(SuccubusBalance.CONFIG_ID, "succubusAmplification", -1));
-        assertEquals(0.30, config.ability(SuccubusBalance.CONFIG_ID, "monsterWakeBonusDamage", -1));
+        assertEquals(0.07, config.ability(SuccubusBalance.CONFIG_ID, "allyDamagePerStack", -1));
+        assertEquals(0.035, config.ability(SuccubusBalance.CONFIG_ID, "allyAttackSpeedPerStack", -1));
+        assertEquals(0.20, config.ability(SuccubusBalance.CONFIG_ID, "monsterWakeBonusDamage", -1));
         assertEquals(0.10, config.ability(SuccubusTowers.SLEEPWALKER_T1.id(), "dreamDamageReduction", -1));
         assertEquals(0.15, config.ability(SuccubusTowers.SLEEPWALKER_T2.id(), "dreamDamageReduction", -1));
         assertEquals(0.20, config.ability(SuccubusTowers.SLEEPWALKER_T3.id(), "dreamDamageReduction", -1));

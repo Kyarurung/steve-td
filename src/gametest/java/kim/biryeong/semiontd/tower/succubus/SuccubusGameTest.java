@@ -135,14 +135,14 @@ public final class SuccubusGameTest {
             SuccubusDreams.add(origin, lane, source, 10);
             SuccubusDreams.onMonsterDamaged(origin, source, 400.0);
 
-            requireClose(880.0, origin.getHealth(), "Origin wake damage");
-            requireClose(880.0, nearby.getHealth(), "Nearby wake area damage");
+            requireClose(920.0, origin.getHealth(), "Origin wake damage");
+            requireClose(920.0, nearby.getHealth(), "Nearby wake area damage");
             requireClose(1_000.0, outside.getHealth(), "Outside target exclusion");
             require(SuccubusDreams.isAsleep(nearby), "Spread stacks must sleep the nearby target before damage.");
             require(SuccubusDreams.stacks(ally) == 2, "Nearby allied towers must receive stacks.");
             requireClose(ally.currentMaxHealth(), ally.health(), "Allied towers must not receive wake area damage");
 
-            SuccubusDreams.onMonsterDamaged(nearby, source, 280.0);
+            SuccubusDreams.onMonsterDamaged(nearby, source, 320.0);
             require(!SuccubusDreams.isAsleep(nearby), "Area damage must count toward a chained wake.");
             context.succeed();
         } catch (Throwable throwable) {
@@ -162,7 +162,7 @@ public final class SuccubusGameTest {
         SuccubusTower succubus = tower(SuccubusTowers.SUCCUBUS, position(context, 1, 2, 4));
         lane.addTower(succubus);
         SemionMonsterEntity origin = spawnMonster(context, lane, "absorb-origin", position(context, 4, 2, 4));
-        SemionMonsterEntity victim = spawnMonster(context, lane, "absorb-victim", position(context, 6, 2, 4), 100.0);
+        SemionMonsterEntity victim = spawnMonster(context, lane, "absorb-victim", position(context, 6, 2, 4), 70.0);
         try {
             SuccubusDreams.add(origin, lane, succubus, 10);
             SuccubusDreams.onMonsterDamaged(origin, succubus, 400.0);
@@ -174,6 +174,35 @@ public final class SuccubusGameTest {
         } finally {
             SuccubusDreams.clearLane(lane);
             SuccubusAbsorption.clear(OWNER);
+            AreaEffectLaneIndex.unregister(lane);
+        }
+    }
+
+    @GameTest
+    public void wakeAreaDamageDoesNotRecursivelyPropagate(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        PlayerLane lane = testLane(context);
+        AreaEffectLaneIndex.register(lane);
+        SuccubusTower source = tower(SuccubusTowers.DREAM_DUST_T1, position(context, 1, 2, 4));
+        lane.addTower(source);
+        SemionMonsterEntity origin = spawnMonster(context, lane, "bounded-wake-origin", position(context, 2, 2, 4));
+        SemionMonsterEntity chained = spawnMonster(context, lane, "bounded-wake-chained", position(context, 4, 2, 4));
+        SemionMonsterEntity outsideInitialArea = spawnMonster(context, lane, "bounded-wake-outside", position(context, 6, 2, 4));
+        try {
+            SuccubusDreams.add(origin, lane, source, 10);
+            SuccubusDreams.add(chained, lane, source, 10);
+            SuccubusDreams.add(outsideInitialArea, lane, source, 10);
+            SuccubusDreams.onMonsterDamaged(chained, source, 390.0);
+
+            SuccubusDreams.onMonsterDamaged(origin, source, 400.0);
+
+            require(!SuccubusDreams.isAsleep(chained), "Initial wake area damage should still awaken a threshold target.");
+            requireClose(1_000.0, outsideInitialArea.getHealth(), "Nested wake must not emit another area-damage scan.");
+            context.succeed();
+        } catch (Throwable throwable) {
+            context.fail(Component.literal(throwable.toString()));
+        } finally {
+            SuccubusDreams.clearLane(lane);
             AreaEffectLaneIndex.unregister(lane);
         }
     }
@@ -252,12 +281,12 @@ public final class SuccubusGameTest {
         SemionMonsterEntity resolvedTarget = spawnMonster(context, lane, "dream-resolved", position(context, 7, 2, 4));
         try {
             require(SuccubusDreams.add(recipient, lane, source, 1), "Dream stack must apply to the recipient.");
-            double expectedBasic = recipient.type().damage() * 1.10;
+            double expectedBasic = recipient.type().damage() * 1.07;
             double basicDamage = recipientEntity.attackDamageAmount(basicTarget);
             requireClose(expectedBasic, basicDamage, "Dream basic damage preview");
             requireClose(expectedBasic, recipientEntity.damageTargetResult(basicTarget, basicDamage).outgoingDamage(),
                     "Dream basic damage must not double apply");
-            requireClose(110.0,
+            requireClose(107.0,
                     recipient.damageTargetResult(recipientEntity, magicTarget, 100.0, DamageType.MAGIC).outgoingDamage(),
                     "Dream magic ability damage");
             requireClose(100.0,

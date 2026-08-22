@@ -338,7 +338,9 @@ public record TowerBalanceConfig(
                 "markedKillBonusGauge", 7.0,
                 "illagerTowerDeathGauge", 20.0,
                 "attackSpeedPercentPerTower", 0.02,
-                "damagePercentPerTower", 0.05,
+                "damagePercentPerTower", 0.06,
+                "attackSpeedBonusCap", 0.20,
+                "damageBonusCap", 0.60,
                 "timedEffectDurationTicks", 40.0
         ));
         putAbilities(abilities, IllagerTowers.T1_VINDICATOR.id(), Map.of(
@@ -1332,6 +1334,9 @@ public record TowerBalanceConfig(
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeEvery");
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashEvery");
         validateIntegralAbility(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery");
+        validateRatios(IllagerRaidStates.RAID_CONFIG_ID,
+                "attackSpeedPercentPerTower", "damagePercentPerTower",
+                "attackSpeedBonusCap", "damageBonusCap");
         validateMageBalance();
         validateEngineerBalance();
         validateInsectBalance();
@@ -1546,8 +1551,10 @@ public record TowerBalanceConfig(
             throw new IllegalArgumentException("Thunder storm minimum output must not exceed its maximum output.");
         }
         validatePositive(ThunderTowers.ARMADILLO_EARTH.id(), "dischargeDamage", "dischargeRadius");
-        validatePositive(ThunderTowers.SQUIRREL_T3.id(), "chainRadius", "chainDamageRatio");
-        validateIntegral(ThunderTowers.SQUIRREL_T3.id(), false, "chainTargets");
+        for (TowerType type : List.of(ThunderTowers.SQUIRREL_T2, ThunderTowers.SQUIRREL_T3)) {
+            validatePositive(type.id(), "chainRadius", "chainDamageRatio");
+            validateIntegral(type.id(), false, "chainTargets");
+        }
     }
 
     private void validateAtlantisAbilities() {
@@ -2075,12 +2082,17 @@ public record TowerBalanceConfig(
         ));
 
         putAbilities(abilities, ThunderTowers.SQUIRREL_T1.id(), Map.of("powerDraw", 6.0));
-        putAbilities(abilities, ThunderTowers.SQUIRREL_T2.id(), Map.of("powerDraw", 14.0));
+        putAbilities(abilities, ThunderTowers.SQUIRREL_T2.id(), Map.of(
+                "powerDraw", 14.0,
+                "chainTargets", 2.0,
+                "chainRadius", 3.0,
+                "chainDamageRatio", 0.35
+        ));
         // 뇌신: 광역 담당. 직선 관통은 실전에서 거의 발동하지 않아 인접 전이로 대체했다.
         putAbilities(abilities, ThunderTowers.SQUIRREL_T3.id(), Map.of(
                 "powerDraw", 24.0,
-                "chainTargets", 3.0,
-                "chainRadius", 3.5,
+                "chainTargets", 4.0,
+                "chainRadius", 4.0,
                 "chainDamageRatio", 0.48
         ));
         // 폭주: 단일 대상 담당. 여유 전력을 그대로 화력으로 환산한다.
@@ -2262,6 +2274,7 @@ public record TowerBalanceConfig(
         putUpgrade(upgrades, AncientCityTowers.SHRIEKER_T2, AncientCityTowers.SHRIEKER_T3.id(), 220);
         putUpgrade(upgrades, AncientCityTowers.WARDEN_T1, AncientCityTowers.WARDEN_T2.id(), 160);
         putUpgrade(upgrades, AncientCityTowers.WARDEN_T2, AncientCityTowers.WARDEN_T3.id(), 300);
+        putUpgrade(upgrades, AncientCityTowers.WARDEN_T3, AncientCityTowers.WARDEN_T4.id(), 650);
     }
 
     private static void putAdversaryUpgrades(Map<String, Long> upgrades) {
@@ -3420,9 +3433,10 @@ public record TowerBalanceConfig(
         putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T1, 4, 60, 2.0, 0.10, 40);
         putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T2, 8, 50, 2.5, 0.15, 50);
         putShriekerAbilities(abilities, AncientCityTowers.SHRIEKER_T3, 34, 40, 3.0, 0.20, 60);
-        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T1, 10, 60, 2);
-        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T2, 16, 50, 3);
-        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T3, 55, 40, 4);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T1, 10, 60, 2, 1, 0.40);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T2, 16, 50, 3, 1, 0.50);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T3, 55, 50, 4, 2, 0.75);
+        putWardenAbilities(abilities, AncientCityTowers.WARDEN_T4, 68, 46, 5, 2, 0.75);
     }
 
     private static void putCatalystAbilities(
@@ -3480,14 +3494,16 @@ public record TowerBalanceConfig(
             TowerType type,
             double damage,
             double cooldown,
-            double targets
+            double targets,
+            double extraTargets,
+            double secondaryDamageRatio
     ) {
         putAbilities(abilities, type.id(), Map.of(
                 "magicDamage", damage,
                 "magicCooldownTicks", cooldown,
                 "targetCount", targets,
-                "sculkExtraTargets", 1.0,
-                "secondaryDamageRatio", 0.25
+                "sculkExtraTargets", extraTargets,
+                "secondaryDamageRatio", secondaryDamageRatio
         ));
     }
 

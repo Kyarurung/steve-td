@@ -10710,10 +10710,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         tower.tick(lane);
 
-        if (!assertClose(context, 0.32, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Illager raid damage bonus should be exposed as a tower timed effect.")) {
+        if (!assertClose(context, 0.24, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_BONUS), "Illager raid damage bonus should be exposed as a tower timed effect.")) {
             return;
         }
-        if (!assertClose(context, 0.12, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS), "Illager raid attack speed bonus should be exposed as a tower timed effect.")) {
+        if (!assertClose(context, 0.08, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_ATTACK_SPEED_BONUS), "Illager raid attack speed bonus should be exposed as a tower timed effect.")) {
             return;
         }
         if (!assertClose(context, 0.35, towerEntity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Illager raid damage reduction should be exposed as a tower timed effect.")) {
@@ -11277,6 +11277,31 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, buffDurationTicks, targetEntity.activeTimedEffectTicks(TimedEffectType.TOWER_DAMAGE_REDUCTION), "Goat should refresh its damage reduction every configured pulse interval.")) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void blockTowerSelectionStaysInsideTheResolvedTeamWorld(GameTestHelper context) {
+        UUID redId = stableUuid("tower-selection-red");
+        UUID blueId = stableUuid("tower-selection-blue");
+        SemionGame game = startedTwoPlayerGame(context, redId, blueId);
+        PlayerLane redLane = game.teams().get(TeamId.RED).laneGroup().lane(1).orElseThrow();
+        PlayerLane blueLane = game.teams().get(TeamId.BLUE).laneGroup().lane(1).orElseThrow();
+        BlockPos blockPosition = towerPlacementPos(redLane);
+        GridPosition position = GridPosition.from(blockPosition);
+        TestTower redTower = new TestTower(TestTowerTypes.TEST_DIRECT, redId, TeamId.RED, 1, position);
+        TestTower blueTower = new TestTower(TestTowerTypes.TEST_DIRECT, blueId, TeamId.BLUE, 1, position);
+        redLane.addTower(redTower);
+        blueLane.addTower(blueTower);
+
+        if (!assertEquals(
+                context,
+                blueTower,
+                SemionTowerInteractionService.resolveTowerAt(game.teams().get(TeamId.BLUE), blockPosition),
+                "Block selection should resolve the tower from the current world's team only."
+        )) {
             return;
         }
         context.succeed();

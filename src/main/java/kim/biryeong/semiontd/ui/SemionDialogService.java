@@ -1086,11 +1086,7 @@ public final class SemionDialogService {
         }
         body.append("\n<gray>견제 유닛을 보낼 팀을 선택하세요.</gray>");
 
-        ArrayList<ActionButton> actions = game.teams().values().stream()
-                .filter(candidate -> candidate.active() && !candidate.eliminated())
-                .filter(candidate -> candidate.id() != semionPlayer.teamId())
-                .sorted(Comparator.comparing(SemionTeam::id))
-                .limit(TEAM_TARGET_COLUMNS)
+        ArrayList<ActionButton> actions = leaderTargetCandidates(game, semionPlayer.teamId()).stream()
                 .map(candidate -> actionButton(
                         teamButtonLabel(candidate.id()),
                         "/semiontd leader target " + candidate.id().name().toLowerCase(java.util.Locale.ROOT),
@@ -1099,6 +1095,14 @@ public final class SemionDialogService {
                 ))
                 .collect(Collectors.toCollection(ArrayList::new));
         showActions(player, "세미온 TD 팀장", body.toString(), actions, TEAM_TARGET_COLUMNS);
+    }
+
+    static List<SemionTeam> leaderTargetCandidates(SemionGame game, TeamId ownTeamId) {
+        return game.teams().values().stream()
+                .filter(candidate -> candidate.active() && !candidate.eliminated())
+                .filter(candidate -> candidate.id() != ownTeamId)
+                .sorted(Comparator.comparing(SemionTeam::id))
+                .toList();
     }
 
     public void showSummonShop(ServerPlayer player, SemionGame game, int page) {

@@ -6,6 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Map;
+import kim.biryeong.semiontd.config.EconomyConfig;
+import kim.biryeong.semiontd.config.WaveConfig;
+import kim.biryeong.semiontd.game.SemionGame;
+import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.map.GameArena;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyLeaderTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyPolicy;
@@ -45,6 +51,23 @@ final class SemionDialogBodyTest {
 
         assertEquals(List.of(-1, 0, -1, 1, 2, 3, 4),
                 SemionDialogService.futureAgencyUpgradeGrid(upgrades));
+    }
+
+    @Test
+    void leaderTargetCandidatesIncludeAquaBeyondTheFourColumnLayout() {
+        SemionGame game = new SemionGame(
+                EconomyConfig.defaultConfig(),
+                WaveConfig.defaultConfig(),
+                new GameArena(Map.of())
+        );
+        game.teams().values().forEach(team -> team.activate());
+
+        assertEquals(
+                List.of(TeamId.BLUE, TeamId.GREEN, TeamId.YELLOW, TeamId.PURPLE, TeamId.AQUA),
+                SemionDialogService.leaderTargetCandidates(game, TeamId.RED).stream()
+                        .map(team -> team.id())
+                        .toList()
+        );
     }
 
     private static TowerUpgradeOption option(String id) {

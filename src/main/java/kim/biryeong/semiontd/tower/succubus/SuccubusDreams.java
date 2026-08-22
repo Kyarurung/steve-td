@@ -33,6 +33,7 @@ public final class SuccubusDreams {
     private static final Map<UUID, DreamState> MONSTERS = new HashMap<>();
     private static final Map<TowerKey, Long> LULLABY_READY_AT = new HashMap<>();
     private static final int SLEEP_SMOKE_INTERVAL_TICKS = 10;
+    private static boolean propagatingWake;
 
     private SuccubusDreams() {
     }
@@ -259,27 +260,32 @@ public final class SuccubusDreams {
 
     private static void propagate(PlayerLane lane, Tower source, SemionTowerEntity sourceEntity, Vec3 center,
                                   UUID excludedMonster, Tower excludedTower, double wakeDamage) {
-        if (lane == null || source == null || sourceEntity == null || center == null) return;
-        MonsterAreaEffectRequest monsterRequest = new MonsterAreaEffectRequest(
-                SPREAD_EFFECT, sourceEntity, center, SuccubusBalance.spreadRadius(),
-                excludedMonster == null ? Set.of() : Set.of(excludedMonster), null,
-                AreaVfxSpec.onChange(AreaVfxStyles.DEBUFF));
-        SemionTdApi.areaEffects().applyToMonsters(monsterRequest, target ->
-                add(target, lane, source, SuccubusBalance.spreadStacks())
-                        ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED);
-        TowerAreaEffectRequest towerRequest = new TowerAreaEffectRequest(
-                SPREAD_EFFECT, sourceEntity, center, SuccubusBalance.spreadRadius(),
-                TowerAreaTargetMode.REGISTERED, true,
-                target -> target.tower() != excludedTower, AreaVfxSpec.onChange(AreaVfxStyles.BUFF));
-        SemionTdApi.areaEffects().applyToTowers(towerRequest, target ->
-                add(target.tower(), lane, source, SuccubusBalance.spreadStacks())
-                        ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED);
-        if (wakeDamage > 0.0) {
-            MonsterAreaEffectRequest damageRequest = new MonsterAreaEffectRequest(
+        if (lane == null || source == null || sourceEntity == null || center == null || propagatingWake) return;
+        propagatingWake = true;
+        try {
+            MonsterAreaEffectRequest monsterRequest = new MonsterAreaEffectRequest(
                     SPREAD_EFFECT, sourceEntity, center, SuccubusBalance.spreadRadius(),
-                    excludedMonster == null ? Set.of() : Set.of(excludedMonster), null, AreaVfxSpec.none());
-            TowerAreaDamage.applyResolved(source, sourceEntity, damageRequest, ignored -> wakeDamage,
-                    false, (target, damage, killed) -> {}, DamageType.MAGIC);
+                    excludedMonster == null ? Set.of() : Set.of(excludedMonster), null,
+                    AreaVfxSpec.onChange(AreaVfxStyles.DEBUFF));
+            SemionTdApi.areaEffects().applyToMonsters(monsterRequest, target ->
+                    add(target, lane, source, SuccubusBalance.spreadStacks())
+                            ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED);
+            TowerAreaEffectRequest towerRequest = new TowerAreaEffectRequest(
+                    SPREAD_EFFECT, sourceEntity, center, SuccubusBalance.spreadRadius(),
+                    TowerAreaTargetMode.REGISTERED, true,
+                    target -> target.tower() != excludedTower, AreaVfxSpec.onChange(AreaVfxStyles.BUFF));
+            SemionTdApi.areaEffects().applyToTowers(towerRequest, target ->
+                    add(target.tower(), lane, source, SuccubusBalance.spreadStacks())
+                            ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED);
+            if (wakeDamage > 0.0) {
+                MonsterAreaEffectRequest damageRequest = new MonsterAreaEffectRequest(
+                        SPREAD_EFFECT, sourceEntity, center, SuccubusBalance.spreadRadius(),
+                        excludedMonster == null ? Set.of() : Set.of(excludedMonster), null, AreaVfxSpec.none());
+                TowerAreaDamage.applyResolved(source, sourceEntity, damageRequest, ignored -> wakeDamage,
+                        false, (target, damage, killed) -> {}, DamageType.MAGIC);
+            }
+        } finally {
+            propagatingWake = false;
         }
     }
 
