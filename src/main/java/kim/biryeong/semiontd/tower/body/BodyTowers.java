@@ -24,7 +24,7 @@ public final class BodyTowers {
             100.0,
             0.0,
             0.0,
-            30,
+            24,
             0,
             BlockDisplayVisual.builder(Blocks.CREAKING_HEART.defaultBlockState()).scale(0.95).build(),
             List.of(

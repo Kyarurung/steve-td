@@ -3445,7 +3445,7 @@
       "maxHealth": 100.0,
       "range": 0.0,
       "damage": 0.0,
-      "attackIntervalTicks": 30,
+      "attackIntervalTicks": 24,
       "aggroPriority": 0
     },
     "body_heart_t2": {
@@ -3515,7 +3515,7 @@
     "body_eye_t1": {
       "mineralCost": 45,
       "maxHealth": 50.0,
-      "range": 7.0,
+      "range": 11.0,
       "damage": 6.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 10
@@ -3523,7 +3523,7 @@
     "body_eye_t2": {
       "mineralCost": 110,
       "maxHealth": 75.0,
-      "range": 11.0,
+      "range": 15.0,
       "damage": 15.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 10

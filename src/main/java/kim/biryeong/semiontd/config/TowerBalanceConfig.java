@@ -1449,6 +1449,25 @@ public record TowerBalanceConfig(
         if (tierTwoMax != null && tierThreeMax != null && tierThreeMax < tierTwoMax) {
             throw new IllegalArgumentException("Body heart maximum stacks must not decrease by tier.");
         }
+        for (TowerType type : List.of(BodyTowers.BRAIN_T1, BodyTowers.BRAIN_T2, BodyTowers.BRAIN_T3)) {
+            validatePositive(type.id(), "splashRadius", "debuffTicks");
+            validateRatios(type.id(), "damageTaken", "attackReduction");
+            validateIntegral(type.id(), false, "debuffTicks");
+        }
+        for (TowerType type : List.of(BodyTowers.SKIN_T2, BodyTowers.SKIN_T3)) {
+            validateRatios(type.id(), "damageReductionPerStack");
+            validatePositive(type.id(), "damageReductionTicks");
+            validateIntegral(type.id(), false, "damageReductionTicks");
+        }
+        for (TowerType type : List.of(BodyTowers.EYE_T1, BodyTowers.EYE_T2, BodyTowers.EYE_T3)) {
+            validatePositive(type.id(), "lineWidth");
+        }
+        for (TowerType type : List.of(BodyTowers.GENITAL_T1, BodyTowers.GENITAL_T2, BodyTowers.GENITAL_T3)) {
+            validatePositive(type.id(), "extraTargetRadius", "magicProcDamage", "slowTicks");
+            validateRatios(type.id(), "slow");
+            validateIntegral(type.id(), true, "extraTargets");
+            validateIntegral(type.id(), false, "slowTicks");
+        }
     }
 
     private void validateSuccubusAbilities() {

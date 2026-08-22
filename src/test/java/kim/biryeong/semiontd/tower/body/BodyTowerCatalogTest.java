@@ -3,9 +3,12 @@ package kim.biryeong.semiontd.tower.body;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -132,12 +135,25 @@ class BodyTowerCatalogTest {
         ));
         assertEquals(4.5, config.ability(BodyTowers.BRAIN_T3.id(), "splashRadius", -1.0));
         assertEquals(2.0, config.ability(BodyTowers.GENITAL_T3.id(), "extraTargets", -1.0));
-        assertEquals(30, config.statsFor(BodyTowers.HEART_T1).attackIntervalTicks());
+        assertEquals(24, config.statsFor(BodyTowers.HEART_T1).attackIntervalTicks());
         assertEquals(24, config.statsFor(BodyTowers.HEART_T2).attackIntervalTicks());
         assertEquals(18, config.statsFor(BodyTowers.HEART_T3).attackIntervalTicks());
         assertEquals(60.0, config.ability(BodyTowers.HEART_T2.id(), "maxDeathStacks", -1.0));
         assertEquals(120.0, config.ability(BodyTowers.HEART_T3.id(), "maxDeathStacks", -1.0));
         assertEquals(15.0, config.ability(BodyTowers.HEART_T3.id(), "stacksPerIntervalReduction", -1.0));
+        assertEquals(BodyTowers.EYE_T1.range(), config.statsFor(BodyTowers.EYE_T1).range());
+        assertEquals(BodyTowers.EYE_T2.range(), config.statsFor(BodyTowers.EYE_T2).range());
+    }
+
+    @Test
+    void invalidBodyAbilitySemanticsAreRejected() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        assertInvalidAbility(defaults, BodyTowers.BRAIN_T1.id(), "damageTaken", 1.1);
+        assertInvalidAbility(defaults, BodyTowers.BRAIN_T1.id(), "debuffTicks", 1.5);
+        assertInvalidAbility(defaults, BodyTowers.SKIN_T2.id(), "damageReductionPerStack", 1.1);
+        assertInvalidAbility(defaults, BodyTowers.EYE_T1.id(), "lineWidth", 0.0);
+        assertInvalidAbility(defaults, BodyTowers.GENITAL_T2.id(), "extraTargets", 1.5);
+        assertInvalidAbility(defaults, BodyTowers.GENITAL_T2.id(), "slow", 1.1);
     }
 
     @Test
@@ -156,7 +172,7 @@ class BodyTowerCatalogTest {
         }
         assertEquals(0, tierOne.heartDeathStacks());
         assertEquals(0, tierTwo.heartDeathStacks());
-        assertEquals(30, tierOne.adjustAttackInterval(30));
+        assertEquals(24, tierOne.adjustAttackInterval(24));
         assertEquals(24, tierTwo.adjustAttackInterval(24));
 
         for (int death = 0; death < 60; death++) {
@@ -184,6 +200,23 @@ class BodyTowerCatalogTest {
 
     private static BodyTower bodyTower(TowerType type, UUID owner, GridPosition position) {
         return new BodyTower(TowerBalanceRuntime.resolve(type), owner, TeamId.RED, 1, position, position);
+    }
+
+    private static void assertInvalidAbility(
+            TowerBalanceConfig defaults,
+            String configId,
+            String key,
+            double value
+    ) {
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> values = new LinkedHashMap<>(abilities.get(configId));
+        values.put(key, value);
+        abilities.put(configId, values);
+        TowerBalanceConfig invalid = new TowerBalanceConfig(
+                defaults.towers(), defaults.upgradeCosts(), abilities,
+                defaults.illusionCloneQueue(), defaults.villagerAdv(), defaults.schemaVersion()
+        );
+        assertThrows(IllegalArgumentException.class, invalid::validateForRuntime);
     }
 
     private static void assertChain(TowerType t1, TowerType t2, TowerType t3) {

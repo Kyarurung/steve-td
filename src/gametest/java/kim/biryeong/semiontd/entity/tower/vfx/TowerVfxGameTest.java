@@ -98,6 +98,7 @@ public final class TowerVfxGameTest {
         assertPalette(GambleTowers.DICE_T1, BuilderPalette.GAMBLE);
         assertPalette(GambleTowers.GAMBLER, BuilderPalette.GAMBLE);
         assertPalette(GambleTowers.SPECTATOR_T3, BuilderPalette.GAMBLE);
+        assertPalette(BodyTowers.HEART_T1, BuilderPalette.BODY);
         assertPalette(SuccubusTowers.SUCCUBUS, BuilderPalette.SUCCUBUS);
         context.succeed();
     }
@@ -276,6 +277,19 @@ public final class TowerVfxGameTest {
         } finally {
             TowerVfxService.setBodyEyeLaserTestObserver(null);
         }
+    }
+
+    @GameTest
+    public void bodyDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("heartbeat", "eye_laser")) {
+            String command = "semiontd-debug vfx body " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
     }
 
     @GameTest
