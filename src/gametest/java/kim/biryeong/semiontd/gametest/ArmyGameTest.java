@@ -52,8 +52,8 @@ public final class ArmyGameTest {
             PlayerLane lane = game.playerLane(owner).orElseThrow();
 
             require(ProductionTowerCatalog.all().stream()
-                    .filter(ProductionTowerCatalog.CatalogEntry::starter).count() == 118,
-                    "Built-ins must include all 118 starter entries after Succubus Builder registration.");
+                    .filter(ProductionTowerCatalog.CatalogEntry::starter).count() == 123,
+                    "Built-ins must include all 123 starter entries after Body Builder registration.");
             require(ProductionTowerService.availableTowers(game, owner).stream()
                     .filter(entry -> ArmyTowers.isArmyTower(entry.type())).count() == 3,
                     "Army must expose headquarters, guard, and combat starters.");

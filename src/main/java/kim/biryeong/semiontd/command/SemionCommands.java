@@ -43,6 +43,7 @@ import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
 import kim.biryeong.semiontd.tower.army.ArmyTower;
+import kim.biryeong.semiontd.tower.body.BodyTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
@@ -97,6 +98,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.phys.Vec3;
 
 public final class SemionCommands {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
@@ -674,6 +676,13 @@ public final class SemionCommands {
                                 .then(literal("absorb")
                                         .executes(context -> debugSuccubusVfx(
                                                 context.getSource(), SuccubusVfx.DebugKind.ABSORB))))
+                        .then(literal("body")
+                                .then(literal("heartbeat")
+                                        .executes(context -> debugBodyVfx(
+                                                context.getSource(), gameManager, BodyTowers.Role.HEART)))
+                                .then(literal("eye_laser")
+                                        .executes(context -> debugBodyVfx(
+                                                context.getSource(), gameManager, BodyTowers.Role.EYE))))
                         .then(literal("demon_lord")
                                 .then(argument("skill", StringArgumentType.word())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
@@ -1021,6 +1030,38 @@ public final class SemionCommands {
         SuccubusVfx.showDebug(player, kind);
         success(source, "서큐버스 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
         return 1;
+    }
+
+    private static int debugBodyVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            BodyTowers.Role role
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (BodyTowers.roleOf(tower.type()) != role
+                        || !(tower instanceof EntityBackedTower backed)
+                        || backed.entityId().isEmpty()) {
+                    continue;
+                }
+                var entity = lane.arenaWorld().getEntity(backed.entityId().getAsInt());
+                if (entity instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity
+                        && towerEntity.isAlive()) {
+                    if (role == BodyTowers.Role.HEART) {
+                        TowerVfxService.showBodyHeartbeat(towerEntity);
+                    } else {
+                        TowerVfxService.showBodyEyeLaser(towerEntity, new Vec3(0.0, 0.0, 1.0), tower.type().range());
+                    }
+                    success(source, "신체 " + role.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, "살아 있는 신체 " + role.name().toLowerCase(java.util.Locale.ROOT) + " 타워가 필요합니다.");
+        return 0;
     }
 
     private static int debugArmyVfx(
