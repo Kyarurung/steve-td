@@ -78,12 +78,7 @@ public class WarlockTower extends EntityBackedTower {
 
     @Override
     public double adjustMovementSpeed(double baseSpeed) {
-        if (!WarlockConfig.AWAKENING_ENABLED
-                || !is(WarlockTowers.MELEE_WARLOCK_TOWER)
-                || !state.awakenedThisRound()) {
-            return baseSpeed;
-        }
-        return baseSpeed * (1.0 + Math.max(0.0, ability(MELEE_AWAKENING_MOVE_SPEED)));
+        return baseSpeed * (1.0 + awakeningMovementSpeedBonus());
     }
 
     @Override
@@ -105,13 +100,20 @@ public class WarlockTower extends EntityBackedTower {
         return 0.0;
     }
 
-    private double awakeningDamageBonus() {
-        if (!WarlockConfig.AWAKENING_ENABLED
-                || !is(WarlockTowers.MELEE_WARLOCK_TOWER)
+    double awakeningDamageBonus() {
+        if (!is(WarlockTowers.MELEE_WARLOCK_TOWER)
                 || !state.awakenedThisRound()) {
             return 0.0;
         }
         return Math.max(0.0, ability(MELEE_AWAKENING_DAMAGE));
+    }
+
+    double awakeningMovementSpeedBonus() {
+        if (!is(WarlockTowers.MELEE_WARLOCK_TOWER)
+                || !state.awakenedThisRound()) {
+            return 0.0;
+        }
+        return Math.max(0.0, ability(MELEE_AWAKENING_MOVE_SPEED));
     }
 
     public void onDamaged(
@@ -122,15 +124,13 @@ public class WarlockTower extends EntityBackedTower {
             double currentHealth
     ) {
         if (is(WarlockTowers.BASE_WARLOCK_TOWER) && currentHealth <= 0.0) {
-            if (sacrifices.sacrifice(
+            sacrifices.sacrifice(
                     this,
                     towerEntity,
                     currentLane,
                     sacrificeRadius(BASE_RADIUS),
                     Comparator.comparingInt(Tower::aggroPriority)
-            )) {
-                heal(towerEntity, ability(BASE_HEAL) * currentMaxHealth());
-            }
+            );
             return;
         }
         if (is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
@@ -163,8 +163,7 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     private void tryAwaken(PlayerLane lane, SemionTowerEntity towerEntity) {
-        if (!WarlockConfig.AWAKENING_ENABLED
-                || towerEntity == null
+        if (towerEntity == null
                 || !WarlockAwakeningProgress.unlocked(ownerPlayer())
                 || (!is(WarlockTowers.RANGED_WARLOCK_TOWER)
                 && !is(WarlockTowers.MELEE_WARLOCK_TOWER))) {
@@ -204,21 +203,8 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     double regenerationPerSecond() {
-        if (!WarlockConfig.AWAKENING_ENABLED
-                || !is(WarlockTowers.RANGED_WARLOCK_TOWER)
+        if (!is(WarlockTowers.RANGED_WARLOCK_TOWER)
                 || !state.awakenedThisRound()) {
-            return 0.0;
-        }
-        return Math.max(
-                0.0,
-                ability(RANGED_AWAKENING_REGENERATION)
-        );
-    }
-
-    double maximumRegenerationPerSecond() {
-        if (!WarlockConfig.AWAKENING_ENABLED
-                || !WarlockAwakeningProgress.unlocked(ownerPlayer())
-                || !is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
             return 0.0;
         }
         return Math.max(
@@ -294,7 +280,7 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     boolean awakenedThisRound() {
-        return WarlockConfig.AWAKENING_ENABLED && state.awakenedThisRound();
+        return state.awakenedThisRound();
     }
 
     @Override
@@ -395,7 +381,7 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     private void tickAwakeningVfx(PlayerLane lane) {
-        if (!WarlockConfig.AWAKENING_ENABLED || !state.awakenedThisRound()) {
+        if (!state.awakenedThisRound()) {
             awakeningVfxTicks = 0;
             return;
         }

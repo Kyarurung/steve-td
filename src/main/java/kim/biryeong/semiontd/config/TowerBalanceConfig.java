@@ -743,7 +743,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "towerDamageTakenBonus", 0.05
+                "towerDamageTakenBonus", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -753,7 +753,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "attackSpeedReduction", 0.05
+                "attackSpeedReduction", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -3958,7 +3958,7 @@ public record TowerBalanceConfig(
         values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1200.0);
+        values.put("awakeningKills", 1250.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -3966,7 +3966,6 @@ public record TowerBalanceConfig(
     private static Map<String, Double> baseWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("sacrificeRadius", 6.0);
-        values.put("fatalHeal", 0.35);
         values.put("permanentHealth", 0.025);
         values.put("permanentDamage", 0.05);
         return values;

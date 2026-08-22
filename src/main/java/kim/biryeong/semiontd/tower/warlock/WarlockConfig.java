@@ -3,7 +3,6 @@ package kim.biryeong.semiontd.tower.warlock;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 final class WarlockConfig {
     static final WarlockConfig RUNTIME = new WarlockConfig();
-    static final boolean AWAKENING_ENABLED = true;
 
     private WarlockConfig() {
     }
@@ -24,7 +23,6 @@ final class WarlockConfig {
         AWAKENING_KILLS(Scope.GLOBAL, "awakeningKills"),
         AWAKENING_THRESHOLD(Scope.GLOBAL, "awakeningThreshold"),
         BASE_RADIUS(Scope.BASE, "sacrificeRadius"),
-        BASE_HEAL(Scope.BASE, "fatalHeal"),
         BASE_PERMANENT_HEALTH(Scope.BASE, "permanentHealth"),
         BASE_PERMANENT_DAMAGE(Scope.BASE, "permanentDamage"),
         RANGED_THRESHOLD(Scope.RANGED, "threshold"),

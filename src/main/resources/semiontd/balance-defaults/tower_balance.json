@@ -4219,12 +4219,11 @@
       "absorptionHeal": 30.0,
       "minInterval": 5.0,
       "speedCap": 15.0,
-      "awakeningKills": 1200.0,
+      "awakeningKills": 1250.0,
       "awakeningThreshold": 0.4
     },
     "base_warlock_tower": {
       "sacrificeRadius": 6.0,
-      "fatalHeal": 0.35,
       "permanentHealth": 0.025,
       "permanentDamage": 0.05
     },
@@ -4283,7 +4282,7 @@
       "awakeningMoveSpeed": 0.3
     },
     "t2_slave": {
-      "towerDamageTakenBonus": 0.05,
+      "towerDamageTakenBonus": 0.1,
       "deathEffectRadius": 20.0,
       "deathEffectDurationTicks": 72000.0
     },
@@ -4293,7 +4292,7 @@
       "deathEffectDurationTicks": 72000.0
     },
     "t2_ranged_slave": {
-      "attackSpeedReduction": 0.05,
+      "attackSpeedReduction": 0.1,
       "deathEffectRadius": 20.0,
       "deathEffectDurationTicks": 72000.0
     },

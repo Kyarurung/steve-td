@@ -137,15 +137,10 @@ public final class SemionDialogService {
     private static final int BUILD_GUIDE_PAGE_SIZE = 4;
     private static final String DIAMOND_GRADIENT = "<gradient:#ffffff:#d5fff6:#a1fbe8:#4aedd9:#20c5b5:#1aaaa7:#11727a:#145e53>";
     private static final String GRADIENT_CLOSE = "</gradient>";
-    private static final DateTimeFormatter STATISTICS_TIME_FORMAT = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd HH:mm")
-            .withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter STATISTICS_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     private static final ConcurrentMap<SmallAvatarKey, Component> SMALL_AVATAR_CACHE = new ConcurrentHashMap<>();
     private static final Set<String> AVATAR_LOAD_REQUESTS = ConcurrentHashMap.newKeySet();
-    private static final ExecutorService AVATAR_LOADER = Executors.newFixedThreadPool(
-            2,
-            Thread.ofPlatform().daemon().name("semiontd-avatar-loader-", 0).factory()
-    );
+    private static final ExecutorService AVATAR_LOADER = Executors.newFixedThreadPool(2, Thread.ofPlatform().daemon().name("semiontd-avatar-loader-", 0).factory());
 
     public void showGameStatus(ServerPlayer player, SemionGame game) {
         ArrayList<DialogBody> bodies = new ArrayList<>();
@@ -390,7 +385,7 @@ public final class SemionDialogService {
         appendJobStatisticsState(bodies, state);
 
         List<JobStatisticsRow> rows = jobStatisticsCategoryRows(snapshot, official);
-        bodies.add(new PlainMessage(jobStatisticsSummaryTable(snapshot, rows), JOB_STATISTICS_WIDTH));
+        addJobStatisticsSummary(bodies, snapshot, rows);
         ArrayList<ActionButton> actions = new ArrayList<>();
         for (JobStatisticsRow row : rows) {
             actions.add(jobStatisticsButton(row));
@@ -1151,9 +1146,11 @@ public final class SemionDialogService {
         showActions(
                 player,
                 "세미온 TD 샌드박스",
-                "<gradient:#facc15:#fb923c><bold>라운드 이동</bold></gradient>\n"
-                        + "<gray>현재 라운드</gray> <gold>" + currentRound + "</gold>\n"
-                        + "<gray>타워·보스 체력·자원은 유지되며 현재 몹과 예약 소환은 제거됩니다.</gray>",
+                statusControlBodies(
+                        miniMessage("<gradient:#facc15:#fb923c><bold>라운드 이동</bold></gradient>"),
+                        miniMessage("<white>현재 라운드</white> <gold>" + currentRound + "</gold>"),
+                        miniMessage("<gray>타워·보스 체력·자원은 유지되며 현재 몹과 예약 소환은 제거됩니다.</gray>")
+                ),
                 actions,
                 2
         );
@@ -1172,20 +1169,29 @@ public final class SemionDialogService {
         }
 
         var leaderTargeting = team.leaderTargeting().orElseThrow();
-        StringBuilder body = new StringBuilder();
-        body.append("<gradient:#facc15:#fb923c><bold>팀장 타깃 지정</bold></gradient>\n");
-        body.append("<gray>내 팀</gray> ").append(teamMarkup(semionPlayer.teamId())).append("\n");
-        body.append("<gray>현재 타깃</gray> ")
+        StringBuilder status = new StringBuilder();
+        status.append("<white>내 팀</white> ").append(teamMarkup(semionPlayer.teamId())).append("\n");
+        status.append("<white>현재 타깃</white> ")
                 .append(leaderTargeting.targetTeamId().map(SemionDialogService::teamMarkup).orElse("<dark_gray>없음</dark_gray>"))
                 .append("\n");
         if (!leaderTargeting.canUse()) {
-            body.append("\n<red>쿨타임: </red><yellow>")
+            Component cooldown = miniMessage(new StringBuilder("<red>쿨타임: </red><yellow>")
                     .append(leaderTargeting.cooldownRemainingRounds())
-                    .append("라운드</yellow>");
-            showActions(player, "세미온 TD 팀장", body.toString(), List.of(), TEAM_TARGET_COLUMNS);
+                    .append("라운드</yellow>")
+                    .toString());
+            showActions(
+                    player,
+                    "세미온 TD 팀장",
+                    statusControlBodies(
+                            miniMessage("<gradient:#facc15:#fb923c><bold>팀장 타깃 지정</bold></gradient>"),
+                            miniMessage(status.toString().stripTrailing()),
+                            cooldown
+                    ),
+                    List.of(),
+                    TEAM_TARGET_COLUMNS
+            );
             return;
         }
-        body.append("\n<gray>견제 유닛을 보낼 팀을 선택하세요.</gray>");
 
         ArrayList<ActionButton> actions = leaderTargetCandidates(game, semionPlayer.teamId()).stream()
                 .map(candidate -> actionButton(
@@ -1195,7 +1201,34 @@ public final class SemionDialogService {
                         TEAM_TARGET_BUTTON_WIDTH
                 ))
                 .collect(Collectors.toCollection(ArrayList::new));
-        showActions(player, "세미온 TD 팀장", body.toString(), actions, TEAM_TARGET_COLUMNS);
+        showActions(
+                player,
+                "세미온 TD 팀장",
+                statusControlBodies(
+                        miniMessage("<gradient:#facc15:#fb923c><bold>팀장 타깃 지정</bold></gradient>"),
+                        miniMessage(status.toString().stripTrailing()),
+                        miniMessage("<gray>견제 유닛을 보낼 팀을 선택하세요.</gray>")
+                ),
+                actions,
+                TEAM_TARGET_COLUMNS
+        );
+    }
+
+    private static List<DialogBody> statusControlBodies(
+            Component title,
+            Component status,
+            Component description
+    ) {
+        Component header = Component.empty()
+                .append(new HeaderMessage(title, BODY_WIDTH).asVanillaComponent())
+                .append("\n")
+                .append(status)
+                .append("\n\n")
+                .append(description);
+        return List.of(
+                new PlainMessage(header, BODY_WIDTH),
+                HeaderMessage.divider(BODY_WIDTH)
+        );
     }
 
     static List<SemionTeam> leaderTargetCandidates(SemionGame game, TeamId ownTeamId) {
@@ -2562,11 +2595,12 @@ public final class SemionDialogService {
         return jobStatisticsSummaryTableRow(cells.get(0), cells.get(1), cells.get(2), cells.get(3));
     }
 
-    private static Component jobStatisticsSummaryTable(
+    static void addJobStatisticsSummary(
+            List<DialogBody> bodies,
             JobStatisticsSnapshot snapshot,
             List<JobStatisticsRow> rows
     ) {
-        MutableComponent table = Component.empty()
+        Component header = Component.empty()
                 .append(new HeaderMessage(
                         Component.literal("직업별 요약").withStyle(ChatFormatting.YELLOW),
                         JOB_STATISTICS_WIDTH
@@ -2575,10 +2609,18 @@ public final class SemionDialogService {
                 .append(jobStatisticsSummaryHeader())
                 .append("\n")
                 .append(jobStatisticsDivider().contents().copy());
+
+        MutableComponent body = Component.empty();
         for (JobStatisticsRow row : rows) {
-            table.append("\n").append(jobStatisticsSummaryLine(snapshot, row));
+            if (!body.getString().isEmpty()) {
+                body.append("\n");
+            }
+            body.append(jobStatisticsSummaryLine(snapshot, row));
         }
-        return table.append("\n").append(jobStatisticsDivider().contents().copy());
+
+        bodies.add(new PlainMessage(header, JOB_STATISTICS_WIDTH));
+        bodies.add(new PlainMessage(body, JOB_STATISTICS_WIDTH));
+        bodies.add(jobStatisticsDivider());
     }
 
     static List<Component> jobStatisticsSummaryHeaderCells() {

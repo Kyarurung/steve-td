@@ -52,9 +52,6 @@ class EndTowerCatalogTest {
                 config.abilities().get(EndTower.CONFIG_ID).keySet()
         );
         assertEquals(expectedAbilityKeys, actualAbilityKeys);
-        assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "hatchDelayTicks", -1.0), 0.0001);
-        assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "regenerationTicks", -1.0), 0.0001);
-        assertEquals(-1.0, config.ability(EndTower.CONFIG_ID, "attackDamageCap", -1.0), 0.0001);
         assertEquals(2000.0, config.ability(EndTower.CONFIG_ID, "dragonEvolution", -1.0), 0.0001);
         assertEquals(100.0, config.ability(EndTower.CONFIG_ID, "phantomScaleHealth", -1.0), 0.0001);
         assertEquals(0.2, config.ability(EndTower.CONFIG_ID, "phantomScaleStep", -1.0), 0.0001);
