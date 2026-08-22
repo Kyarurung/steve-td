@@ -43,6 +43,7 @@ import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.tower.adversary.AdversaryVfx;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityVfx;
 import kim.biryeong.semiontd.tower.army.ArmyTower;
+import kim.biryeong.semiontd.tower.body.BodyTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowers;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisVfx;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
@@ -61,6 +62,8 @@ import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.plant.PlantVfx;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusVfx;
 import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
 import kim.biryeong.semiontd.tower.thunder.ThunderVfx;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
@@ -98,6 +101,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.phys.Vec3;
 
 public final class SemionCommands {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
@@ -278,6 +282,18 @@ public final class SemionCommands {
                                         ))))
                         .then(literal("stats")
                                 .executes(context -> jobStatisticsDialog(context.getSource(), gameManager))
+                                .then(literal("official")
+                                        .executes(context -> jobStatisticsDialog(
+                                                context.getSource(),
+                                                gameManager,
+                                                true
+                                        )))
+                                .then(literal("creative")
+                                        .executes(context -> jobStatisticsDialog(
+                                                context.getSource(),
+                                                gameManager,
+                                                false
+                                        )))
                                 .then(argument("id", ResourceLocationArgument.id())
                                         .executes(context -> jobStatisticsDetailDialog(
                                                 context.getSource(),
@@ -463,6 +479,8 @@ public final class SemionCommands {
                 .executes(context -> ratingTop(context.getSource(), gameManager)));
         dispatcher.register(literal("준비")
                 .executes(context -> ready(context.getSource(), gameManager)));
+        dispatcher.register(literal("중도참여")
+                .executes(context -> lateJoin(context.getSource(), gameManager)));
         dispatcher.register(literal("미드희망")
                 .executes(context -> requestMidLane(context.getSource(), gameManager)));
         dispatcher.register(literal("피해량보기")
@@ -483,6 +501,13 @@ public final class SemionCommands {
                                         context.getSource(),
                                         gameManager,
                                         StringArgumentType.getString(context, "title")
+                                ))))
+                .then(literal("추적")
+                        .then(argument("code", StringArgumentType.word())
+                                .executes(context -> trackBuild(
+                                        context.getSource(),
+                                        gameManager,
+                                        StringArgumentType.getString(context, "code")
                                 ))))
                 .then(literal("목록")
                         .executes(context -> buildListDialog(context.getSource(), gameManager))));
@@ -653,6 +678,29 @@ public final class SemionCommands {
                                 .then(literal("discharge")
                                         .executes(context -> debugThunderVfx(
                                                 context.getSource(), gameManager, ThunderVfx.DebugKind.DISCHARGE))))
+                        .then(literal("succubus")
+                                .then(literal("stack")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.STACK)))
+                                .then(literal("sleep")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.SLEEP)))
+                                .then(literal("smoke")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.SMOKE)))
+                                .then(literal("wake")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.WAKE)))
+                                .then(literal("absorb")
+                                        .executes(context -> debugSuccubusVfx(
+                                                context.getSource(), SuccubusVfx.DebugKind.ABSORB))))
+                        .then(literal("body")
+                                .then(literal("heartbeat")
+                                        .executes(context -> debugBodyVfx(
+                                                context.getSource(), gameManager, BodyTowers.Role.HEART)))
+                                .then(literal("eye_laser")
+                                        .executes(context -> debugBodyVfx(
+                                                context.getSource(), gameManager, BodyTowers.Role.EYE))))
                         .then(literal("demon_lord")
                                 .then(argument("skill", StringArgumentType.word())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
@@ -989,6 +1037,48 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 " + requiredType.displayName() + " 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugSuccubusVfx(
+            CommandSourceStack source,
+            SuccubusVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SuccubusVfx.showDebug(player, kind);
+        success(source, "서큐버스 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+        return 1;
+    }
+
+    private static int debugBodyVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            BodyTowers.Role role
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (lane != null) {
+            for (Tower tower : lane.towers()) {
+                if (BodyTowers.roleOf(tower.type()) != role
+                        || !(tower instanceof EntityBackedTower backed)
+                        || backed.entityId().isEmpty()) {
+                    continue;
+                }
+                var entity = lane.arenaWorld().getEntity(backed.entityId().getAsInt());
+                if (entity instanceof kim.biryeong.semiontd.entity.tower.SemionTowerEntity towerEntity
+                        && towerEntity.isAlive()) {
+                    if (role == BodyTowers.Role.HEART) {
+                        TowerVfxService.showBodyHeartbeat(towerEntity);
+                    } else {
+                        TowerVfxService.showBodyEyeLaser(towerEntity, new Vec3(0.0, 0.0, 1.0), tower.type().range());
+                    }
+                    success(source, "신체 " + role.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, "살아 있는 신체 " + role.name().toLowerCase(java.util.Locale.ROOT) + " 타워가 필요합니다.");
         return 0;
     }
 
@@ -1737,6 +1827,48 @@ public final class SemionCommands {
 
         success(source, "준비 완료했습니다. 준비 인원=" + game.readyPlayerCount());
         return 1;
+    }
+
+    private static int lateJoin(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
+        SemionGameManager.LateJoinResult result = gameManager.requestLateJoin(
+                source.getServer(),
+                source.getPlayerOrException()
+        );
+        return switch (result) {
+            case SELECTION_STARTED -> {
+                success(source, "특성 선택을 시작했습니다. 30초 안에 선택하면 중도 참여합니다.");
+                yield 1;
+            }
+            case JOINED -> 1;
+            case NO_ACTIVE_GAME -> {
+                failure(source, "진행 중인 게임이 없습니다.");
+                yield 0;
+            }
+            case INVALID_GAME -> {
+                failure(source, "진행 중인 일반 게임에서만 중도 참여할 수 있습니다.");
+                yield 0;
+            }
+            case TOO_LATE -> {
+                failure(source, "중도 참여는 5라운드까지만 가능합니다.");
+                yield 0;
+            }
+            case ALREADY_PARTICIPANT -> {
+                failure(source, "이미 이번 게임에 참가 중입니다.");
+                yield 0;
+            }
+            case ALREADY_PENDING -> {
+                failure(source, "이미 중도 참여 특성을 선택 중입니다. /특성으로 창을 다시 여세요.");
+                yield 0;
+            }
+            case NO_SLOT -> {
+                failure(source, "참가할 수 있는 팀에 빈자리가 없습니다.");
+                yield 0;
+            }
+            case FAILED -> {
+                failure(source, "중도 참여 처리에 실패했습니다.");
+                yield 0;
+            }
+        };
     }
 
     private static int toggleDamageView(CommandSourceStack source, SemionGameManager gameManager) throws CommandSyntaxException {
@@ -2658,6 +2790,20 @@ public final class SemionCommands {
         return 1;
     }
 
+    private static int jobStatisticsDialog(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            boolean official
+    ) throws CommandSyntaxException {
+        gameManager.dialogService().showJobStatistics(
+                source.getPlayerOrException(),
+                gameManager.jobStatisticsSnapshot(),
+                gameManager.jobStatisticsState(),
+                official
+        );
+        return 1;
+    }
+
     private static int jobStatisticsDetailDialog(
             CommandSourceStack source,
             SemionGameManager gameManager,
@@ -2697,7 +2843,7 @@ public final class SemionCommands {
         gameManager.dialogService().showTraitSelection(
                 player,
                 gameManager.traitLoadoutOrDefault(player.getUUID()),
-                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining())
+                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining(player.getUUID()))
         );
         success(source, "특성 선택 창을 열었습니다.");
         return 1;
@@ -2724,7 +2870,7 @@ public final class SemionCommands {
         gameManager.dialogService().showTraitSelection(
                 player,
                 gameManager.traitLoadoutOrDefault(player.getUUID()),
-                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining()),
+                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining(player.getUUID())),
                 slot
         );
         success(source, slot.displayName() + " 선택 창을 열었습니다.");
@@ -2766,8 +2912,9 @@ public final class SemionCommands {
             return 0;
         }
         ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = gameManager.activeGame().orElse(null);
         boolean sandbox = gameManager.sandboxGame(player.getUUID()).isPresent();
-        if (gameManager.activeGame().isEmpty() && !sandbox) {
+        if (game == null && !sandbox) {
             failure(source, "참여 중인 로비 또는 샌드박스가 없습니다.");
             return 0;
         }
@@ -2800,10 +2947,15 @@ public final class SemionCommands {
                 + "을 선택했습니다: "
                 + traitName(loadout.traitId(slot))
                 + " (주특성 100%, 부특성 50%)");
+        SemionPlayer joinedPlayer = game == null ? null : game.players().get(player.getUUID());
+        if (!sandbox && joinedPlayer != null) {
+            gameManager.dialogService().showAppliedTraits(player, joinedPlayer.traitLoadout());
+            return 1;
+        }
         gameManager.dialogService().showTraitSelection(
                 player,
                 loadout,
-                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining())
+                sandbox ? -1 : Math.max(0, gameManager.traitSelectionSecondsRemaining(player.getUUID()))
         );
         return 1;
     }
@@ -3252,6 +3404,7 @@ public final class SemionCommands {
             case GREEN -> "green";
             case YELLOW -> "yellow";
             case PURPLE -> "light_purple";
+            case AQUA -> "aqua";
         };
         return "<" + color + ">" + MINI_MESSAGE.escapeTags(playerName) + "</" + color + ">";
     }
@@ -3564,7 +3717,7 @@ public final class SemionCommands {
         try {
             teamId = parseTeam(teamName);
         } catch (IllegalArgumentException exception) {
-            failure(source, "알 수 없는 팀입니다: " + teamName + ". RED, BLUE, GREEN, YELLOW, PURPLE 중 하나를 사용하세요.");
+            failure(source, "알 수 없는 팀입니다: " + teamName + ". RED, BLUE, GREEN, YELLOW, PURPLE, AQUA 중 하나를 사용하세요.");
             return 0;
         }
 

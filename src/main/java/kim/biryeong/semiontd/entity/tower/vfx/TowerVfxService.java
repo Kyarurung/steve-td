@@ -38,6 +38,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
+import kim.biryeong.semiontd.tower.body.BodyTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.gamble.GambleTowers;
@@ -46,6 +47,7 @@ import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.insect.InsectTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
 import kim.biryeong.semiontd.tower.mage.MageTowers;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
@@ -103,6 +105,9 @@ public final class TowerVfxService {
     private static final DustParticleOptions WARLOCK_AWAKENING_MANA_PARTICLE = new DustParticleOptions(0x189BE5, 1.1F);
     private static final DustParticleOptions WARLOCK_AWAKENING_BRIGHT_PARTICLE = new DustParticleOptions(0xE040FB, 0.9F);
     private static final DustParticleOptions MAGIC_HIT_PARTICLE = new DustParticleOptions(0xA66CFF, 0.8F);
+    private static final DustParticleOptions BODY_HEART_PARTICLE = new DustParticleOptions(0xE53935, 1.15F);
+    private static final DustParticleOptions BODY_EYE_LASER_PARTICLE = new DustParticleOptions(0xFF1744, 1.1F);
+    private static final DustParticleOptions BODY_EYE_LASER_CORE_PARTICLE = new DustParticleOptions(0xFFCDD2, 0.7F);
 
     private static final Set<String> UNDEAD_TOWER_IDS = Set.of(
             UndeadTowers.T1_ZOMBIE_TOWER.id(), UndeadTowers.T2_ZOMBIE_TOWER.id(), UndeadTowers.T3_ZOMBIE_TOWER.id(),
@@ -136,6 +141,8 @@ public final class TowerVfxService {
     private static volatile Consumer<List<Vec3>> transcendenceTestObserver;
     private static volatile Consumer<Vec3> magicHitTestObserver;
     private static volatile Consumer<Vec3> prophecyLightningTestObserver;
+    private static volatile Consumer<Vec3> bodyHeartbeatTestObserver;
+    private static volatile BiConsumer<Vec3, Vec3> bodyEyeLaserTestObserver;
     private static final Set<net.minecraft.resources.ResourceLocation> MISSING_STYLE_WARNINGS = ConcurrentHashMap.newKeySet();
     private static final Map<net.minecraft.resources.ResourceLocation, Long> STYLE_ERROR_LOG_TICKS = new ConcurrentHashMap<>();
 
@@ -243,6 +250,43 @@ public final class TowerVfxService {
         if (context != null) {
             enqueueMagicHit(context, impact);
         }
+    }
+
+    public static void showBodyHeartbeat(SemionTowerEntity tower) {
+        if (!config.enabled() || tower == null) {
+            return;
+        }
+        Vec3 center = towerCenter(tower);
+        EventContext context = context(tower, center);
+        if (context == null) {
+            return;
+        }
+        Consumer<Vec3> observer = bodyHeartbeatTestObserver;
+        if (observer != null) {
+            observer.accept(center);
+        }
+        enqueue(new BodyHeartbeatEvent(context, center));
+    }
+
+    public static void showBodyEyeLaser(SemionTowerEntity tower, Vec3 direction, double range) {
+        if (!config.enabled() || tower == null || direction == null || !Double.isFinite(range) || range <= 0.0) {
+            return;
+        }
+        Vec3 horizontal = new Vec3(direction.x, 0.0, direction.z);
+        if (horizontal.lengthSqr() <= 1.0E-6) {
+            return;
+        }
+        Vec3 source = towerCenter(tower);
+        Vec3 end = source.add(horizontal.normalize().scale(range));
+        EventContext context = context(tower, end);
+        if (context == null) {
+            return;
+        }
+        BiConsumer<Vec3, Vec3> observer = bodyEyeLaserTestObserver;
+        if (observer != null) {
+            observer.accept(source, end);
+        }
+        enqueue(new BodyEyeLaserEvent(context, source, end));
     }
 
     public static void showProphecyLightning(SemionTowerEntity tower, SemionMonsterEntity target) {
@@ -581,6 +625,12 @@ public final class TowerVfxService {
         if (GambleTowers.isGambleTower(type)) {
             return BuilderPalette.GAMBLE;
         }
+        if (SuccubusTowers.isSuccubusTower(type)) {
+            return BuilderPalette.SUCCUBUS;
+        }
+        if (BodyTowers.isBodyTower(type)) {
+            return BuilderPalette.BODY;
+        }
         return BuilderPalette.DEFAULT;
     }
 
@@ -671,6 +721,11 @@ public final class TowerVfxService {
         enqueue(new AreaEvent(context, event));
     }
 
+    public static void showAreaEffectDebug(ServerPlayer player, AreaVfxContext visual) {
+        if (player == null || visual == null || areaVfxStyles == null) return;
+        areaVfxStyles.find(visual.styleId()).ifPresent(planner -> planner.plan(visual, new DebugPlannerOutput(player)));
+    }
+
     static void setAreaEffectTestObserver(Consumer<AreaEffectVfxEvent> observer) {
         areaEffectTestObserver = observer;
     }
@@ -697,6 +752,14 @@ public final class TowerVfxService {
 
     static void setProphecyLightningTestObserver(Consumer<Vec3> observer) {
         prophecyLightningTestObserver = observer;
+    }
+
+    static void setBodyHeartbeatTestObserver(Consumer<Vec3> observer) {
+        bodyHeartbeatTestObserver = observer;
+    }
+
+    static void setBodyEyeLaserTestObserver(BiConsumer<Vec3, Vec3> observer) {
+        bodyEyeLaserTestObserver = observer;
     }
 
     private static Vec3 towerCenter(SemionTowerEntity tower) {
@@ -843,6 +906,10 @@ public final class TowerVfxService {
                 renderTranscendence(transcendence, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             } else if (event instanceof MagicHitEvent magicHit) {
                 renderMagicHit(magicHit, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof BodyHeartbeatEvent heartbeat) {
+                renderBodyHeartbeat(heartbeat, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof BodyEyeLaserEvent eyeLaser) {
+                renderBodyEyeLaser(eyeLaser, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             }
         }
 
@@ -894,6 +961,42 @@ public final class TowerVfxService {
                     points, false, config, packetCounts, shapeCounts);
             sendParticle(event.context(), ParticleTypes.ENCHANT, "minecraft:enchant", event.impact,
                     false, config, packetCounts, shapeCounts);
+        }
+    }
+
+    private static void renderBodyHeartbeat(
+            BodyHeartbeatEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 18, 1, true);
+        if (points <= 0) {
+            return;
+        }
+        sendSphere(event.context(), BODY_HEART_PARTICLE, "minecraft:heart", event.center, 0.55,
+                points, true, config, packetCounts, shapeCounts);
+        sendParticle(event.context(), ParticleTypes.HEART, "minecraft:heart", event.center,
+                false, config, packetCounts, shapeCounts);
+    }
+
+    private static void renderBodyEyeLaser(
+            BodyEyeLaserEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int preferred = preferredRayPointCount(event.source.distanceTo(event.end));
+        int outerPoints = claimVanillaPoints(event.context().lane(), gameTime, config, preferred, MIN_RAY_POINTS, true);
+        sendLine(event.context(), BODY_EYE_LASER_PARTICLE, "minecraft:damage_indicator", event.source, event.end,
+                outerPoints, true, config, packetCounts, shapeCounts);
+        int corePoints = claimVanillaPoints(event.context().lane(), gameTime, config,
+                Math.max(MIN_RAY_POINTS, preferred * 2 / 3), 0, false);
+        if (corePoints > 0) {
+            sendLine(event.context(), BODY_EYE_LASER_CORE_PARTICLE, "minecraft:end_rod", event.source, event.end,
+                    corePoints, false, config, packetCounts, shapeCounts);
         }
     }
 
@@ -1632,6 +1735,26 @@ public final class TowerVfxService {
         }
     }
 
+    private static final class BodyHeartbeatEvent extends PendingEvent {
+        private final Vec3 center;
+
+        private BodyHeartbeatEvent(EventContext context, Vec3 center) {
+            super(context, Phase.AREA_DAMAGE);
+            this.center = center;
+        }
+    }
+
+    private static final class BodyEyeLaserEvent extends PendingEvent {
+        private final Vec3 source;
+        private final Vec3 end;
+
+        private BodyEyeLaserEvent(EventContext context, Vec3 source, Vec3 end) {
+            super(context, Phase.PRIMARY_ATTACK);
+            this.source = source;
+            this.end = end;
+        }
+    }
+
     private record Recipient(UUID id, ServerGamePacketListenerImpl connection, boolean gcb) {
         static Recipient snapshot(ServerPlayer player) {
             return new Recipient(player.getUUID(), player.connection, player instanceof GCBPlayer gcbPlayer
@@ -1644,6 +1767,57 @@ public final class TowerVfxService {
     }
 
     private record ParticlePoint(ParticleOptions particle, Vec3 position) {
+    }
+
+    private static final class DebugPlannerOutput implements AreaVfxOutput {
+        private final ServerPlayer player;
+
+        private DebugPlannerOutput(ServerPlayer player) {
+            this.player = player;
+        }
+
+        @Override
+        public void line(AreaVfxParticle particle, Vec3 start, Vec3 end, int points, boolean essential) {
+            send(collector -> collector.drawLine(
+                    particle.vanilla(), 0, vector(start), new Vector3f(), vector(end.subtract(start)), new Vector3f(), points
+            ));
+        }
+
+        @Override
+        public void circle(AreaVfxParticle particle, Vec3 center, double radius, int points, boolean essential) {
+            send(collector -> collector.drawEllipse(
+                    particle.vanilla(), 0, vector(center), (float) radius, (float) radius,
+                    new Vector3f(HORIZONTAL_ROTATION_X, 0.0F, 0.0F), points
+            ));
+        }
+
+        @Override
+        public void sphere(AreaVfxParticle particle, Vec3 center, double radius, int points, boolean essential) {
+            send(collector -> collector.drawEllipsoid(
+                    particle.vanilla(), 0, vector(center), (float) radius, (float) radius, (float) radius,
+                    new Vector3f(), points
+            ));
+        }
+
+        @Override
+        public void trail(AreaVfxParticle particle, Vec3 start, Vec3 control, Vec3 end, int points, boolean essential) {
+            send(collector -> collector.drawBezier(
+                    particle.vanilla(), 0, new Vector3f(),
+                    new QuadraticBezierCurve(vector(start), vector(end), vector(control)), new Vector3f(), points
+            ));
+        }
+
+        private void send(Consumer<CollectingApelRenderer> draw) {
+            CollectingApelRenderer collector = new CollectingApelRenderer();
+            draw.accept(collector);
+            for (ParticlePoint point : collector.points) {
+                player.connection.send(new ClientboundLevelParticlesPacket(
+                        point.particle(), false, false,
+                        point.position().x, point.position().y, point.position().z,
+                        0.0F, 0.0F, 0.0F, 0.0F, 1
+                ));
+            }
+        }
     }
 
     private static final class PlannerOutput implements AreaVfxOutput {

@@ -24,7 +24,8 @@ public final class JobRegistry {
             NetherTowerJob.ID,
             OceanTowerJob.ID,
             AncientCityTowerJob.ID,
-            HeroPartyTowerJob.ID
+            HeroPartyTowerJob.ID,
+            SuccubusTowerJob.ID
     );
     private static final SemionJob DEFAULT_JOB = register(new DefaultJob());
     private static JobAvailabilityConfig availability = JobAvailabilityConfig.defaultConfig();
@@ -82,6 +83,8 @@ public final class JobRegistry {
         registerIfAbsent(new DemonLordTowerJob());
         registerIfAbsent(new GambleTowerJob());
         registerIfAbsent(new DeveloperTowerJob());
+        registerIfAbsent(new SuccubusTowerJob());
+        registerIfAbsent(new BodyTowerJob());
     }
 
     public static synchronized Optional<SemionJob> find(ResourceLocation id) {

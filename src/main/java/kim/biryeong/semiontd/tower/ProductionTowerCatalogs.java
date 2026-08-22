@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.army.ArmyTowerCatalogs;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowerCatalogs;
+import kim.biryeong.semiontd.tower.body.BodyTowerCatalogs;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowerCatalogs;
 import kim.biryeong.semiontd.tower.developer.DeveloperTowerCatalogs;
 import kim.biryeong.semiontd.tower.end.EndTowerCatalogs;
@@ -19,6 +20,7 @@ import kim.biryeong.semiontd.tower.insect.InsectTowerCatalogs;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowerCatalogs;
 import kim.biryeong.semiontd.tower.legion.LegionTowerCatalogs;
 import kim.biryeong.semiontd.tower.mage.MageTowerCatalogs;
+import kim.biryeong.semiontd.tower.succubus.SuccubusTowerCatalogs;
 import kim.biryeong.semiontd.tower.nether.NetherTowerCatalogs;
 import kim.biryeong.semiontd.tower.ocean.OceanTowerCatalogs;
 import kim.biryeong.semiontd.tower.queen.QueenTowerCatalogs;
@@ -63,6 +65,8 @@ public final class ProductionTowerCatalogs {
             DemonLordTowerCatalogs.register();
             GambleTowerCatalogs.register();
             DeveloperTowerCatalogs.register();
+            SuccubusTowerCatalogs.register();
+            BodyTowerCatalogs.register();
         }
     }
 }
