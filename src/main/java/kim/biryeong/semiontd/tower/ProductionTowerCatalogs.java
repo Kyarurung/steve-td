@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.army.ArmyTowerCatalogs;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTowerCatalogs;
+import kim.biryeong.semiontd.tower.body.BodyTowerCatalogs;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowerCatalogs;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowerCatalogs;
 import kim.biryeong.semiontd.tower.end.EndTowerCatalogs;
@@ -64,6 +65,7 @@ public final class ProductionTowerCatalogs {
             DemonLordTowerCatalogs.register();
             GambleTowerCatalogs.register();
             SuccubusTowerCatalogs.register();
+            BodyTowerCatalogs.register();
         }
     }
 }

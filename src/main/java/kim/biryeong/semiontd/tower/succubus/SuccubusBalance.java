@@ -11,14 +11,14 @@ public final class SuccubusBalance {
     public static final int AWAKENED_IMMUNITY_TICKS = 60;
     public static final int SPREAD_STACKS = 2;
     public static final double SPREAD_RADIUS = 2.5;
-    public static final double ALLY_DAMAGE_PER_STACK = 0.10;
-    public static final double ALLY_ATTACK_SPEED_PER_STACK = 0.05;
+    public static final double ALLY_DAMAGE_PER_STACK = 0.07;
+    public static final double ALLY_ATTACK_SPEED_PER_STACK = 0.035;
     public static final double ENEMY_ATTACK_SPEED_PER_STACK = 0.05;
     public static final double ENEMY_MOVE_SPEED_PER_STACK = 0.05;
     public static final double SUCCUBUS_AMPLIFICATION = 0.50;
     public static final double MONSTER_WAKE_DAMAGE_THRESHOLD = 0.40;
     public static final double TOWER_WAKE_DAMAGE_THRESHOLD = 0.10;
-    public static final double MONSTER_WAKE_BONUS_DAMAGE = 0.30;
+    public static final double MONSTER_WAKE_BONUS_DAMAGE = 0.20;
     public static final double TOWER_WAKE_BONUS_DAMAGE = 0.10;
     public static final int EXECUTION_SLEEP_COUNT = 3;
     public static final double ABSORB_ATTACK_RATIO = 0.03;

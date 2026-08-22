@@ -25,6 +25,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
+import kim.biryeong.semiontd.tower.body.BodyTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
@@ -97,6 +98,7 @@ public final class TowerVfxGameTest {
         assertPalette(GambleTowers.DICE_T1, BuilderPalette.GAMBLE);
         assertPalette(GambleTowers.GAMBLER, BuilderPalette.GAMBLE);
         assertPalette(GambleTowers.SPECTATOR_T3, BuilderPalette.GAMBLE);
+        assertPalette(BodyTowers.HEART_T1, BuilderPalette.BODY);
         assertPalette(SuccubusTowers.SUCCUBUS, BuilderPalette.SUCCUBUS);
         context.succeed();
     }
@@ -226,6 +228,68 @@ public final class TowerVfxGameTest {
         } finally {
             TowerVfxService.setMagicHitTestObserver(null);
         }
+    }
+
+    @GameTest
+    public void bodyHeartbeatEmitsVfxAtHeartTower(GameTestHelper context) {
+        List<Vec3> observed = new ArrayList<>();
+        TowerVfxService.setBodyHeartbeatTestObserver(observed::add);
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("body-heartbeat-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            tower.setPos(2.0, 2.0, 2.0);
+            tower.configure(new TestTower(BodyTowers.HEART_T1, owner), null);
+
+            TowerVfxService.showBodyHeartbeat(tower);
+
+            if (observed.size() != 1 || observed.getFirst().distanceTo(tower.position()) > 2.0) {
+                throw new AssertionError("Body heartbeat should emit one VFX event at the heart tower: " + observed);
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setBodyHeartbeatTestObserver(null);
+        }
+    }
+
+    @GameTest
+    public void bodyEyeLaserExtendsStraightToFullRange(GameTestHelper context) {
+        List<Vec3> starts = new ArrayList<>();
+        List<Vec3> ends = new ArrayList<>();
+        TowerVfxService.setBodyEyeLaserTestObserver((start, end) -> {
+            starts.add(start);
+            ends.add(end);
+        });
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("body-eye-laser-vfx-owner".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            SemionTowerEntity tower = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            tower.setPos(2.0, 2.0, 2.0);
+            tower.configure(new TestTower(BodyTowers.EYE_T1, owner), null);
+
+            TowerVfxService.showBodyEyeLaser(tower, new Vec3(0.0, 0.0, 2.0), 12.0);
+
+            if (starts.size() != 1
+                    || Math.abs(starts.getFirst().distanceTo(ends.getFirst()) - 12.0) > 1.0E-6
+                    || Math.abs(starts.getFirst().x - ends.getFirst().x) > 1.0E-6
+                    || ends.getFirst().z <= starts.getFirst().z) {
+                throw new AssertionError("Body eye laser should be one straight full-range line");
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setBodyEyeLaserTestObserver(null);
+        }
+    }
+
+    @GameTest
+    public void bodyDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("heartbeat", "eye_laser")) {
+            String command = "semiontd-debug vfx body " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
     }
 
     @GameTest

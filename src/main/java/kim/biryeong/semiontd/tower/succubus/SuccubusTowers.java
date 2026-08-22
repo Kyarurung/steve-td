@@ -62,6 +62,7 @@ public final class SuccubusTowers {
             .description(List.of(
                     "<gray>단 하나만 존재하는 서큐버스 빌더의 중심 타워입니다.</gray>",
                     "<light_purple>꿈의 효과를 {ability.succubus_global.succubusAmplification:percent} 증폭합니다.</light_purple>",
+                    "<light_purple>아군 꿈 1스택당 공격력 {ability.succubus_global.allyDamagePerStack:percent}, 공격속도 {ability.succubus_global.allyAttackSpeedPerStack:percent} 증가. 적 각성 시 수면 중 잃은 체력의 {ability.succubus_global.monsterWakeBonusDamage:percent}를 추가 피해로 줍니다.</light_purple>",
                     "<dark_red>세 번째로 꿈나라에 든 적을 처형합니다.</dark_red>",
                     "<red>직접 처치한 적의 공격력 {ability.succubus_global.absorbAttackRatio:percent}, 최대 체력 {ability.succubus_global.absorbMaxHealthRatio:percent}를 흡수합니다.</red>"
             )).build();

@@ -83,6 +83,7 @@ public final class JobRegistry {
         registerIfAbsent(new DemonLordTowerJob());
         registerIfAbsent(new GambleTowerJob());
         registerIfAbsent(new SuccubusTowerJob());
+        registerIfAbsent(new BodyTowerJob());
     }
 
     public static synchronized Optional<SemionJob> find(ResourceLocation id) {

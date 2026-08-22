@@ -15,7 +15,7 @@ public final class FutureAgencyBalance {
     public static final double ESCAPEE_SURVIVOR_MULTIPLIER = 1.0;
     public static final double REBUILDER_SURVIVOR_MULTIPLIER = 2.0;
     public static final double COMMANDER_SURVIVOR_MULTIPLIER = 3.0;
-    public static final double SURVIVOR_DAMAGE_CAP = 3.0;
+    public static final double SURVIVOR_DAMAGE_CAP = 2.5;
     public static final double DAMAGE_REDUCTION_CAP = 0.65;
     public static final double SLOW_CAP = 0.60;
     public static final double SUPPRESSION_DENSE_CAP = 0.30;
