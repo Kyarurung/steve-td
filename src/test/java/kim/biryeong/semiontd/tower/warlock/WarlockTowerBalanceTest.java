@@ -81,7 +81,7 @@ class WarlockTowerBalanceTest {
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "damageScale", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "healthThreshold", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "healthScale", -1.0), 0.0001);
-        assertEquals(145.0, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0), 0.0001);
+        assertEquals(150.0, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0), 0.0001);
         assertEquals(20.0, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageScale", -1.0), 0.0001);
         assertEquals(2000.0, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthThreshold", -1.0), 0.0001);
         assertEquals(500.0, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthScale", -1.0), 0.0001);
@@ -91,9 +91,11 @@ class WarlockTowerBalanceTest {
         assertEquals(500.0, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthScale", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "damageSoftCap", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "damageCap", -1.0), 0.0001);
-        assertEquals(0.08, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
+        assertEquals(0.07, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
+        assertEquals(0.05, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance", -1.0), 0.0001);
         assertEquals(10.0, config.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeEvery", -1.0), 0.0001);
-        assertEquals(0.14, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
+        assertEquals(0.13, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "lifeCap", -1.0), 0.0001);
+        assertEquals(0.05, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance", -1.0), 0.0001);
         assertEquals(0.30, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseCap", -1.0), 0.0001);
         assertEquals(10.0, config.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery", -1.0), 0.0001);
         assertEquals(-1.0, config.ability(WarlockTower.CONFIG_ID, "splashStep", -1.0), 0.0001);
@@ -144,13 +146,13 @@ class WarlockTowerBalanceTest {
         ), List.copyOf(config.abilities().get(WarlockTowers.BASE_WARLOCK_TOWER.id()).keySet()));
         assertEquals(List.of(
                 "threshold", "roundStat", "permanentHealth", "healthThreshold", "healthScale", "permanentDamage",
-                "damageThreshold", "damageScale", "lifeEvery", "lifeStep", "lifeCap",
+                "damageThreshold", "damageScale", "lifeEvery", "lifeStep", "lifeCap", "incomeDebuffResistance",
                 "splashEvery", "splashStep", "splashCap", "splashDamage", "defenseThreshold", "defense", "petHealth", "petHealthCap",
                 "petDamage", "petDamageCap", "awakeningHeal", "awakeningRegeneration", "awakeningRegenerationTicks"
         ), List.copyOf(config.abilities().get(WarlockTowers.RANGED_WARLOCK_TOWER.id()).keySet()));
         assertEquals(List.of(
                 "threshold", "roundStat", "permanentHealth", "healthThreshold", "healthScale", "permanentDamage",
-                "damageThreshold", "damageScale", "lifeStep", "lifeCap", "speedStep",
+                "damageThreshold", "damageScale", "lifeStep", "lifeCap", "incomeDebuffResistance", "speedStep",
                 "splashStep", "splashCap", "splashDamage", "defenseEvery", "defenseStep", "defenseCap", "petHealth",
                 "petHealthCap", "petDamage", "petDamageCap", "awakeningHeal", "awakeningDamage", "awakeningMoveSpeed"
         ), List.copyOf(config.abilities().get(WarlockTowers.MELEE_WARLOCK_TOWER.id()).keySet()));
@@ -181,8 +183,8 @@ class WarlockTowerBalanceTest {
         assertEquals(600.0, WarlockTower.scaledDamageBonus(WarlockTowers.BASE_WARLOCK_TOWER, 600.0), 0.0001);
         assertEquals(108.0, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 108.0), 0.0001);
         assertEquals(140.0, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 140.0), 0.0001);
-        assertEquals(188.3811, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 300.0), 0.0001);
-        assertEquals(208.3517, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 600.0), 0.0001);
+        assertEquals(192.8013, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 300.0), 0.0001);
+        assertEquals(213.1400, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 600.0), 0.0001);
         assertEquals(200.0, WarlockTower.scaledDamageBonus(WarlockTowers.MELEE_WARLOCK_TOWER, 200.0), 0.0001);
         assertEquals(235.8352, WarlockTower.scaledDamageBonus(WarlockTowers.MELEE_WARLOCK_TOWER, 300.0), 0.0001);
         assertEquals(260.8904, WarlockTower.scaledDamageBonus(WarlockTowers.MELEE_WARLOCK_TOWER, 600.0), 0.0001);
@@ -226,7 +228,7 @@ class WarlockTowerBalanceTest {
                 defaults.upgradeCosts(),
                 partialAbilities
         ).withMissingDefaults(defaults);
-        assertEquals(145.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0), 0.0001);
+        assertEquals(150.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0), 0.0001);
         assertEquals(20.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageScale", -1.0), 0.0001);
         assertEquals(2000.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthThreshold", -1.0), 0.0001);
         assertEquals(500.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthScale", -1.0), 0.0001);
@@ -235,7 +237,7 @@ class WarlockTowerBalanceTest {
         assertEquals(3500.0, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthThreshold", -1.0), 0.0001);
         assertEquals(500.0, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthScale", -1.0), 0.0001);
         TowerBalanceRuntime.apply(merged);
-        assertEquals(208.3517, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 600.0), 0.0001);
+        assertEquals(213.1400, WarlockTower.scaledDamageBonus(WarlockTowers.RANGED_WARLOCK_TOWER, 600.0), 0.0001);
     }
 
     @Test
@@ -276,10 +278,10 @@ class WarlockTowerBalanceTest {
         assertEquals(0.005, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 10), 0.0001);
         assertEquals(0.005, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 19), 0.0001);
         assertEquals(0.01, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 20), 0.0001);
-        assertEquals(0.075, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 150), 0.0001);
-        assertEquals(0.08, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 160), 0.0001);
-        assertEquals(0.08, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 169), 0.0001);
-        assertEquals(0.08, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 200), 0.0001);
+        assertEquals(0.065, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 130), 0.0001);
+        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 140), 0.0001);
+        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 149), 0.0001);
+        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 200), 0.0001);
     }
 
     @Test
@@ -311,11 +313,11 @@ class WarlockTowerBalanceTest {
         assertEquals(0.03, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3), 0.0001);
         assertEquals(0.12, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 12), 0.0001);
         assertEquals(0.13, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 13), 0.0001);
-        assertEquals(0.14, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 25), 0.0001);
+        assertEquals(0.13, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 25), 0.0001);
         assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3, false), 0.0001);
         assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 0, 0, true), 0.0001);
         assertEquals(0.03, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3, true), 0.0001);
-        assertEquals(0.14, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 20, true), 0.0001);
+        assertEquals(0.13, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 20, true), 0.0001);
         assertEquals(0.005, combat.lifeStealRatioForCounts(WarlockTowers.RANGED_WARLOCK_TOWER, 10, 3), 0.0001);
         assertEquals(0.005, combat.lifeStealRatioForCounts(WarlockTowers.RANGED_WARLOCK_TOWER, 10, 3, true), 0.0001);
     }
@@ -336,7 +338,8 @@ class WarlockTowerBalanceTest {
         assertTrue(description.contains("피해 +5%"));
         assertTrue(description.contains("최소 공격 간격은 5틱"));
         assertTrue(description.contains("누적 흡수 10기마다 생명력 흡수 +0.5%"));
-        assertTrue(description.contains("최대 8%"));
+        assertTrue(description.contains("최대 7%"));
+        assertTrue(description.contains("인컴 몬스터가 부여하는 디버프 효과가 5% 감소"));
         assertTrue(description.contains("누적 흡수 2기마다 스플래시 범위 +0.1블록"));
         assertTrue(description.contains("스플래시 범위 +0.1블록"));
         assertTrue(description.contains("본 피해의 50%"));
@@ -371,7 +374,8 @@ class WarlockTowerBalanceTest {
         assertTrue(meleeDescription.contains("스플래시 범위 +0.25블록"));
         assertTrue(meleeDescription.contains("본 피해의 75%"));
         assertTrue(meleeDescription.contains("생명력 흡수 +1%"));
-        assertTrue(meleeDescription.contains("최대 14%"));
+        assertTrue(meleeDescription.contains("최대 13%"));
+        assertTrue(meleeDescription.contains("인컴 몬스터가 부여하는 디버프 효과가 5% 감소"));
         assertTrue(meleeDescription.contains("누적 흡수 10기마다 받는 피해 2.5% 감소"));
         assertTrue(meleeDescription.contains("최대 30%"));
         assertTrue(meleeDescription.contains("피해 +75"));
@@ -433,6 +437,7 @@ class WarlockTowerBalanceTest {
         assertEquals(500.0, tower.modifyResolvedOutgoingDamage(null, null, 500.0), 0.0001);
         assertEquals(500.0, tower.modifyAppliedDamage(null, null, 500.0), 0.0001);
         assertEquals(5, tower.minimumAttackIntervalTicks());
+        assertEquals(0.05, tower.incomeDebuffResistance(), 0.0001);
         assertFalse(details.contains("전투 방식:"));
         assertTrue(details.contains("영구 흡수: 0기"));
         assertTrue(details.contains("라운드 흡수: 0기"));
@@ -459,6 +464,7 @@ class WarlockTowerBalanceTest {
                 new GridPosition(0, 0, 0)
         );
         String baseLockedDetails = String.join("\n", base.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        assertEquals(0.0, base.incomeDebuffResistance(), 0.0001);
         assertTrue(baseLockedDetails.contains("각성 해금: 0/1200킬"));
         for (int kill = 0; kill < 1200; kill++) {
             WarlockAwakeningProgress.recordKill(baseOwner);
@@ -475,6 +481,7 @@ class WarlockTowerBalanceTest {
         );
         String meleeDetails = String.join("\n", melee.runtimeDetailLines()).replaceAll("<[^>]+>", "");
         assertEquals(5, melee.minimumAttackIntervalTicks());
+        assertEquals(0.05, melee.incomeDebuffResistance(), 0.0001);
         assertFalse(meleeDetails.contains("전투 방식:"));
         assertTrue(meleeDetails.contains("영구 흡수: 0기"));
         assertTrue(meleeDetails.contains("라운드 흡수: 0기"));

@@ -94,6 +94,17 @@ public class WarlockTower extends EntityBackedTower {
         return damageAmount * Math.max(0.0, 1.0 - damageReduction());
     }
 
+    @Override
+    public double incomeDebuffResistance() {
+        if (is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
+            return Math.clamp(ability(RANGED_INCOME_DEBUFF_RESISTANCE), 0.0, 1.0);
+        }
+        if (is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
+            return Math.clamp(ability(MELEE_INCOME_DEBUFF_RESISTANCE), 0.0, 1.0);
+        }
+        return 0.0;
+    }
+
     private double awakeningDamageBonus() {
         if (!WarlockConfig.AWAKENING_ENABLED
                 || !is(WarlockTowers.MELEE_WARLOCK_TOWER)

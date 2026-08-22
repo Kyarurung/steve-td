@@ -198,6 +198,7 @@ public final class WarlockTowers {
                 "<gray>생존 중인 " + attackDamageText("개구리 계열") + "마다 " + healthText("체력 +" + ability(RANGED_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PET_DAMAGE, "percent")) + "를 얻으며, 최대 " + healthText("체력 +" + ability(RANGED_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
                 "<gray>더 빠른 타워를 흡수하면 공격 간격 차이만큼 이번 라운드의 " + attackSpeedText("공격 속도") + "가 증가하며, 최소 공격 간격은 " + globalAbility(MIN_INTERVAL, "integer") + "틱입니다.</gray>",
                 "<gray>누적 흡수 " + ability(RANGED_LIFE_EVERY, "integer") + "기마다 " + lifeStealText("생명력 흡수 +" + ability(RANGED_LIFE_STEP, "percent")) + "를 얻어 최대 " + lifeStealText(ability(RANGED_LIFE_CAP, "percent")) + "까지 증가합니다.</gray>",
+                "<gray>인컴 몬스터가 부여하는 디버프 효과가 " + damageReductionText(ability(RANGED_INCOME_DEBUFF_RESISTANCE, "percent") + " 감소") + "합니다.</gray>",
                 "<gray>누적 흡수 " + ability(RANGED_SPLASH_EVERY, "integer") + "기마다 " + attackRangeText("스플래시 범위 +" + ability(RANGED_SPLASH_STEP, "blocks")) + "를 얻어 최대 " + attackRangeText(ability(RANGED_SPLASH_CAP, "blocks")) + "에 도달하며, 스플래시는 " + attackDamageText("본 피해의 " + ability(RANGED_SPLASH_DAMAGE, "percent")) + "를 줍니다.</gray>",
                 "<gray>이번 라운드 흡수가 " + ability(RANGED_DEFENSE_THRESHOLD, "integer") + "기를 초과하면 " + damageReductionText("받는 피해 " + ability(RANGED_DEFENSE, "percent") + " 감소") + "를 얻습니다.</gray>"
         ));
@@ -220,6 +221,7 @@ public final class WarlockTowers {
                 "<gray>생존 중인 " + healthText("양 계열") + "마다 " + healthText("체력 +" + ability(MELEE_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE, "percent")) + "를 얻으며, 최대 " + healthText("체력 +" + ability(MELEE_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
                 "<gray>이번 라운드 흡수 1기마다 공격 간격이 " + attackSpeedText(ability(MELEE_SPEED_STEP, "integer") + "틱 감소") + "하고 " + attackRangeText("스플래시 범위 +" + ability(MELEE_SPLASH_STEP, "blocks")) + "를 얻습니다. 스플래시는 " + attackDamageText("본 피해의 " + ability(MELEE_SPLASH_DAMAGE, "percent")) + "를 줍니다.</gray>",
                 "<gray>핵심 타워 외 다른 타워가 살아 있지 않다면 이번 라운드 흡수 1기마다 " + lifeStealText("생명력 흡수 +" + ability(MELEE_LIFE_STEP, "percent")) + "를 얻어 최대 " + lifeStealText(ability(MELEE_LIFE_CAP, "percent")) + "까지 증가합니다.</gray>",
+                "<gray>인컴 몬스터가 부여하는 디버프 효과가 " + damageReductionText(ability(MELEE_INCOME_DEBUFF_RESISTANCE, "percent") + " 감소") + "합니다.</gray>",
                 "<gray>누적 흡수 " + ability(MELEE_DEFENSE_EVERY, "integer") + "기마다 " + damageReductionText("받는 피해 " + ability(MELEE_DEFENSE_STEP, "percent") + " 감소") + "를 얻어 최대 " + damageReductionText(ability(MELEE_DEFENSE_CAP, "percent")) + "까지 증가합니다.</gray>"
         ));
         if (WarlockConfig.AWAKENING_ENABLED) {
