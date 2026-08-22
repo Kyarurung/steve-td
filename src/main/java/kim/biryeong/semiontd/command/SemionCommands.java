@@ -72,6 +72,7 @@ import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.developer.DeveloperPatchGui;
 import kim.biryeong.semiontd.tower.developer.DeveloperTower;
 import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
+import kim.biryeong.semiontd.tower.developer.DeveloperVfx;
 import kim.biryeong.semiontd.tower.hero.HeroShopGui;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitLoadout;
@@ -701,6 +702,25 @@ public final class SemionCommands {
                                 .then(literal("eye_laser")
                                         .executes(context -> debugBodyVfx(
                                                 context.getSource(), gameManager, BodyTowers.Role.EYE))))
+                        .then(literal("developer")
+                                .then(literal("attack")
+                                        .executes(context -> debugDeveloperVfx(
+                                                context.getSource(), gameManager, DeveloperVfx.DebugKind.ATTACK)))
+                                .then(literal("patch")
+                                        .executes(context -> debugDeveloperVfx(
+                                                context.getSource(), gameManager, DeveloperVfx.DebugKind.PATCH)))
+                                .then(literal("hotfix")
+                                        .executes(context -> debugDeveloperVfx(
+                                                context.getSource(), gameManager, DeveloperVfx.DebugKind.HOTFIX)))
+                                .then(literal("reproduce")
+                                        .executes(context -> debugDeveloperVfx(
+                                                context.getSource(), gameManager, DeveloperVfx.DebugKind.REPRODUCE)))
+                                .then(literal("maintenance")
+                                        .executes(context -> debugDeveloperVfx(
+                                                context.getSource(), gameManager, DeveloperVfx.DebugKind.MAINTENANCE)))
+                                .then(literal("pin")
+                                        .executes(context -> debugDeveloperVfx(
+                                                context.getSource(), gameManager, DeveloperVfx.DebugKind.PIN))))
                         .then(literal("demon_lord")
                                 .then(argument("skill", StringArgumentType.word())
                                         .suggests((context, builder) -> SharedSuggestionProvider.suggest(
@@ -1080,6 +1100,28 @@ public final class SemionCommands {
         }
         failure(source, "살아 있는 신체 " + role.name().toLowerCase(java.util.Locale.ROOT) + " 타워가 필요합니다.");
         return 0;
+    }
+
+    private static int debugDeveloperVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            DeveloperVfx.DebugKind kind
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        List<DeveloperTower> towers = lane == null ? List.of() : lane.towers().stream()
+                .filter(DeveloperTower.class::isInstance)
+                .map(DeveloperTower.class::cast)
+                .toList();
+        if (!DeveloperVfx.showDebug(towers, kind)) {
+            failure(source, kind == DeveloperVfx.DebugKind.REPRODUCE
+                    ? "살아 있는 개발자 타워가 2개 필요합니다."
+                    : "살아 있는 개발자 타워가 필요합니다.");
+            return 0;
+        }
+        success(source, "개발자 " + kind.name().toLowerCase(java.util.Locale.ROOT) + " VFX를 재생했습니다.");
+        return 1;
     }
 
     private static int debugArmyVfx(

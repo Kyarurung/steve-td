@@ -267,6 +267,26 @@ class DeveloperTowerTest {
         assertFalse(DeveloperBug.PRIMITIVE.dangerousToSpread());
     }
 
+    @Test
+    void stealthStartsActiveDropsAfterDamageAndReturnsAfterSixtyTicks() {
+        DeveloperTower alpha = tower(DeveloperTowers.ALPHA);
+        DeveloperTowerData.addBug(alpha, DeveloperBug.STEALTH);
+        double baseDamage = 100.0;
+        double boosted = baseDamage * (1.0 + DeveloperBug.STEALTH.secondary());
+
+        assertEquals(boosted, alpha.modifyAttackDamage(null, null, baseDamage), 1.0e-9,
+                "아직 피해를 받지 않은 초기 상태도 은신 보너스가 활성화되어야 합니다.");
+
+        alpha.onDamaged(null, null, 1.0, alpha.health(), alpha.health() - 1.0);
+        assertEquals(baseDamage, alpha.modifyAttackDamage(null, null, baseDamage), 1.0e-9);
+        for (int tick = 0; tick < 59; tick++) {
+            alpha.tick(null);
+        }
+        assertEquals(baseDamage, alpha.modifyAttackDamage(null, null, baseDamage), 1.0e-9);
+        alpha.tick(null);
+        assertEquals(boosted, alpha.modifyAttackDamage(null, null, baseDamage), 1.0e-9);
+    }
+
     // ------------------------------------------------------------------ 최적화
 
     @Test
@@ -331,6 +351,50 @@ class DeveloperTowerTest {
         assertEquals(1, DeveloperTowerData.activeCount(beta, DeveloperPatch.ATTACK));
         assertEquals(rangeBefore, DeveloperTowerData.activeAmount(beta, DeveloperPatch.RANGE), 1.0e-9);
         assertNotEquals(0.19, DeveloperTowerData.activeAmount(beta, DeveloperPatch.ATTACK), 1.0e-9);
+    }
+
+    @Test
+    void garbageCollectionNeedsAPatchAndOnlyRecoversOncePerWave() {
+        DeveloperTower withoutPatch = tower(DeveloperTowers.BETA);
+        DeveloperTowerData.addBug(withoutPatch, DeveloperBug.GARBAGE_COLLECTION);
+        withoutPatch.onWaveStarted(null, 1);
+        withoutPatch.syncHealth(30.0);
+        assertEquals(10.0, withoutPatch.modifyIncomingDamage(null, null, 10.0), 1.0e-9,
+                "활성 패치가 없으면 발동하면 안 됩니다.");
+
+        DeveloperTower beta = tower(DeveloperTowers.BETA);
+        DeveloperTowerData.addBug(beta, DeveloperBug.GARBAGE_COLLECTION);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.20);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.10);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.ATTACK, 0.10);
+        beta.syncMaxHealth(beta.effectBaseMaxHealth(), false);
+        beta.onWaveStarted(null, 1);
+        beta.syncHealth(beta.currentMaxHealth() * 0.30);
+
+        assertEquals(0.0, beta.modifyIncomingDamage(null, null, beta.currentMaxHealth() * 0.10), 1.0e-9);
+        assertEquals(beta.currentMaxHealth(), beta.health(), 1.0e-9,
+                "패치 제거 후 변경된 최대 체력까지 회복해야 합니다.");
+        int patchesAfterRecovery = DeveloperTowerData.activeCount(beta, DeveloperPatch.HEALTH)
+                + DeveloperTowerData.activeCount(beta, DeveloperPatch.ATTACK);
+
+        beta.syncHealth(beta.currentMaxHealth() * 0.20);
+        assertTrue(beta.modifyIncomingDamage(null, null, beta.currentMaxHealth()) > 0.0,
+                "한 웨이브에 두 번 발동하면 안 됩니다.");
+        assertEquals(patchesAfterRecovery,
+                DeveloperTowerData.activeCount(beta, DeveloperPatch.HEALTH)
+                        + DeveloperTowerData.activeCount(beta, DeveloperPatch.ATTACK));
+    }
+
+    @Test
+    void garbageCollectionCanCatchLethalDamage() {
+        DeveloperTower beta = tower(DeveloperTowers.BETA);
+        DeveloperTowerData.addBug(beta, DeveloperBug.GARBAGE_COLLECTION);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.ATTACK, 0.10);
+        beta.onWaveStarted(null, 1);
+
+        assertEquals(0.0, beta.modifyIncomingDamage(null, null, beta.currentMaxHealth() * 10.0), 1.0e-9);
+        assertEquals(beta.currentMaxHealth(), beta.health(), 1.0e-9);
+        assertEquals(0, DeveloperTowerData.activeCount(beta, DeveloperPatch.ATTACK));
     }
 
     // ------------------------------------------------------------------ 밸런스 배선

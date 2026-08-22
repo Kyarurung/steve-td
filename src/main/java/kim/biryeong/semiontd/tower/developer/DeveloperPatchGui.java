@@ -221,7 +221,27 @@ public final class DeveloperPatchGui extends SimpleGui {
                 notify(DeveloperPatchService.removeBug(lane(), tower, bug));
                 refresh();
             });
-            setSlot(BUG_ROW + index, button);
+            setSlot(BUG_ROW + index * 2, button);
+            GuiElementBuilder reproduce = new GuiElementBuilder(Items.REPEATER)
+                    .setName(Component.literal("재현 · " + (visible ? bug.displayName() : "정체불명"))
+                            .withStyle(ChatFormatting.YELLOW))
+                    .addLoreLine(Component.literal("클릭 후 같은 라인의 다른 자기 성장 타워를 선택")
+                            .withStyle(ChatFormatting.GRAY))
+                    .addLoreLine(Component.literal("웅크린 채 타워 클릭: 취소").withStyle(ChatFormatting.DARK_GRAY));
+            reproduce.setCallback((slot, type, action) -> {
+                if (!editable()) {
+                    notify("준비 단계에만 재현할 수 있습니다.");
+                    return;
+                }
+                DeveloperPatchService.Result result = DeveloperPatchService.armReproduction(lane(), tower, bug);
+                notify(result);
+                if (result.success()) {
+                    close();
+                } else {
+                    refresh();
+                }
+            });
+            setSlot(BUG_ROW + index * 2 + 1, reproduce);
             index++;
         }
         if (bugs.isEmpty()) {

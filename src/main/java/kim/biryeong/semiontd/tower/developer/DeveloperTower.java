@@ -76,6 +76,9 @@ public class DeveloperTower extends ProductionTower {
     /** 예외 처리 fires once and then halves this tower for the rest of the wave. */
     private boolean exceptionTriggeredThisWave;
 
+    /** 가비지 컬렉션 fires once per wave when a patch can pay for the recovery. */
+    private boolean garbageCollectionTriggeredThisWave;
+
     /** 좀비 프로세스 grace period once health hits zero. */
     private int zombieTicksRemaining;
     private boolean zombieConsumedThisRound;
@@ -129,6 +132,10 @@ public class DeveloperTower extends ProductionTower {
         return random;
     }
 
+    SemionTowerEntity spawnedEntity() {
+        return spawnedEntity;
+    }
+
     @Override
     protected void configureEntityAfterSpawn(SemionTowerEntity entity, PlayerLane lane) {
         super.configureEntityAfterSpawn(entity, lane);
@@ -177,7 +184,7 @@ public class DeveloperTower extends ProductionTower {
     }
 
     @Override
-    public boolean canReceiveHealing() {
+    public boolean canReceiveAllyHealing() {
         return !hasBug(DeveloperBug.SIGN_FLIP);
     }
 
@@ -336,7 +343,9 @@ public class DeveloperTower extends ProductionTower {
                         : DeveloperBug.HARDCODED.secondary();
             }
         }
-        if (hasBug(DeveloperBug.STEALTH) && gameTick - lastDamagedGameTick >= STEALTH_QUIET_TICKS) {
+        if (hasBug(DeveloperBug.STEALTH)
+                && (lastDamagedGameTick == Long.MIN_VALUE
+                || gameTick - lastDamagedGameTick >= STEALTH_QUIET_TICKS)) {
             multiplier *= 1.0 + DeveloperBug.STEALTH.secondary();
         }
         if (hasBug(DeveloperBug.EXCEPTION_HANDLING) && exceptionTriggeredThisWave) {
@@ -397,8 +406,23 @@ public class DeveloperTower extends ProductionTower {
             double threshold = currentMaxHealth() * DeveloperBug.EXCEPTION_HANDLING.primary();
             if (damage >= threshold && threshold > 0.0) {
                 exceptionTriggeredThisWave = true;
-                return 1.0;
+                damage = 1.0;
             }
+        }
+        if (waveActive
+                && hasBug(DeveloperBug.GARBAGE_COLLECTION)
+                && !garbageCollectionTriggeredThisWave
+                && health() - damage <= currentMaxHealth() * DeveloperBug.GARBAGE_COLLECTION.primary()
+                && DeveloperTowerData.dropOneActivePatch(this)) {
+            garbageCollectionTriggeredThisWave = true;
+            syncMaxHealth(effectBaseMaxHealth(), false);
+            syncHealth(currentMaxHealth());
+            if (towerEntity != null) {
+                spawnedEntity = towerEntity;
+                towerEntity.syncTowerState(this);
+            }
+            DeveloperVfx.show(this, AreaVfxStyles.PULSE, "garbage_collection");
+            return 0.0;
         }
         return damage;
     }
@@ -580,6 +604,7 @@ public class DeveloperTower extends ProductionTower {
         waveActive = true;
         waveTicks = 0;
         exceptionTriggeredThisWave = false;
+        garbageCollectionTriggeredThisWave = false;
         zombieConsumedThisRound = false;
         firstMissPending = hasBug(DeveloperBug.FIRST_MISS);
         lockedTargetId = null;
@@ -635,16 +660,10 @@ public class DeveloperTower extends ProductionTower {
         overkillTicksRemaining = 0;
         overkillPosition = null;
         zombieTicksRemaining = 0;
+        garbageCollectionTriggeredThisWave = false;
 
         if (hasBug(DeveloperBug.MEMORY_LEAK) && !DeveloperTowerData.underMaintenance(this, currentRoundNumber)) {
             DeveloperTowerData.advanceLeak(this);
-        }
-        // 가비지 컬렉션 hands back a full bar and takes a patch for it. Resolving it before the
-        // superclass reset means the health it restores is the post-loss maximum, not a value the
-        // reset would immediately contradict.
-        if (hasBug(DeveloperBug.GARBAGE_COLLECTION)) {
-            DeveloperTowerData.dropOneActivePatch(this);
-            syncMaxHealth(effectBaseMaxHealth(), false);
         }
         super.resetForRound(lane);
     }

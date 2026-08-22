@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower.developer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -96,6 +97,23 @@ class DeveloperIntegrationTest {
         }
     }
 
+    @Test
+    void workbenchDescriptionsRenderBaseTowerAndGrowthSlotTerms() {
+        TowerBalanceConfig base = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(base.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(DeveloperBalance.CONFIG_ID));
+        global.put("basePatchSlots", 2.0);
+        global.put("patchSlotsPerTowers", 3.0);
+        abilities.put(DeveloperBalance.CONFIG_ID, global);
+        abilities.put(DeveloperTowers.WORKBENCH.id(), Map.of("patchSlots", 5.0));
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(base.towers(), base.upgradeCosts(), abilities));
+
+        String description = String.join(" ", TowerBalanceRuntime.resolve(DeveloperTowers.WORKBENCH).description());
+        assertTrue(description.contains("기본 <yellow>2건</yellow>"));
+        assertTrue(description.contains("작업대 <yellow>5건</yellow>"));
+        assertTrue(description.contains("<yellow>3기</yellow>마다 1건"));
+    }
+
     /**
      * The deployed case: a live {@code tower_balance.json} written before this family existed.
      *
@@ -164,6 +182,36 @@ class DeveloperIntegrationTest {
                 "운영자가 조정한 승급 비용을 덮어쓰면 안 됩니다.");
     }
 
+    @Test
+    void partialDeveloperGlobalConfigBackfillsSlotRules() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        TowerBalanceConfig partial = new TowerBalanceConfig(
+                Map.of(),
+                Map.of(),
+                Map.of(DeveloperBalance.CONFIG_ID, Map.of("patchAttack", 0.20))
+        );
+
+        TowerBalanceConfig merged = partial.withMissingDefaults(defaults);
+
+        assertEquals(0.20, merged.ability(DeveloperBalance.CONFIG_ID, "patchAttack", -1.0), 1.0e-9);
+        assertEquals((double) DeveloperBalance.BASE_PATCH_SLOTS,
+                merged.ability(DeveloperBalance.CONFIG_ID, "basePatchSlots", -1.0), 1.0e-9);
+        assertEquals((double) DeveloperBalance.PATCH_SLOTS_PER_TOWERS,
+                merged.ability(DeveloperBalance.CONFIG_ID, "patchSlotsPerTowers", -1.0), 1.0e-9);
+    }
+
+    @Test
+    void developerConfigRejectsInvalidRatiosCountsAndRadius() {
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("accuracyOptimizationCost", 1.01).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("basePatchSlots", 1.5).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("testBuildAuraRadius", 0.0).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("garbage_collectionBugPrimary", 1.01).validateForRuntime());
+    }
+
     /** Every catalog entry the family registers must be constructible through the real factory. */
     @Test
     void everyRegisteredEntryBuildsADeveloperTower() {
@@ -202,5 +250,14 @@ class DeveloperIntegrationTest {
             }
         });
         return new TowerBalanceConfig(towers, upgrades, abilities);
+    }
+
+    private static TowerBalanceConfig withDeveloperGlobal(String key, double value) {
+        TowerBalanceConfig base = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(base.abilities());
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(DeveloperBalance.CONFIG_ID));
+        global.put(key, value);
+        abilities.put(DeveloperBalance.CONFIG_ID, global);
+        return new TowerBalanceConfig(base.towers(), base.upgradeCosts(), abilities);
     }
 }

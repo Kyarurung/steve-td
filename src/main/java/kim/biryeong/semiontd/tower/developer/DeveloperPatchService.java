@@ -5,8 +5,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.game.RoundPhase;
+import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 
 /**
@@ -158,6 +164,11 @@ public final class DeveloperPatchService {
         } else {
             tower.onStateChanged(lane);
         }
+        DeveloperVfx.show(tower, hotfix ? AreaVfxStyles.DEBUFF : AreaVfxStyles.BUFF,
+                hotfix ? "hotfix" : "patch");
+        if (spawned != null && !hotfix) {
+            DeveloperVfx.show(tower, AreaVfxStyles.DEBUFF, "bug");
+        }
 
         String base = hotfix
                 ? patch.displayName() + " 핫픽스를 즉시 적용했습니다."
@@ -219,6 +230,7 @@ public final class DeveloperPatchService {
         tower.resyncHealth(lane, true);
         tower.syncHealth(tower.currentMaxHealth());
         tower.onStateChanged(lane);
+        DeveloperVfx.show(tower, AreaVfxStyles.BUFF, "maintenance");
         return Result.ok("이번 라운드를 쉬고 다음 라운드에 강화되어 돌아옵니다.");
     }
 
@@ -250,6 +262,7 @@ public final class DeveloperPatchService {
         }
         state.consumeOptimization();
         tower.resyncHealth(lane, false);
+        DeveloperVfx.show(tower, AreaVfxStyles.PULSE, "optimization");
         return Result.ok(optimization.displayName() + "를 적용했습니다. 되돌릴 수 없습니다.");
     }
 
@@ -286,6 +299,7 @@ public final class DeveloperPatchService {
             return Result.fail("그 버그가 없습니다.");
         }
         tower.resyncHealth(lane, false);
+        DeveloperVfx.show(tower, AreaVfxStyles.BUFF, "debug");
         return Result.ok(bug.displayName() + " 버그를 제거했습니다.");
     }
 
@@ -301,6 +315,15 @@ public final class DeveloperPatchService {
         if (source == target) {
             return Result.fail("같은 타워에는 재현할 수 없습니다.");
         }
+        if (lane == null || !lane.towers().contains(source) || !lane.towers().contains(target)) {
+            return Result.fail("같은 라인의 보유 타워만 선택할 수 있습니다.");
+        }
+        if (!source.ownerPlayer().equals(target.ownerPlayer()) || source.laneId() != target.laneId()) {
+            return Result.fail("같은 라인의 보유 타워만 선택할 수 있습니다.");
+        }
+        if (!DeveloperTowers.isGrowthTower(source.type())) {
+            return Result.fail("원본 타워가 성장 타워가 아닙니다.");
+        }
         if (!DeveloperTowers.isGrowthTower(target.type())) {
             return Result.fail("능력 타워에는 재현할 수 없습니다.");
         }
@@ -310,15 +333,75 @@ public final class DeveloperPatchService {
         if (!source.hasBug(bug)) {
             return Result.fail("원본 타워에 그 버그가 없습니다.");
         }
-        DeveloperStates.PlayerState state = DeveloperStates.of(target.ownerPlayer());
-        if (!state.consumeReproduction()) {
+        if (target.hasBug(bug)) {
+            return Result.fail("대상 타워에 이미 그 버그가 있습니다.");
+        }
+        if (DeveloperTowerData.bugs(target).size() >= DeveloperBalance.maxBugsPerTower()) {
+            return Result.fail("대상 타워의 버그 슬롯이 가득 찼습니다.");
+        }
+        DeveloperStates.PlayerState state = DeveloperStates.of(source.ownerPlayer());
+        if (state.reproductionsRemaining() <= 0) {
             return Result.fail("개발자가 없거나 이번 라운드 재현을 이미 사용했습니다.");
         }
         if (!DeveloperTowerData.addBug(target, bug)) {
-            return Result.fail("대상 타워가 이미 버그로 가득 찼습니다.");
+            return Result.fail("버그를 재현하지 못했습니다.");
         }
+        state.consumeReproduction();
         target.resyncHealth(lane, false);
+        DeveloperVfx.reproduce(source, target);
         return Result.ok(bug.displayName() + " 버그를 재현했습니다.", bug);
+    }
+
+    public static Result armReproduction(PlayerLane lane, DeveloperTower source, DeveloperBug bug) {
+        if (lane == null || source == null || bug == null || !lane.towers().contains(source)) {
+            return Result.fail("원본 타워를 찾을 수 없습니다.");
+        }
+        if (!source.hasBug(bug)) {
+            return Result.fail("원본 타워에 그 버그가 없습니다.");
+        }
+        DeveloperStates.PlayerState state = DeveloperStates.of(source.ownerPlayer());
+        if (state.reproductionsRemaining() <= 0) {
+            return Result.fail("개발자가 없거나 이번 라운드 재현을 이미 사용했습니다.");
+        }
+        state.armReproduction(source, bug);
+        return Result.ok("같은 라인의 다른 자기 성장 타워를 클릭하세요. 웅크리고 타워를 클릭하면 취소됩니다.");
+    }
+
+    /** Handles a tower click only while this player has a reproduction target armed. */
+    public static boolean handlePendingReproduction(SemionGame game, ServerPlayer player, Tower clicked) {
+        if (game == null || player == null) {
+            return false;
+        }
+        DeveloperStates.PlayerState state = DeveloperStates.of(player.getUUID());
+        DeveloperStates.PendingReproduction pending = state.pendingReproduction().orElse(null);
+        if (pending == null) {
+            return false;
+        }
+        if (player.isShiftKeyDown()) {
+            state.clearPendingReproduction();
+            notify(player, Result.ok("버그 재현 선택을 취소했습니다."));
+            return true;
+        }
+        if (game.phase() != RoundPhase.PREPARE_AND_SUMMON || pending.round() != game.currentRound()) {
+            state.clearPendingReproduction();
+            notify(player, Result.fail("준비 단계가 종료되어 버그 재현 선택을 취소했습니다."));
+            return true;
+        }
+        PlayerLane lane = game.playerLane(player.getUUID()).orElse(null);
+        refreshCapacity(lane, player.getUUID());
+        Result result = clicked instanceof DeveloperTower target
+                ? reproduceBug(lane, pending.source(), target, pending.bug())
+                : Result.fail("같은 라인의 다른 자기 성장 타워를 선택하세요.");
+        if (result.success()) {
+            state.clearPendingReproduction();
+        }
+        notify(player, result);
+        return true;
+    }
+
+    private static void notify(ServerPlayer player, Result result) {
+        player.sendSystemMessage(Component.literal(result.message())
+                .withStyle(result.success() ? ChatFormatting.GREEN : ChatFormatting.RED));
     }
 
     // ------------------------------------------------------------------ 버전 고정
@@ -342,6 +425,7 @@ public final class DeveloperPatchService {
         }
         DeveloperTowerData.setPinned(tower, pinned);
         tower.onStateChanged(lane);
+        DeveloperVfx.show(tower, AreaVfxStyles.PULSE, pinned ? "pin" : "unpin");
         return Result.ok(pinned ? "버전을 고정했습니다." : "버전 고정을 해제했습니다.");
     }
 

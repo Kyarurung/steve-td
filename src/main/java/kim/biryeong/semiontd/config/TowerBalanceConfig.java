@@ -2092,6 +2092,8 @@ public record TowerBalanceConfig(
         global.put("reproducePerRound", (double) DeveloperBalance.REPRODUCE_PER_ROUND);
         global.put("optimizationsPerMatch", (double) DeveloperBalance.OPTIMIZATIONS_PER_MATCH);
         global.put("versionPinSlots", (double) DeveloperBalance.VERSION_PIN_SLOTS);
+        global.put("basePatchSlots", (double) DeveloperBalance.BASE_PATCH_SLOTS);
+        global.put("patchSlotsPerTowers", (double) DeveloperBalance.PATCH_SLOTS_PER_TOWERS);
         for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
             global.put(optimization.costKey(), optimization.defaultCost());
             global.put(optimization.gainKey(), optimization.defaultGain());
@@ -2144,20 +2146,71 @@ public record TowerBalanceConfig(
         String global = DeveloperBalance.CONFIG_ID;
         validatePositive(global,
                 "patchAttack", "patchRange", "patchInterval", "patchHealth", "patchAggro",
-                "patchDiminishing", "maxBugsPerTower", "maxInstability", "instabilityStallTicks");
+                "patchDiminishing", "testBuildAuraBonus", "testBuildAuraRadius",
+                "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
+                "maintenanceDamageBonus", "patchSlotsPerTowers");
+        validateRange(global, "patchAttack", 0.0, 1.0);
+        validateRange(global, "patchRange", 0.0, 1.0);
+        validateRange(global, "patchInterval", 0.0, 1.0);
+        validateRange(global, "patchHealth", 0.0, 1.0);
         validateRange(global, "patchDiminishing", 0.5, 1.0);
+        validateRange(global, "testBuildAuraBonus", 0.0, 1.0);
         validateRange(global, "instabilityStallChance", 0.0, 0.5);
         validateRange(global, "patchAggro", 1.0, 100.0);
         validateIntegral(global, false,
                 "patchAggro", "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
+                "patchSlotsPerTowers");
+        validateIntegral(global, true,
                 "maintenancePerRound", "debugRemovalsPerRound", "reproducePerRound",
-                "optimizationsPerMatch", "versionPinSlots");
+                "optimizationsPerMatch", "versionPinSlots", "basePatchSlots");
+
+        for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
+            validatePositive(global, optimization.gainKey());
+            validateAtLeast(global, 0.0, optimization.costKey());
+        }
+        for (DeveloperOptimization optimization : List.of(
+                DeveloperOptimization.RANGE,
+                DeveloperOptimization.DURABILITY,
+                DeveloperOptimization.ACCURACY,
+                DeveloperOptimization.ATTACK
+        )) {
+            validateRange(global, optimization.costKey(), 0.0, 1.0);
+        }
+
+        validateRatios(global,
+                DeveloperBug.PRIMITIVE.secondaryKey(),
+                DeveloperBug.BOUNDARY.primaryKey(),
+                DeveloperBug.FLOATING_POINT.primaryKey(),
+                DeveloperBug.INTEGER_OVERFLOW.secondaryKey(),
+                DeveloperBug.TIMEOUT.primaryKey(), DeveloperBug.TIMEOUT.secondaryKey(),
+                DeveloperBug.BUFFER_OVERRUN.primaryKey(), DeveloperBug.BUFFER_OVERRUN.secondaryKey(),
+                DeveloperBug.HARDCODED.secondaryKey(), DeveloperBug.OVERKILL.secondaryKey(),
+                DeveloperBug.STEALTH.secondaryKey(), DeveloperBug.ZOMBIE_PROCESS.secondaryKey(),
+                DeveloperBug.EXCEPTION_HANDLING.primaryKey(), DeveloperBug.EXCEPTION_HANDLING.secondaryKey(),
+                DeveloperBug.GARBAGE_COLLECTION.primaryKey(), DeveloperBug.SIGN_FLIP.primaryKey(),
+                DeveloperBug.MEMORY_LEAK.primaryKey(), DeveloperBug.MEMORY_LEAK.secondaryKey(),
+                DeveloperBug.LAZY_LOADING.primaryKey(), DeveloperBug.NULL_POINTER.primaryKey(),
+                DeveloperBug.PRICE_TAG.primaryKey(), DeveloperBug.READ_ONLY.primaryKey());
+        validateIntegral(global, false,
+                DeveloperBug.OVERKILL.primaryKey(),
+                DeveloperBug.ZOMBIE_PROCESS.primaryKey(),
+                DeveloperBug.CACHE_MISS.primaryKey());
+        validatePositive(global,
+                DeveloperBug.PRIMITIVE.primaryKey(), DeveloperBug.INTEGER_OVERFLOW.primaryKey(),
+                DeveloperBug.HARDCODED.primaryKey(), DeveloperBug.LAZY_LOADING.secondaryKey());
 
         // A growth tower with no patch scale would silently absorb nothing, which reads in-game as
         // the whole builder being broken rather than as a misconfigured number.
         for (TowerType type : DeveloperTowers.growthLine()) {
             validatePositive(type.id(), "patchScale", "hotfixScale");
             validateRange(type.id(), "bugChance", 0.0, 1.0);
+        }
+        for (TowerType type : List.of(
+                DeveloperTowers.WORKBENCH,
+                DeveloperTowers.DEPLOY_SERVER,
+                DeveloperTowers.OPS_CENTER
+        )) {
+            validateIntegral(type.id(), true, "patchSlots", "hotfixesPerRound");
         }
     }
 

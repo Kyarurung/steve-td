@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.developer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -67,6 +68,9 @@ public final class DeveloperStates {
         }
     }
 
+    public record PendingReproduction(DeveloperTower source, DeveloperBug bug, int round) {
+    }
+
     public static final class PlayerState {
         private int round;
         private Capacity capacity = Capacity.none();
@@ -76,6 +80,7 @@ public final class DeveloperStates {
         private int maintenancesUsed;
         private int debugRemovalsUsed;
         private int reproductionsUsed;
+        private PendingReproduction pendingReproduction;
 
         /** Match-wide, deliberately not reset per round. */
         private int optimizationsUsed;
@@ -91,6 +96,7 @@ public final class DeveloperStates {
             this.maintenancesUsed = 0;
             this.debugRemovalsUsed = 0;
             this.reproductionsUsed = 0;
+            this.pendingReproduction = null;
         }
 
         public int round() {
@@ -170,6 +176,18 @@ public final class DeveloperStates {
             }
             reproductionsUsed++;
             return true;
+        }
+
+        public Optional<PendingReproduction> pendingReproduction() {
+            return Optional.ofNullable(pendingReproduction);
+        }
+
+        public void armReproduction(DeveloperTower source, DeveloperBug bug) {
+            pendingReproduction = new PendingReproduction(source, bug, round);
+        }
+
+        public void clearPendingReproduction() {
+            pendingReproduction = null;
         }
 
         public int optimizationsRemaining() {

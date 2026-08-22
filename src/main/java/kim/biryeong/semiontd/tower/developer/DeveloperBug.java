@@ -103,11 +103,11 @@ public enum DeveloperBug {
                     "<red>발동한 웨이브 동안 공격력이 절반이 됩니다.</red>"
             )),
 
-    /** Resets the wall every round at the price of the pipeline. */
-    GARBAGE_COLLECTION("garbage_collection", "가비지 컬렉션", Category.SURVIVAL, Items.BUCKET, 0.0, 0.0,
+    /** Emergency recovery paid for by one active patch. */
+    GARBAGE_COLLECTION("garbage_collection", "가비지 컬렉션", Category.SURVIVAL, Items.BUCKET, 0.25, 0.0,
             List.of(
-                    "<green>라운드 시작마다 체력이 완전히 회복됩니다.</green>",
-                    "<red>대신 누적된 패치 1건이 사라집니다.</red>"
+                    "<green>웨이브당 1회, 피해 후 체력이 25% 이하면 완전히 회복됩니다.</green>",
+                    "<red>활성 패치 1건을 제거하며, 패치가 없으면 발동하지 않습니다.</red>"
             )),
 
     /** Trades the support net for raw resilience. Cancels out with 가비지 컬렉션 nicely. */

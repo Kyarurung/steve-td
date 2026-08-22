@@ -5,18 +5,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.util.RandomSource;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import xyz.nucleoid.map_templates.BlockBounds;
 
 /**
  * Covers the rules that decide whether an operation is allowed at all, and what it costs.
@@ -45,9 +51,29 @@ class DeveloperPatchServiceTest {
     }
 
     private static DeveloperTower tower(TowerType type) {
-        DeveloperTower tower = new DeveloperTower(type, OWNER, TeamId.RED, 0, new GridPosition(0, 64, 0));
+        return tower(type, OWNER, 0, 0);
+    }
+
+    private static DeveloperTower tower(TowerType type, UUID owner, int laneId, int x) {
+        DeveloperTower tower = new DeveloperTower(type, owner, TeamId.RED, laneId, new GridPosition(x, 64, 0));
         tower.useRandom(RandomSource.create(1234L));
         return tower;
+    }
+
+    private static PlayerLane lane(DeveloperTower... towers) {
+        LaneRegionLayout layout = new LaneRegionLayout(
+                0,
+                new Vec3(0.5, 64.0, 0.5),
+                List.of(new Vec3(0.5, 64.0, 4.5)),
+                new Vec3(0.5, 64.0, 10.5),
+                BlockBounds.of(new BlockPos(0, 63, 0), new BlockPos(12, 66, 12)),
+                List.of(new GridPosition(0, 63, 10))
+        );
+        PlayerLane lane = new PlayerLane(TeamId.RED, 0, OWNER, null, layout);
+        for (DeveloperTower tower : towers) {
+            lane.addTower(tower);
+        }
+        return lane;
     }
 
     /** Seeds the budgets an ability tower line would have granted. */
@@ -172,9 +198,9 @@ class DeveloperPatchServiceTest {
         assertFalse(DeveloperPatchService.applyPatch(null, beta, DeveloperPatch.ATTACK, false).success());
         assertFalse(DeveloperPatchService.applyPatch(null, beta, DeveloperPatch.ATTACK, true).success());
 
-        DeveloperTower source = tower(DeveloperTowers.ALPHA);
+        DeveloperTower source = tower(DeveloperTowers.ALPHA, OWNER, 0, 1);
         DeveloperTowerData.addBug(source, DeveloperBug.PRIMITIVE);
-        assertFalse(DeveloperPatchService.reproduceBug(null, source, beta, DeveloperBug.PRIMITIVE).success());
+        assertFalse(DeveloperPatchService.reproduceBug(lane(source, beta), source, beta, DeveloperBug.PRIMITIVE).success());
     }
 
     @Test
@@ -285,13 +311,14 @@ class DeveloperPatchServiceTest {
     void reproductionRequiresTheSourceToActuallyCarryTheDefect() {
         grant(0, 0, false, false, true);
         DeveloperTower source = tower(DeveloperTowers.ALPHA);
-        DeveloperTower target = tower(DeveloperTowers.RELEASE);
+        DeveloperTower target = tower(DeveloperTowers.RELEASE, OWNER, 0, 1);
+        PlayerLane lane = lane(source, target);
 
-        assertFalse(DeveloperPatchService.reproduceBug(null, source, target, DeveloperBug.PRIMITIVE).success(),
+        assertFalse(DeveloperPatchService.reproduceBug(lane, source, target, DeveloperBug.PRIMITIVE).success(),
                 "원본에 없는 버그는 재현할 수 없어야 합니다.");
 
         DeveloperTowerData.addBug(source, DeveloperBug.PRIMITIVE);
-        assertTrue(DeveloperPatchService.reproduceBug(null, source, target, DeveloperBug.PRIMITIVE).success());
+        assertTrue(DeveloperPatchService.reproduceBug(lane, source, target, DeveloperBug.PRIMITIVE).success());
         assertTrue(target.hasBug(DeveloperBug.PRIMITIVE),
                 "무결성 타워도 의도적으로 심은 버그는 받아야 합니다.");
     }
@@ -304,6 +331,43 @@ class DeveloperPatchServiceTest {
         DeveloperTower target = tower(DeveloperTowers.BETA);
 
         assertFalse(DeveloperPatchService.reproduceBug(null, source, target, DeveloperBug.PRIMITIVE).success());
+    }
+
+    @Test
+    void failedReproductionKeepsItsChargeAndRejectsOtherOwnersAndFullTargets() {
+        grant(0, 0, false, false, true);
+        DeveloperTower source = tower(DeveloperTowers.ALPHA);
+        DeveloperTower otherOwner = tower(DeveloperTowers.BETA, UUID.randomUUID(), 0, 1);
+        DeveloperTower full = tower(DeveloperTowers.RELEASE, OWNER, 0, 2);
+        PlayerLane lane = lane(source, otherOwner, full);
+        DeveloperTowerData.addBug(source, DeveloperBug.PRIMITIVE);
+        for (DeveloperBug bug : List.of(
+                DeveloperBug.BOUNDARY,
+                DeveloperBug.FLOATING_POINT,
+                DeveloperBug.TIMEOUT,
+                DeveloperBug.BUFFER_OVERRUN
+        )) {
+            DeveloperTowerData.addBug(full, bug);
+        }
+
+        assertFalse(DeveloperPatchService.reproduceBug(lane, source, otherOwner, DeveloperBug.PRIMITIVE).success());
+        assertFalse(DeveloperPatchService.reproduceBug(lane, source, full, DeveloperBug.PRIMITIVE).success());
+        assertEquals(1, DeveloperStates.of(OWNER).reproductionsRemaining(),
+                "거부된 재현은 횟수를 소비하면 안 됩니다.");
+    }
+
+    @Test
+    void openingANewRoundClearsAnArmedReproduction() {
+        grant(0, 0, false, false, true);
+        DeveloperTower source = tower(DeveloperTowers.ALPHA);
+        PlayerLane lane = lane(source);
+        DeveloperTowerData.addBug(source, DeveloperBug.PRIMITIVE);
+
+        assertTrue(DeveloperPatchService.armReproduction(lane, source, DeveloperBug.PRIMITIVE).success());
+        assertTrue(DeveloperStates.of(OWNER).pendingReproduction().isPresent());
+
+        grant(0, 0, false, false, true);
+        assertTrue(DeveloperStates.of(OWNER).pendingReproduction().isEmpty());
     }
 
     @Test

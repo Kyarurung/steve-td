@@ -114,6 +114,67 @@ public final class DeveloperGameTest {
     }
 
     @GameTest(maxTicks = 120)
+    public void garbageCollectionRecoversALiveEntityFromLethalDamage(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        UUID owner = stableUuid("developer-gc-owner");
+        PlayerLane lane = testLane(context, owner);
+        prepareFloor(context);
+        DeveloperTower beta = tower(DeveloperTowers.BETA, owner, context, new BlockPos(5, 2, 5));
+        try {
+            lane.addTower(beta);
+            SemionTowerEntity entity = towerEntity(context, beta);
+            DeveloperTowerData.addBug(beta, DeveloperBug.GARBAGE_COLLECTION);
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.20);
+            beta.resyncHealth(lane, false);
+            beta.onWaveStarted(lane, 1);
+
+            double resolved = beta.modifyIncomingDamage(entity, null, beta.currentMaxHealth() * 10.0);
+
+            requireClose(0.0, resolved, "Lethal damage must be cancelled by garbage collection.");
+            requireClose(beta.currentMaxHealth(), beta.health(), "Runtime health must fully recover.");
+            requireClose(beta.currentMaxHealth(), entity.getHealth(), "Entity health must fully recover.");
+            require(DeveloperTowerData.activeCount(beta, DeveloperPatch.HEALTH) == 0,
+                    "Recovery must consume one active patch.");
+            context.succeed();
+        } finally {
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void signFlipRejectsAllyHealingButAllowsSelfHealingWithoutFalseStats(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        UUID owner = stableUuid("developer-sign-flip-owner");
+        PlayerLane lane = testLane(context, owner);
+        prepareFloor(context);
+        DeveloperTower healer = tower(DeveloperTowers.BETA, owner, context, new BlockPos(4, 2, 4));
+        DeveloperTower target = tower(DeveloperTowers.RELEASE, owner, context, new BlockPos(6, 2, 6));
+        try {
+            lane.addTower(healer);
+            lane.addTower(target);
+            SemionTowerEntity targetEntity = towerEntity(context, target);
+            DeveloperTowerData.addBug(target, DeveloperBug.SIGN_FLIP);
+            target.syncHealth(target.currentMaxHealth() / 2.0);
+            target.onStateChanged(lane);
+            healer.markWaveStarted(1);
+
+            require(!targetEntity.canReceiveHealing(), "Heal target search must skip SIGN_FLIP towers.");
+            require(!healer.healTarget(targetEntity, 20.0), "Direct ally healing must also be rejected.");
+            requireClose(0.0, healer.roundMetricsTracker().snapshot().healingDone(),
+                    "Rejected healing must not be recorded.");
+
+            target.markWaveStarted(1);
+            require(targetEntity.healTarget(targetEntity, 20.0), "Self healing must remain allowed.");
+            require(target.health() > target.currentMaxHealth() / 2.0, "Self healing must change health.");
+            require(target.roundMetricsTracker().snapshot().healingDone() > 0.0,
+                    "Successful self healing must be recorded.");
+            context.succeed();
+        } finally {
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest(maxTicks = 120)
     public void patchesAndDefectsSurviveAnUpgradeOnALiveLane(GameTestHelper context) {
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
         UUID owner = stableUuid("developer-upgrade-owner");
