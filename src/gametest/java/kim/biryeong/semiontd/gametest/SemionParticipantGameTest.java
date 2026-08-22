@@ -233,7 +233,7 @@ import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockSacrificeTower;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakening;
 import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
@@ -12118,9 +12118,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("warlock-ranged-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
         for (int kill = 0; kill < 1249; kill++) {
-            WarlockAwakeningProgress.recordKill(playerId);
+            WarlockAwakening.recordKill(playerId);
         }
-        if (!assertEquals(context, 1249L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
+        if (!assertEquals(context, 1249L, WarlockAwakening.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
             return;
         }
         PlayerLane lane = redLane(game, 1);
@@ -12157,7 +12157,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         creditedKill.recordLastHit(playerId, KillSourceKind.TOWER);
         creditedKill.syncHealth(0.0);
         new EconomyService(game.economyConfig(), game).awardMonsterKillReward(creditedKill, game.players());
-        if (!assertEquals(context, 1250L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1250th kill should unlock awakening.")) {
+        if (!assertEquals(context, 1250L, WarlockAwakening.snapshot(playerId).kills(), "The credited 1250th kill should unlock awakening.")) {
             return;
         }
 
@@ -12197,7 +12197,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("warlock-post-sacrifice-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
         for (int kill = 0; kill < 1250; kill++) {
-            WarlockAwakeningProgress.recordKill(playerId);
+            WarlockAwakening.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
         BlockPos corePos = towerPlacementPos(lane);
@@ -12245,7 +12245,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("warlock-melee-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
         for (int kill = 0; kill < 1250; kill++) {
-            WarlockAwakeningProgress.recordKill(playerId);
+            WarlockAwakening.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
         BlockPos corePos = towerPlacementPos(lane);

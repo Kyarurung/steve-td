@@ -22,15 +22,34 @@ public final class WarlockTowers {
     private WarlockTowers() {
     }
 
+    private static final List<String> T2_SLAVE_DESCRIPTION = List.of(
+            "<gray>" + warlockText("흑마법사") + "가 데려온 희귀한 양입니다.</gray>",
+            "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적이 받는 "
+                    + attackDamageText("피해") + "를 "
+                    + attackDamageText("{ability.towerDamageTakenBonus:percent}") + " 증가시킵니다.</gray>"
+    );
+    private static final List<String> T3_SLAVE_DESCRIPTION = List.of(
+            "<gray>" + warlockText("흑마법사") + "가 데려온 양입니다. 희귀했던 색을 잃어 화가 났습니다.</gray>",
+            "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적이 받는 "
+                    + attackDamageText("피해") + "를 "
+                    + attackDamageText("{ability.towerDamageTakenBonus:percent}") + " 증가시킵니다.</gray>"
+    );
+    private static final List<String> RANGED_SLAVE_DESCRIPTION = List.of(
+            "<gray>" + warlockText("흑마법사") + "가 키우는 개구리입니다.</gray>",
+            "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적의 "
+                    + attackSpeedText("공격 속도") + "를 "
+                    + attackSpeedText("{ability.attackSpeedReduction:percent}") + " 감소시킵니다.</gray>"
+    );
+
     public static final TowerType BASE_WARLOCK_TOWER = tower("base_warlock_tower", "흑마법사 타워", 0, 80, 4, 5, 20, 30, byId(EntityType.WITCH), baseWarlockDescription());
     public static final TowerType RANGED_WARLOCK_TOWER = tower("ranged_warlock_tower", "원거리 흑마법사 타워", 0, 100, 7, 8, 20, 20, byId(EntityType.WITCH), rangedWarlockDescription());
     public static final TowerType MELEE_WARLOCK_TOWER = tower("melee_warlock_tower", "근거리 흑마법사 타워", 0, 120, 3, 7, 20, 80, byId(EntityType.WITCH), meleeWarlockDescription());
     public static final TowerType T1_SLAVE = tower("t1_slave", "희생\"양\"", 50, 75, 2, 4, 20, 30, SheepVisual.builder().color(DyeColor.RED).build(), List.of("<gray>" + warlockText("흑마법사") + "가 데려온 양입니다.</gray>"));
-    public static final TowerType T2_SLAVE = tower("t2_slave", "희생\"양\"", 85, 120, 2, 8, 20, 50, SheepVisual.builder().color(DyeColor.PINK).build(), List.of("<gray>" + warlockText("흑마법사") + "가 데려온 희귀한 양입니다.</gray>", "<gray>사망 시 주위 20블록 내 적이 받는 " + attackDamageText("피해") + "를 " + attackDamageText("10%") + " 증가시킵니다.</gray>"));
-    public static final TowerType T3_SLAVE = tower("t3_slave", "희생\"양\"", 135, 185, 2, 12, 20, 70, SheepVisual.builder().color(DyeColor.WHITE).build(), List.of("<gray>" + warlockText("흑마법사") + "가 데려온 양입니다. 희귀했던 색을 잃어 화가 났습니다.</gray>", "<gray>사망 시 주위 20블록 내 적이 받는 " + attackDamageText("피해") + "를 " + attackDamageText("10%") + " 증가시킵니다.</gray>"));
+    public static final TowerType T2_SLAVE = tower("t2_slave", "희생\"양\"", 85, 120, 2, 8, 20, 50, SheepVisual.builder().color(DyeColor.PINK).build(), T2_SLAVE_DESCRIPTION);
+    public static final TowerType T3_SLAVE = tower("t3_slave", "희생\"양\"", 135, 185, 2, 12, 20, 70, SheepVisual.builder().color(DyeColor.WHITE).build(), T3_SLAVE_DESCRIPTION);
     public static final TowerType T1_RANGED_SLAVE = tower("t1_ranged_slave", "애완 박쥐", 55, 70, 7, 5, 17, 20, byId(EntityType.BAT), List.of("<gray>" + warlockText("흑마법사") + "가 키우는 박쥐입니다.</gray>", "<gray>애완동물도 얄짤없네요.</gray>"));
-    public static final TowerType T2_RANGED_SLAVE = tower("t2_ranged_slave", "애완 개구리", 90, 120, 7, 8, 15, 15, FrogVisual.builder().variant(FrogVariants.COLD).build(), List.of("<gray>" + warlockText("흑마법사") + "가 키우는 개구리입니다.</gray>", "<gray>사망 시 주위 20블록 내 적의 " + attackSpeedText("공격 속도") + "를 " + attackSpeedText("10%") + " 감소시킵니다.</gray>"));
-    public static final TowerType T3_RANGED_SLAVE = tower("t3_ranged_slave", "애완 개구리", 140, 185, 7, 12, 13, 15, FrogVisual.builder().variant(FrogVariants.WARM).build(), List.of("<gray>" + warlockText("흑마법사") + "가 키우는 개구리입니다.</gray>", "<gray>사망 시 주위 20블록 내 적의 " + attackSpeedText("공격 속도") + "를 " + attackSpeedText("10%") + " 감소시킵니다.</gray>"));
+    public static final TowerType T2_RANGED_SLAVE = tower("t2_ranged_slave", "애완 개구리", 90, 120, 7, 8, 15, 15, FrogVisual.builder().variant(FrogVariants.COLD).build(), RANGED_SLAVE_DESCRIPTION);
+    public static final TowerType T3_RANGED_SLAVE = tower("t3_ranged_slave", "애완 개구리", 140, 185, 7, 12, 13, 15, FrogVisual.builder().variant(FrogVariants.WARM).build(), RANGED_SLAVE_DESCRIPTION);
 
     private static final List<TowerType> ALL = List.of(
             BASE_WARLOCK_TOWER,
@@ -48,10 +67,10 @@ public final class WarlockTowers {
         TowerDescriptionRegistry.registerTemplate(BASE_WARLOCK_TOWER, baseWarlockDescription());
         TowerDescriptionRegistry.registerTemplate(RANGED_WARLOCK_TOWER, rangedWarlockDescription());
         TowerDescriptionRegistry.registerTemplate(MELEE_WARLOCK_TOWER, meleeWarlockDescription());
-        TowerDescriptionRegistry.registerTemplate(T2_SLAVE, List.of("<gray>" + warlockText("흑마법사") + "가 데려온 희귀한 양입니다.</gray>", "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적이 받는 " + attackDamageText("피해") + "를 " + attackDamageText("{ability.towerDamageTakenBonus:percent}") + " 증가시킵니다.</gray>"));
-        TowerDescriptionRegistry.registerTemplate(T3_SLAVE, List.of("<gray>" + warlockText("흑마법사") + "가 데려온 양입니다. 희귀했던 색을 잃어 화가 났습니다.</gray>", "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적이 받는 " + attackDamageText("피해") + "를 " + attackDamageText("{ability.towerDamageTakenBonus:percent}") + " 증가시킵니다.</gray>"));
-        TowerDescriptionRegistry.registerTemplate(T2_RANGED_SLAVE, List.of("<gray>" + warlockText("흑마법사") + "가 키우는 개구리입니다.</gray>", "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적의 " + attackSpeedText("공격 속도") + "를 " + attackSpeedText("{ability.attackSpeedReduction:percent}") + " 감소시킵니다.</gray>"));
-        TowerDescriptionRegistry.registerTemplate(T3_RANGED_SLAVE, List.of("<gray>" + warlockText("흑마법사") + "가 키우는 개구리입니다.</gray>", "<gray>사망 시 주위 {ability.deathEffectRadius:number}블록 내 적의 " + attackSpeedText("공격 속도") + "를 " + attackSpeedText("{ability.attackSpeedReduction:percent}") + " 감소시킵니다.</gray>"));
+        TowerDescriptionRegistry.registerTemplate(T2_SLAVE, T2_SLAVE_DESCRIPTION);
+        TowerDescriptionRegistry.registerTemplate(T3_SLAVE, T3_SLAVE_DESCRIPTION);
+        TowerDescriptionRegistry.registerTemplate(T2_RANGED_SLAVE, RANGED_SLAVE_DESCRIPTION);
+        TowerDescriptionRegistry.registerTemplate(T3_RANGED_SLAVE, RANGED_SLAVE_DESCRIPTION);
     }
 
     private static List<String> baseWarlockDescription() {

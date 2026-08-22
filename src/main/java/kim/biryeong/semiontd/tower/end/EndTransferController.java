@@ -15,8 +15,6 @@ import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.resources.ResourceLocation;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
-
 final class EndTransferController {
     private static final TowerDataKey<Double> PROGRESS = TowerDataKey.of(
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_transfer_progress"),
@@ -132,20 +130,20 @@ final class EndTransferController {
     }
 
     private EndTransferState.Progress newProgress(Tower tower) {
-        int durationTicks = Math.max(1, config.transferTicks());
+        EndConfig.TransferRule rule = config.transfer();
         boolean shulkerLine = EndTowers.isShulkerLine(tower.type());
         boolean endCrystalLine = EndTowers.isEndCrystalLine(tower.type());
         double maxHealth = tower.type().maxHealth();
         double damage = tower.type().damage();
         tower.setData(PROGRESS, 0.0);
         return new EndTransferState.Progress(
-                durationTicks,
-                shulkerLine ? maxHealth * nonNegative(config.value(ROUND_HEALTH_RATIO)) : 0.0,
-                shulkerLine ? maxHealth * nonNegative(config.value(PERMANENT_HEALTH_RATIO)) : 0.0,
-                endCrystalLine ? damage * nonNegative(config.value(ROUND_DAMAGE_RATIO)) : 0.0,
-                endCrystalLine ? damage * nonNegative(config.value(PERMANENT_DAMAGE_RATIO)) : 0.0,
-                nonNegative(config.value(TRANSFER_HEAL)),
-                shulkerLine ? maxHealth * nonNegative(config.value(TRANSFER_HEAL_RATIO)) : 0.0
+                rule.durationTicks(),
+                shulkerLine ? maxHealth * rule.roundHealthRatio() : 0.0,
+                shulkerLine ? maxHealth * rule.permanentHealthRatio() : 0.0,
+                endCrystalLine ? damage * rule.roundDamageRatio() : 0.0,
+                endCrystalLine ? damage * rule.permanentDamageRatio() : 0.0,
+                rule.completionHealing(),
+                shulkerLine ? maxHealth * rule.periodicHealingRatio() : 0.0
         );
     }
 
@@ -213,9 +211,27 @@ final class EndTransferController {
         return Math.max(0.0, scaleDamageBonus(total) - scaleDamageBonus(permanent));
     }
 
-    private double scaleDamageBonus(double raw) {return LogarithmicScaling.logarithmicBonus(raw, config.value(DAMAGE_THRESHOLD), config.value(DAMAGE_SCALE));}
+    EndTransferStats stats() {
+        return new EndTransferStats(
+                shulkerCount,
+                endCrystalCount,
+                roundCompletedCount,
+                permanentHealthBonus(),
+                roundHealthBonus(),
+                permanentDamageBonus(),
+                roundDamageBonus()
+        );
+    }
 
-    private double scaleHealthBonus(double raw) {return LogarithmicScaling.logarithmicBonus(raw, config.value(HEALTH_THRESHOLD), config.value(HEALTH_SCALE));}
+    private double scaleDamageBonus(double raw) {
+        EndConfig.ScalingRule rule = config.damageScaling();
+        return LogarithmicScaling.logarithmicBonus(raw, rule.threshold(), rule.scale());
+    }
+
+    private double scaleHealthBonus(double raw) {
+        EndConfig.ScalingRule rule = config.healthScaling();
+        return LogarithmicScaling.logarithmicBonus(raw, rule.threshold(), rule.scale());
+    }
 
     static double progress(Tower tower) {
         return Math.clamp(tower.getDataOrDefault(PROGRESS, 0.0), 0.0, 1.0);
@@ -223,10 +239,6 @@ final class EndTransferController {
 
     static void clearProgress(Tower tower) {
         tower.removeData(PROGRESS);
-    }
-
-    private static double nonNegative(double value) {
-        return Math.max(0.0, value);
     }
 
     private static boolean shouldEmitParticles(Tower source, int elapsedTicks) {

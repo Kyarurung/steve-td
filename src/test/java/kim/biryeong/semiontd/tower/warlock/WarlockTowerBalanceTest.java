@@ -30,7 +30,7 @@ class WarlockTowerBalanceTest {
 
     @AfterEach
     void resetBalance() {
-        WarlockAwakeningProgress.clearAllForTesting();
+        WarlockAwakening.clearAllForTesting();
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
     }
 
@@ -151,20 +151,20 @@ class WarlockTowerBalanceTest {
     void combatCapsDamageAndSplashRadius() {
         WarlockCombat combat = new WarlockCombat(WarlockConfig.RUNTIME);
 
-        assertEquals(0.0, combat.splashRadiusForCount(1), 0.0001);
-        assertEquals(0.1, combat.splashRadiusForCount(2), 0.0001);
-        assertEquals(0.3, combat.splashRadiusForCount(7), 0.0001);
-        assertEquals(0.4, combat.splashRadiusForCount(8), 0.0001);
-        assertEquals(3.2, combat.splashRadiusForCount(64), 0.0001);
-        assertEquals(8.0, combat.splashRadiusForCount(160), 0.0001);
-        assertEquals(8.0, combat.splashRadiusForCount(200), 0.0001);
-        assertEquals(0.25, combat.meleeSplashRadiusForCount(1), 0.0001);
-        assertEquals(1.0, combat.meleeSplashRadiusForCount(4), 0.0001);
-        assertEquals(1.5, combat.meleeSplashRadiusForCount(6), 0.0001);
-        assertEquals(2.0, combat.meleeSplashRadiusForCount(8), 0.0001);
-        assertEquals(2.0, combat.meleeSplashRadiusForCount(100), 0.0001);
-        assertEquals(175.0, combat.resolvedSplashDamage(WarlockTowers.RANGED_WARLOCK_TOWER, 350.0), 0.0001);
-        assertEquals(262.5, combat.resolvedSplashDamage(WarlockTowers.MELEE_WARLOCK_TOWER, 350.0), 0.0001);
+        assertEquals(0.0, combat.splashRadiusForCount(WarlockPath.RANGED, 1), 0.0001);
+        assertEquals(0.1, combat.splashRadiusForCount(WarlockPath.RANGED, 2), 0.0001);
+        assertEquals(0.3, combat.splashRadiusForCount(WarlockPath.RANGED, 7), 0.0001);
+        assertEquals(0.4, combat.splashRadiusForCount(WarlockPath.RANGED, 8), 0.0001);
+        assertEquals(3.2, combat.splashRadiusForCount(WarlockPath.RANGED, 64), 0.0001);
+        assertEquals(8.0, combat.splashRadiusForCount(WarlockPath.RANGED, 160), 0.0001);
+        assertEquals(8.0, combat.splashRadiusForCount(WarlockPath.RANGED, 200), 0.0001);
+        assertEquals(0.25, combat.splashRadiusForCount(WarlockPath.MELEE, 1), 0.0001);
+        assertEquals(1.0, combat.splashRadiusForCount(WarlockPath.MELEE, 4), 0.0001);
+        assertEquals(1.5, combat.splashRadiusForCount(WarlockPath.MELEE, 6), 0.0001);
+        assertEquals(2.0, combat.splashRadiusForCount(WarlockPath.MELEE, 8), 0.0001);
+        assertEquals(2.0, combat.splashRadiusForCount(WarlockPath.MELEE, 100), 0.0001);
+        assertEquals(175.0, combat.resolvedSplashDamage(WarlockPath.RANGED, 350.0), 0.0001);
+        assertEquals(262.5, combat.resolvedSplashDamage(WarlockPath.MELEE, 350.0), 0.0001);
     }
 
     @Test
@@ -263,14 +263,14 @@ class WarlockTowerBalanceTest {
     void rangedLifeStealGrowsEveryTenAbsorptionsAndCapsAtPercent() {
         WarlockCombat combat = new WarlockCombat(WarlockConfig.RUNTIME);
 
-        assertEquals(0.0, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 9), 0.0001);
-        assertEquals(0.005, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 10), 0.0001);
-        assertEquals(0.005, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 19), 0.0001);
-        assertEquals(0.01, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 20), 0.0001);
-        assertEquals(0.065, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 130), 0.0001);
-        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 140), 0.0001);
-        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 149), 0.0001);
-        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockTowers.RANGED_WARLOCK_TOWER, 200), 0.0001);
+        assertEquals(0.0, combat.lifeStealRatioForCount(WarlockPath.RANGED, 9), 0.0001);
+        assertEquals(0.005, combat.lifeStealRatioForCount(WarlockPath.RANGED, 10), 0.0001);
+        assertEquals(0.005, combat.lifeStealRatioForCount(WarlockPath.RANGED, 19), 0.0001);
+        assertEquals(0.01, combat.lifeStealRatioForCount(WarlockPath.RANGED, 20), 0.0001);
+        assertEquals(0.065, combat.lifeStealRatioForCount(WarlockPath.RANGED, 130), 0.0001);
+        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockPath.RANGED, 140), 0.0001);
+        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockPath.RANGED, 149), 0.0001);
+        assertEquals(0.07, combat.lifeStealRatioForCount(WarlockPath.RANGED, 200), 0.0001);
     }
 
     @Test
@@ -298,17 +298,17 @@ class WarlockTowerBalanceTest {
     void meleeLifeStealUsesCurrentRoundAbsorptionsAndCapsAtPercent() {
         WarlockCombat combat = new WarlockCombat(WarlockConfig.RUNTIME);
 
-        assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 0), 0.0001);
-        assertEquals(0.03, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3), 0.0001);
-        assertEquals(0.12, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 12), 0.0001);
-        assertEquals(0.13, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 13), 0.0001);
-        assertEquals(0.13, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 25), 0.0001);
-        assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3, false), 0.0001);
-        assertEquals(0.0, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 0, 0, true), 0.0001);
-        assertEquals(0.03, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 20, 3, true), 0.0001);
-        assertEquals(0.13, combat.lifeStealRatioForCounts(WarlockTowers.MELEE_WARLOCK_TOWER, 40, 20, true), 0.0001);
-        assertEquals(0.005, combat.lifeStealRatioForCounts(WarlockTowers.RANGED_WARLOCK_TOWER, 10, 3), 0.0001);
-        assertEquals(0.005, combat.lifeStealRatioForCounts(WarlockTowers.RANGED_WARLOCK_TOWER, 10, 3, true), 0.0001);
+        assertEquals(0.0, combat.lifeStealRatioForCount(WarlockPath.MELEE, 0), 0.0001);
+        assertEquals(0.03, combat.lifeStealRatioForCount(WarlockPath.MELEE, 3), 0.0001);
+        assertEquals(0.12, combat.lifeStealRatioForCount(WarlockPath.MELEE, 12), 0.0001);
+        assertEquals(0.13, combat.lifeStealRatioForCount(WarlockPath.MELEE, 13), 0.0001);
+        assertEquals(0.13, combat.lifeStealRatioForCount(WarlockPath.MELEE, 25), 0.0001);
+        assertEquals(0.0, combat.lifeStealRatioForCount(WarlockPath.MELEE, 3, false), 0.0001);
+        assertEquals(0.0, combat.lifeStealRatioForCount(WarlockPath.MELEE, 0, true), 0.0001);
+        assertEquals(0.03, combat.lifeStealRatioForCount(WarlockPath.MELEE, 3, true), 0.0001);
+        assertEquals(0.13, combat.lifeStealRatioForCount(WarlockPath.MELEE, 20, true), 0.0001);
+        assertEquals(0.005, combat.lifeStealRatioForCount(WarlockPath.RANGED, 10), 0.0001);
+        assertEquals(0.005, combat.lifeStealRatioForCount(WarlockPath.RANGED, 10, true), 0.0001);
     }
 
     @Test
@@ -445,7 +445,7 @@ class WarlockTowerBalanceTest {
         assertFalse(baseLockedDetails.contains("디버프 저항:"));
         assertTrue(baseLockedDetails.contains("각성 해금: 0/1250킬"));
         for (int kill = 0; kill < 1250; kill++) {
-            WarlockAwakeningProgress.recordKill(baseOwner);
+            WarlockAwakening.recordKill(baseOwner);
         }
         String baseUnlockedDetails = String.join("\n", base.runtimeDetailLines()).replaceAll("<[^>]+>", "");
         assertTrue(baseUnlockedDetails.contains("각성 해금: 완료 · 분기 선택 필요"));
@@ -481,9 +481,7 @@ class WarlockTowerBalanceTest {
                         7,
                         true,
                         true,
-                        new WarlockStatsView.AwakeningStats(1250, 1250, true, 0.35, 0.40, true, 40.0, 0.0, 0.0),
-                        true,
-                        false,
+                        new WarlockStatsView.AwakeningStats(1250, 1250, true, true, 0.35, 0.40, true, 40.0, 0.0, 0.0),
                         new WarlockStatsView.CombatStats(
                                 42.5,
                                 4,
@@ -499,6 +497,11 @@ class WarlockTowerBalanceTest {
                                 0.10,
                                 0.10,
                                 0.05
+                        ),
+                        new WarlockStatsView.ProgressionStats(
+                                true, 12, 10, 7, 4,
+                                true, true, 7, 1,
+                                12, 2, true
                         )
                 )
         );
@@ -525,11 +528,14 @@ class WarlockTowerBalanceTest {
                         7,
                         true,
                         true,
-                        new WarlockStatsView.AwakeningStats(1250, 1250, true, 0.35, 0.40, true, 0.0, 75.0, 0.30),
-                        false,
-                        true,
+                        new WarlockStatsView.AwakeningStats(1250, 1250, true, true, 0.35, 0.40, true, 0.0, 75.0, 0.30),
                         new WarlockStatsView.CombatStats(42.5, 4, 15, 1.5, 8.0, true),
-                        new WarlockStatsView.DefenseStats(75.0, 0.08, 0.08, 0.10, 0.10, 0.05)
+                        new WarlockStatsView.DefenseStats(75.0, 0.08, 0.08, 0.10, 0.10, 0.05),
+                        new WarlockStatsView.ProgressionStats(
+                                true, 7, 1, 12, 10,
+                                true, false, 7, 1,
+                                7, 1, true
+                        )
                 )
         );
         assertEquals("<#53DFFF>🛡 디버프 저항</#53DFFF><white>: </white><#53DFFF>+5%</#53DFFF>", awakenedMeleeLines.get(awakenedMeleeLines.size() - 3));
@@ -542,9 +548,7 @@ class WarlockTowerBalanceTest {
                         20,
                         false,
                         false,
-                        new WarlockStatsView.AwakeningStats(0, 1250, false, 0.35, 0.40, true, 0.0, 0.0, 0.0),
-                        true,
-                        false,
+                        new WarlockStatsView.AwakeningStats(0, 1250, false, true, 0.35, 0.40, true, 0.0, 0.0, 0.0),
                         new WarlockStatsView.CombatStats(
                                 247.2593,
                                 15,
@@ -560,6 +564,11 @@ class WarlockTowerBalanceTest {
                                 0.0,
                                 0.10,
                                 0.05
+                        ),
+                        new WarlockStatsView.ProgressionStats(
+                                true, 100, 10, 20, 4,
+                                true, true, 20, 1,
+                                100, 2, true
                         )
                 )
         );
