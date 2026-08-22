@@ -66,6 +66,9 @@ import kim.biryeong.semiontd.tower.thunder.ThunderVfx;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkinGui;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
+import kim.biryeong.semiontd.tower.developer.DeveloperPatchGui;
+import kim.biryeong.semiontd.tower.developer.DeveloperTower;
+import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
 import kim.biryeong.semiontd.tower.hero.HeroShopGui;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitLoadout;
@@ -297,6 +300,21 @@ public final class SemionCommands {
                                                 StringArgumentType.getString(context, "id")
                                         )))))
                 .then(traitCommand("trait", gameManager))
+                .then(literal("developer")
+                        .then(literal("console")
+                                .executes(context -> developerConsole(context.getSource(), gameManager, null))
+                                .then(argument("x", IntegerArgumentType.integer())
+                                        .then(argument("y", IntegerArgumentType.integer())
+                                                .then(argument("z", IntegerArgumentType.integer())
+                                                        .executes(context -> developerConsole(
+                                                                context.getSource(),
+                                                                gameManager,
+                                                                new GridPosition(
+                                                                        IntegerArgumentType.getInteger(context, "x"),
+                                                                        IntegerArgumentType.getInteger(context, "y"),
+                                                                        IntegerArgumentType.getInteger(context, "z")
+                                                                )
+                                                        )))))))
                 .then(literal("hero")
                         .then(literal("skin")
                                 .executes(context -> heroSkin(context.getSource(), gameManager)))
@@ -2975,6 +2993,43 @@ public final class SemionCommands {
                 group
         );
         success(source, group == null ? "타워 관리 창을 열었습니다." : group + " 계열 타워를 열었습니다.");
+        return 1;
+    }
+
+    /**
+     * Opens the 개발자 patch console for one tower.
+     *
+     * <p>Reached from a button on that tower's own details dialog, so the tower is identified by
+     * the block the player already clicked. Listing the whole lane instead would be unreadable —
+     * five towers all named 알파 tell the player nothing about which block on the lane they are.
+     */
+    private static int developerConsole(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            GridPosition position
+    ) throws CommandSyntaxException {
+        SemionGame game = playableGame(source, gameManager);
+        ServerPlayer player = source.getPlayerOrException();
+        if (game == null) {
+            failure(source, "진행 중인 게임 또는 샌드박스가 없습니다.");
+            return 0;
+        }
+        PlayerLane lane = game.playerLane(player.getUUID()).orElse(null);
+        if (lane == null) {
+            failure(source, "담당 라인을 찾을 수 없습니다.");
+            return 0;
+        }
+        GridPosition target = position == null
+                ? GridPosition.from(player.blockPosition())
+                : position;
+        Tower tower = lane.towerAt(target);
+        if (!(tower instanceof DeveloperTower developerTower)
+                || !DeveloperTowers.isGrowthTower(tower.type())
+                || !player.getUUID().equals(tower.ownerPlayer())) {
+            failure(source, "패치할 수 있는 개발자 타워가 아닙니다.");
+            return 0;
+        }
+        new DeveloperPatchGui(player, game, developerTower).open();
         return 1;
     }
 

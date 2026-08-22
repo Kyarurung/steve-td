@@ -661,6 +661,17 @@ public abstract class Tower {
     ) {
     }
 
+    /**
+     * Whether allies may heal this tower.
+     *
+     * <p>Defaults to true. Towers that trade the support network for something else — the 개발자
+     * family's 부호 반전 defect, for example — refuse healing here so the heal goals skip them
+     * instead of wasting a cast.
+     */
+    public boolean canReceiveHealing() {
+        return true;
+    }
+
     public List<String> runtimeDetailLines() {
         return List.of();
     }
