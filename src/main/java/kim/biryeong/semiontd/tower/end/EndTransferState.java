@@ -77,20 +77,14 @@ final class EndTransferState {
         permanentDamageBonus = source.permanentDamageBonus;
     }
 
-    double roundHealthContribution() {
-        return roundHealthContribution;
-    }
-
-    double permanentHealthBonus() {
-        return permanentHealthBonus;
-    }
-
-    double roundDamageContribution() {
-        return roundDamageContribution;
-    }
-
-    double permanentDamageBonus() {
-        return permanentDamageBonus;
+    EndTransferSnapshot snapshot(EndTransferStacks stacks) {
+        return new EndTransferSnapshot(
+                stacks,
+                roundHealthContribution,
+                permanentHealthBonus,
+                roundDamageContribution,
+                permanentDamageBonus
+        );
     }
 
     private static double subtract(double value, double amount) {

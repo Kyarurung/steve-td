@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.warlock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,13 +39,13 @@ class WarlockPathTest {
     @Test
     void semanticRulesExposeNormalizedPathBehavior() {
         WarlockConfig config = WarlockConfig.RUNTIME;
-        WarlockConfig.PathRule base = config.path(WarlockPath.BASE);
-        WarlockConfig.PathRule ranged = config.path(WarlockPath.RANGED);
-        WarlockConfig.PathRule melee = config.path(WarlockPath.MELEE);
+        WarlockRules.PathRule base = config.path(WarlockPath.BASE);
+        WarlockRules.PathRule ranged = config.path(WarlockPath.RANGED);
+        WarlockRules.PathRule melee = config.path(WarlockPath.MELEE);
 
-        assertFalse(base.healthScaling().enabled());
-        assertTrue(ranged.healthScaling().enabled());
-        assertTrue(melee.damageScaling().enabled());
+        assertEquals(600.0, base.healthScaling().value(600.0), 0.0001);
+        assertEquals(2000.0, ranged.healthScaling().threshold(), 0.0001);
+        assertEquals(200.0, melee.damageScaling().threshold(), 0.0001);
         assertEquals(0.07, ranged.lifeSteal().maximum(), 0.0001);
         assertEquals(0.13, melee.lifeSteal().maximum(), 0.0001);
         assertEquals(4, ranged.defense().sacrificesPerStep());
@@ -57,8 +56,8 @@ class WarlockPathTest {
 
     @Test
     void sacrificeDeathEffectsResolveWithoutDirectRuntimeLookups() {
-        WarlockConfig.DeathEffectRule melee = WarlockConfig.RUNTIME.deathEffect(WarlockTowers.T2_SLAVE);
-        WarlockConfig.DeathEffectRule ranged = WarlockConfig.RUNTIME.deathEffect(WarlockTowers.T2_RANGED_SLAVE);
+        WarlockRules.DeathEffectRule melee = WarlockConfig.RUNTIME.deathEffect(WarlockTowers.T2_SLAVE);
+        WarlockRules.DeathEffectRule ranged = WarlockConfig.RUNTIME.deathEffect(WarlockTowers.T2_RANGED_SLAVE);
 
         assertEquals(WarlockPath.MELEE, melee.path());
         assertEquals(WarlockPath.RANGED, ranged.path());

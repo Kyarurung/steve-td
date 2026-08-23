@@ -11,10 +11,8 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.game.PlayerLane;
-import kim.biryeong.semiontd.tower.LogarithmicScaling;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
-import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.resources.ResourceLocation;
 
 final class EndTransferController {
@@ -22,12 +20,13 @@ final class EndTransferController {
 
     private final EndTransferState state = new EndTransferState();
     private final EndConfig config;
-    private int shulkerCount;
-    private int endCrystalCount;
-    private int roundCompletedCount;
+    private final EndTransferFactory progressFactory;
+    private EndTransferStacks stacks = EndTransferStacks.EMPTY;
+    private EndTransferSnapshot snapshot = state.snapshot(stacks);
 
     EndTransferController(EndConfig config) {
         this.config = Objects.requireNonNull(config, "config");
+        progressFactory = new EndTransferFactory(config);
     }
 
     TickResult tick(
@@ -47,7 +46,7 @@ final class EndTransferController {
         for (Tower tower : lane.towers()) {
             state.markPresent(tower);
             if (isEligibleTarget(core, tower)) {
-                state.ensureProgress(tower, this::newProgress);
+                state.ensureProgress(tower, progressFactory::create);
             }
         }
     }
@@ -59,7 +58,11 @@ final class EndTransferController {
         TransferTick tick = new TransferTick();
         advanceActiveTransfers(lane, particleEmitter, tick);
         resolveCompletions(lane, tick);
-        return tick.result();
+        TickResult result = tick.result();
+        if (result.statsChanged() || result.countsChanged()) {
+            refreshSnapshot();
+        }
+        return result;
     }
 
     private void advanceActiveTransfers(
@@ -171,7 +174,7 @@ final class EndTransferController {
 
     private void registerCompletion(Completion completion, TransferTick tick) {
         tick.addCompletionHealing(completion.progress().completionHealing);
-        registerCompleted(completion.source().type());
+        stacks = stacks.recordCompletion(completion.source().type());
         tick.markCountsChanged();
     }
 
@@ -187,34 +190,6 @@ final class EndTransferController {
                 && EndTowers.isTransferableTower(tower.type());
     }
 
-    private EndTransferState.Progress newProgress(Tower tower) {
-        EndConfig.TransferRule rule = config.transfer();
-        boolean shulkerLine = EndTowers.isShulkerLine(tower.type());
-        boolean endCrystalLine = EndTowers.isEndCrystalLine(tower.type());
-        double maxHealth = tower.type().maxHealth();
-        double damage = tower.type().damage();
-        tower.setData(PROGRESS, 0.0);
-        return new EndTransferState.Progress(
-                rule.durationTicks(),
-                shulkerLine ? maxHealth * rule.roundHealthRatio() : 0.0,
-                shulkerLine ? maxHealth * rule.permanentHealthRatio() : 0.0,
-                endCrystalLine ? damage * rule.roundDamageRatio() : 0.0,
-                endCrystalLine ? damage * rule.permanentDamageRatio() : 0.0,
-                rule.completionHealing(),
-                shulkerLine ? maxHealth * rule.periodicHealingRatio() : 0.0
-        );
-    }
-
-    private void registerCompleted(TowerType sourceType) {
-        int tier = EndTowers.transferTier(sourceType);
-        roundCompletedCount = saturatedAdd(roundCompletedCount, 1);
-        if (EndTowers.isShulkerLine(sourceType)) {
-            shulkerCount = saturatedAdd(shulkerCount, tier);
-        } else {
-            endCrystalCount = saturatedAdd(endCrystalCount, tier);
-        }
-    }
-
     boolean rollbackIncomplete() {
         boolean changed = false;
         for (Map.Entry<Tower, EndTransferState.Progress> entry : state.progressEntries()) {
@@ -222,73 +197,42 @@ final class EndTransferController {
             changed |= state.rollback(entry.getValue());
         }
         state.clearProgress();
+        if (changed) {
+            refreshSnapshot();
+        }
         return changed;
     }
 
     void resetRound() {
-        roundCompletedCount = 0;
+        stacks = stacks.resetRound();
         state.resetRoundContributions();
+        refreshSnapshot();
     }
 
     void copyFrom(EndTransferController source) {
         state.copyBonusesFrom(source.state);
-        shulkerCount = source.shulkerCount;
-        endCrystalCount = source.endCrystalCount;
-        roundCompletedCount = source.roundCompletedCount;
+        stacks = source.stacks;
+        refreshSnapshot();
     }
 
-    int shulkerCount() {
-        return shulkerCount;
-    }
-
-    int endCrystalCount() {
-        return endCrystalCount;
-    }
-
-    int roundCompletedCount() {
-        return roundCompletedCount;
-    }
-
-    double permanentHealthBonus() {
-        return scaleHealthBonus(state.permanentHealthBonus());
-    }
-
-    double permanentDamageBonus() {
-        return scaleDamageBonus(state.permanentDamageBonus());
-    }
-
-    double roundHealthBonus() {
-        double permanent = state.permanentHealthBonus();
-        double total = permanent + state.roundHealthContribution();
-        return Math.max(0.0, scaleHealthBonus(total) - scaleHealthBonus(permanent));
-    }
-
-    double roundDamageBonus() {
-        double permanent = state.permanentDamageBonus();
-        double total = permanent + state.roundDamageContribution();
-        return Math.max(0.0, scaleDamageBonus(total) - scaleDamageBonus(permanent));
+    EndTransferStacks stacks() {
+        return stacks;
     }
 
     EndTransferStats stats() {
-        return new EndTransferStats(
-                shulkerCount,
-                endCrystalCount,
-                roundCompletedCount,
-                permanentHealthBonus(),
-                roundHealthBonus(),
-                permanentDamageBonus(),
-                roundDamageBonus()
-        );
+        return snapshot.resolve(config.healthScaling(), config.damageScaling());
     }
 
-    private double scaleDamageBonus(double raw) {
-        EndConfig.ScalingRule rule = config.damageScaling();
-        return LogarithmicScaling.logarithmicBonus(raw, rule.threshold(), rule.scale());
+    double totalHealthBonus() {
+        return snapshot.totalHealthBonus(config.healthScaling());
     }
 
-    private double scaleHealthBonus(double raw) {
-        EndConfig.ScalingRule rule = config.healthScaling();
-        return LogarithmicScaling.logarithmicBonus(raw, rule.threshold(), rule.scale());
+    double totalDamageBonus() {
+        return snapshot.totalDamageBonus(config.damageScaling());
+    }
+
+    private void refreshSnapshot() {
+        snapshot = state.snapshot(stacks);
     }
 
     static double progress(Tower tower) {
@@ -301,13 +245,6 @@ final class EndTransferController {
 
     private static boolean shouldEmitParticles(Tower source, int elapsedTicks) {
         return Math.floorMod(elapsedTicks + System.identityHashCode(source), 5) == 0;
-    }
-
-    private static int saturatedAdd(int value, int increment) {
-        if (increment <= 0 || value == Integer.MAX_VALUE) {
-            return value;
-        }
-        return value > Integer.MAX_VALUE - increment ? Integer.MAX_VALUE : value + increment;
     }
 
     record TickResult(

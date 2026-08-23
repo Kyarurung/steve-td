@@ -45,8 +45,8 @@ class EndTowerCatalogTest {
         assertTrue(config.towers().containsKey(EndTowers.T3_END_CRYSTAL_TOWER.id()));
         assertTrue(config.towers().containsKey(EndTowers.T3_SHULKER_TOWER.id()));
         assertTrue(config.abilities().containsKey(EndTower.CONFIG_ID));
-        List<String> expectedAbilityKeys = Arrays.stream(EndConfig.Ability.values())
-                .map(EndConfig.Ability::key)
+        List<String> expectedAbilityKeys = Arrays.stream(EndAbilityKey.values())
+                .map(EndAbilityKey::key)
                 .toList();
         List<String> actualAbilityKeys = List.copyOf(
                 config.abilities().get(EndTower.CONFIG_ID).keySet()

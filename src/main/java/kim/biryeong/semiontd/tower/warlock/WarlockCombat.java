@@ -16,14 +16,8 @@ final class WarlockCombat {
     }
 
     double splashRadius(WarlockTower tower) {
-        int sacrifices = tower.path() == WarlockPath.RANGED
-                ? tower.totalSacrificeCount()
-                : tower.roundSacrificeCount();
-        return config.path(tower.path()).splash().radius(sacrifices);
-    }
-
-    double splashRadiusForCount(WarlockPath path, int sacrificeCount) {
-        return config.path(path).splash().radius(sacrificeCount);
+        var progression = tower.progressionSnapshot();
+        return config.path(tower.path()).splash().radius(progression.splashSacrificeCount(tower.path()));
     }
 
     double maximumSplashRadius(WarlockPath path) {
@@ -31,23 +25,19 @@ final class WarlockCombat {
     }
 
     double lifeStealRatio(WarlockTower tower) {
-        int sacrifices = tower.path() == WarlockPath.MELEE
-                ? tower.roundSacrificeCount()
-                : tower.totalSacrificeCount();
-        return lifeStealRatioForCount(tower.path(), sacrifices, tower.isLastSurvivingTower());
-    }
-
-    double lifeStealRatioForCount(WarlockPath path, int sacrificeCount) {
-        return lifeStealRatioForCount(path, sacrificeCount, true);
+        var progression = tower.progressionSnapshot();
+        return lifeStealRatioForCount(
+                tower.path(),
+                progression.lifeStealSacrificeCount(tower.path()),
+                tower.isLastSurvivingTower()
+        );
     }
 
     double lifeStealRatioForCount(WarlockPath path, int sacrificeCount, boolean lastSurvivingTower) {
         if (path == WarlockPath.MELEE && !lastSurvivingTower) {
             return 0.0;
         }
-        WarlockConfig.StackRule rule = config.path(path).lifeSteal();
-        double ratio = (Math.max(0, sacrificeCount) / rule.sacrificesPerStep()) * rule.bonusPerStep();
-        return Math.min(rule.maximum(), ratio);
+        return config.path(path).lifeSteal().value(sacrificeCount);
     }
 
     double maximumLifeSteal(WarlockPath path) {
@@ -55,9 +45,7 @@ final class WarlockCombat {
     }
 
     int meleeAttackIntervalReduction(int roundSacrificeCount) {
-        WarlockConfig.CombatRule rule = config.combat();
-        int reduction = (int) Math.floor(Math.max(0, roundSacrificeCount) * rule.meleeReductionPerSacrifice());
-        return Math.min(rule.maximumIntervalReductionTicks(), reduction);
+        return config.combat().meleeIntervalReduction(roundSacrificeCount);
     }
 
     int minimumAttackIntervalTicks() {

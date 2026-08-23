@@ -2,33 +2,25 @@ package kim.biryeong.semiontd.tower.warlock;
 
 import java.util.List;
 
-final class WarlockStats {
+final class WarlockStatsAssembler {
     private final WarlockConfig config;
     private final WarlockCombat combat;
 
-    WarlockStats(WarlockConfig config, WarlockCombat combat) {
+    WarlockStatsAssembler(WarlockConfig config, WarlockCombat combat) {
         this.config = config;
         this.combat = combat;
     }
 
     List<String> create(WarlockTower tower) {
         WarlockPath path = tower.path();
-        WarlockConfig.PathRule rule = config.path(path);
-        WarlockAwakening.Snapshot awakeningProgress = tower.awakeningSnapshot();
-        int lifeStealSacrifices = path == WarlockPath.MELEE
-                ? tower.roundSacrificeCount()
-                : tower.totalSacrificeCount();
-        int damageReductionSacrifices = path == WarlockPath.RANGED
-                ? tower.roundSacrificeCount()
-                : tower.totalSacrificeCount();
-        int splashSacrifices = path == WarlockPath.RANGED
-                ? tower.totalSacrificeCount()
-                : tower.roundSacrificeCount();
+        WarlockRules.PathRule rule = config.path(path);
+        var progression = tower.progressionSnapshot();
+        var awakeningProgress = progression.awakening();
         boolean specialized = path.specialized();
 
         return WarlockStatsView.core(new WarlockStatsView.CoreStats(
-                tower.totalSacrificeCount(),
-                tower.roundSacrificeCount(),
+                progression.totalSacrificeCount(),
+                progression.roundSacrificeCount(),
                 true,
                 tower.awakenedThisRound(),
                 new WarlockStatsView.AwakeningStats(
@@ -61,15 +53,15 @@ final class WarlockStats {
                 ),
                 new WarlockStatsView.ProgressionStats(
                         specialized,
-                        lifeStealSacrifices,
+                        progression.lifeStealSacrificeCount(path),
                         rule.lifeSteal().sacrificesPerStep(),
-                        damageReductionSacrifices,
+                        progression.defenseSacrificeCount(path),
                         rule.defense().sacrificesPerStep(),
                         specialized,
                         path == WarlockPath.RANGED,
-                        tower.roundSacrificeCount(),
+                        progression.roundSacrificeCount(),
                         1,
-                        splashSacrifices,
+                        progression.splashSacrificeCount(path),
                         rule.splash().sacrificesPerStep(),
                         specialized
                 )

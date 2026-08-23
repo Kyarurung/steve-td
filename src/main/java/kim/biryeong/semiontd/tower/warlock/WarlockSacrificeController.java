@@ -8,11 +8,11 @@ import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import net.minecraft.world.phys.Vec3;
 
-final class WarlockSacrifice {
+final class WarlockSacrificeController {
     private final WarlockConfig config;
     private final WarlockState state;
 
-    WarlockSacrifice(WarlockConfig config, WarlockState state) {
+    WarlockSacrificeController(WarlockConfig config, WarlockState state) {
         this.config = config;
         this.state = state;
     }
@@ -30,7 +30,7 @@ final class WarlockSacrifice {
                 || priority == null) {
             return false;
         }
-        WarlockConfig.SacrificeRule rule = config.path(warlock.path()).sacrifice();
+        WarlockRules.SacrificeRule rule = config.path(warlock.path()).sacrifice();
         Tower target = lane.towers().stream()
                 .filter(tower -> isEligibleTarget(warlock, tower, rule.radius()))
                 .min(priority)
@@ -64,10 +64,8 @@ final class WarlockSacrifice {
     }
 
     double damageReduction(WarlockPath path) {
-        int sacrifices = path == WarlockPath.RANGED
-                ? state.roundSacrificeCount()
-                : state.totalSacrificeCount();
-        return config.path(path).defense().value(sacrifices);
+        var progression = WarlockProgressionSnapshot.from(state, null);
+        return config.path(path).defense().value(progression.defenseSacrificeCount(path));
     }
 
     double maximumDamageReduction(WarlockPath path) {
@@ -81,8 +79,8 @@ final class WarlockSacrifice {
             double sacrificedDamage,
             int sacrificedIntervalTicks
     ) {
-        WarlockConfig.PathRule rule = config.path(path);
-        WarlockConfig.AbsorptionRule absorption = rule.absorption();
+        WarlockRules.PathRule rule = config.path(path);
+        WarlockRules.AbsorptionRule absorption = rule.absorption();
         if (path == WarlockPath.BASE) {
             state.absorbBasePermanently(
                     sacrificedHealth,

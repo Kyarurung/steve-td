@@ -2,12 +2,12 @@ package kim.biryeong.semiontd.tower.end;
 
 import java.util.List;
 
-final class EndStats {
+final class EndStatsAssembler {
     private final EndConfig config;
     private final EndCombat combat;
     private final EndTransferController transfers;
 
-    EndStats(EndConfig config, EndCombat combat, EndTransferController transfers) {
+    EndStatsAssembler(EndConfig config, EndCombat combat, EndTransferController transfers) {
         this.config = config;
         this.combat = combat;
         this.transfers = transfers;

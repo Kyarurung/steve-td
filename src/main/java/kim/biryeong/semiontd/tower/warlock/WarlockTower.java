@@ -9,7 +9,6 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
-import kim.biryeong.semiontd.tower.LogarithmicScaling;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.damagesource.DamageSource;
@@ -20,10 +19,10 @@ public class WarlockTower extends EntityBackedTower {
     private final WarlockConfig config;
     private final WarlockPath path;
     private final WarlockState state;
-    private final WarlockSacrifice sacrifice;
+    private final WarlockSacrificeController sacrifice;
     private final WarlockCombat combat;
-    private final WarlockAwakening awakening;
-    private final WarlockStats stats;
+    private final WarlockAwakeningController awakening;
+    private final WarlockStatsAssembler stats;
     private PlayerLane currentLane;
 
     public WarlockTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
@@ -42,10 +41,10 @@ public class WarlockTower extends EntityBackedTower {
         this.config = WarlockConfig.RUNTIME;
         this.path = WarlockPath.fromCore(type);
         this.state = new WarlockState();
-        this.sacrifice = new WarlockSacrifice(config, state);
+        this.sacrifice = new WarlockSacrificeController(config, state);
         this.combat = new WarlockCombat(config);
-        this.awakening = new WarlockAwakening(config, state, path, ownerPlayer);
-        this.stats = new WarlockStats(config, combat);
+        this.awakening = new WarlockAwakeningController(config, state, path, ownerPlayer);
+        this.stats = new WarlockStatsAssembler(config, combat);
     }
 
     @Override
@@ -98,7 +97,7 @@ public class WarlockTower extends EntityBackedTower {
             double previousHealth,
             double currentHealth
     ) {
-        WarlockConfig.AbsorptionRule absorption = config.path(path).absorption();
+        WarlockRules.AbsorptionRule absorption = config.path(path).absorption();
         if (path == WarlockPath.BASE) {
             if (currentHealth <= 0.0) {
                 sacrifice.absorbNearest(this, towerEntity, currentLane, Comparator.comparingInt(Tower::aggroPriority));
@@ -140,7 +139,7 @@ public class WarlockTower extends EntityBackedTower {
             );
             case MELEE -> Math.max(
                     combat.minimumAttackIntervalTicks(),
-                    baseIntervalTicks - combat.meleeAttackIntervalReduction(state.roundSacrificeCount())
+                    baseIntervalTicks - combat.meleeAttackIntervalReduction(progressionSnapshot().roundSacrificeCount())
             );
             case BASE -> baseIntervalTicks <= 0
                     ? baseIntervalTicks
@@ -275,12 +274,8 @@ public class WarlockTower extends EntityBackedTower {
         return path;
     }
 
-    int totalSacrificeCount() {
-        return state.totalSacrificeCount();
-    }
-
-    int roundSacrificeCount() {
-        return state.roundSacrificeCount();
+    WarlockProgressionSnapshot progressionSnapshot() {
+        return WarlockProgressionSnapshot.from(state, ownerPlayer());
     }
 
     double rawDamageBonus() {
@@ -288,15 +283,7 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     double effectiveDamageBonus() {
-        return scaledDamageBonus(path, rawDamageBonus());
-    }
-
-    static double scaledDamageBonus(TowerType type, double rawDamageBonus) {
-        return scaledDamageBonus(WarlockPath.fromCore(type), rawDamageBonus);
-    }
-
-    private static double scaledDamageBonus(WarlockPath path, double rawDamageBonus) {
-        return scaledBonus(rawDamageBonus, WarlockConfig.RUNTIME.path(path).damageScaling());
+        return config.path(path).damageScaling().value(rawDamageBonus());
     }
 
     double rawHealthBonus() {
@@ -304,26 +291,7 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     double effectiveHealthBonus() {
-        return scaledHealthBonus(path, rawHealthBonus());
-    }
-
-    static double scaledHealthBonus(TowerType type, double rawHealthBonus) {
-        return scaledHealthBonus(WarlockPath.fromCore(type), rawHealthBonus);
-    }
-
-    private static double scaledHealthBonus(WarlockPath path, double rawHealthBonus) {
-        return scaledBonus(rawHealthBonus, WarlockConfig.RUNTIME.path(path).healthScaling());
-    }
-
-    private static double scaledBonus(double rawBonus, WarlockConfig.ScalingRule rule) {
-        if (!rule.enabled()) {
-            return finiteNonNegative(rawBonus);
-        }
-        return LogarithmicScaling.logarithmicBonus(rawBonus, rule.threshold(), rule.scale());
-    }
-
-    private static double finiteNonNegative(double value) {
-        return Double.isFinite(value) ? Math.max(0.0, value) : 0.0;
+        return config.path(path).healthScaling().value(rawHealthBonus());
     }
 
     double additionalHealth() {
@@ -362,10 +330,6 @@ public class WarlockTower extends EntityBackedTower {
 
     boolean awakenedThisRound() {
         return awakening.awakenedThisRound();
-    }
-
-    WarlockAwakening.Snapshot awakeningSnapshot() {
-        return awakening.snapshot();
     }
 
     double awakeningHealthThreshold() {

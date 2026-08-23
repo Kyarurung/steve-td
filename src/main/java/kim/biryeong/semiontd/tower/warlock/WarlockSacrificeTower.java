@@ -47,7 +47,7 @@ public class WarlockSacrificeTower extends EntityBackedTower {
 
     @Override
     public void onDeath(PlayerLane lane) {
-        WarlockConfig.DeathEffectRule rule = config.deathEffect(type());
+        WarlockRules.DeathEffectRule rule = config.deathEffect(type());
         TimedEffectType effectType = rule.path() == WarlockPath.MELEE
                 ? TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS
                 : TimedEffectType.MONSTER_ATTACK_SPEED_REDUCTION;
@@ -58,7 +58,7 @@ public class WarlockSacrificeTower extends EntityBackedTower {
     private void applyMonsterEffect(
             PlayerLane lane,
             TimedEffectType effectType,
-            WarlockConfig.DeathEffectRule rule
+            WarlockRules.DeathEffectRule rule
     ) {
         SemionTowerEntity towerEntity = towerEntity(lane);
         if (towerEntity == null || rule.magnitude() <= 0.0) {

@@ -14,7 +14,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Blocks;
 
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndAbilityKey.*;
 import static kim.biryeong.semiontd.tower.end.EndFormatting.endText;
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.tower;
 import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
@@ -105,7 +105,7 @@ public final class EndTowers {
         );
     }
 
-    private static String ability(EndConfig.Ability ability, String format) {
+    private static String ability(EndAbilityKey ability, String format) {
         return "{ability." + CONFIG_ID + "." + ability.key() + ":" + format + "}";
     }
 

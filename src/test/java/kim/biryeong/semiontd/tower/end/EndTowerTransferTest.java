@@ -1,6 +1,6 @@
 package kim.biryeong.semiontd.tower.end;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndAbilityKey.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -84,7 +84,7 @@ class EndTowerTransferTest {
         assertEquals(expectedPartialPermanentDamage, dragon.transferStats().permanentDamageBonus(), 0.0001);
         assertEquals(expectedPartialTotalDamage, dragon.transferStats().totalDamageBonus(), 0.0001);
         assertEquals(0.0, dragon.transferStats().totalHealthBonus(), 0.0001);
-        assertEquals(0.75, enderman.transferProgress(), 0.0001);
+        assertEquals(0.75, EndTransferController.progress(enderman), 0.0001);
         tick(dragon, lane, 1);
         double completedRawPermanentDamage = 0.4;
         double completedRawRoundDamage = 6.6;
@@ -94,7 +94,7 @@ class EndTowerTransferTest {
         assertEquals(1, dragon.transferStats().endCrystalCount());
         assertTrue(lane.towers().contains(enderman));
         assertEquals(0.0, enderman.health(), 0.0001);
-        assertEquals(0.0, enderman.transferProgress(), 0.0001);
+        assertEquals(0.0, EndTransferController.progress(enderman), 0.0001);
         assertEquals(expectedCompletedRoundDamage, dragon.transferStats().roundDamageBonus(), 0.0001);
         assertEquals(expectedCompletedPermanentDamage, dragon.transferStats().permanentDamageBonus(), 0.0001);
         assertEquals(expectedCompletedTotalDamage, dragon.transferStats().totalDamageBonus(), 0.0001);
@@ -124,7 +124,7 @@ class EndTowerTransferTest {
         assertEquals(0, dragon.transferStats().endCrystalCount());
         assertEquals(0.0, dragon.transferStats().roundDamageBonus(), 0.0001);
         assertEquals(0.0, dragon.transferStats().permanentDamageBonus(), 0.0001);
-        assertEquals(0.0, endCrystalLine.transferProgress(), 0.0001);
+        assertEquals(0.0, EndTransferController.progress(endCrystalLine), 0.0001);
     }
 
     @Test
@@ -218,7 +218,7 @@ class EndTowerTransferTest {
         lane.addTower(shulker);
         dragon.onWaveStarted(lane, 1);
         tick(dragon, lane, 2);
-        assertEquals(0.50, shulker.transferProgress(), 0.0001);
+        assertEquals(0.50, EndTransferController.progress(shulker), 0.0001);
         assertEquals(expectedHealthBonus(25.0), dragon.transferStats().roundHealthBonus(), 0.0001);
         applyEndAbilities(Map.of(
                 "transferTicks", 1.0,
@@ -226,7 +226,7 @@ class EndTowerTransferTest {
                 "permanentHealthRatio", 0.0
         ));
         dragon.refreshType(dragon.type(), lane);
-        assertEquals(0.0, shulker.transferProgress(), 0.0001);
+        assertEquals(0.0, EndTransferController.progress(shulker), 0.0001);
         assertEquals(0.0, dragon.transferStats().roundHealthBonus(), 0.0001);
         dragon.tick(lane);
         assertEquals(expectedHealthBonus(20.0), dragon.transferStats().roundHealthBonus(), 0.0001);
@@ -494,7 +494,7 @@ class EndTowerTransferTest {
         assertEquals(0.0, original.transferStats().permanentHealthBonus(), 0.0001);
         assertEquals(0.0, replacement.transferStats().roundHealthBonus(), 0.0001);
         assertEquals(0.0, replacement.transferStats().permanentHealthBonus(), 0.0001);
-        assertEquals(0.0, source.transferProgress(), 0.0001);
+        assertEquals(0.0, EndTransferController.progress(source), 0.0001);
     }
 
     @Test
@@ -661,8 +661,9 @@ class EndTowerTransferTest {
         lane.addTower(dragon);
         dragon.onWaveStarted(lane, 1);
         double resolvedPrimaryDamage = 1_000.0;
-        assertEquals(660.0, dragon.resolvedSplashDamage(resolvedPrimaryDamage), 0.0001);
-        assertEquals(0.0, dragon.resolvedSplashDamage(Double.NaN), 0.0001);
+        EndCombat combat = new EndCombat(EndConfig.RUNTIME, new EndTransferController(EndConfig.RUNTIME));
+        assertEquals(660.0, combat.resolvedSplashDamage(resolvedPrimaryDamage), 0.0001);
+        assertEquals(0.0, combat.resolvedSplashDamage(Double.NaN), 0.0001);
     }
 
     @Test

@@ -7,7 +7,7 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakening;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
 import kim.biryeong.semiontd.tower.warlock.WarlockConfig;
 import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -53,12 +53,12 @@ public final class WarlockTowerJob extends SemionJob {
 
     @Override
     public void onMatchStarted(JobContext context) {
-        WarlockAwakening.clear(context.player().uuid());
+        clearProgress(context);
     }
 
     @Override
     public void onMonsterKilled(JobContext context, Monster monster, long mineralReward) {
-        if (!WarlockAwakening.recordKill(context.player().uuid())) {
+        if (!WarlockAwakeningProgress.recordKill(context.player().uuid())) {
             return;
         }
         context.game().playerLane(context.player().uuid())
@@ -67,10 +67,19 @@ public final class WarlockTowerJob extends SemionJob {
 
     @Override
     public void onEliminated(JobContext context) {
-        WarlockAwakening.clear(context.player().uuid());
+        clearProgress(context);
+    }
+
+    @Override
+    public void onMatchClosed(JobContext context) {
+        clearProgress(context);
     }
 
     private static int awakeningKills() {
         return WarlockConfig.RUNTIME.requiredAwakeningKills();
+    }
+
+    private static void clearProgress(JobContext context) {
+        WarlockAwakeningProgress.clear(context.player().uuid());
     }
 }

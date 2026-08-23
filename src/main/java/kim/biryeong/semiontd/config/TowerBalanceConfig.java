@@ -1,6 +1,6 @@
 package kim.biryeong.semiontd.config;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndAbilityKey.*;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

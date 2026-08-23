@@ -40,22 +40,22 @@ class WarlockSacrificeTest {
                 new GridPosition(1, 0, 0)
         );
 
-        assertTrue(WarlockSacrifice.isEligibleTarget(warlock, valid, 5.0));
-        assertFalse(WarlockSacrifice.isEligibleTarget(warlock, warlock, 5.0));
-        assertFalse(WarlockSacrifice.isEligibleTarget(warlock, otherCore, 5.0));
-        assertFalse(WarlockSacrifice.isEligibleTarget(warlock, foreign, 5.0));
-        assertFalse(WarlockSacrifice.isEligibleTarget(warlock, distant, 5.0));
+        assertTrue(WarlockSacrificeController.isEligibleTarget(warlock, valid, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, warlock, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, otherCore, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, foreign, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, distant, 5.0));
 
         valid.syncHealth(0.0);
-        assertFalse(WarlockSacrifice.isEligibleTarget(warlock, valid, 5.0));
-        assertFalse(WarlockSacrifice.isEligibleTarget(warlock, null, 5.0));
-        assertFalse(WarlockSacrifice.isEligibleTarget(null, valid, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, valid, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, null, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(null, valid, 5.0));
     }
 
     @Test
     void rangedDamageReductionActivatesAtFifteenPercentAfterThreshold() {
         WarlockState state = new WarlockState();
-        WarlockSacrifice sacrifice = new WarlockSacrifice(WarlockConfig.RUNTIME, state);
+        WarlockSacrificeController sacrifice = new WarlockSacrificeController(WarlockConfig.RUNTIME, state);
         WarlockTower ranged = new WarlockTower(
                 WarlockTowers.RANGED_WARLOCK_TOWER,
                 UUID.randomUUID(),
@@ -75,7 +75,7 @@ class WarlockSacrificeTest {
     @Test
     void meleeDamageReductionGrowsEveryTenAbsorptionsAndCapsAtThirtyPercent() {
         WarlockState state = new WarlockState();
-        WarlockSacrifice sacrifice = new WarlockSacrifice(WarlockConfig.RUNTIME, state);
+        WarlockSacrificeController sacrifice = new WarlockSacrificeController(WarlockConfig.RUNTIME, state);
         WarlockTower melee = new WarlockTower(
                 WarlockTowers.MELEE_WARLOCK_TOWER,
                 UUID.randomUUID(),

@@ -2,7 +2,7 @@ package kim.biryeong.semiontd.tower.warlock;
 
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.tower;
 import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
-import static kim.biryeong.semiontd.tower.warlock.WarlockConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.warlock.WarlockAbilityKey.*;
 import static kim.biryeong.semiontd.tower.warlock.WarlockFormatting.warlockText;
 import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
 
@@ -108,11 +108,11 @@ public final class WarlockTowers {
         );
     }
 
-    private static String ability(WarlockConfig.Ability ability, String format) {
+    private static String ability(WarlockAbilityKey ability, String format) {
         return "{ability." + ability.key() + ":" + format + "}";
     }
 
-    private static String globalAbility(WarlockConfig.Ability ability, String format) {
+    private static String globalAbility(WarlockAbilityKey ability, String format) {
         return "{ability." + CONFIG_ID + "." + ability.key() + ":" + format + "}";
     }
 

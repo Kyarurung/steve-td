@@ -22,7 +22,7 @@ public final class EndTower extends EntityBackedTower {
     private static final TowerDataKey<EndTowerState> STATE = TowerDataKey.of(ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_tower_state"), EndTowerState.class);
     private final EndTransferController transfers;
     private final EndCombat combat;
-    private final EndStats stats;
+    private final EndStatsAssembler stats;
     private boolean waveActive;
     private int periodicHealingTicks;
 
@@ -42,7 +42,7 @@ public final class EndTower extends EntityBackedTower {
         EndConfig config = EndConfig.RUNTIME;
         this.transfers = new EndTransferController(config);
         this.combat = new EndCombat(config, this.transfers);
-        this.stats = new EndStats(config, this.combat, this.transfers);
+        this.stats = new EndStatsAssembler(config, this.combat, this.transfers);
         initializeState();
     }
 
@@ -161,11 +161,11 @@ public final class EndTower extends EntityBackedTower {
     }
 
     public double previewHatchedMaxHealth() {
-        return type().maxHealth() + transfers.permanentHealthBonus() + transfers.roundHealthBonus();
+        return type().maxHealth() + transfers.totalHealthBonus();
     }
 
     public double previewHatchedAttackDamage() {
-        return type().damage() + transfers.permanentDamageBonus() + transfers.roundDamageBonus();
+        return type().damage() + transfers.totalDamageBonus();
     }
 
     public int previewHatchedAttackIntervalTicks() {
@@ -196,7 +196,7 @@ public final class EndTower extends EntityBackedTower {
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return isCoreTower() && state().hatched()
-                ? combat.modifyAttackDamage(type(), transfers.stats().totalDamageBonus(), damageAmount)
+                ? combat.modifyAttackDamage(type(), transfers.totalDamageBonus(), damageAmount)
                 : damageAmount;
     }
 
@@ -270,10 +270,6 @@ public final class EndTower extends EntityBackedTower {
         else {syncMaxHealth(effectBaseMaxHealth(), false);}
     }
 
-    double transferProgress() {
-        return EndTransferController.progress(this);
-    }
-
     private void healTransferredHealth(PlayerLane lane, double amount) {
         if (amount <= 0.0) {return;}
         Optional<SemionTowerEntity> entity = towerEntity(lane);
@@ -304,10 +300,6 @@ public final class EndTower extends EntityBackedTower {
 
     public double splashRadius() {
         return isCoreTower() ? combat.splashRadius(state()) : 0.0;
-    }
-
-    double resolvedSplashDamage(double resolvedOutgoingDamage) {
-        return combat.resolvedSplashDamage(resolvedOutgoingDamage);
     }
 
     private void tickPeriodicHealing(PlayerLane lane, double transferHealingPerSecond) {

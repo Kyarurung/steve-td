@@ -47,7 +47,7 @@ final class EndCombat {
     }
 
     double lifeStealRatio() {
-        return cappedStackBonus(transfers.shulkerCount(), config.lifeSteal());
+        return transfers.stacks().shulkerBonus(config.lifeSteal());
     }
 
     double maximumLifeSteal() {
@@ -55,7 +55,7 @@ final class EndCombat {
     }
 
     double damageReduction() {
-        return cappedStackBonus(transfers.shulkerCount(), config.damageReduction());
+        return transfers.stacks().shulkerBonus(config.damageReduction());
     }
 
     double maximumDamageReduction() {
@@ -67,7 +67,7 @@ final class EndCombat {
     }
 
     double regenerationPerSecond() {
-        return cappedStackBonus(transfers.shulkerCount(), config.regeneration());
+        return transfers.stacks().shulkerBonus(config.regeneration());
     }
 
     double maximumRegeneration() {
@@ -78,7 +78,7 @@ final class EndCombat {
 
     double splashRadius(EndTowerState state) {
         if (!state.hatched()) {return 0.0;}
-        return splashRadiusForSteps(config.splash().unlockedSteps(transfers.endCrystalCount()));
+        return splashRadiusForSteps(config.splash().unlockedSteps(transfers.stacks().endCrystalCount()));
     }
 
     double maximumSplashRadius() {return splashRadiusForSteps(SPLASH_STEP_COUNT);}
@@ -96,7 +96,7 @@ final class EndCombat {
     }
 
     double attackRangeBonus() {
-        return cappedStackBonus(transfers.endCrystalCount(), config.attackRange());
+        return transfers.stacks().endCrystalBonus(config.attackRange());
     }
 
     double maximumAttackRange(TowerType type, EndTowerState state) {
@@ -156,20 +156,11 @@ final class EndCombat {
         );
     }
 
-    private int attackIntervalReduction() {
-        EndConfig.AttackSpeedRule rule = config.attackSpeed();
-        long reduction = (transfers.endCrystalCount() / (long) rule.stacksPerStep()) * rule.ticksPerStep();
-        return (int) Math.min(rule.maximumReductionTicks(), reduction);
-    }
-
-    private int roundAttackIntervalReduction() {
-        EndConfig.RoundAttackSpeedRule rule = config.roundAttackSpeed();
-        long reduction = (transfers.roundCompletedCount() / (long) rule.transfersPerStep()) * rule.ticksPerStep();
-        return (int) Math.min(Integer.MAX_VALUE, reduction);
-    }
-
     private int reducedAttackInterval(int baseIntervalTicks, int minimumInterval) {
-        long reduction = (long) attackIntervalReduction() + roundAttackIntervalReduction();
+        long reduction = transfers.stacks().attackIntervalReduction(
+                config.attackSpeed(),
+                config.roundAttackSpeed()
+        );
         return (int) Math.max(minimumInterval, (long) baseIntervalTicks - reduction);
     }
 
@@ -177,9 +168,4 @@ final class EndCombat {
         if (amount > 0.0) {towerEntity.healTarget(towerEntity, amount);}
     }
 
-    private static double cappedStackBonus(int stackCount, EndConfig.StackRule rule) {
-        int completedSteps = stackCount / rule.stacksPerStep();
-        double value = completedSteps * rule.bonusPerStep();
-        return Math.min(rule.maximum(), value);
-    }
 }

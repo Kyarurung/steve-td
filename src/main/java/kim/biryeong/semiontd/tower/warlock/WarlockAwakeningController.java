@@ -1,15 +1,11 @@
 package kim.biryeong.semiontd.tower.warlock;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.PlayerLane;
 
-public final class WarlockAwakening {
-    private static final Map<UUID, Long> KILLS = new ConcurrentHashMap<>();
-
+public final class WarlockAwakeningController {
     private final WarlockConfig config;
     private final WarlockState state;
     private final WarlockPath path;
@@ -17,7 +13,7 @@ public final class WarlockAwakening {
     private int regenerationTicks;
     private int vfxTicks;
 
-    WarlockAwakening(WarlockConfig config, WarlockState state, WarlockPath path, UUID ownerPlayer) {
+    WarlockAwakeningController(WarlockConfig config, WarlockState state, WarlockPath path, UUID ownerPlayer) {
         this.config = config;
         this.state = state;
         this.path = path;
@@ -28,13 +24,12 @@ public final class WarlockAwakening {
         if (towerEntity == null || !path.specialized() || state.awakenedThisRound()) {
             return false;
         }
-        Snapshot progress = snapshot(ownerPlayer);
-        WarlockConfig.AwakeningRule rule = config.awakening(path);
+        WarlockAwakeningProgress.Snapshot progress = WarlockAwakeningProgress.snapshot(ownerPlayer);
+        WarlockRules.AwakeningRule rule = config.awakening(path);
         tower.syncFromEntityHealth(towerEntity.getHealth());
-        if (!meetsActivationConditions(
+        if (!rule.canActivate(
                 progress.unlocked(),
                 tower.currentHealthRatio(),
-                rule.healthThreshold(),
                 tower.isLastSurvivingTower(lane)
         ) || !state.awaken()) {
             return false;
@@ -58,10 +53,6 @@ public final class WarlockAwakening {
         setGlow(tower, lane, false);
         regenerationTicks = 0;
         vfxTicks = 0;
-    }
-
-    Snapshot snapshot() {
-        return snapshot(ownerPlayer);
     }
 
     boolean awakenedThisRound() {
@@ -130,50 +121,4 @@ public final class WarlockAwakening {
         });
     }
 
-    static boolean meetsActivationConditions(
-            boolean awakeningUnlocked,
-            double currentHealthRatio,
-            double healthThreshold,
-            boolean lastSurvivingTower
-    ) {
-        if (!Double.isFinite(currentHealthRatio) || !Double.isFinite(healthThreshold)) {
-            return false;
-        }
-        return awakeningUnlocked
-                && lastSurvivingTower
-                && currentHealthRatio > 0.0
-                && currentHealthRatio <= Math.max(0.0, healthThreshold);
-    }
-
-    public static boolean recordKill(UUID ownerPlayer) {
-        if (ownerPlayer == null) {
-            return false;
-        }
-        boolean previouslyUnlocked = snapshot(ownerPlayer).unlocked();
-        KILLS.compute(ownerPlayer, (ignored, kills) -> saturatedIncrement(kills == null ? 0L : kills));
-        return !previouslyUnlocked && snapshot(ownerPlayer).unlocked();
-    }
-
-    public static Snapshot snapshot(UUID ownerPlayer) {
-        long kills = ownerPlayer == null ? 0L : KILLS.getOrDefault(ownerPlayer, 0L);
-        long requiredKills = WarlockConfig.RUNTIME.requiredAwakeningKills();
-        return new Snapshot(kills, requiredKills, kills >= requiredKills);
-    }
-
-    public static void clear(UUID ownerPlayer) {
-        if (ownerPlayer != null) {
-            KILLS.remove(ownerPlayer);
-        }
-    }
-
-    public static void clearAllForTesting() {
-        KILLS.clear();
-    }
-
-    private static long saturatedIncrement(long value) {
-        return value == Long.MAX_VALUE ? value : value + 1L;
-    }
-
-    public record Snapshot(long kills, long requiredKills, boolean unlocked) {
-    }
 }

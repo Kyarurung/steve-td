@@ -48,7 +48,6 @@ import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.engineer.EngineerPressStates;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakening;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -889,7 +888,6 @@ public final class SemionGame {
         for (UUID playerId : players.keySet()) {
             VillagerAdvStates.clear(playerId);
             AncientCityStates.clear(playerId);
-            WarlockAwakening.clear(playerId);
             EngineerPressStates.clear(playerId);
         }
         for (SemionTeam team : teams.values()) {

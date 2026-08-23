@@ -80,11 +80,13 @@ class WarlockStateTest {
 
     @Test
     void awakeningRequiresUnlockLowHealthAndLastSurvivorTogether() {
-        assertTrue(WarlockAwakening.meetsActivationConditions(true, 0.40, 0.40, true));
-        assertFalse(WarlockAwakening.meetsActivationConditions(false, 0.40, 0.40, true));
-        assertFalse(WarlockAwakening.meetsActivationConditions(true, 0.41, 0.40, true));
-        assertFalse(WarlockAwakening.meetsActivationConditions(true, 0.40, 0.40, false));
-        assertFalse(WarlockAwakening.meetsActivationConditions(true, 0.0, 0.40, true));
-        assertFalse(WarlockAwakening.meetsActivationConditions(true, Double.NaN, 0.40, true));
+        var rule = new WarlockRules.AwakeningRule(0.40, WarlockRules.AwakeningBonus.NONE);
+
+        assertTrue(rule.canActivate(true, 0.40, true));
+        assertFalse(rule.canActivate(false, 0.40, true));
+        assertFalse(rule.canActivate(true, 0.41, true));
+        assertFalse(rule.canActivate(true, 0.40, false));
+        assertFalse(rule.canActivate(true, 0.0, true));
+        assertFalse(rule.canActivate(true, Double.NaN, true));
     }
 }
