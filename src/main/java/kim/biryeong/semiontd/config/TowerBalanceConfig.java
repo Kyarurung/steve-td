@@ -2082,6 +2082,18 @@ public record TowerBalanceConfig(
         global.put("patchHealth", DeveloperBalance.PATCH_HEALTH);
         global.put("patchAggro", (double) DeveloperBalance.PATCH_AGGRO);
         global.put("patchDiminishing", DeveloperBalance.PATCH_DIMINISHING);
+        global.put("patchMilestone1Threshold", (double) DeveloperBalance.PATCH_MILESTONE_1_THRESHOLD);
+        global.put("patchMilestone2Threshold", (double) DeveloperBalance.PATCH_MILESTONE_2_THRESHOLD);
+        global.put("patchMilestone3Threshold", (double) DeveloperBalance.PATCH_MILESTONE_3_THRESHOLD);
+        global.put("attackSplashRadius1", DeveloperBalance.ATTACK_SPLASH_RADIUS_1);
+        global.put("attackSplashRadius2", DeveloperBalance.ATTACK_SPLASH_RADIUS_2);
+        global.put("attackSplashRadius3", DeveloperBalance.ATTACK_SPLASH_RADIUS_3);
+        global.put("attackSplashRatio1", DeveloperBalance.ATTACK_SPLASH_RATIO_1);
+        global.put("attackSplashRatio2", DeveloperBalance.ATTACK_SPLASH_RATIO_2);
+        global.put("attackSplashRatio3", DeveloperBalance.ATTACK_SPLASH_RATIO_3);
+        global.put("defenseDamageReduction1", DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_1);
+        global.put("defenseDamageReduction2", DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_2);
+        global.put("defenseDamageReduction3", DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_3);
         global.put("testBuildAuraBonus", DeveloperBalance.TEST_BUILD_AURA_BONUS);
         global.put("testBuildAuraRadius", DeveloperBalance.TEST_BUILD_AURA_RADIUS);
         global.put("maxBugsPerTower", (double) DeveloperBalance.MAX_BUGS_PER_TOWER);
@@ -2150,7 +2162,9 @@ public record TowerBalanceConfig(
                 "patchAttack", "patchRange", "patchInterval", "patchHealth", "patchAggro",
                 "patchDiminishing", "testBuildAuraBonus", "testBuildAuraRadius",
                 "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
-                "maintenanceDamageBonus", "patchSlotsPerTowers");
+                "maintenanceDamageBonus", "patchSlotsPerTowers",
+                "patchMilestone1Threshold", "patchMilestone2Threshold", "patchMilestone3Threshold",
+                "attackSplashRadius1", "attackSplashRadius2", "attackSplashRadius3");
         validateRange(global, "patchAttack", 0.0, 1.0);
         validateRange(global, "patchRange", 0.0, 1.0);
         validateRange(global, "patchInterval", 0.0, 1.0);
@@ -2159,12 +2173,23 @@ public record TowerBalanceConfig(
         validateRange(global, "testBuildAuraBonus", 0.0, 1.0);
         validateRange(global, "instabilityStallChance", 0.0, 0.5);
         validateRange(global, "patchAggro", 1.0, 100.0);
+        validateRatios(global,
+                "attackSplashRatio1", "attackSplashRatio2", "attackSplashRatio3",
+                "defenseDamageReduction1", "defenseDamageReduction2", "defenseDamageReduction3");
         validateIntegral(global, false,
                 "patchAggro", "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
-                "patchSlotsPerTowers");
+                "patchSlotsPerTowers",
+                "patchMilestone1Threshold", "patchMilestone2Threshold", "patchMilestone3Threshold");
         validateIntegral(global, true,
                 "maintenancePerRound", "debugRemovalsPerRound", "reproducePerRound",
                 "optimizationsPerMatch", "versionPinSlots", "basePatchSlots");
+
+        double milestone1 = ability(global, "patchMilestone1Threshold", DeveloperBalance.PATCH_MILESTONE_1_THRESHOLD);
+        double milestone2 = ability(global, "patchMilestone2Threshold", DeveloperBalance.PATCH_MILESTONE_2_THRESHOLD);
+        double milestone3 = ability(global, "patchMilestone3Threshold", DeveloperBalance.PATCH_MILESTONE_3_THRESHOLD);
+        if (!(milestone1 < milestone2 && milestone2 < milestone3)) {
+            throw new IllegalArgumentException("Developer patch milestone thresholds must increase");
+        }
 
         for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
             validatePositive(global, optimization.gainKey());

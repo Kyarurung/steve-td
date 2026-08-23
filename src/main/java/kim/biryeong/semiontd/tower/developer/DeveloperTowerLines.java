@@ -27,6 +27,7 @@ public final class DeveloperTowerLines {
         }
         List<String> lines = new ArrayList<>();
         appendPatches(tower, lines);
+        appendPatchMilestones(tower, lines);
         appendInstability(tower, lines);
         appendBugs(tower, lines);
         appendOptimizations(tower, lines);
@@ -66,6 +67,43 @@ public final class DeveloperTowerLines {
         }
         // 연사는 간격을 나누는 배수라 표기도 증가 방향이다.
         return "+" + String.format(Locale.ROOT, "%.0f%%", amount * 100.0);
+    }
+
+    private static void appendPatchMilestones(DeveloperTower tower, List<String> lines) {
+        int attackCount = DeveloperTowerData.activeAttackPatchCount(tower);
+        int attackMilestone = DeveloperBalance.patchMilestone(attackCount);
+        lines.add("<red>공격 패치</red> <gray>" + milestoneProgress(attackCount, attackMilestone) + "</gray>"
+                + (attackMilestone > 0
+                ? " <yellow>스플래시 공격 피해 " + unsignedPercent(DeveloperBalance.attackSplashRatio(attackMilestone))
+                        + " · 반경 " + blocks(DeveloperBalance.attackSplashRadius(attackMilestone)) + "칸</yellow>"
+                : " <dark_gray>" + DeveloperBalance.patchMilestoneThreshold(1) + "회부터 스플래시</dark_gray>"));
+
+        int defenseCount = DeveloperTowerData.activeDefensePatchCount(tower);
+        int defenseMilestone = DeveloperBalance.patchMilestone(defenseCount);
+        lines.add("<aqua>수비 패치</aqua> <gray>" + milestoneProgress(defenseCount, defenseMilestone) + "</gray>"
+                + (defenseMilestone > 0
+                ? " <green>받는 피해 " + percent(-DeveloperBalance.defenseDamageReduction(defenseMilestone)) + "</green>"
+                : " <dark_gray>" + DeveloperBalance.patchMilestoneThreshold(1) + "회부터 피해 감소</dark_gray>"));
+    }
+
+    private static String milestoneProgress(int count, int milestone) {
+        if (milestone >= 3) {
+            return count + "회 · 최고 단계";
+        }
+        int target = DeveloperBalance.patchMilestoneThreshold(milestone + 1);
+        return count + "/" + target + "회";
+    }
+
+    private static String unsignedPercent(double value) {
+        return Math.round(value * 100.0) + "%";
+    }
+
+    private static String percent(double value) {
+        return (value >= 0.0 ? "+" : "") + Math.round(value * 100.0) + "%";
+    }
+
+    private static String blocks(double value) {
+        return String.format(Locale.ROOT, "%.2f", value).replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
     private static void appendInstability(DeveloperTower tower, List<String> lines) {

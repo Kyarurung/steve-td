@@ -45,6 +45,7 @@ public final class DeveloperTowers {
                     "<gray> 자리만 잡아둔 미완성 빌드입니다. </gray>",
                     "<red> 패치 효율이 <yellow>{ability.patchScale:percent}</yellow>로 이 계열에서 가장 낮습니다. </red>",
                     "<light_purple> 대신 정식 패치로 <yellow>버그가 가장 자주</yellow> 발생합니다. </light_purple>",
+                    "<aqua> 공격 패치는 스플래시, 수비 패치는 받는 피해 감소를 단계적으로 해금합니다. </aqua>",
                     "<gray> 싸게 여러 기를 세워 버그를 캐내는 용도입니다. </gray>"
             )
     );
