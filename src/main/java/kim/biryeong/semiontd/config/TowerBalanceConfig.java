@@ -1,6 +1,6 @@
 package kim.biryeong.semiontd.config;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndAbilityKey.*;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -749,7 +749,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "towerDamageTakenBonus", 0.05
+                "towerDamageTakenBonus", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -759,7 +759,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "attackSpeedReduction", 0.05
+                "attackSpeedReduction", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -1423,6 +1423,8 @@ public record TowerBalanceConfig(
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeEvery");
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashEvery");
         validateIntegralAbility(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery");
+        validateRatios(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance");
+        validateRatios(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance");
         validateRatios(IllagerRaidStates.RAID_CONFIG_ID,
                 "attackSpeedPercentPerTower", "damagePercentPerTower",
                 "attackSpeedBonusCap", "damageBonusCap");
@@ -3974,8 +3976,8 @@ public record TowerBalanceConfig(
         values.put(HEALTH_SCALE.key(), 500.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
-        values.put(DAMAGE_THRESHOLD.key(), 140.0);
-        values.put(DAMAGE_SCALE.key(), 20.0);
+        values.put(DAMAGE_THRESHOLD.key(), 150.0);
+        values.put(DAMAGE_SCALE.key(), 25.0);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);
@@ -4136,7 +4138,7 @@ public record TowerBalanceConfig(
         values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1200.0);
+        values.put("awakeningKills", 1250.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -4144,7 +4146,6 @@ public record TowerBalanceConfig(
     private static Map<String, Double> baseWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("sacrificeRadius", 6.0);
-        values.put("fatalHeal", 0.35);
         values.put("permanentHealth", 0.025);
         values.put("permanentDamage", 0.05);
         return values;
@@ -4158,11 +4159,12 @@ public record TowerBalanceConfig(
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.05);
-        values.put("damageThreshold", 145.0);
+        values.put("damageThreshold", 150.0);
         values.put("damageScale", 20.0);
         values.put("lifeEvery", 10.0);
         values.put("lifeStep", 0.005);
-        values.put("lifeCap", 0.08);
+        values.put("lifeCap", 0.07);
+        values.put("incomeDebuffResistance", 0.05);
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
@@ -4190,7 +4192,8 @@ public record TowerBalanceConfig(
         values.put("damageThreshold", 200.0);
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
-        values.put("lifeCap", 0.14);
+        values.put("lifeCap", 0.13);
+        values.put("incomeDebuffResistance", 0.05);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);

@@ -1,7 +1,5 @@
 package kim.biryeong.semiontd.tower.warlock;
 
-import static kim.biryeong.semiontd.tower.warlock.WarlockConfig.Ability.AWAKENING_KILLS;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,19 +14,15 @@ public final class WarlockAwakeningProgress {
         if (ownerPlayer == null) {
             return false;
         }
-        boolean previouslyUnlocked = unlocked(ownerPlayer);
+        boolean previouslyUnlocked = snapshot(ownerPlayer).unlocked();
         KILLS.compute(ownerPlayer, (ignored, kills) -> saturatedIncrement(kills == null ? 0L : kills));
-        return !previouslyUnlocked && unlocked(ownerPlayer);
+        return !previouslyUnlocked && snapshot(ownerPlayer).unlocked();
     }
 
     public static Snapshot snapshot(UUID ownerPlayer) {
         long kills = ownerPlayer == null ? 0L : KILLS.getOrDefault(ownerPlayer, 0L);
-        long requiredKills = Math.max(0, WarlockConfig.RUNTIME.integer(AWAKENING_KILLS));
+        long requiredKills = WarlockConfig.RUNTIME.requiredAwakeningKills();
         return new Snapshot(kills, requiredKills, kills >= requiredKills);
-    }
-
-    static boolean unlocked(UUID ownerPlayer) {
-        return snapshot(ownerPlayer).unlocked();
     }
 
     public static void clear(UUID ownerPlayer) {

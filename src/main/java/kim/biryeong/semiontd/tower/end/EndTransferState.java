@@ -9,8 +9,7 @@ import kim.biryeong.semiontd.tower.Tower;
 
 final class EndTransferState {
     private final Map<Tower, Progress> progressByTower = new IdentityHashMap<>();
-    private final Set<Tower> presentTowerSnapshot =
-            Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<Tower> presentTowerSnapshot = Collections.newSetFromMap(new IdentityHashMap<>());
     private double roundHealthContribution;
     private double permanentHealthBonus;
     private double roundDamageContribution;
@@ -78,20 +77,14 @@ final class EndTransferState {
         permanentDamageBonus = source.permanentDamageBonus;
     }
 
-    double roundHealthContribution() {
-        return roundHealthContribution;
-    }
-
-    double permanentHealthBonus() {
-        return permanentHealthBonus;
-    }
-
-    double roundDamageContribution() {
-        return roundDamageContribution;
-    }
-
-    double permanentDamageBonus() {
-        return permanentDamageBonus;
+    EndTransferSnapshot snapshot(EndTransferStacks stacks) {
+        return new EndTransferSnapshot(
+                stacks,
+                roundHealthContribution,
+                permanentHealthBonus,
+                roundDamageContribution,
+                permanentDamageBonus
+        );
     }
 
     private static double subtract(double value, double amount) {
@@ -125,6 +118,14 @@ final class EndTransferState {
             this.permanentDamageBonus = permanentDamageBonus;
             this.completionHealing = completionHealing;
             this.periodicHealingPerSecond = periodicHealingPerSecond;
+        }
+
+        void advance() {
+            elapsedTicks++;
+        }
+
+        boolean isComplete() {
+            return elapsedTicks >= durationTicks;
         }
     }
 }

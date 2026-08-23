@@ -40,6 +40,7 @@ import kim.biryeong.semiontd.tower.animal.AnimalTowers;
 import kim.biryeong.semiontd.tower.army.ArmyTowers;
 import kim.biryeong.semiontd.tower.body.BodyTowers;
 import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
+import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
 import kim.biryeong.semiontd.tower.gamble.GambleTowers;
@@ -583,6 +584,9 @@ public final class TowerVfxService {
         }
         if (NetherTowers.isNetherTower(type)) {
             return BuilderPalette.NETHER;
+        }
+        if (EndTowers.isEndTower(type)) {
+            return BuilderPalette.END;
         }
         if (OceanTowers.isOceanTower(type)) {
             return BuilderPalette.OCEAN;
