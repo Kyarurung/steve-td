@@ -1,7 +1,5 @@
 package kim.biryeong.semiontd.tower.end;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.DRAGON_FINAL_DAMAGE;
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.DRAGON_RANGE_BONUS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -81,9 +79,9 @@ class EnderDragonScaleTest {
         assertEquals("minecraft:ender_dragon", tower.visual().entityTypeId());
         assertTrue(tower.visual().blockbenchModel().isEmpty());
         assertEquals(1.0, tower.visual().scale(), 0.0001);
-        assertEquals(EndTowers.BASE_END_TOWER.range() + EndConfig.RUNTIME.value(DRAGON_RANGE_BONUS), tower.adjustAttackRange(EndTowers.BASE_END_TOWER.range()), 0.0001);
+        assertEquals(EndTowers.BASE_END_TOWER.range() + EndConfig.RUNTIME.dragon().rangeBonus(), tower.adjustAttackRange(EndTowers.BASE_END_TOWER.range()), 0.0001);
         assertEquals(EndTowers.BASE_END_TOWER.damage(), tower.modifyAttackDamage(null, null, EndTowers.BASE_END_TOWER.damage()), 0.0001);
-        assertEquals(EndConfig.RUNTIME.value(DRAGON_FINAL_DAMAGE), tower.finalDamageBonus(), 0.0001);
+        assertEquals(EndConfig.RUNTIME.dragon().finalDamageBonus(), tower.finalDamageBonus(), 0.0001);
     }
 
     @Test

@@ -112,6 +112,7 @@ import kim.biryeong.semiontd.job.AncientCityTowerJob;
 import kim.biryeong.semiontd.job.AdversaryTowerJob;
 import kim.biryeong.semiontd.job.AtlantisTowerJob;
 import kim.biryeong.semiontd.job.BodyTowerJob;
+import kim.biryeong.semiontd.job.DeveloperTowerJob;
 import kim.biryeong.semiontd.job.EndTowerJob;
 import kim.biryeong.semiontd.job.EngineerTowerJob;
 import kim.biryeong.semiontd.job.FutureAgencyTowerJob;
@@ -172,6 +173,13 @@ import kim.biryeong.semiontd.tower.TowerCategory;
 import kim.biryeong.semiontd.tower.TowerDataKey;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
+import kim.biryeong.semiontd.tower.developer.DeveloperBalance;
+import kim.biryeong.semiontd.tower.developer.DeveloperBug;
+import kim.biryeong.semiontd.tower.developer.DeveloperPatchService;
+import kim.biryeong.semiontd.tower.developer.DeveloperStates;
+import kim.biryeong.semiontd.tower.developer.DeveloperTower;
+import kim.biryeong.semiontd.tower.developer.DeveloperTowerData;
+import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTower;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
@@ -252,6 +260,7 @@ import kim.biryeong.semiontd.ui.SemionText;
 import kim.biryeong.semiontd.ui.SemionTowerInteractionService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.fabricmc.fabric.api.gametest.v1.CustomTestMethodInvoker;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -274,6 +283,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import org.slf4j.LoggerFactory;
@@ -2833,6 +2843,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, game.start(context.getLevel().getServer(), plan), "Dialog test game should start.")) {
             return;
         }
+        dialogService.showLeaderTargetControl(player, game);
         dialogService.showTowerControl(player, game);
         dialogService.showSummonShop(player, game);
         dialogService.showSummonShop(player, game, 2);
@@ -9134,6 +9145,59 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void warlockIncomeDebuffResistanceReducesNullImpMagnitude(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
+        SemionMonsterEntity caster = spawnSummonEntity(
+                context,
+                "warlock_resistance_null_imp",
+                TeamId.RED,
+                TeamId.BLUE,
+                1,
+                origin,
+                100.0,
+                0.0
+        );
+        Vec3 targetPosition = origin.add(2.0, 0.0, 0.0);
+        WarlockTower runtimeTower = new WarlockTower(
+                TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER),
+                stableUuid("warlock-income-debuff-resistance"),
+                TeamId.BLUE,
+                1,
+                new GridPosition(
+                        (int) Math.floor(targetPosition.x),
+                        (int) Math.floor(targetPosition.y),
+                        (int) Math.floor(targetPosition.z)
+                )
+        );
+        SemionTowerEntity target = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+        target.configure(runtimeTower, null);
+        target.setPos(targetPosition);
+        context.getLevel().addFreshEntity(target);
+
+        new ApplyTowerTimedEffectGoal(
+                caster,
+                TimedEffectType.TOWER_RANGE_REDUCTION,
+                SummonBalancePolicy.NULL_IMP_RANGE_REDUCTION,
+                SummonBalancePolicy.NULL_IMP_RANGE_RADIUS,
+                SummonBalancePolicy.NULL_IMP_RANGE_DURATION_TICKS,
+                SummonBalancePolicy.NULL_IMP_RANGE_COOLDOWN_TICKS,
+                SummonBalancePolicy.SUPPORT_HEAL_RETRY_TICKS,
+                1
+        ).tick();
+
+        if (!assertClose(
+                context,
+                SummonBalancePolicy.NULL_IMP_RANGE_REDUCTION * 0.95,
+                target.activeTimedEffectMagnitude(TimedEffectType.TOWER_RANGE_REDUCTION),
+                "Warlock income-debuff resistance should reduce the applied null-imp magnitude by five percent."
+        )) {
+            return;
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void nullImpDebuffsOnlyNearestTargetLaneTower(GameTestHelper context) {
         Vec3 origin = Vec3.atCenterOf(context.absolutePos(BlockPos.ZERO));
         SemionMonsterEntity caster = spawnSummonEntity(context, "null_imp", TeamId.RED, TeamId.BLUE, 1, origin, 100.0, 0.0);
@@ -10480,7 +10544,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(BodyTowerJob.ID), "Built-in reload should register the body tower job.")) {
             return;
         }
-        if (!assertEquals(context, 123L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
+        if (!assertPresent(context, JobRegistry.find(DeveloperTowerJob.ID), "Built-in reload should register the developer tower job.")) {
+            return;
+        }
+        if (!assertEquals(context, 127L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
             return;
         }
         context.succeed();
@@ -11312,6 +11379,86 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
+    public void developerReproductionUsesEntityAndBlockClicksAndSneakCancels(GameTestHelper context) {
+        var player = context.makeMockServerPlayerInLevel();
+        UUID playerId = player.getUUID();
+        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, DeveloperTowerJob.ID);
+        PlayerLane lane = redLane(game, 1);
+        BlockPos sourcePos = towerPlacementPos(lane);
+        BlockPos targetPos = nearbyTowerPlacementPos(lane, sourcePos);
+        BlockPos developerPos = nearbyTowerPlacementPos(lane, targetPos);
+        DeveloperTower source = new DeveloperTower(
+                TowerBalanceRuntime.resolve(DeveloperTowers.ALPHA), playerId, TeamId.RED, 1,
+                GridPosition.from(sourcePos));
+        DeveloperTower target = new DeveloperTower(
+                TowerBalanceRuntime.resolve(DeveloperTowers.BETA), playerId, TeamId.RED, 1,
+                GridPosition.from(targetPos));
+        DeveloperTower developer = new DeveloperTower(
+                TowerBalanceRuntime.resolve(DeveloperTowers.DEVELOPER), playerId, TeamId.RED, 1,
+                GridPosition.from(developerPos));
+        lane.addTower(source);
+        lane.addTower(target);
+        lane.addTower(developer);
+        DeveloperStates.openRound(playerId, game.currentRound(), DeveloperPatchService.capacityFor(lane, playerId));
+        DeveloperTowerData.addBug(source, DeveloperBug.PRIMITIVE);
+        DeveloperTowerData.addBug(source, DeveloperBug.BOUNDARY);
+        DeveloperTowerData.addBug(source, DeveloperBug.FLOATING_POINT);
+
+        SemionGameManager manager = new SemionGameManager();
+        setField(manager, "activeGame", game);
+        try {
+            if (!assertTrue(context,
+                    DeveloperPatchService.armReproduction(lane, source, DeveloperBug.PRIMITIVE).success(),
+                    "Entity-click reproduction should arm.")) return;
+            SemionTowerEntity sourceEntity = (SemionTowerEntity) lane.arenaWorld()
+                    .getEntity(source.entityId().orElseThrow());
+            SemionTowerEntity targetEntity = (SemionTowerEntity) lane.arenaWorld()
+                    .getEntity(target.entityId().orElseThrow());
+
+            SemionTowerInteractionService.handleUse(
+                    manager, player, context.getLevel(), InteractionHand.MAIN_HAND,
+                    sourceEntity, new EntityHitResult(sourceEntity));
+            if (!assertTrue(context, DeveloperStates.of(playerId).pendingReproduction().isPresent(),
+                    "An invalid same-tower click must keep target selection armed.")) return;
+
+            SemionTowerInteractionService.handleUse(
+                    manager, player, context.getLevel(), InteractionHand.MAIN_HAND,
+                    targetEntity, new EntityHitResult(targetEntity));
+            if (!assertTrue(context, target.hasBug(DeveloperBug.PRIMITIVE),
+                    "Entity click should reproduce the selected bug.")) return;
+
+            DeveloperStates.openRound(playerId, game.currentRound(), DeveloperPatchService.capacityFor(lane, playerId));
+            if (!assertTrue(context,
+                    DeveloperPatchService.armReproduction(lane, source, DeveloperBug.BOUNDARY).success(),
+                    "Block-click reproduction should arm.")) return;
+            SemionTowerInteractionService.handleBlockUse(
+                    manager, player, context.getLevel(), InteractionHand.MAIN_HAND,
+                    new BlockHitResult(Vec3.atCenterOf(targetPos), Direction.UP, targetPos, false));
+            if (!assertTrue(context, target.hasBug(DeveloperBug.BOUNDARY),
+                    "Block click should reproduce the selected bug.")) return;
+
+            DeveloperStates.openRound(playerId, game.currentRound(), DeveloperPatchService.capacityFor(lane, playerId));
+            DeveloperPatchService.armReproduction(lane, source, DeveloperBug.FLOATING_POINT);
+            player.setShiftKeyDown(true);
+            SemionTowerInteractionService.handleUse(
+                    manager, player, context.getLevel(), InteractionHand.MAIN_HAND,
+                    targetEntity, new EntityHitResult(targetEntity));
+            if (!assertTrue(context,
+                    DeveloperStates.of(playerId).pendingReproduction().isEmpty()
+                            && !target.hasBug(DeveloperBug.FLOATING_POINT),
+                    "Sneak-clicking a tower must cancel without reproducing.")) return;
+
+            context.succeed();
+        } finally {
+            player.setShiftKeyDown(false);
+            DeveloperStates.clear(playerId);
+            setField(manager, "activeGame", null);
+            manager.shutdown();
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest
     public void legionGoatTowerBuffsLegionBodiesAndClonesUpToThreeStacks(GameTestHelper context) {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         UUID playerId = stableUuid("legion-goat-buff-owner");
@@ -11773,10 +11920,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 0.0, sacrifice.health(), "Warlock should absorb an allied tower after siege true damage.")) {
             return;
         }
-        if (!assertTrue(
+        if (!assertClose(
                 context,
-                core.health() > 0.0 && coreEntity.getHealth() > 0.0F,
-                "Warlock sacrifice healing must survive the siege ability's fixed-damage application."
+                31.875,
+                core.health(),
+                "Base warlock should heal only the absorbed max-health increase plus the flat absorption heal."
         )) {
             return;
         }
@@ -12115,10 +12263,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void rangedWarlockAwakensWithoutSacrificeRequirementAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-ranged-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1199; kill++) {
+        for (int kill = 0; kill < 1249; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
-        if (!assertEquals(context, 1199L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
+        if (!assertEquals(context, 1249L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
             return;
         }
         PlayerLane lane = redLane(game, 1);
@@ -12136,7 +12284,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         coreEntity.setHealth(40.0F);
 
         String lockedDetails = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
-        if (!assertTrue(context, lockedDetails.contains("각성 해금: 1199/1200킬"), "Ranged awakening should stay locked before the kill requirement.")) {
+        if (!assertTrue(context, lockedDetails.contains("각성 해금: 1249/1250킬"), "Ranged awakening should stay locked before the kill requirement.")) {
             return;
         }
         Monster creditedKill = new Monster(
@@ -12155,12 +12303,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         creditedKill.recordLastHit(playerId, KillSourceKind.TOWER);
         creditedKill.syncHealth(0.0);
         new EconomyService(game.economyConfig(), game).awardMonsterKillReward(creditedKill, game.players());
-        if (!assertEquals(context, 1200L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1200th kill should unlock awakening.")) {
+        if (!assertEquals(context, 1250L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1250th kill should unlock awakening.")) {
             return;
         }
 
         String awakenedDetails = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
-        if (!assertTrue(context, awakenedDetails.contains("각성 상태: 각성 완료"), "The 1200th kill should immediately awaken a ranged warlock that already satisfies the combat conditions.")) {
+        if (!assertTrue(context, awakenedDetails.contains("각성 상태: 각성 완료"), "The 1250th kill should immediately awaken a ranged warlock that already satisfies the combat conditions.")) {
             return;
         }
         if (!assertTrue(context, awakenedDetails.contains("라운드 흡수: 0기"), "Ranged awakening should not require sacrifices.")) {
@@ -12173,6 +12321,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertTrue(context, awakenedDetails.contains("재생: +40 HP/s"), "Ranged awakening should expose its regeneration in the tower UI.")) {
+            return;
+        }
+        if (!assertTrue(context, awakenedDetails.indexOf("디버프 저항:") < awakenedDetails.indexOf("재생:"), "Ranged awakening regeneration should appear below debuff resistance.")) {
             return;
         }
 
@@ -12191,7 +12342,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void rangedWarlockUsesPostSacrificeHealthForAwakening(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-post-sacrifice-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1200; kill++) {
+        for (int kill = 0; kill < 1250; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
@@ -12239,7 +12390,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void meleeWarlockAwakeningCreatesRoundBurstAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-melee-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1200; kill++) {
+        for (int kill = 0; kill < 1250; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
@@ -12282,6 +12433,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 1.30, core.adjustMovementSpeed(1.0), "Melee awakening should add thirty percent movement speed.")) {
+            return;
+        }
+        if (!assertTrue(context, awakenedDetails.contains("피해: 75"), "Melee awakening should expose its attack damage bonus in the tower UI.")) {
+            return;
+        }
+        if (!assertTrue(context, awakenedDetails.contains("이동 속도: +30%"), "Melee awakening should expose its movement speed bonus in the tower UI.")) {
+            return;
+        }
+        if (!assertTrue(context,
+                awakenedDetails.indexOf("디버프 저항:") < awakenedDetails.indexOf("피해: 75")
+                        && awakenedDetails.indexOf("피해: 75") < awakenedDetails.indexOf("이동 속도: +30%"),
+                "Melee awakening bonuses should appear below debuff resistance in damage and movement-speed order.")) {
             return;
         }
 
@@ -12385,7 +12548,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
         if (!assertClose(
                 context,
-                0.05,
+                0.10,
                 monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS),
                 "Sacrifice tower death should apply configured monster damage-taken bonus."
         )) {

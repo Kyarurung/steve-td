@@ -1,6 +1,6 @@
 package kim.biryeong.semiontd.config;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndAbilityKey.*;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -60,6 +60,10 @@ import kim.biryeong.semiontd.tower.plant.PlantSoil;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceAspect;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
+import kim.biryeong.semiontd.tower.developer.DeveloperBalance;
+import kim.biryeong.semiontd.tower.developer.DeveloperBug;
+import kim.biryeong.semiontd.tower.developer.DeveloperOptimization;
+import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
 import kim.biryeong.semiontd.tower.thunder.ThunderBalance;
 import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -245,6 +249,7 @@ public record TowerBalanceConfig(
         addThunderTowers(towers);
         addDemonLordTowers(towers);
         addGambleTowers(towers);
+        addDeveloperTowers(towers);
         addSuccubusTowers(towers);
         addBodyTowers(towers);
 
@@ -330,6 +335,7 @@ public record TowerBalanceConfig(
         putThunderUpgrades(upgradeCosts);
         putDemonLordUpgrades(upgradeCosts);
         putGambleUpgrades(upgradeCosts);
+        putDeveloperUpgrades(upgradeCosts);
         putSuccubusUpgrades(upgradeCosts);
         putBodyUpgrades(upgradeCosts);
 
@@ -743,7 +749,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "towerDamageTakenBonus", 0.05
+                "towerDamageTakenBonus", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -753,7 +759,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "attackSpeedReduction", 0.05
+                "attackSpeedReduction", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -904,6 +910,7 @@ public record TowerBalanceConfig(
         putThunderAbilities(abilities);
         putDemonLordAbilities(abilities);
         putGambleAbilities(abilities);
+        putDeveloperAbilities(abilities);
         putSuccubusAbilities(abilities);
         putBodyAbilities(abilities);
 
@@ -1416,6 +1423,8 @@ public record TowerBalanceConfig(
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeEvery");
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashEvery");
         validateIntegralAbility(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery");
+        validateRatios(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance");
+        validateRatios(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance");
         validateRatios(IllagerRaidStates.RAID_CONFIG_ID,
                 "attackSpeedPercentPerTower", "damagePercentPerTower",
                 "attackSpeedBonusCap", "damageBonusCap");
@@ -1431,6 +1440,7 @@ public record TowerBalanceConfig(
         validateThunderAbilities();
         validateDemonLordAbilities();
         validateGambleAbilities();
+        validateDeveloperAbilities();
         validateSuccubusAbilities();
         validateBodyAbilities();
     }
@@ -2032,6 +2042,178 @@ public record TowerBalanceConfig(
 
     public static String upgradeKey(String fromTowerId, String upgradeId) {
         return fromTowerId + "->" + upgradeId;
+    }
+
+    private static void addDeveloperTowers(Map<String, TowerStats> towers) {
+        DeveloperTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    /**
+     * Upgrade prices for the 개발자 family.
+     *
+     * <p>Both T2 towers reach both T3 towers for the same accumulated total — 290 for 정식판, 280
+     * for LTS — so the T2 branch choice never silently prices the player out of a T3.
+     */
+    private static void putDeveloperUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, DeveloperTowers.ALPHA, DeveloperTowers.BETA.id(), 95);
+        putUpgrade(upgrades, DeveloperTowers.ALPHA, DeveloperTowers.TEST_BUILD.id(), 85);
+        putUpgrade(upgrades, DeveloperTowers.BETA, DeveloperTowers.RELEASE.id(), 160);
+        putUpgrade(upgrades, DeveloperTowers.BETA, DeveloperTowers.LTS.id(), 150);
+        putUpgrade(upgrades, DeveloperTowers.TEST_BUILD, DeveloperTowers.RELEASE.id(), 170);
+        putUpgrade(upgrades, DeveloperTowers.TEST_BUILD, DeveloperTowers.LTS.id(), 160);
+        putUpgrade(upgrades, DeveloperTowers.WORKBENCH, DeveloperTowers.DEPLOY_SERVER.id(), 80);
+        putUpgrade(upgrades, DeveloperTowers.DEPLOY_SERVER, DeveloperTowers.OPS_CENTER.id(), 160);
+        putUpgrade(upgrades, DeveloperTowers.TESTER, DeveloperTowers.DEBUGGER.id(), 70);
+        putUpgrade(upgrades, DeveloperTowers.DEBUGGER, DeveloperTowers.DEVELOPER.id(), 140);
+    }
+
+    /**
+     * Seeds every tunable number the 개발자 family reads.
+     *
+     * <p>The bug and optimisation tables are generated from their enums rather than written out by
+     * hand. With 25 defects and 7 trades that is 64 entries, and a hand-maintained copy would drift
+     * out of sync with the shipped defaults the first time one of them was retuned.
+     */
+    private static void putDeveloperAbilities(Map<String, Map<String, Double>> abilities) {
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>();
+        global.put("patchAttack", DeveloperBalance.PATCH_ATTACK);
+        global.put("patchRange", DeveloperBalance.PATCH_RANGE);
+        global.put("patchInterval", DeveloperBalance.PATCH_INTERVAL);
+        global.put("patchHealth", DeveloperBalance.PATCH_HEALTH);
+        global.put("patchAggro", (double) DeveloperBalance.PATCH_AGGRO);
+        global.put("patchDiminishing", DeveloperBalance.PATCH_DIMINISHING);
+        global.put("testBuildAuraBonus", DeveloperBalance.TEST_BUILD_AURA_BONUS);
+        global.put("testBuildAuraRadius", DeveloperBalance.TEST_BUILD_AURA_RADIUS);
+        global.put("maxBugsPerTower", (double) DeveloperBalance.MAX_BUGS_PER_TOWER);
+        global.put("maxInstability", (double) DeveloperBalance.MAX_INSTABILITY);
+        global.put("instabilityStallChance", DeveloperBalance.INSTABILITY_STALL_CHANCE);
+        global.put("instabilityStallTicks", (double) DeveloperBalance.INSTABILITY_STALL_TICKS);
+        global.put("maintenanceDamageBonus", DeveloperBalance.MAINTENANCE_DAMAGE_BONUS);
+        global.put("maintenancePerRound", (double) DeveloperBalance.MAINTENANCE_PER_ROUND);
+        global.put("debugRemovalsPerRound", (double) DeveloperBalance.DEBUG_REMOVALS_PER_ROUND);
+        global.put("reproducePerRound", (double) DeveloperBalance.REPRODUCE_PER_ROUND);
+        global.put("optimizationsPerMatch", (double) DeveloperBalance.OPTIMIZATIONS_PER_MATCH);
+        global.put("versionPinSlots", (double) DeveloperBalance.VERSION_PIN_SLOTS);
+        global.put("basePatchSlots", (double) DeveloperBalance.BASE_PATCH_SLOTS);
+        global.put("patchSlotsPerTowers", (double) DeveloperBalance.PATCH_SLOTS_PER_TOWERS);
+        for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
+            global.put(optimization.costKey(), optimization.defaultCost());
+            global.put(optimization.gainKey(), optimization.defaultGain());
+        }
+        for (DeveloperBug bug : DeveloperBug.values()) {
+            global.put(bug.primaryKey(), bug.defaultPrimary());
+            global.put(bug.secondaryKey(), bug.defaultSecondary());
+        }
+        putAbilities(abilities, DeveloperBalance.CONFIG_ID, global);
+
+        putDeveloperTower(abilities, DeveloperTowers.ALPHA,
+                DeveloperBalance.ALPHA_PATCH_SCALE, 1.0, DeveloperBalance.ALPHA_BUG_CHANCE);
+        putDeveloperTower(abilities, DeveloperTowers.BETA,
+                DeveloperBalance.BETA_PATCH_SCALE, 1.0, DeveloperBalance.BETA_BUG_CHANCE);
+        putDeveloperTower(abilities, DeveloperTowers.TEST_BUILD,
+                DeveloperBalance.BETA_PATCH_SCALE, 1.0, DeveloperBalance.BETA_BUG_CHANCE);
+        putDeveloperTower(abilities, DeveloperTowers.RELEASE,
+                DeveloperBalance.RELEASE_PATCH_SCALE, DeveloperBalance.RELEASE_HOTFIX_SCALE, 0.0);
+        putDeveloperTower(abilities, DeveloperTowers.LTS,
+                DeveloperBalance.LTS_PATCH_SCALE, DeveloperBalance.LTS_HOTFIX_SCALE, 0.0);
+
+        putAbilities(abilities, DeveloperTowers.WORKBENCH.id(), Map.of(
+                "patchSlots", (double) DeveloperBalance.WORKBENCH_PATCH_SLOTS
+        ));
+        putAbilities(abilities, DeveloperTowers.DEPLOY_SERVER.id(), Map.of(
+                "patchSlots", (double) DeveloperBalance.DEPLOY_SERVER_PATCH_SLOTS,
+                "hotfixesPerRound", (double) DeveloperBalance.DEPLOY_SERVER_HOTFIXES
+        ));
+        putAbilities(abilities, DeveloperTowers.OPS_CENTER.id(), Map.of(
+                "patchSlots", (double) DeveloperBalance.OPS_CENTER_PATCH_SLOTS,
+                "hotfixesPerRound", (double) DeveloperBalance.OPS_CENTER_HOTFIXES
+        ));
+    }
+
+    private static void putDeveloperTower(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double patchScale,
+            double hotfixScale,
+            double bugChance
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "patchScale", patchScale,
+                "hotfixScale", hotfixScale,
+                "bugChance", bugChance
+        ));
+    }
+
+    private void validateDeveloperAbilities() {
+        String global = DeveloperBalance.CONFIG_ID;
+        validatePositive(global,
+                "patchAttack", "patchRange", "patchInterval", "patchHealth", "patchAggro",
+                "patchDiminishing", "testBuildAuraBonus", "testBuildAuraRadius",
+                "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
+                "maintenanceDamageBonus", "patchSlotsPerTowers");
+        validateRange(global, "patchAttack", 0.0, 1.0);
+        validateRange(global, "patchRange", 0.0, 1.0);
+        validateRange(global, "patchInterval", 0.0, 1.0);
+        validateRange(global, "patchHealth", 0.0, 1.0);
+        validateRange(global, "patchDiminishing", 0.5, 1.0);
+        validateRange(global, "testBuildAuraBonus", 0.0, 1.0);
+        validateRange(global, "instabilityStallChance", 0.0, 0.5);
+        validateRange(global, "patchAggro", 1.0, 100.0);
+        validateIntegral(global, false,
+                "patchAggro", "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
+                "patchSlotsPerTowers");
+        validateIntegral(global, true,
+                "maintenancePerRound", "debugRemovalsPerRound", "reproducePerRound",
+                "optimizationsPerMatch", "versionPinSlots", "basePatchSlots");
+
+        for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
+            validatePositive(global, optimization.gainKey());
+            validateAtLeast(global, 0.0, optimization.costKey());
+        }
+        for (DeveloperOptimization optimization : List.of(
+                DeveloperOptimization.RANGE,
+                DeveloperOptimization.DURABILITY,
+                DeveloperOptimization.ACCURACY,
+                DeveloperOptimization.ATTACK
+        )) {
+            validateRange(global, optimization.costKey(), 0.0, 1.0);
+        }
+
+        validateRatios(global,
+                DeveloperBug.PRIMITIVE.secondaryKey(),
+                DeveloperBug.BOUNDARY.primaryKey(),
+                DeveloperBug.FLOATING_POINT.primaryKey(),
+                DeveloperBug.INTEGER_OVERFLOW.secondaryKey(),
+                DeveloperBug.TIMEOUT.primaryKey(), DeveloperBug.TIMEOUT.secondaryKey(),
+                DeveloperBug.BUFFER_OVERRUN.primaryKey(), DeveloperBug.BUFFER_OVERRUN.secondaryKey(),
+                DeveloperBug.HARDCODED.secondaryKey(), DeveloperBug.OVERKILL.secondaryKey(),
+                DeveloperBug.STEALTH.secondaryKey(), DeveloperBug.ZOMBIE_PROCESS.secondaryKey(),
+                DeveloperBug.EXCEPTION_HANDLING.primaryKey(), DeveloperBug.EXCEPTION_HANDLING.secondaryKey(),
+                DeveloperBug.GARBAGE_COLLECTION.primaryKey(), DeveloperBug.SIGN_FLIP.primaryKey(),
+                DeveloperBug.MEMORY_LEAK.primaryKey(), DeveloperBug.MEMORY_LEAK.secondaryKey(),
+                DeveloperBug.LAZY_LOADING.primaryKey(), DeveloperBug.NULL_POINTER.primaryKey(),
+                DeveloperBug.PRICE_TAG.primaryKey(), DeveloperBug.READ_ONLY.primaryKey());
+        validateIntegral(global, false,
+                DeveloperBug.OVERKILL.primaryKey(),
+                DeveloperBug.ZOMBIE_PROCESS.primaryKey(),
+                DeveloperBug.CACHE_MISS.primaryKey());
+        validatePositive(global,
+                DeveloperBug.PRIMITIVE.primaryKey(), DeveloperBug.INTEGER_OVERFLOW.primaryKey(),
+                DeveloperBug.HARDCODED.primaryKey(), DeveloperBug.LAZY_LOADING.secondaryKey());
+
+        // A growth tower with no patch scale would silently absorb nothing, which reads in-game as
+        // the whole builder being broken rather than as a misconfigured number.
+        for (TowerType type : DeveloperTowers.growthLine()) {
+            validatePositive(type.id(), "patchScale", "hotfixScale");
+            validateRange(type.id(), "bugChance", 0.0, 1.0);
+        }
+        for (TowerType type : List.of(
+                DeveloperTowers.WORKBENCH,
+                DeveloperTowers.DEPLOY_SERVER,
+                DeveloperTowers.OPS_CENTER
+        )) {
+            validateIntegral(type.id(), true, "patchSlots", "hotfixesPerRound");
+        }
     }
 
     private static void addTower(Map<String, TowerStats> towers, TowerType type) {
@@ -3794,8 +3976,8 @@ public record TowerBalanceConfig(
         values.put(HEALTH_SCALE.key(), 500.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
-        values.put(DAMAGE_THRESHOLD.key(), 140.0);
-        values.put(DAMAGE_SCALE.key(), 20.0);
+        values.put(DAMAGE_THRESHOLD.key(), 150.0);
+        values.put(DAMAGE_SCALE.key(), 25.0);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);
@@ -3956,7 +4138,7 @@ public record TowerBalanceConfig(
         values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1200.0);
+        values.put("awakeningKills", 1250.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -3964,7 +4146,6 @@ public record TowerBalanceConfig(
     private static Map<String, Double> baseWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("sacrificeRadius", 6.0);
-        values.put("fatalHeal", 0.35);
         values.put("permanentHealth", 0.025);
         values.put("permanentDamage", 0.05);
         return values;
@@ -3978,11 +4159,12 @@ public record TowerBalanceConfig(
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.05);
-        values.put("damageThreshold", 145.0);
+        values.put("damageThreshold", 150.0);
         values.put("damageScale", 20.0);
         values.put("lifeEvery", 10.0);
         values.put("lifeStep", 0.005);
-        values.put("lifeCap", 0.08);
+        values.put("lifeCap", 0.07);
+        values.put("incomeDebuffResistance", 0.05);
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
@@ -4010,7 +4192,8 @@ public record TowerBalanceConfig(
         values.put("damageThreshold", 200.0);
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
-        values.put("lifeCap", 0.14);
+        values.put("lifeCap", 0.13);
+        values.put("incomeDebuffResistance", 0.05);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);

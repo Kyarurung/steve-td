@@ -1,11 +1,10 @@
 package kim.biryeong.semiontd.tower.warlock;
 
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
+import static kim.biryeong.semiontd.tower.warlock.WarlockFormatting.warlockText;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.*;
-import static kim.biryeong.semiontd.tower.warlock.WarlockConfig.Ability.*;
-import static kim.biryeong.semiontd.tower.warlock.WarlockFormatting.warlockText;
 
 final class WarlockStatsView {
     private WarlockStatsView() {
@@ -14,51 +13,93 @@ final class WarlockStatsView {
     static List<String> core(CoreStats stats) {
         CombatStats combat = stats.combat();
         DefenseStats defense = stats.defense();
+        ProgressionStats progression = stats.progression();
         ArrayList<String> lines = new ArrayList<>();
-        boolean ranged = stats.ranged();
-        boolean melee = stats.melee();
-        int lifeStealEvery = ranged ? Math.max(1, WarlockConfig.RUNTIME.integer(RANGED_LIFE_EVERY)) : 1;
-        int splashEvery = ranged ? Math.max(1, WarlockConfig.RUNTIME.integer(RANGED_SPLASH_EVERY)) : 1;
-        int damageReductionEvery = ranged ? Math.max(1, WarlockConfig.RUNTIME.integer(RANGED_DEFENSE_THRESHOLD) + 1) : Math.max(1, WarlockConfig.RUNTIME.integer(MELEE_DEFENSE_EVERY));
         lines.add(sacrificeLine("영구 흡수", stats.totalSacrifices()));
         lines.add(sacrificeLine("라운드 흡수", stats.roundSacrifices()));
         if (stats.showAwakening()) {
-            lines.add(awakeningLine(stats.awakened(), ranged || melee, stats.awakening()));
-            if (!stats.awakened() && stats.awakening().unlocked() && (ranged || melee)) {
+            lines.add(awakeningLine(stats.awakened(), stats.awakening()));
+            if (!stats.awakened() && stats.awakening().unlocked() && stats.awakening().branchSelected()) {
                 lines.add(awakeningConditionLine(stats.awakening()));
             }
         }
-        lines.add(formatPermanentHealth(defense.additionalHealth(), scalingProgress(defense.rawAbsorbedHealth(), defense.effectiveAbsorbedHealth())));
-        if (defense.maximumRegenerationPerSecond() > 0.0) {
-            lines.add(formatRegeneration(defense.regenerationPerSecond(), ""));
-        } if (ranged || melee) {
-            lines.add(formatLifeSteal(defense.lifeSteal(), stackProgress(ranged ? stats.totalSacrifices() : stats.roundSacrifices(), lifeStealEvery, defense.lifeSteal(), defense.maximumLifeSteal())));
-            lines.add(formatDamageReduction(defense.damageReduction(), stackProgress(ranged ? stats.roundSacrifices() : stats.totalSacrifices(), damageReductionEvery, defense.damageReduction(), defense.maximumDamageReduction())));
-        } lines.add(formatPermanentDamage(
-                combat.effectiveAttackDamage(),
-                damageProgress(combat.rawAttackDamage(), combat.effectiveAttackDamage())
-        ));
-        if (melee) {
-            lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), stackProgress(stats.roundSacrifices(), 1, combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
-        } else if (ranged) {
-            lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), maxOnlyProgress(combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())));
-        } if (combat.showAttackRange()) {
-            lines.add(formatSplashRange(combat.splashRadius(), stackProgress(ranged ? stats.totalSacrifices() : stats.roundSacrifices(), splashEvery, combat.splashRadius(), combat.maximumSplashRadius())));
+        lines.add(formatPermanentHealth(defense.additionalHealth(), ""));
+        if (progression.showDefenseStats()) {
+            lines.add(formatLifeSteal(
+                    defense.lifeSteal(),
+                    stackProgress(
+                            progression.lifeStealSacrifices(),
+                            progression.lifeStealEvery(),
+                            defense.lifeSteal(),
+                            defense.maximumLifeSteal()
+                    )
+            ));
+            lines.add(formatDamageReduction(
+                    defense.damageReduction(),
+                    stackProgress(
+                            progression.damageReductionSacrifices(),
+                            progression.damageReductionEvery(),
+                            defense.damageReduction(),
+                            defense.maximumDamageReduction()
+                    )
+            ));
+        }
+        lines.add(formatPermanentDamage(combat.effectiveAttackDamage(), ""));
+        if (progression.showAttackSpeed()) {
+            String progress = progression.attackSpeedMaximumOnly()
+                    ? maxOnlyProgress(combat.attackIntervalReductionTicks(), combat.maximumAttackIntervalReductionTicks())
+                    : stackProgress(
+                            progression.attackSpeedSacrifices(),
+                            progression.attackSpeedEvery(),
+                            combat.attackIntervalReductionTicks(),
+                            combat.maximumAttackIntervalReductionTicks()
+                    );
+            lines.add(formatAttackSpeedReduction(combat.attackIntervalReductionTicks(), progress));
+        }
+        if (combat.showSplashRadius()) {
+            lines.add(formatSplashRange(
+                    combat.splashRadius(),
+                    stackProgress(
+                            progression.splashSacrifices(),
+                            progression.splashEvery(),
+                            combat.splashRadius(),
+                            combat.maximumSplashRadius()
+                    )
+            ));
+        }
+        if (progression.showIncomeDebuffResistance()) {
+            lines.add(formatIncomeDebuffResistance(defense.incomeDebuffResistance(), ""));
+        }
+        if (stats.awakened()) {
+            appendAwakeningBonuses(lines, stats.awakening());
         }
         return lines;
+    }
+
+    private static void appendAwakeningBonuses(List<String> lines, AwakeningStats awakening) {
+        if (awakening.regenerationPerSecond() > 0.0) {
+            lines.add(formatRegeneration(awakening.regenerationPerSecond(), ""));
+        }
+        if (awakening.attackDamageBonus() > 0.0) {
+            lines.add(attackDamageText("🪓 추가 피해") + "<white>: </white>"
+                    + attackDamageText(formatNumber(awakening.attackDamageBonus())));
+        }
+        if (awakening.movementSpeedBonus() > 0.0) {
+            lines.add(formatMovementSpeed(awakening.movementSpeedBonus(), ""));
+        }
     }
 
     private static String sacrificeLine(String label, int sacrifices) {
         return "<white>" + label + ": " + warlockText(sacrifices + "기") + "</white>";
     }
 
-    private static String awakeningLine(boolean awakened, boolean branchSelected, AwakeningStats awakening) {
+    private static String awakeningLine(boolean awakened, AwakeningStats awakening) {
         if (!awakening.unlocked()) {
             return "<white>각성 해금: " + warlockText(
                     awakening.kills() + "/" + awakening.requiredKills() + "킬"
             ) + "</white>";
         }
-        if (!branchSelected) {
+        if (!awakening.branchSelected()) {
             return "<white>각성 해금: " + warlockText("완료 · 분기 선택 필요") + "</white>";
         }
         if (awakened) {
@@ -68,7 +109,7 @@ final class WarlockStatsView {
     }
 
     private static String awakeningConditionLine(AwakeningStats awakening) {
-        String survival = awakening.onlyCoreAlive() ? warlockText("충족") : "<gray>미충족</gray>";
+        String survival = awakening.lastSurvivingTower() ? warlockText("충족") : "<gray>미충족</gray>";
         String health = format(awakening.currentHealthRatio(), "percent")
                 + " / " + format(awakening.healthThreshold(), "percent");
         return "<white>각성 조건: 최후 생존 " + survival + " · 체력 " + health + "</white>";
@@ -78,26 +119,15 @@ final class WarlockStatsView {
         return maximumValue > 0.0 && currentValue >= maximumValue - 0.0001 ? "(MAX)" : "";
     }
 
-    private static String damageProgress(double rawDamage, double effectiveDamage) {
-        return scalingProgress(rawDamage, effectiveDamage);
-    }
-
-    private static String scalingProgress(double rawValue, double effectiveValue) {
-        return rawValue > effectiveValue + 0.0001
-                ? "(누적 " + formatNumber(rawValue) + ")"
-                : "";
-    }
-
     record CoreStats(
             int totalSacrifices,
             int roundSacrifices,
             boolean showAwakening,
             boolean awakened,
             AwakeningStats awakening,
-            boolean ranged,
-            boolean melee,
             CombatStats combat,
-            DefenseStats defense
+            DefenseStats defense,
+            ProgressionStats progression
     ) {
     }
 
@@ -105,33 +135,49 @@ final class WarlockStatsView {
             long kills,
             long requiredKills,
             boolean unlocked,
+            boolean branchSelected,
             double currentHealthRatio,
             double healthThreshold,
-            boolean onlyCoreAlive
+            boolean lastSurvivingTower,
+            double regenerationPerSecond,
+            double attackDamageBonus,
+            double movementSpeedBonus
     ) {
     }
 
     record CombatStats(
-            double rawAttackDamage,
             double effectiveAttackDamage,
             int attackIntervalReductionTicks,
             int maximumAttackIntervalReductionTicks,
             double splashRadius,
             double maximumSplashRadius,
-            boolean showAttackRange
+            boolean showSplashRadius
     ) {
     }
 
     record DefenseStats(
             double additionalHealth,
-            double rawAbsorbedHealth,
-            double effectiveAbsorbedHealth,
-            double regenerationPerSecond,
-            double maximumRegenerationPerSecond,
             double lifeSteal,
             double maximumLifeSteal,
             double damageReduction,
-            double maximumDamageReduction
+            double maximumDamageReduction,
+            double incomeDebuffResistance
+    ) {
+    }
+
+    record ProgressionStats(
+            boolean showDefenseStats,
+            int lifeStealSacrifices,
+            int lifeStealEvery,
+            int damageReductionSacrifices,
+            int damageReductionEvery,
+            boolean showAttackSpeed,
+            boolean attackSpeedMaximumOnly,
+            int attackSpeedSacrifices,
+            int attackSpeedEvery,
+            int splashSacrifices,
+            int splashEvery,
+            boolean showIncomeDebuffResistance
     ) {
     }
 }
