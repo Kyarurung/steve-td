@@ -458,7 +458,12 @@ public class PlantCombatTower extends ProductionTower {
         if (amount <= 0.0 || !healTarget(entity, amount)) {
             return false;
         }
-        healed.setData(LAST_MEADOW_HEAL_TICK, now);
+        // 창은 첫 회복에만 엽니다. 깎인 회복까지 시각을 갱신하면 창이 계속 밀려나서, 잔디가
+        // 둘만 돼도 온전한 회복이 두 번 다시 오지 않습니다 - 겹침 감산이 아니라 상시 감산이
+        // 됩니다. 창을 고정해 두면 창마다 온전한 회복 하나 + 나머지 절반으로 정리됩니다.
+        if (!overlapping) {
+            healed.setData(LAST_MEADOW_HEAL_TICK, now);
+        }
         entity.playHealingAnimation();
         return true;
     }
