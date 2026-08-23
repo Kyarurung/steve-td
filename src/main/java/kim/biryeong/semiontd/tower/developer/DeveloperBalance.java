@@ -40,6 +40,24 @@ public final class DeveloperBalance {
      */
     public static final double PATCH_DIMINISHING = 0.88;
 
+    // ------------------------------------------------------------------ 패치 마일스톤
+
+    public static final int PATCH_MILESTONE_1_THRESHOLD = 3;
+    public static final int PATCH_MILESTONE_2_THRESHOLD = 5;
+    public static final int PATCH_MILESTONE_3_THRESHOLD = 7;
+
+    public static final double ATTACK_SPLASH_RADIUS_1 = 1.25;
+    public static final double ATTACK_SPLASH_RADIUS_2 = 1.5;
+    public static final double ATTACK_SPLASH_RADIUS_3 = 1.75;
+
+    public static final double ATTACK_SPLASH_RATIO_1 = 0.40;
+    public static final double ATTACK_SPLASH_RATIO_2 = 0.50;
+    public static final double ATTACK_SPLASH_RATIO_3 = 0.60;
+
+    public static final double DEFENSE_DAMAGE_REDUCTION_1 = 0.10;
+    public static final double DEFENSE_DAMAGE_REDUCTION_2 = 0.15;
+    public static final double DEFENSE_DAMAGE_REDUCTION_3 = 0.20;
+
     // ------------------------------------------------------------------ 타워별 배수
 
     public static final double ALPHA_PATCH_SCALE = 0.85;
@@ -139,6 +157,53 @@ public final class DeveloperBalance {
 
     public static double patchDiminishing() {
         return clamp(global("patchDiminishing", PATCH_DIMINISHING), 0.5, 1.0);
+    }
+
+    /** Highest patch milestone reached by this many active patches in one category. */
+    public static int patchMilestone(int activeCount) {
+        if (activeCount >= patchMilestoneThreshold(3)) {
+            return 3;
+        }
+        if (activeCount >= patchMilestoneThreshold(2)) {
+            return 2;
+        }
+        return activeCount >= patchMilestoneThreshold(1) ? 1 : 0;
+    }
+
+    public static int patchMilestoneThreshold(int milestone) {
+        return switch (milestone) {
+            case 1 -> Math.max(1, globalInt("patchMilestone1Threshold", PATCH_MILESTONE_1_THRESHOLD));
+            case 2 -> Math.max(1, globalInt("patchMilestone2Threshold", PATCH_MILESTONE_2_THRESHOLD));
+            case 3 -> Math.max(1, globalInt("patchMilestone3Threshold", PATCH_MILESTONE_3_THRESHOLD));
+            default -> 0;
+        };
+    }
+
+    public static double attackSplashRadius(int milestone) {
+        return switch (milestone) {
+            case 1 -> Math.max(0.0, global("attackSplashRadius1", ATTACK_SPLASH_RADIUS_1));
+            case 2 -> Math.max(0.0, global("attackSplashRadius2", ATTACK_SPLASH_RADIUS_2));
+            case 3 -> Math.max(0.0, global("attackSplashRadius3", ATTACK_SPLASH_RADIUS_3));
+            default -> 0.0;
+        };
+    }
+
+    public static double attackSplashRatio(int milestone) {
+        return switch (milestone) {
+            case 1 -> clamp(global("attackSplashRatio1", ATTACK_SPLASH_RATIO_1), 0.0, 1.0);
+            case 2 -> clamp(global("attackSplashRatio2", ATTACK_SPLASH_RATIO_2), 0.0, 1.0);
+            case 3 -> clamp(global("attackSplashRatio3", ATTACK_SPLASH_RATIO_3), 0.0, 1.0);
+            default -> 0.0;
+        };
+    }
+
+    public static double defenseDamageReduction(int milestone) {
+        return switch (milestone) {
+            case 1 -> clamp(global("defenseDamageReduction1", DEFENSE_DAMAGE_REDUCTION_1), 0.0, 1.0);
+            case 2 -> clamp(global("defenseDamageReduction2", DEFENSE_DAMAGE_REDUCTION_2), 0.0, 1.0);
+            case 3 -> clamp(global("defenseDamageReduction3", DEFENSE_DAMAGE_REDUCTION_3), 0.0, 1.0);
+            default -> 0.0;
+        };
     }
 
     public static double testBuildAuraBonus() {

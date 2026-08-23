@@ -168,6 +168,68 @@ class DeveloperTowerTest {
     }
 
     @Test
+    void milestonesCountOnlyActivePatchesInTheirOwnCategory() {
+        DeveloperTower beta = tower(DeveloperTowers.BETA);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.ATTACK, 0.1);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.RANGE, 0.1);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.FIRE_RATE, 0.1);
+        DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.1);
+        DeveloperTowerData.addPendingPatch(beta, DeveloperPatch.ATTACK, 0.1);
+        DeveloperTowerData.addPendingPatch(beta, DeveloperPatch.AGGRO, 8.0);
+
+        assertEquals(3, DeveloperTowerData.activeAttackPatchCount(beta));
+        assertEquals(1, DeveloperTowerData.activeDefensePatchCount(beta));
+        assertEquals(1, DeveloperBalance.patchMilestone(DeveloperTowerData.activeAttackPatchCount(beta)));
+        assertEquals(0, DeveloperBalance.patchMilestone(DeveloperTowerData.activeDefensePatchCount(beta)));
+    }
+
+    @Test
+    void patchMilestonesReplaceRatherThanStackAndFallWhenAPatchIsLost() {
+        DeveloperTower beta = tower(DeveloperTowers.BETA);
+        assertEquals(0, DeveloperBalance.patchMilestone(2));
+        assertEquals(1, DeveloperBalance.patchMilestone(3));
+        assertEquals(2, DeveloperBalance.patchMilestone(5));
+        assertEquals(3, DeveloperBalance.patchMilestone(7));
+        assertEquals(0.40, DeveloperBalance.attackSplashRatio(1), 1.0e-9);
+        assertEquals(0.50, DeveloperBalance.attackSplashRatio(2), 1.0e-9);
+        assertEquals(0.60, DeveloperBalance.attackSplashRatio(3), 1.0e-9);
+
+        for (int index = 0; index < 3; index++) {
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.01);
+        }
+        assertEquals(90.0, beta.modifyIncomingDamage(null, null, 100.0), 1.0e-9);
+        for (int index = 3; index < 5; index++) {
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.01);
+        }
+        assertEquals(85.0, beta.modifyIncomingDamage(null, null, 100.0), 1.0e-9);
+        for (int index = 5; index < 7; index++) {
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.01);
+        }
+        assertEquals(80.0, beta.modifyIncomingDamage(null, null, 100.0), 1.0e-9);
+
+        assertTrue(DeveloperTowerData.dropOneActivePatch(beta));
+        assertEquals(6, DeveloperTowerData.activeDefensePatchCount(beta));
+        assertEquals(85.0, beta.modifyIncomingDamage(null, null, 100.0), 1.0e-9);
+    }
+
+    @Test
+    void runtimeDetailsShowPatchMilestoneProgressAndCurrentEffects() {
+        DeveloperTower beta = tower(DeveloperTowers.BETA);
+        for (int index = 0; index < 3; index++) {
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.ATTACK, 0.01);
+        }
+        for (int index = 0; index < 5; index++) {
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.HEALTH, 0.01);
+        }
+
+        String details = String.join("\n", beta.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        assertTrue(details.contains("공격 패치 3/5회"));
+        assertTrue(details.contains("스플래시 공격 피해 40% · 반경 1.25칸"));
+        assertTrue(details.contains("수비 패치 5/7회"));
+        assertTrue(details.contains("받는 피해 -15%"));
+    }
+
+    @Test
     void tierScalesRunTheOtherWayFromTheBugChances() {
         assertTrue(
                 DeveloperBalance.patchScale(DeveloperTowers.RELEASE)

@@ -67,7 +67,8 @@ public final class AcquireLaneDefenseTargetGoal extends Goal {
      */
     private LivingEntity findDemonLordTarget() {
         double targetRange = monster.defenseTargetSearchRange();
-        return monster.level().getEntities(monster, monster.defenseSearchBox(), entity -> {
+        AABB targetBox = monster.getBoundingBox().inflate(targetRange);
+        return monster.level().getEntities(monster, targetBox, entity -> {
                     if (!(entity instanceof ServerPlayer player) || !player.isAlive()) {
                         return false;
                     }

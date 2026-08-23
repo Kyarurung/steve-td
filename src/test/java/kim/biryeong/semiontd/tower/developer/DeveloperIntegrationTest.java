@@ -198,6 +198,12 @@ class DeveloperIntegrationTest {
                 merged.ability(DeveloperBalance.CONFIG_ID, "basePatchSlots", -1.0), 1.0e-9);
         assertEquals((double) DeveloperBalance.PATCH_SLOTS_PER_TOWERS,
                 merged.ability(DeveloperBalance.CONFIG_ID, "patchSlotsPerTowers", -1.0), 1.0e-9);
+        assertEquals((double) DeveloperBalance.PATCH_MILESTONE_1_THRESHOLD,
+                merged.ability(DeveloperBalance.CONFIG_ID, "patchMilestone1Threshold", -1.0), 1.0e-9);
+        assertEquals(DeveloperBalance.ATTACK_SPLASH_RATIO_3,
+                merged.ability(DeveloperBalance.CONFIG_ID, "attackSplashRatio3", -1.0), 1.0e-9);
+        assertEquals(DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_3,
+                merged.ability(DeveloperBalance.CONFIG_ID, "defenseDamageReduction3", -1.0), 1.0e-9);
     }
 
     @Test
@@ -210,6 +216,14 @@ class DeveloperIntegrationTest {
                 () -> withDeveloperGlobal("testBuildAuraRadius", 0.0).validateForRuntime());
         assertThrows(IllegalArgumentException.class,
                 () -> withDeveloperGlobal("garbage_collectionBugPrimary", 1.01).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("attackSplashRatio1", 1.01).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("attackSplashRadius1", 0.0).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("patchMilestone1Threshold", 1.5).validateForRuntime());
+        assertThrows(IllegalArgumentException.class,
+                () -> withDeveloperGlobal("patchMilestone2Threshold", 2.0).validateForRuntime());
     }
 
     /** Every catalog entry the family registers must be constructible through the real factory. */

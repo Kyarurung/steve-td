@@ -12,8 +12,10 @@ import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.monster.MonsterState;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.monster.goal.AcquireLaneDefenseTargetGoal;
+import kim.biryeong.semiontd.entity.monster.goal.MonsterAttackTargetGoal;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -200,9 +202,9 @@ public final class DemonLordGameTest {
 
             otherLane.entity().setTarget(player);
             state.leaveCombat();
-            DemonLordService.releaseAggro(player);
+            new MonsterAttackTargetGoal(otherLane.entity(), 1.1).tick();
             require(otherLane.entity().getTarget() == null,
-                    "Leaving combat must clear aggro from monsters in every lane.");
+                    "Monsters must drop a demon lord target after they leave combat.");
             context.succeed();
         } catch (Throwable failure) {
             context.fail(Component.literal("Demon lord targeting GameTest failed: " + failure.getMessage()));
@@ -217,27 +219,34 @@ public final class DemonLordGameTest {
     @GameTest
     public void demonLordDrawsAggroOnlyInsideDefenseRange(GameTestHelper context) {
         ServerPlayer player = context.makeMockServerPlayerInLevel();
-        PlayerLane lane = testLane(context, player.getUUID());
+        PlayerLane lane = failedLane(context, player.getUUID());
         prepareFloor(context);
-        SpawnedTarget target = spawnTarget(context, lane, new BlockPos(1, 2, 1), 2, 100.0, 0.0);
+        SpawnedTarget target = spawnTarget(context, lane, new BlockPos(3, 2, 3), 2, 100.0, 0.0);
         try {
             DemonLordState state = DemonLordStates.getOrCreate(player.getUUID());
             state.setLaneId(1);
             state.enterCombat();
             state.enterCentralDefense();
-            target.runtime().enterFinalDefenseCombat();
-            Vec3 center = Vec3.atCenterOf(context.absolutePos(new BlockPos(10, 2, 10)));
+            target.runtime().syncLaneProgress(1.0);
+            require(target.runtime().state() == MonsterState.REACHED_BOSS,
+                    "A monster that broke through must enter the reached-boss state.");
+            Vec3 center = Vec3.atCenterOf(context.absolutePos(new BlockPos(12, 2, 3)));
             player.teleportTo(center.x, center.y, center.z);
 
             AcquireLaneDefenseTargetGoal goal = new AcquireLaneDefenseTargetGoal(target.entity());
             require(!goal.canUse(), "A distant final-defense monster must keep following its lane path.");
 
-            Vec3 nearby = Vec3.atCenterOf(context.absolutePos(new BlockPos(6, 2, 6)));
-            target.entity().setPos(nearby.x, nearby.y, nearby.z);
+            Vec3 nearby = Vec3.atCenterOf(context.absolutePos(new BlockPos(10, 2, 3)));
+            player.teleportTo(nearby.x, nearby.y, nearby.z);
+            require(!target.entity().defenseSearchBox().contains(player.position()),
+                    "The other lane's defense box must not hide the cross-lane regression.");
             require(goal.canUse(), "A monster inside defense range must be able to target the demon lord.");
             goal.start();
             require(target.entity().getTarget() == player,
                     "The nearby final-defense monster must acquire the demon lord.");
+            require(DemonLordService.dealDamage(
+                            player, lane, null, target.entity(), 10.0, DamageType.TRUE).dealtDamage() > 0.0,
+                    "The demon lord must be able to damage a failed monster from another lane.");
             context.succeed();
         } catch (Throwable failure) {
             context.fail(Component.literal("Demon lord aggro-range GameTest failed: " + failure.getMessage()));
@@ -324,6 +333,21 @@ public final class DemonLordGameTest {
                 1
         );
         return new PlayerLane(TeamId.RED, 1, owner, context.getLevel(), layout);
+    }
+
+    private static PlayerLane failedLane(GameTestHelper context, UUID owner) {
+        BlockPos corner = context.absolutePos(new BlockPos(0, 1, 0));
+        LaneRegionLayout layout = new LaneRegionLayout(
+                2,
+                Vec3.atCenterOf(context.absolutePos(new BlockPos(1, 2, 1))),
+                BlockBounds.of(corner, corner),
+                List.of(Vec3.atCenterOf(context.absolutePos(new BlockPos(1, 2, 1)))),
+                Vec3.atCenterOf(context.absolutePos(new BlockPos(1, 2, 1))),
+                BlockBounds.of(corner, corner),
+                List.of(grid(context, new BlockPos(1, 2, 1))),
+                1
+        );
+        return new PlayerLane(TeamId.RED, 2, owner, context.getLevel(), layout);
     }
 
     private static GridPosition grid(GameTestHelper context, BlockPos relative) {

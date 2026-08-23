@@ -25,7 +25,7 @@ public final class QueenTowers {
                     "설치할 때 표준 52장 중 한 장을 복원 추첨합니다.",
                     "공격할 때 축소 {ability.queen_global.cardShrinkPoints:number}(1점당 ×{ability.queen_global.shrinkFactorPerPoint:number})을 누적해 능력치와 이동속도를 {ability.queen_global.minimumStatScale:percent}까지, 공격속도는 그 감소량의 절반만큼 낮추며 외형은 {ability.queen_global.minimumVisualScale:percent}까지 낮춥니다. 반경 {ability.queen_global.cardSplashRadius:blocks}의 추가 적 {ability.queen_global.cardSplashExtraTargets:int}기도 약화하며 사망 시 반경 {ability.queen_global.cardDeathRadius:blocks}에 축소 {ability.queen_global.cardDeathShrinkPoints:number}을 남깁니다.",
                     "하트는 치유, 다이아는 속공, 클로버는 탱킹, 스페이드는 더 넓은 범위 약체화를 담당합니다. 역할에 따라 하트·다이아는 낮게, 클로버는 가장 높게, 스페이드는 중간 어그로를 받으며 직접 처치하지 못합니다.",
-                    "라인에 수직인 가로 5장을 맞추면 <light_purple>포커 족보</light_purple>가 체력·공속·치유·축소를 강화합니다."
+                    "라인에 수직인 가로 5장을 맞추면 <light_purple>포커 족보</light_purple>가 해당 카드병정의 체력·공속·치유·축소를 강화하고, 클로버 고유 방어력과 합산해 받는 피해를 최대 {ability.queen_global.pokerDamageReductionCap:percent} 감소시킵니다."
             )).build();
 
     private static final List<TowerType> ALL = List.of(QUEEN, RANDOM_CARD_SOLDIER);

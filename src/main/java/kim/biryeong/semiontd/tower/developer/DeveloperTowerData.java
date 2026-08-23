@@ -117,6 +117,17 @@ public final class DeveloperTowerData {
         return total;
     }
 
+    public static int activeAttackPatchCount(Tower tower) {
+        return activeCount(tower, DeveloperPatch.ATTACK)
+                + activeCount(tower, DeveloperPatch.RANGE)
+                + activeCount(tower, DeveloperPatch.FIRE_RATE);
+    }
+
+    public static int activeDefensePatchCount(Tower tower) {
+        return activeCount(tower, DeveloperPatch.HEALTH)
+                + activeCount(tower, DeveloperPatch.AGGRO);
+    }
+
     /** A hotfix takes effect this round, so it goes straight into the active bucket. */
     public static void addActivePatch(Tower tower, DeveloperPatch patch, double amount) {
         if (tower == null || amount <= 0.0) {
