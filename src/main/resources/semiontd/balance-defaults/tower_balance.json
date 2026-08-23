@@ -3663,6 +3663,38 @@
       "damage": 30.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 5
+    },
+    "t1_panda_tower": {
+      "mineralCost": 70,
+      "maxHealth": 260.0,
+      "range": 2.5,
+      "damage": 12.0,
+      "attackIntervalTicks": 22,
+      "aggroPriority": 55
+    },
+    "t2_panda_tower": {
+      "mineralCost": 150,
+      "maxHealth": 480.0,
+      "range": 2.5,
+      "damage": 22.0,
+      "attackIntervalTicks": 21,
+      "aggroPriority": 62
+    },
+    "t3_panda_tower": {
+      "mineralCost": 260,
+      "maxHealth": 800.0,
+      "range": 2.5,
+      "damage": 38.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 70
+    },
+    "t4_panda_tower": {
+      "mineralCost": 400,
+      "maxHealth": 1250.0,
+      "range": 2.5,
+      "damage": 58.0,
+      "attackIntervalTicks": 18,
+      "aggroPriority": 78
     }
   },
   "upgradeCosts": {
@@ -4082,7 +4114,10 @@
     "body_eye_t1->body_eye_t2": 110,
     "body_eye_t2->body_eye_t3": 220,
     "body_genital_t1->body_genital_t2": 100,
-    "body_genital_t2->body_genital_t3": 205
+    "body_genital_t2->body_genital_t3": 205,
+    "t1_panda_tower->t2_panda_tower": 150,
+    "t2_panda_tower->t3_panda_tower": 260,
+    "t3_panda_tower->t4_panda_tower": 400
   },
   "abilities": {
     "villager_splash_t2": {
@@ -7267,9 +7302,15 @@
       "absorbAttackRatio": 0.03,
       "absorbMaxHealthRatio": 0.01
     },
-    "succubus_dream_dust_t1": {"stackEvery": 3.0},
-    "succubus_dream_dust_t2": {"stackEvery": 2.0},
-    "succubus_dream_dust_t3": {"stackEvery": 1.0},
+    "succubus_dream_dust_t1": {
+      "stackEvery": 3.0
+    },
+    "succubus_dream_dust_t2": {
+      "stackEvery": 2.0
+    },
+    "succubus_dream_dust_t3": {
+      "stackEvery": 1.0
+    },
     "succubus_sleepwalker_t1": {
       "counterCooldownTicks": 60.0,
       "counterStacks": 1.0,
@@ -7285,12 +7326,36 @@
       "counterStacks": 3.0,
       "dreamDamageReduction": 0.2
     },
-    "succubus_lullaby_t1": {"pulseIntervalTicks": 120.0, "radius": 4.5, "allyMaxTargets": 2.0, "enemyMaxTargets": 3.0},
-    "succubus_lullaby_t2": {"pulseIntervalTicks": 100.0, "radius": 5.0, "allyMaxTargets": 3.0, "enemyMaxTargets": 5.0},
-    "succubus_lullaby_t3": {"pulseIntervalTicks": 80.0, "radius": 5.5, "allyMaxTargets": 4.0, "enemyMaxTargets": 7.0},
-    "succubus_nightmare_t1": {"minimumStacks": 5.0, "sleepingDamageBonus": 0.0},
-    "succubus_nightmare_t2": {"minimumStacks": 3.0, "sleepingDamageBonus": 0.25},
-    "succubus_nightmare_t3": {"minimumStacks": 0.0, "sleepingDamageBonus": 0.5},
+    "succubus_lullaby_t1": {
+      "pulseIntervalTicks": 120.0,
+      "radius": 4.5,
+      "allyMaxTargets": 2.0,
+      "enemyMaxTargets": 3.0
+    },
+    "succubus_lullaby_t2": {
+      "pulseIntervalTicks": 100.0,
+      "radius": 5.0,
+      "allyMaxTargets": 3.0,
+      "enemyMaxTargets": 5.0
+    },
+    "succubus_lullaby_t3": {
+      "pulseIntervalTicks": 80.0,
+      "radius": 5.5,
+      "allyMaxTargets": 4.0,
+      "enemyMaxTargets": 7.0
+    },
+    "succubus_nightmare_t1": {
+      "minimumStacks": 5.0,
+      "sleepingDamageBonus": 0.0
+    },
+    "succubus_nightmare_t2": {
+      "minimumStacks": 3.0,
+      "sleepingDamageBonus": 0.25
+    },
+    "succubus_nightmare_t3": {
+      "minimumStacks": 0.0,
+      "sleepingDamageBonus": 0.5
+    },
     "body_heart_t2": {
       "maxDeathStacks": 60.0,
       "stacksPerIntervalReduction": 15.0
@@ -7301,7 +7366,7 @@
     },
     "body_brain_t1": {
       "splashRadius": 2.5,
-      "damageTaken": 0.10,
+      "damageTaken": 0.1,
       "attackReduction": 0.08,
       "debuffTicks": 100.0
     },
@@ -7313,7 +7378,7 @@
     },
     "body_brain_t3": {
       "splashRadius": 4.5,
-      "damageTaken": 0.20,
+      "damageTaken": 0.2,
       "attackReduction": 0.16,
       "debuffTicks": 100.0
     },
@@ -7354,8 +7419,47 @@
       "magicProcDamage": 27.0,
       "slow": 0.35,
       "slowTicks": 40.0
+    },
+    "t1_panda_tower": {
+      "chargeIntervalTicks": 200.0,
+      "chargeDistance": 6.0,
+      "chargeHitRadius": 1.6,
+      "chargeHealthRatio": 0.08,
+      "chargeKnockback": 1.0,
+      "chargeDebuffTicks": 60.0,
+      "chargeAttackSpeedReduction": 0.3,
+      "chargeRangeReduction": 0.3
+    },
+    "t2_panda_tower": {
+      "chargeIntervalTicks": 180.0,
+      "chargeDistance": 7.0,
+      "chargeHitRadius": 1.8,
+      "chargeHealthRatio": 0.1,
+      "chargeKnockback": 1.2,
+      "chargeDebuffTicks": 70.0,
+      "chargeAttackSpeedReduction": 0.35,
+      "chargeRangeReduction": 0.35
+    },
+    "t3_panda_tower": {
+      "chargeIntervalTicks": 160.0,
+      "chargeDistance": 8.0,
+      "chargeHitRadius": 2.0,
+      "chargeHealthRatio": 0.12,
+      "chargeKnockback": 1.4,
+      "chargeDebuffTicks": 80.0,
+      "chargeAttackSpeedReduction": 0.4,
+      "chargeRangeReduction": 0.4
+    },
+    "t4_panda_tower": {
+      "chargeIntervalTicks": 140.0,
+      "chargeDistance": 9.0,
+      "chargeHitRadius": 2.2,
+      "chargeHealthRatio": 0.15,
+      "chargeKnockback": 1.6,
+      "chargeDebuffTicks": 100.0,
+      "chargeAttackSpeedReduction": 0.5,
+      "chargeRangeReduction": 0.5
     }
-
   },
   "illusionCloneQueue": {
     "spreadTicks": 200,

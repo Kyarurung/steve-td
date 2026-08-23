@@ -63,7 +63,7 @@ final class PlantTowerCatalogTest {
     }
 
     @Test
-    void catalogExposesFourTerraformAndFourCombatStarters() {
+    void catalogExposesEveryTierOneIncludingTheSoillessPanda() {
         List<String> starters = ProductionTowerCatalog.all().stream()
                 .filter(ProductionTowerCatalog.CatalogEntry::starter)
                 .map(ProductionTowerCatalog.CatalogEntry::type)
@@ -79,8 +79,76 @@ final class PlantTowerCatalogTest {
                 PlantTowers.T1_MEADOW_NOVA_TOWER.id(),
                 PlantTowers.T1_MYCELIUM_TOWER.id(),
                 PlantTowers.T1_DESERT_TOWER.id(),
-                PlantTowers.T1_PODZOL_TOWER.id()
+                PlantTowers.T1_PODZOL_TOWER.id(),
+                // 판다는 지형이 없어 계열 묶음 밖이지만, 시작 타워인 것은 같습니다.
+                PlantTowers.T1_PANDA_TOWER.id()
         ), starters);
+    }
+
+    /**
+     * 판다는 식물 빌더의 규칙을 둘 다 깨는 유일한 타워입니다.
+     *
+     * <p>다른 식물은 자기 계열 지형 위에만 설 수 있고 뿌리를 내려 움직이지 않습니다. 판다는
+     * 지형이 없어 어디에나 서고, 적을 쫓아 걸어갑니다. 둘 중 하나라도 무너지면 이 타워를 넣은
+     * 이유가 사라집니다.
+     */
+    @Test
+    void pandaNeedsNoSoilAndWalks() {
+        for (TowerType type : PlantTowers.PANDA_TOWERS) {
+            assertTrue(PlantTowers.isPlantTower(type), type.id() + " 는 식물 빌더 소속이어야 합니다");
+            assertTrue(PlantTowers.isPandaTower(type), type.id());
+            assertNull(PlantTowers.soilOf(type), type.id() + " 는 지형 계열에 묶이면 안 됩니다");
+
+            // 지형이 없으면 설치 판정이 곧바로 통과합니다.
+            assertTrue(PlantSoilStates.canPlantAt(uuid("panda-owner"), new GridPosition(0, 64, 0), type),
+                    type.id() + " 는 지형 없이 설 수 있어야 합니다");
+
+            Tower tower = create(type);
+            assertInstanceOf(PandaTower.class, tower, type.id());
+            assertTrue(tower.canChaseTargets(), type.id() + " 는 걸어 다녀야 합니다");
+            assertTrue(tower.countsForLaneDefense(), type.id() + " 는 실제로 라인을 지킵니다");
+        }
+
+        // 4티어입니다. 다른 계열은 전부 3티어입니다.
+        assertEquals(4, PlantTowers.PANDA_TOWERS.size());
+        assertUpgrade(PlantTowers.T1_PANDA_TOWER, PlantTowers.T2_PANDA_TOWER, 150);
+        assertUpgrade(PlantTowers.T2_PANDA_TOWER, PlantTowers.T3_PANDA_TOWER, 260);
+        assertUpgrade(PlantTowers.T3_PANDA_TOWER, PlantTowers.T4_PANDA_TOWER, 400);
+        assertEquals("판다", new PlantTowerJob().towerGroup(PlantTowers.T1_PANDA_TOWER));
+    }
+
+    /**
+     * 돌진 피해는 공격력이 아니라 자기 최대 체력 비율입니다.
+     *
+     * <p>공격력 기준이면 근접 평타와 같은 축을 두 번 타서, 체력을 올리는 선택이 화력에 아무
+     * 의미가 없어집니다.
+     */
+    @Test
+    void pandaChargeScalesWithItsOwnMaxHealthAndDebuffsWhatItPushes() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        double previousRatio = 0.0;
+        for (TowerType type : PlantTowers.PANDA_TOWERS) {
+            double ratio = defaults.ability(type.id(), "chargeHealthRatio", -1);
+            assertTrue(ratio > previousRatio, type.id() + " 돌진 비율이 티어를 따라 올라야 합니다");
+            previousRatio = ratio;
+
+            assertTrue(defaults.ability(type.id(), "chargeDistance", -1) > 0.0, type.id());
+            assertTrue(defaults.ability(type.id(), "chargeHitRadius", -1) > 0.0, type.id());
+            assertTrue(defaults.ability(type.id(), "chargeKnockback", -1) > 0.0,
+                    type.id() + " 넉백이 없으면 밀어내는 기술이 아닙니다");
+            assertTrue(defaults.ability(type.id(), "chargeAttackSpeedReduction", -1) > 0.0, type.id());
+            assertTrue(defaults.ability(type.id(), "chargeRangeReduction", -1) > 0.0, type.id());
+            assertTrue(defaults.ability(type.id(), "chargeDebuffTicks", -1) > 0.0,
+                    type.id() + " 지속이 0 이면 감소가 걸려도 즉시 풀립니다");
+        }
+
+        PandaTower panda = (PandaTower) create(PlantTowers.T4_PANDA_TOWER);
+        var resolved = TowerBalanceRuntime.resolve(PlantTowers.T4_PANDA_TOWER);
+        assertEquals(resolved.maxHealth() * defaults.ability(PlantTowers.T4_PANDA_TOWER.id(), "chargeHealthRatio", 0.0),
+                panda.chargeDamage(), EPSILON);
+
+        assertPlantConfigRejected(defaults, PlantTowers.T1_PANDA_TOWER.id(), "chargeHealthRatio", 1.01);
+        assertPlantConfigRejected(defaults, PlantTowers.T1_PANDA_TOWER.id(), "chargeIntervalTicks", 20.5);
     }
 
     @Test
