@@ -1,5 +1,6 @@
 package kim.biryeong.semiontd.tower.warlock;
 
+import java.util.Objects;
 import kim.biryeong.semiontd.tower.LogarithmicScaling;
 
 final class WarlockRules {
@@ -18,6 +19,90 @@ final class WarlockRules {
             double incomeDebuffResistance,
             AwakeningBonus awakeningBonus
     ) {
+        static Builder builder() {
+            return new Builder();
+        }
+
+        static final class Builder {
+            private SacrificeRule sacrifice;
+            private AbsorptionRule absorption;
+            private ScalingRule healthScaling = ScalingRule.NONE;
+            private ScalingRule damageScaling = ScalingRule.NONE;
+            private StackRule lifeSteal = StackRule.NONE;
+            private SplashRule splash = SplashRule.NONE;
+            private DefenseRule defense = DefenseRule.NONE;
+            private PassiveRule passive = PassiveRule.NONE;
+            private double incomeDebuffResistance;
+            private AwakeningBonus awakeningBonus = AwakeningBonus.NONE;
+
+            private Builder() {
+            }
+
+            Builder sacrifice(SacrificeRule sacrifice) {
+                this.sacrifice = sacrifice;
+                return this;
+            }
+
+            Builder absorption(AbsorptionRule absorption) {
+                this.absorption = absorption;
+                return this;
+            }
+
+            Builder healthScaling(ScalingRule healthScaling) {
+                this.healthScaling = healthScaling;
+                return this;
+            }
+
+            Builder damageScaling(ScalingRule damageScaling) {
+                this.damageScaling = damageScaling;
+                return this;
+            }
+
+            Builder lifeSteal(StackRule lifeSteal) {
+                this.lifeSteal = lifeSteal;
+                return this;
+            }
+
+            Builder splash(SplashRule splash) {
+                this.splash = splash;
+                return this;
+            }
+
+            Builder defense(DefenseRule defense) {
+                this.defense = defense;
+                return this;
+            }
+
+            Builder passive(PassiveRule passive) {
+                this.passive = passive;
+                return this;
+            }
+
+            Builder incomeDebuffResistance(double incomeDebuffResistance) {
+                this.incomeDebuffResistance = incomeDebuffResistance;
+                return this;
+            }
+
+            Builder awakeningBonus(AwakeningBonus awakeningBonus) {
+                this.awakeningBonus = awakeningBonus;
+                return this;
+            }
+
+            PathRule build() {
+                return new PathRule(
+                        Objects.requireNonNull(sacrifice, "sacrifice"),
+                        Objects.requireNonNull(absorption, "absorption"),
+                        Objects.requireNonNull(healthScaling, "healthScaling"),
+                        Objects.requireNonNull(damageScaling, "damageScaling"),
+                        Objects.requireNonNull(lifeSteal, "lifeSteal"),
+                        Objects.requireNonNull(splash, "splash"),
+                        Objects.requireNonNull(defense, "defense"),
+                        Objects.requireNonNull(passive, "passive"),
+                        incomeDebuffResistance,
+                        Objects.requireNonNull(awakeningBonus, "awakeningBonus")
+                );
+            }
+        }
     }
 
     record SacrificeRule(double radius, double completionHealing) {

@@ -55,6 +55,19 @@ class WarlockPathTest {
     }
 
     @Test
+    void basePathUsesNeutralOptionalRules() {
+        WarlockRules.PathRule base = WarlockConfig.RUNTIME.path(WarlockPath.BASE);
+
+        assertEquals(0.0, base.lifeSteal().value(100), 0.0001);
+        assertEquals(0.0, base.splash().radius(100), 0.0001);
+        assertEquals(0.0, base.defense().value(100), 0.0001);
+        assertEquals(0.0, base.passive().healthBonus(100), 0.0001);
+        assertEquals(0.0, base.passive().damageBonus(100), 0.0001);
+        assertEquals(0.0, base.incomeDebuffResistance(), 0.0001);
+        assertEquals(WarlockRules.AwakeningBonus.NONE, base.awakeningBonus());
+    }
+
+    @Test
     void sacrificeDeathEffectsResolveWithoutDirectRuntimeLookups() {
         WarlockRules.DeathEffectRule melee = WarlockConfig.RUNTIME.deathEffect(WarlockTowers.T2_SLAVE);
         WarlockRules.DeathEffectRule ranged = WarlockConfig.RUNTIME.deathEffect(WarlockTowers.T2_RANGED_SLAVE);
