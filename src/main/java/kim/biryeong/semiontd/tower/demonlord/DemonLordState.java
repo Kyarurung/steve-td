@@ -442,12 +442,12 @@ public final class DemonLordState {
 
     /** Before clearing, fight only this lane; afterwards, fight only final-defense monsters. */
     public boolean canFight(Monster monster) {
-        if (monster == null || !monster.isAlive()) {
+        if (monster == null) {
             return false;
         }
         return centralDefense
-                ? monster.inFinalDefenseCombat()
-                : monster.targetLaneId() == laneId;
+                ? monster.inFinalDefenseCombat() && !monster.isRemoved() && monster.health() > 0.0
+                : monster.isAlive() && monster.targetLaneId() == laneId;
     }
 
     /**
