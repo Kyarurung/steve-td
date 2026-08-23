@@ -2981,6 +2981,7 @@ public record TowerBalanceConfig(
         values.put("heartHealAmount", 12.0);
         values.put("heartHealRadius", 5.0);
         values.put("clubDamageReduction", 0.15);
+        values.put("pokerDamageReductionCap", 0.40);
         values.put("cardSplashRadius", 2.0);
         values.put("cardSplashExtraTargets", 5.0);
         values.put("spadeRadius", 2.5);
@@ -3042,7 +3043,7 @@ public record TowerBalanceConfig(
             throw new IllegalArgumentException("Queen minimumStatScale must be between 0 (exclusive) and 1.");
         }
         for (String key : java.util.List.of(
-                "clubDamageReduction", "giantExecutionVisualShrink", "giantExecutionGrowthRatio", "giantSlow")) {
+                "clubDamageReduction", "pokerDamageReductionCap", "giantExecutionVisualShrink", "giantExecutionGrowthRatio", "giantSlow")) {
             double value = values.getOrDefault(key, -1.0);
             if (value < 0.0 || value > 1.0) throw new IllegalArgumentException("Queen ratio must be between 0 and 1: " + key);
         }

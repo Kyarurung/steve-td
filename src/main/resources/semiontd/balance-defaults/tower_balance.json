@@ -5927,6 +5927,7 @@
       "heartHealAmount": 12.0,
       "heartHealRadius": 5.0,
       "clubDamageReduction": 0.15,
+      "pokerDamageReductionCap": 0.4,
       "cardSplashRadius": 2.0,
       "cardSplashExtraTargets": 5.0,
       "spadeRadius": 2.5,

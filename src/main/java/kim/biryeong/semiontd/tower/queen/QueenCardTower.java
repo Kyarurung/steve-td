@@ -166,8 +166,7 @@ public final class QueenCardTower extends ProductionTower {
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity source, DamageSource damageSource, double damage) {
-        return card().map(QueenCard::suit).orElse(null) == QueenCard.Suit.CLUB
-                ? damage * (1.0 - QueenBalance.clubDamageReduction()) : damage;
+        return damage * (1.0 - incomingDamageReduction());
     }
 
     @Override
@@ -209,8 +208,17 @@ public final class QueenCardTower extends ProductionTower {
                         + "점 (점당 " + percentInteger(1.0 - QueenBalance.shrinkFactorPerPoint()) + " 감소)",
                 "능력치 하한: 원본의 " + percentInteger(QueenBalance.minimumStatScale()),
                 "외형 하한: 원본의 " + percentInteger(QueenBalance.minimumVisualScale()),
-                "족보 보너스: " + percentInteger(pokerBonus)
+                "족보 보너스: " + percentInteger(pokerBonus),
+                "받는 피해 감소: " + percentInteger(incomingDamageReduction())
         );
+    }
+
+    private double incomingDamageReduction() {
+        double reduction = pokerBonus;
+        if (card().map(QueenCard::suit).orElse(null) == QueenCard.Suit.CLUB) {
+            reduction += QueenBalance.clubDamageReduction();
+        }
+        return Math.min(QueenBalance.pokerDamageReductionCap(), reduction);
     }
 
     private double desiredMaxHealth() {
