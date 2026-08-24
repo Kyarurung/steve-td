@@ -137,4 +137,25 @@ class EndTransferLifecycleTest extends EndTestFixture {
         assertEquals(expectedPermanentHealth, core.transferStats().permanentHealthBonus(), 0.0001);
     }
 
+    @Test
+    void replacingEquivalentSourceRestartsTransferForTheNewIdentity() {
+        applyTransferDuration(4);
+        PlayerLane lane = lane();
+        EndTower core = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower original = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        EndTower replacement = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        lane.addTower(core);
+        lane.addTower(original);
+        core.onWaveStarted(lane, 1);
+        tick(core, lane, 2);
+        assertEquals(0.50, EndTransferController.progress(original), 0.0001);
+
+        lane.replaceTower(original, replacement);
+        core.tick(lane);
+
+        assertEquals(0.0, EndTransferController.progress(original), 0.0001);
+        assertEquals(0.25, EndTransferController.progress(replacement), 0.0001);
+        assertEquals(expectedHealthBonus(12.5), core.transferStats().roundHealthBonus(), 0.0001);
+    }
+
 }

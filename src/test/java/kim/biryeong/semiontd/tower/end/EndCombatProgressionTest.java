@@ -208,9 +208,31 @@ class EndCombatProgressionTest extends EndTestFixture {
         lane.addTower(dragon);
         dragon.onWaveStarted(lane, 1);
         double resolvedPrimaryDamage = 1_000.0;
-        EndCombat combat = new EndCombat(EndConfig.RUNTIME, new EndTransferController(EndConfig.RUNTIME));
+        EndCombat combat = new EndCombat(EndConfig.RUNTIME);
         assertEquals(660.0, combat.resolvedSplashDamage(resolvedPrimaryDamage), 0.0001);
         assertEquals(0.0, combat.resolvedSplashDamage(Double.NaN), 0.0001);
+    }
+
+    @Test
+    void combatCalculationsUseTheProvidedTransferStackSnapshot() {
+        applyEndAbilities(Map.ofEntries(
+                Map.entry("lifeStealStacks", 2.0),
+                Map.entry("lifeStealStep", 0.01),
+                Map.entry("attackRangeStacks", 4.0),
+                Map.entry("attackRangeStep", 0.5),
+                Map.entry("attackSpeedStacks", 5.0),
+                Map.entry("attackSpeedStep", 1.0)
+        ));
+        EndCombat combat = new EndCombat(EndConfig.RUNTIME);
+        EndTransferStacks first = new EndTransferStacks(4, 5, 0);
+        EndTransferStacks second = new EndTransferStacks(8, 10, 0);
+
+        assertEquals(0.02, combat.lifeStealRatio(first), 0.0001);
+        assertEquals(0.04, combat.lifeStealRatio(second), 0.0001);
+        assertEquals(0.5, combat.attackRangeBonus(first), 0.0001);
+        assertEquals(1.0, combat.attackRangeBonus(second), 0.0001);
+        assertEquals(19, combat.adjustAttackInterval(20, first));
+        assertEquals(18, combat.adjustAttackInterval(20, second));
     }
 
     @Test

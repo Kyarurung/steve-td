@@ -67,7 +67,10 @@ class EndEvolutionTest extends EndTestFixture {
 
     @Test
     void dragonEggAndHatchedPhantomAreStatesOfOneTowerType() {
-        applyTransferDuration(1);
+        applyEndAbilities(Map.of(
+                "transferTicks", 1.0,
+                "dragonEvolution", EndTowers.BASE_END_TOWER.maxHealth() + 1.0
+        ));
         EndTower tower = tower(EndTowers.BASE_END_TOWER, 0);
         assertEquals(EndTowerState.EGG, tower.state());
         assertEquals(1.0, tower.entityAnchorYOffset(), 0.0001);
@@ -85,8 +88,7 @@ class EndEvolutionTest extends EndTestFixture {
         assertEquals("minecraft:phantom", tower.visual().entityTypeId());
         assertTrue(tower.visual().blockbenchModel().isEmpty());
         assertEquals(0.0, tower.finalDamageBonus(), 0.0001);
-        double dragonEvolution = EndConfig.RUNTIME.dragon().evolutionHealth();
-        tower.syncMaxHealth(dragonEvolution, true);
+        applyStateConfig(EndTowers.BASE_END_TOWER.maxHealth());
         tower.tick(null);
         assertEquals(EndTowerState.DRAGON, tower.state());
         assertFalse(tower.stopsBeforeFriendlyTowers());
@@ -104,6 +106,75 @@ class EndEvolutionTest extends EndTestFixture {
         assertEquals(1.0, tower.entityAnchorYOffset(), 0.0001);
         assertTrue(BlockDisplayVisual.matches(tower.visual()));
         assertEquals(EndTowers.BASE_END_TOWER.maxHealth(), tower.currentMaxHealth(), 0.0001);
+    }
+
+    @Test
+    void evolutionPreservesExternalSynchronizedMaxHealth() {
+        double baseMaxHealth = EndTowers.BASE_END_TOWER.maxHealth();
+        applyStateConfig(baseMaxHealth + 1.0);
+        EndTower tower = core();
+        tower.onWaveStarted(null, 1);
+        tower.syncMaxHealth(baseMaxHealth + 100.0, true);
+
+        tower.tick(null);
+
+        assertEquals(EndTowerState.DRAGON, tower.state());
+        assertEquals(baseMaxHealth + 100.0, tower.previewEvolutionMaxHealth(new EndTransferSnapshot(
+                EndTransferStacks.EMPTY,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+        )), 0.0001);
+    }
+
+    @Test
+    void evolutionProjectionIncludesUnsynchronizedTransferProgress() {
+        double baseMaxHealth = EndTowers.BASE_END_TOWER.maxHealth();
+        EndTower tower = core();
+        EndTransferSnapshot progression = new EndTransferSnapshot(
+                EndTransferStacks.EMPTY,
+                50.0,
+                0.0,
+                0.0,
+                0.0
+        );
+
+        assertEquals(baseMaxHealth, tower.currentMaxHealth(), 0.0001);
+        assertEquals(
+                baseMaxHealth + expectedHealthBonus(50.0),
+                tower.previewEvolutionMaxHealth(progression),
+                0.0001
+        );
+    }
+
+    @Test
+    void projectedEvolutionHealthIncludesTraitMaxHealthBonus() {
+        double baseMaxHealth = EndTowers.BASE_END_TOWER.maxHealth();
+        applyStateConfig(baseMaxHealth * 1.25);
+        EndTower tower = core();
+        tower.onWaveStarted(null, 1);
+        tower.syncEffectMaxHealth(baseMaxHealth, 0.50, false);
+
+        tower.tick(null);
+
+        assertEquals(EndTowerState.DRAGON, tower.state());
+    }
+
+    @Test
+    void removingTraitHealthRevertsDragonToPhantom() {
+        double baseMaxHealth = EndTowers.BASE_END_TOWER.maxHealth();
+        applyStateConfig(baseMaxHealth * 1.25);
+        EndTower tower = core();
+        tower.onWaveStarted(null, 1);
+        tower.syncEffectMaxHealth(baseMaxHealth, 0.50, false);
+        tower.tick(null);
+        assertEquals(EndTowerState.DRAGON, tower.state());
+
+        tower.syncEffectMaxHealth(baseMaxHealth, 0.0, false);
+        tower.tick(null);
+
+        assertEquals(EndTowerState.PHANTOM, tower.state());
     }
 
     private static EndTower core() {

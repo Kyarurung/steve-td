@@ -4164,7 +4164,7 @@ public record TowerBalanceConfig(
         values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1250.0);
+        values.put("awakeningKills", 1400.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -4185,12 +4185,12 @@ public record TowerBalanceConfig(
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.05);
-        values.put("damageThreshold", 150.0);
+        values.put("damageThreshold", 130.0);
         values.put("damageScale", 20.0);
         values.put("lifeEvery", 10.0);
         values.put("lifeStep", 0.005);
         values.put("lifeCap", 0.07);
-        values.put("incomeDebuffResistance", 0.05);
+        values.put("incomeDebuffResistance", 0.30);
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
@@ -4215,11 +4215,11 @@ public record TowerBalanceConfig(
         values.put("healthThreshold", 3500.0);
         values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.025);
-        values.put("damageThreshold", 200.0);
+        values.put("damageThreshold", 180.0);
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
         values.put("lifeCap", 0.13);
-        values.put("incomeDebuffResistance", 0.05);
+        values.put("incomeDebuffResistance", 0.40);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);

@@ -45,13 +45,13 @@ class WarlockPathTest {
 
         assertEquals(600.0, base.healthScaling().value(600.0), 0.0001);
         assertEquals(2000.0, ranged.healthScaling().threshold(), 0.0001);
-        assertEquals(200.0, melee.damageScaling().threshold(), 0.0001);
+        assertEquals(180.0, melee.damageScaling().threshold(), 0.0001);
         assertEquals(0.07, ranged.lifeSteal().maximum(), 0.0001);
         assertEquals(0.13, melee.lifeSteal().maximum(), 0.0001);
         assertEquals(4, ranged.defense().sacrificesPerStep());
         assertEquals(10, melee.defense().sacrificesPerStep());
         assertEquals(5, config.combat().minimumIntervalTicks());
-        assertEquals(1250, config.requiredAwakeningKills());
+        assertEquals(1400, config.requiredAwakeningKills());
     }
 
     @Test

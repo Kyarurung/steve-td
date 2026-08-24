@@ -10,23 +10,21 @@ import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 final class EndCombat {
     private static final int REGENERATION_TICKS = 20;
     private final EndConfig config;
-    private final EndTransferController transfers;
 
-    EndCombat(EndConfig config, EndTransferController transfers) {
+    EndCombat(EndConfig config) {
         this.config = config;
-        this.transfers = transfers;
     }
 
-    int attackInterval(TowerType type) {
-        return reducedAttackInterval(type.attackIntervalTicks(), config.attackSpeed().minimumIntervalTicks());
+    int attackInterval(TowerType type, EndTransferStacks stacks) {
+        return reducedAttackInterval(type.attackIntervalTicks(), config.attackSpeed().minimumIntervalTicks(), stacks);
     }
 
-    int adjustAttackInterval(int baseIntervalTicks) {
-        return reducedAttackInterval(baseIntervalTicks, config.attackSpeed().minimumIntervalTicks());
+    int adjustAttackInterval(int baseIntervalTicks, EndTransferStacks stacks) {
+        return reducedAttackInterval(baseIntervalTicks, config.attackSpeed().minimumIntervalTicks(), stacks);
     }
 
-    double attackRange(TowerType type, EndTowerState state) {
-        return type.range() + attackRangeBonus() + dragonRangeBonus(state);
+    double attackRange(TowerType type, EndTowerState state, EndTransferStacks stacks) {
+        return type.range() + attackRangeBonus(stacks) + dragonRangeBonus(state);
     }
 
     double modifyAttackDamage(TowerType type, double transferredDamageBonus, double damageAmount) {
@@ -34,27 +32,16 @@ final class EndCombat {
         return damageAmount * (1.0 + transferredDamageBonus / type.damage());
     }
 
-    double dragonEvolutionHealth() {
-        return config.dragon().evolutionHealth();
-    }
-
-    double phantomScale(double maxHealth) {
-        EndConfig.PhantomScaleRule rule = config.phantomScale();
-        double resolvedMaxHealth = Double.isFinite(maxHealth) ? Math.max(0.0, maxHealth) : 0.0;
-        double growth = rule.healthInterval() > 0.0 ? resolvedMaxHealth / rule.healthInterval() * rule.step() : 0.0;
-        return Math.min(rule.cap(), rule.base() + growth);
-    }
-
-    double lifeStealRatio() {
-        return transfers.stacks().shulkerBonus(config.lifeSteal());
+    double lifeStealRatio(EndTransferStacks stacks) {
+        return stacks.shulkerBonus(config.lifeSteal());
     }
 
     double maximumLifeSteal() {
         return config.lifeSteal().maximum();
     }
 
-    double damageReduction() {
-        return transfers.stacks().shulkerBonus(config.damageReduction());
+    double damageReduction(EndTransferStacks stacks) {
+        return stacks.shulkerBonus(config.damageReduction());
     }
 
     double maximumDamageReduction() {
@@ -65,8 +52,8 @@ final class EndCombat {
         return config.towerDamageReduction(type);
     }
 
-    double regenerationPerSecond() {
-        return transfers.stacks().shulkerBonus(config.regeneration());
+    double regenerationPerSecond(EndTransferStacks stacks) {
+        return stacks.shulkerBonus(config.regeneration());
     }
 
     double maximumRegeneration() {
@@ -75,9 +62,9 @@ final class EndCombat {
 
     int regenerationTicks() {return REGENERATION_TICKS;}
 
-    double splashRadius(EndTowerState state) {
+    double splashRadius(EndTowerState state, EndTransferStacks stacks) {
         if (!state.hatched()) {return 0.0;}
-        return splashRadiusForSteps(config.splash().unlockedSteps(transfers.stacks().endCrystalCount()));
+        return splashRadiusForSteps(config.splash().unlockedSteps(stacks.endCrystalCount()));
     }
 
     double maximumSplashRadius() {return splashRadiusForSteps(config.splash().thresholds().size());}
@@ -94,8 +81,8 @@ final class EndCombat {
         return Math.min(availableReduction, attackSpeed.maximumReductionTicks());
     }
 
-    double attackRangeBonus() {
-        return transfers.stacks().endCrystalBonus(config.attackRange());
+    double attackRangeBonus(EndTransferStacks stacks) {
+        return stacks.endCrystalBonus(config.attackRange());
     }
 
     double maximumAttackRange(TowerType type, EndTowerState state) {
@@ -110,9 +97,17 @@ final class EndCombat {
         return state == EndTowerState.DRAGON ? config.dragon().rangeBonus() : 0.0;
     }
 
-    void resolveAttack(EndTower tower, SemionTowerEntity towerEntity, SemionMonsterEntity target, double attemptedDamage, double resolvedOutgoingDamage, double dealtDamage) {
-        applySplashDamage(tower, towerEntity, target, attemptedDamage, resolvedOutgoingDamage);
-        heal(towerEntity, dealtDamage * lifeStealRatio());
+    void resolveAttack(
+            EndTower tower,
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double attemptedDamage,
+            double resolvedOutgoingDamage,
+            double dealtDamage,
+            EndTransferStacks stacks
+    ) {
+        applySplashDamage(tower, towerEntity, target, attemptedDamage, resolvedOutgoingDamage, stacks);
+        heal(towerEntity, dealtDamage * lifeStealRatio(stacks));
     }
 
     private double splashRadiusForSteps(int unlockedSteps) {
@@ -125,9 +120,10 @@ final class EndCombat {
             SemionTowerEntity towerEntity,
             SemionMonsterEntity target,
             double attemptedDamage,
-            double resolvedOutgoingDamage
+            double resolvedOutgoingDamage,
+            EndTransferStacks stacks
     ) {
-        double radius = splashRadius(tower.state());
+        double radius = splashRadius(tower.state(), stacks);
         double splashDamage = resolvedSplashDamage(resolvedOutgoingDamage);
         double igniteAttackDamage = resolvedSplashDamage(attemptedDamage);
         if (radius <= 0.0 || splashDamage <= 0.0) {return;}
@@ -145,7 +141,7 @@ final class EndCombat {
                 ignored -> splashDamage,
                 true,
                 (splashTarget, dealtSplashDamage, killed) -> {
-                    heal(towerEntity, dealtSplashDamage * lifeStealRatio());
+                    heal(towerEntity, dealtSplashDamage * lifeStealRatio(stacks));
                     towerEntity.applyIgniteFromBasicAttack(
                             splashTarget,
                             igniteAttackDamage,
@@ -155,8 +151,12 @@ final class EndCombat {
         );
     }
 
-    private int reducedAttackInterval(int baseIntervalTicks, int minimumInterval) {
-        long reduction = transfers.stacks().attackIntervalReduction(
+    private int reducedAttackInterval(
+            int baseIntervalTicks,
+            int minimumInterval,
+            EndTransferStacks stacks
+    ) {
+        long reduction = stacks.attackIntervalReduction(
                 config.attackSpeed(),
                 config.roundAttackSpeed()
         );

@@ -130,4 +130,31 @@ class EndTransferDomainTest extends EndTestFixture {
         assertEquals(true, hardCap.hardCap());
         assertEquals(150.0, hardCap.apply(200.0), 0.0001);
     }
+
+    @Test
+    void repeatedApplyAndRollbackLeavesNoAccumulatedTransferState() {
+        EndTransferState state = new EndTransferState();
+        for (int iteration = 0; iteration < 1000; iteration++) {
+            EndTransferState.Progress progress = new EndTransferState.Progress(
+                    7,
+                    13.0,
+                    3.0,
+                    11.0,
+                    2.0,
+                    0.0,
+                    0.0
+            );
+            for (int tick = 0; tick < 3; tick++) {
+                progress.advance();
+                state.apply(progress);
+            }
+            state.rollback(progress);
+        }
+
+        EndTransferSnapshot snapshot = state.snapshot(EndTransferStacks.EMPTY);
+        assertEquals(0.0, snapshot.roundHealthContribution(), 1.0E-9);
+        assertEquals(0.0, snapshot.permanentHealthContribution(), 1.0E-9);
+        assertEquals(0.0, snapshot.roundDamageContribution(), 1.0E-9);
+        assertEquals(0.0, snapshot.permanentDamageContribution(), 1.0E-9);
+    }
 }

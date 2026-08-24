@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.tower.Tower;
@@ -20,25 +19,19 @@ final class EndTransferController {
     private static final TowerDataKey<Double> PROGRESS = TowerDataKey.of(ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_transfer_progress"), Double.class);
 
     private final EndTransferState state = new EndTransferState();
-    private final EndConfig config;
     private final EndTransferFactory progressFactory;
     private EndTransferStacks stacks = EndTransferStacks.EMPTY;
 
     EndTransferController(EndConfig config) {
-        this.config = Objects.requireNonNull(config, "config");
-        progressFactory = new EndTransferFactory(config);
+        progressFactory = new EndTransferFactory(Objects.requireNonNull(config, "config"));
     }
 
-    TickResult tick(
-            EndTower core,
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter
-    ) {
+    TickResult tick(EndTower core, PlayerLane lane) {
         if (lane == null) {
             return TickResult.NONE;
         }
         captureTargets(core, lane);
-        return advanceTransfers(lane, particleEmitter);
+        return advanceTransfers(lane);
     }
 
     private void captureTargets(EndTower core, PlayerLane lane) {
@@ -51,31 +44,22 @@ final class EndTransferController {
         }
     }
 
-    private TickResult advanceTransfers(
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter
-    ) {
+    private TickResult advanceTransfers(PlayerLane lane) {
         TransferTick tick = new TransferTick();
-        advanceActiveTransfers(lane, particleEmitter, tick);
+        advanceActiveTransfers(tick);
         resolveCompletions(lane, tick);
         return tick.result();
     }
 
-    private void advanceActiveTransfers(
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter,
-            TransferTick tick
-    ) {
+    private void advanceActiveTransfers(TransferTick tick) {
         var iterator = state.progressEntries().iterator();
         while (iterator.hasNext()) {
-            advanceTransfer(iterator, lane, particleEmitter, tick);
+            advanceTransfer(iterator, tick);
         }
     }
 
     private void advanceTransfer(
             Iterator<Map.Entry<Tower, EndTransferState.Progress>> iterator,
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter,
             TransferTick tick
     ) {
         Map.Entry<Tower, EndTransferState.Progress> entry = iterator.next();
@@ -90,7 +74,7 @@ final class EndTransferController {
         if (progress.isComplete()) {
             collectCompletion(iterator, source, progress, tick);
         } else {
-            recordActiveTransfer(lane, source, progress, particleEmitter, tick);
+            recordActiveTransfer(source, progress, tick);
         }
     }
 
@@ -105,17 +89,15 @@ final class EndTransferController {
     }
 
     private static void recordActiveTransfer(
-            PlayerLane lane,
             Tower source,
             EndTransferState.Progress progress,
-            BiConsumer<PlayerLane, Tower> particleEmitter,
             TransferTick tick
     ) {
         if (progress.elapsedTicks % HEALING_INTERVAL_TICKS == 0) {
             tick.addTransferHealing(progress.periodicHealingPerSecond);
         }
         if (shouldEmitParticles(source, progress.elapsedTicks)) {
-            particleEmitter.accept(lane, source);
+            tick.addParticleSource(source);
         }
     }
 
@@ -208,23 +190,7 @@ final class EndTransferController {
         stacks = source.stacks;
     }
 
-    EndTransferStacks stacks() {
-        return stacks;
-    }
-
-    EndTransferStats stats() {
-        return snapshot().resolve(config.healthScaling(), config.damageScaling());
-    }
-
-    double totalHealthBonus() {
-        return snapshot().totalHealthBonus(config.healthScaling());
-    }
-
-    double totalDamageBonus() {
-        return snapshot().totalDamageBonus(config.damageScaling());
-    }
-
-    private EndTransferSnapshot snapshot() {
+    EndTransferSnapshot progressionSnapshot() {
         return state.snapshot(stacks);
     }
 
@@ -247,9 +213,14 @@ final class EndTransferController {
             boolean statsChanged,
             boolean countsChanged,
             double completionHealing,
-            double transferHealing
+            double transferHealing,
+            List<Tower> particleSources
     ) {
-        private static final TickResult NONE = new TickResult(false, false, 0.0, 0.0);
+        private static final TickResult NONE = new TickResult(false, false, 0.0, 0.0, List.of());
+
+        TickResult {
+            particleSources = List.copyOf(particleSources);
+        }
     }
 
     private record Completion(Tower source, EndTransferState.Progress progress) {
@@ -261,6 +232,7 @@ final class EndTransferController {
         private boolean countsChanged;
         private double completionHealing;
         private double transferHealing;
+        private final List<Tower> particleSources = new ArrayList<>();
 
         private void markStatsChanged(boolean changed) {
             statsChanged |= changed;
@@ -286,6 +258,10 @@ final class EndTransferController {
             completionHealing += healing;
         }
 
+        private void addParticleSource(Tower source) {
+            particleSources.add(source);
+        }
+
         private void markCountsChanged() {
             countsChanged = true;
         }
@@ -295,7 +271,8 @@ final class EndTransferController {
                     statsChanged,
                     countsChanged,
                     completionHealing,
-                    transferHealing
+                    transferHealing,
+                    particleSources
             );
         }
     }

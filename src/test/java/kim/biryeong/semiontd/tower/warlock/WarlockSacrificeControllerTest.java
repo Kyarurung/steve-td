@@ -4,9 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.tower.Tower;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,16 +51,17 @@ class WarlockSacrificeControllerTest {
                 new GridPosition(1, 0, 0)
         );
 
-        assertTrue(WarlockSacrificeController.isEligibleTarget(warlock, valid, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, warlock, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, otherCore, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, foreign, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, distant, 5.0));
+        WarlockRules.SacrificeRule rule = rule(5.0);
+        assertTrue(WarlockSacrificeController.isEligibleTarget(warlock, valid, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, warlock, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, otherCore, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, foreign, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, distant, rule));
 
         valid.syncHealth(0.0);
-        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, valid, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, null, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(null, valid, 5.0));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, valid, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(warlock, null, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(null, valid, rule));
     }
 
     @Test
@@ -77,31 +81,50 @@ class WarlockSacrificeControllerTest {
                 new GridPosition(1, 0, 0)
         );
 
-        assertTrue(WarlockSacrificeController.isEligibleTarget(ranged, rangedPet, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(ranged, meleePet, 5.0));
-        assertTrue(WarlockSacrificeController.isEligibleTarget(melee, meleePet, 5.0));
-        assertFalse(WarlockSacrificeController.isEligibleTarget(melee, rangedPet, 5.0));
-        assertTrue(WarlockSacrificeController.isEligibleTarget(base, rangedPet, 5.0));
-        assertTrue(WarlockSacrificeController.isEligibleTarget(base, meleePet, 5.0));
+        WarlockRules.SacrificeRule rule = rule(5.0);
+        assertTrue(WarlockSacrificeController.isEligibleTarget(ranged, rangedPet, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(ranged, meleePet, rule));
+        assertTrue(WarlockSacrificeController.isEligibleTarget(melee, meleePet, rule));
+        assertFalse(WarlockSacrificeController.isEligibleTarget(melee, rangedPet, rule));
+        assertTrue(WarlockSacrificeController.isEligibleTarget(base, rangedPet, rule));
+        assertTrue(WarlockSacrificeController.isEligibleTarget(base, meleePet, rule));
+    }
+
+    @Test
+    void equalPriorityTargetsResolveByDistanceThenPosition() {
+        UUID owner = UUID.randomUUID();
+        WarlockTower warlock = warlock(WarlockTowers.RANGED_WARLOCK_TOWER, owner);
+        WarlockSacrificeTower far = sacrifice(
+                WarlockTowers.T1_RANGED_SLAVE,
+                owner,
+                new GridPosition(4, 0, 0)
+        );
+        WarlockSacrificeTower near = sacrifice(
+                WarlockTowers.T1_RANGED_SLAVE,
+                owner,
+                new GridPosition(2, 0, 0)
+        );
+
+        Tower selected = List.<Tower>of(far, near).stream()
+                .min(WarlockSacrificeController.deterministicPriority(
+                        warlock,
+                        Comparator.comparingInt(Tower::aggroPriority)
+                ))
+                .orElseThrow();
+
+        assertEquals(near, selected);
     }
 
     @Test
     void rangedDamageReductionActivatesAtFifteenPercentAfterThreshold() {
         WarlockState state = new WarlockState();
         WarlockSacrificeController sacrifice = new WarlockSacrificeController(WarlockConfig.RUNTIME, state);
-        WarlockTower ranged = new WarlockTower(
-                WarlockTowers.RANGED_WARLOCK_TOWER,
-                UUID.randomUUID(),
-                TeamId.RED,
-                0,
-                new GridPosition(0, 0, 0)
-        );
 
         for (int count = 0; count < 3; count++) {
-            state.absorbForRound(0.0, 0.0, 0.0);
+            recordSacrifice(state);
         }
         assertEquals(0.0, sacrifice.damageReduction(WarlockPath.RANGED), 0.0001);
-        state.absorbForRound(0.0, 0.0, 0.0);
+        recordSacrifice(state);
         assertEquals(0.15, sacrifice.damageReduction(WarlockPath.RANGED), 0.0001);
     }
 
@@ -109,32 +132,33 @@ class WarlockSacrificeControllerTest {
     void meleeDamageReductionGrowsEveryTenAbsorptionsAndCapsAtThirtyPercent() {
         WarlockState state = new WarlockState();
         WarlockSacrificeController sacrifice = new WarlockSacrificeController(WarlockConfig.RUNTIME, state);
-        WarlockTower melee = new WarlockTower(
-                WarlockTowers.MELEE_WARLOCK_TOWER,
-                UUID.randomUUID(),
-                TeamId.RED,
-                0,
-                new GridPosition(0, 0, 0)
-        );
 
         for (int count = 0; count < 9; count++) {
-            state.absorbForRound(0.0, 0.0, 0.0);
+            recordSacrifice(state);
         }
         assertEquals(0.0, sacrifice.damageReduction(WarlockPath.MELEE), 0.0001);
-        state.absorbForRound(0.0, 0.0, 0.0);
+        recordSacrifice(state);
         assertEquals(0.025, sacrifice.damageReduction(WarlockPath.MELEE), 0.0001);
         for (int count = 10; count < 120; count++) {
-            state.absorbForRound(0.0, 0.0, 0.0);
+            recordSacrifice(state);
         }
         assertEquals(0.30, sacrifice.damageReduction(WarlockPath.MELEE), 0.0001);
         for (int count = 120; count < 140; count++) {
-            state.absorbForRound(0.0, 0.0, 0.0);
+            recordSacrifice(state);
         }
         assertEquals(0.30, sacrifice.damageReduction(WarlockPath.MELEE), 0.0001);
     }
 
     private static WarlockTower warlock(kim.biryeong.semiontd.tower.TowerType type, UUID owner) {
         return new WarlockTower(type, owner, TeamId.RED, 0, new GridPosition(0, 0, 0));
+    }
+
+    private static WarlockRules.SacrificeRule rule(double radius) {
+        return WarlockRules.SacrificeRule.fromConfiguredRadius(radius, 0.0);
+    }
+
+    private static void recordSacrifice(WarlockState state) {
+        state.recordSacrifice(new WarlockSacrifice.Gain(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
     }
 
     private static WarlockSacrificeTower sacrifice(

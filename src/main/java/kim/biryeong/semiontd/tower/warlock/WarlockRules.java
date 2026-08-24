@@ -21,6 +21,24 @@ final class WarlockRules {
     }
 
     record SacrificeRule(double radius, double completionHealing) {
+        SacrificeRule {
+            radius = Double.isFinite(radius) && radius > 0.0
+                    ? radius
+                    : Double.POSITIVE_INFINITY;
+            completionHealing = Double.isFinite(completionHealing)
+                    ? Math.max(0.0, completionHealing)
+                    : 0.0;
+        }
+
+        static SacrificeRule fromConfiguredRadius(double radius, double completionHealing) {
+            return new SacrificeRule(radius, completionHealing);
+        }
+
+        boolean includes(double squaredDistance) {
+            return Double.isFinite(squaredDistance)
+                    && squaredDistance >= 0.0
+                    && squaredDistance <= radius * radius;
+        }
     }
 
     record AbsorptionRule(
