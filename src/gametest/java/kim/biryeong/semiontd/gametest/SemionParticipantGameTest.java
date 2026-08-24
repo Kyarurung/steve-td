@@ -10642,6 +10642,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         )) {
             return;
         }
+        Set<String> availableAfterCore = ProductionTowerService.availableTowers(game, playerId).stream()
+                .map(entry -> entry.type().id())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!assertEquals(
+                context,
+                Set.of(EndTowers.T1_ENDERMITE_TOWER.id(), EndTowers.T1_SHULKER_TOWER.id()),
+                availableAfterCore,
+                "End feeders should remain available after the single core is placed."
+        )) {
+            return;
+        }
         if (!assertEquals(
                 context,
                 TowerPlacementResult.TOWER_NOT_ALLOWED,

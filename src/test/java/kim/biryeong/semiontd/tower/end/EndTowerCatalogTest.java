@@ -110,6 +110,10 @@ class EndTowerCatalogTest {
         assertTrue(job.canUseTower(null, EndTowers.T1_SHULKER_TOWER));
         assertTrue(job.canUseTower(null, EndTowers.T3_SHULKER_TOWER));
         assertFalse(job.canUseTower(null, AnimalTowers.T1_PIG_TOWER));
+        assertTrue(job.includesTowerInCatalog(EndTowers.BASE_END_TOWER));
+        assertTrue(job.includesTowerInCatalog(EndTowers.T1_ENDERMITE_TOWER));
+        assertTrue(job.includesTowerInCatalog(EndTowers.T1_SHULKER_TOWER));
+        assertFalse(job.includesTowerInCatalog(AnimalTowers.T1_PIG_TOWER));
     }
 
     @Test
