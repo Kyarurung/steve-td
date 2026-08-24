@@ -12457,7 +12457,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, awakenedDamage >= 82.0, "Melee awakening should add its configured 75 attack damage burst.")) {
             return;
         }
-        if (!assertTrue(context, core.health() > 600.0, "Melee awakening should apply its configured 600 health recovery.")) {
+        if (!assertTrue(context, core.health() > 800.0, "Melee awakening should apply its configured 800 health recovery.")) {
             return;
         }
         if (!assertClose(context, 1.30, core.adjustMovementSpeed(1.0), "Melee awakening should add thirty percent movement speed.")) {

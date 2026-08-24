@@ -43,12 +43,12 @@ class WarlockCombatTest {
 
         assertEquals(600.0, base.value(600.0), 0.0001);
         assertEquals(108.0, ranged.value(108.0), 0.0001);
-        assertEquals(138.1093, ranged.value(140.0), 0.0001);
-        assertEquals(175.0258, ranged.value(300.0), 0.0001);
-        assertEquals(193.9735, ranged.value(600.0), 0.0001);
-        assertEquals(193.8629, melee.value(200.0), 0.0001);
-        assertEquals(218.9182, melee.value(300.0), 0.0001);
-        assertEquals(241.8208, melee.value(600.0), 0.0001);
+        assertEquals(140.0, ranged.value(140.0), 0.0001);
+        assertEquals(183.9445, ranged.value(300.0), 0.0001);
+        assertEquals(203.5611, ranged.value(600.0), 0.0001);
+        assertEquals(200.0, melee.value(200.0), 0.0001);
+        assertEquals(235.8352, melee.value(300.0), 0.0001);
+        assertEquals(260.8904, melee.value(600.0), 0.0001);
     }
 
     @Test

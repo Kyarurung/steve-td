@@ -31,29 +31,21 @@ class WarlockDescriptionTest {
     }
 
     @Test
-    void descriptionsExposeAwakeningAndPreviouslyHiddenAbilities() {
+    void descriptionsMatchPullRequestSeventySevenStructure() {
         List<String> rangedDescriptionLines = TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER).description();
         String rangedMarkup = String.join("\n", rangedDescriptionLines);
         String description = rangedMarkup.replaceAll("<[^>]+>", "");
-        assertTrue(description.contains("체력 55% 이하이면"));
+        assertTrue(description.contains("체력 65% 이하이면"));
         assertTrue(description.contains("흡수 시 최대 체력 증가분에 체력 30을 더해 회복"));
-        assertTrue(description.contains("공격 우선순위가 가장 낮은 타워를 흡수합니다."));
+        assertTrue(description.contains("주위 25블록 내 아군 타워를 흡수합니다."));
         assertTrue(description.contains("흡수한 타워 체력과 피해의 50%"));
         assertTrue(description.contains("체력 +2.5%"));
         assertTrue(description.contains("피해 +5%"));
         assertTrue(description.contains("생존 중인 개구리 계열마다 체력 +4%, 피해 +10%"));
         assertTrue(description.contains("최대 체력 +20%, 피해 +50%까지 증가"));
-        assertTrue(description.contains("최소 공격 간격은 5틱"));
-        assertTrue(description.contains("누적 흡수 10기마다 생명력 흡수 +0.5%"));
-        assertTrue(description.contains("최대 7%"));
-        assertTrue(description.contains("누적 흡수 2기마다 스플래시 범위 +0.1블록"));
-        assertTrue(description.contains("본 피해의 50%"));
-        assertTrue(description.contains("이번 라운드 흡수가 3기를 초과하면 받는 피해 15% 감소"));
-        assertTrue(description.contains("인컴 디버프 저항 30%"));
-        assertTrue(description.contains("누적 1400킬에 각성을 해금"));
         assertTrue(description.contains("체력 40% 이하"));
-        assertTrue(description.contains("체력 600을 회복하고 재생 +40 HP/s"));
-        assertEquals(13, rangedDescriptionLines.size());
+        assertTrue(description.contains("각성 시 체력을 회복하고, 재생이 증가합니다."));
+        assertEquals(9, rangedDescriptionLines.size());
         assertEquals("능력치는 높아질수록 증가 효율이 감소합니다.",
                 rangedDescriptionLines.getLast().replaceAll("<[^>]+>", ""));
         assertFalse(rangedMarkup.contains("{ability."));
@@ -61,24 +53,17 @@ class WarlockDescriptionTest {
         List<String> meleeDescriptionLines = TowerBalanceRuntime.resolve(WarlockTowers.MELEE_WARLOCK_TOWER).description();
         String meleeMarkup = String.join("\n", meleeDescriptionLines);
         String meleeDescription = meleeMarkup.replaceAll("<[^>]+>", "");
-        assertTrue(meleeDescription.contains("체력 55% 이하이면"));
+        assertTrue(meleeDescription.contains("체력 65% 이하이면"));
         assertTrue(meleeDescription.contains("흡수 시 최대 체력 증가분에 체력 30을 더해 회복"));
-        assertTrue(meleeDescription.contains("공격 우선순위가 가장 높은 타워를 흡수합니다."));
+        assertTrue(meleeDescription.contains("주위 25블록 내 아군 타워를 흡수합니다."));
         assertTrue(meleeDescription.contains("흡수한 타워 체력과 피해의 60%"));
         assertTrue(meleeDescription.contains("체력 +5%"));
         assertTrue(meleeDescription.contains("피해 +2.5%"));
         assertTrue(meleeDescription.contains("생존 중인 양 계열마다 체력 +10%, 피해 +4%"));
         assertTrue(meleeDescription.contains("최대 체력 +50%, 피해 +20%까지 증가"));
-        assertTrue(meleeDescription.contains("공격 간격이 1틱 감소"));
-        assertTrue(meleeDescription.contains("스플래시 범위 +0.25블록"));
-        assertTrue(meleeDescription.contains("생명력 흡수 +1%"));
-        assertTrue(meleeDescription.contains("최대 13%"));
-        assertTrue(meleeDescription.contains("누적 흡수 10기마다 받는 피해 2.5% 감소"));
-        assertTrue(meleeDescription.contains("인컴 디버프 저항 40%"));
-        assertTrue(meleeDescription.contains("누적 1400킬에 각성을 해금"));
-        assertTrue(meleeDescription.contains("체력 600을 회복하고 피해 +75, 이동 속도 +30%"));
-        assertTrue(meleeMarkup.contains("<#F1E7D4>이동 속도 +30%</#F1E7D4>"));
-        assertEquals(12, meleeDescriptionLines.size());
+        assertTrue(meleeDescription.contains("체력 40% 이하"));
+        assertTrue(meleeDescription.contains("각성 시 체력을 회복하고, 추가 피해와 이동 속도가 증가합니다."));
+        assertEquals(9, meleeDescriptionLines.size());
         assertEquals("능력치는 높아질수록 증가 효율이 감소합니다.",
                 meleeDescriptionLines.getLast().replaceAll("<[^>]+>", ""));
         assertFalse(meleeMarkup.contains("{ability."));
@@ -86,11 +71,9 @@ class WarlockDescriptionTest {
         List<String> baseDescriptionLines = TowerBalanceRuntime.resolve(WarlockTowers.BASE_WARLOCK_TOWER).description();
         String baseMarkup = String.join("\n", baseDescriptionLines);
         String baseDescription = baseMarkup.replaceAll("<[^>]+>", "");
-        assertTrue(baseDescription.contains("치명적인 피해를 입으면 주위 6블록 내 아군 중 공격 우선순위가 가장 낮은 타워를 흡수"));
-        assertTrue(baseDescription.contains("최대 체력 증가분에 체력 30을 더해 회복"));
-        assertTrue(baseDescription.contains("체력 2.5%, 피해 5%를 영구 누적"));
-        assertTrue(baseDescription.contains("선택 후에는 변경할 수 없습니다"));
-        assertTrue(baseDescription.contains("핵심 타워는 1기만 설치"));
+        assertEquals(2, baseDescriptionLines.size());
+        assertTrue(baseDescription.contains("원거리 또는 근거리 흑마법사를 선택할 수 있습니다."));
+        assertTrue(baseDescription.contains("흑마법사 타워는 1기만 설치할 수 있습니다."));
         assertFalse(baseMarkup.contains("{ability."));
     }
 

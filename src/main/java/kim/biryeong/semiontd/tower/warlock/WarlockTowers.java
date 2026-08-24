@@ -75,45 +75,35 @@ public final class WarlockTowers {
 
     private static List<String> baseWarlockDescription() {
         return List.of(
-                "<gray>치명적인 피해를 입으면 주위 " + ability(BASE_RADIUS, "blocks") + " 내 아군 중 공격 우선순위가 가장 낮은 타워를 흡수합니다.</gray>",
-                "<gray>흡수 시 " + healthText("최대 체력 증가분") + "에 " + healthText("체력 " + globalAbility(ABSORPTION_HEAL, "integer")) + "을 더해 회복합니다.</gray>",
-                "<gray>희생한 타워의 " + healthText("체력 " + ability(BASE_PERMANENT_HEALTH, "percent")) + ", " + attackDamageText("피해 " + ability(BASE_PERMANENT_DAMAGE, "percent")) + "를 영구 누적합니다.</gray>",
-                "<gray>업그레이드 시 원거리 또는 근거리 흑마법사를 선택하며, 선택 후에는 변경할 수 없습니다.</gray>",
-                "<gray>" + warlockText("흑마법사") + " 핵심 타워는 1기만 설치할 수 있습니다.</gray>"
+                "<gray>원거리 또는 근거리 흑마법사를 선택할 수 있습니다.</gray>",
+                "<gray>" + warlockText("흑마법사") + " 타워는 1기만 설치할 수 있습니다.</gray>"
         );
     }
 
     private static List<String> rangedWarlockDescription() {
         return List.of(
-                "<gray>" + healthText("체력 " + ability(RANGED_THRESHOLD, "percent")) + " 이하이면 주위 " + globalAbility(SACRIFICE_RADIUS, "blocks") + " 내 아군 중 공격 우선순위가 가장 낮은 타워를 흡수합니다.</gray>",
+                "<gray>" + healthText("체력 " + ability(RANGED_THRESHOLD, "percent")) + " 이하이면 주위 " + globalAbility(SACRIFICE_RADIUS, "blocks") + " 내 아군 타워를 흡수합니다.</gray>",
                 "<gray>흡수 시 " + healthText("최대 체력 증가분") + "에 " + healthText("체력 " + globalAbility(ABSORPTION_HEAL, "integer")) + "을 더해 회복합니다.</gray>",
                 "<gray>흡수한 타워 " + healthText("체력") + "과 " + attackDamageText("피해") + "의 " + ability(RANGED_ROUND_STAT, "percent") + "를 이번 라운드 동안 획득합니다.</gray>",
                 "<gray>흡수한 타워마다 " + healthText("체력 +" + ability(RANGED_PERMANENT_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PERMANENT_DAMAGE, "percent")) + "를 영구 누적합니다.</gray>",
-                "<gray>생존 중인 " + attackDamageText("개구리 계열") + "마다 " + healthText("체력 +" + ability(RANGED_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PET_DAMAGE, "percent")) + "를 얻어 최대 " + healthText("체력 +" + ability(RANGED_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
-                "<gray>더 빠른 타워를 흡수하면 공격 간격 차이만큼 이번 라운드의 " + attackSpeedText("공격 속도") + "가 증가하며, 최소 공격 간격은 " + globalAbility(MIN_INTERVAL, "integer") + "틱입니다.</gray>",
-                "<gray>누적 흡수 " + ability(RANGED_LIFE_EVERY, "integer") + "기마다 " + lifeStealText("생명력 흡수 +" + ability(RANGED_LIFE_STEP, "percent")) + "를 얻어 최대 " + lifeStealText(ability(RANGED_LIFE_CAP, "percent")) + "까지 증가합니다.</gray>",
-                "<gray>누적 흡수 " + ability(RANGED_SPLASH_EVERY, "integer") + "기마다 " + attackRangeText("스플래시 범위 +" + ability(RANGED_SPLASH_STEP, "blocks")) + "를 얻어 최대 " + attackRangeText(ability(RANGED_SPLASH_CAP, "blocks")) + "에 도달하며, 스플래시는 " + attackDamageText("본 피해의 " + ability(RANGED_SPLASH_DAMAGE, "percent")) + "를 줍니다.</gray>",
-                "<gray>이번 라운드 흡수가 " + ability(RANGED_DEFENSE_THRESHOLD, "integer") + "기를 초과하면 " + damageReductionText("받는 피해 " + ability(RANGED_DEFENSE, "percent") + " 감소") + "를 얻습니다.</gray>",
-                "<gray><aqua>인컴 디버프 저항 " + ability(RANGED_INCOME_DEBUFF_RESISTANCE, "percent") + "</aqua>를 얻습니다.</gray>",
-                "<gray>누적 " + globalAbility(AWAKENING_KILLS, "integer") + "킬에 " + warlockText("각성") + "을 해금합니다. 이후 이 타워만 생존한 상태에서 " + healthText("체력 " + globalAbility(AWAKENING_THRESHOLD, "percent")) + " 이하이면 각성합니다.</gray>",
-                "<gray>각성 시 " + healthText("체력 " + ability(RANGED_AWAKENING_HEAL, "number")) + "을 회복하고 " + regenerationText("재생 +" + ability(RANGED_AWAKENING_REGENERATION, "number") + " HP/s") + "를 획득하며, 라운드 종료 시 해제됩니다.</gray>",
+                "<gray>생존 중인 " + attackDamageText("개구리 계열") + "마다 " + healthText("체력 +" + ability(RANGED_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PET_DAMAGE, "percent")) + "를 얻습니다.</gray>",
+                "<gray>최대 " + healthText("체력 +" + ability(RANGED_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(RANGED_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
+                "<gray>이 타워만 생존한 상태에서 " + healthText("체력 " + globalAbility(AWAKENING_THRESHOLD, "percent")) + " 이하이면 각성합니다.</gray>",
+                "<gray>각성 시 " + healthText("체력") + "을 회복하고, " + regenerationText("재생") + "이 증가합니다.</gray>",
                 "<gray>능력치는 높아질수록 증가 효율이 감소합니다.</gray>"
         );
     }
 
     private static List<String> meleeWarlockDescription() {
         return List.of(
-                "<gray>" + healthText("체력 " + ability(MELEE_THRESHOLD, "percent")) + " 이하이면 주위 " + globalAbility(SACRIFICE_RADIUS, "blocks") + " 내 아군 중 공격 우선순위가 가장 높은 타워를 흡수합니다.</gray>",
+                "<gray>" + healthText("체력 " + ability(MELEE_THRESHOLD, "percent")) + " 이하이면 주위 " + globalAbility(SACRIFICE_RADIUS, "blocks") + " 내 아군 타워를 흡수합니다.</gray>",
                 "<gray>흡수 시 " + healthText("최대 체력 증가분") + "에 " + healthText("체력 " + globalAbility(ABSORPTION_HEAL, "integer")) + "을 더해 회복합니다.</gray>",
                 "<gray>흡수한 타워 " + healthText("체력") + "과 " + attackDamageText("피해") + "의 " + ability(MELEE_ROUND_STAT, "percent") + "를 이번 라운드 동안 획득합니다.</gray>",
                 "<gray>흡수한 타워마다 " + healthText("체력 +" + ability(MELEE_PERMANENT_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PERMANENT_DAMAGE, "percent")) + "를 영구 누적합니다.</gray>",
-                "<gray>생존 중인 " + healthText("양 계열") + "마다 " + healthText("체력 +" + ability(MELEE_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE, "percent")) + "를 얻어 최대 " + healthText("체력 +" + ability(MELEE_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
-                "<gray>이번 라운드 흡수 1기마다 공격 간격이 " + attackSpeedText(ability(MELEE_SPEED_STEP, "integer") + "틱 감소") + "하고 " + attackRangeText("스플래시 범위 +" + ability(MELEE_SPLASH_STEP, "blocks")) + "를 얻습니다. 스플래시는 " + attackDamageText("본 피해의 " + ability(MELEE_SPLASH_DAMAGE, "percent")) + "를 줍니다.</gray>",
-                "<gray>핵심 타워 외 다른 타워가 없다면 이번 라운드 흡수 1기마다 " + lifeStealText("생명력 흡수 +" + ability(MELEE_LIFE_STEP, "percent")) + "를 얻어 최대 " + lifeStealText(ability(MELEE_LIFE_CAP, "percent")) + "까지 증가합니다.</gray>",
-                "<gray>누적 흡수 " + ability(MELEE_DEFENSE_EVERY, "integer") + "기마다 " + damageReductionText("받는 피해 " + ability(MELEE_DEFENSE_STEP, "percent") + " 감소") + "를 얻어 최대 " + damageReductionText(ability(MELEE_DEFENSE_CAP, "percent")) + "까지 증가합니다.</gray>",
-                "<gray><aqua>인컴 디버프 저항 " + ability(MELEE_INCOME_DEBUFF_RESISTANCE, "percent") + "</aqua>를 얻습니다.</gray>",
-                "<gray>누적 " + globalAbility(AWAKENING_KILLS, "integer") + "킬에 " + warlockText("각성") + "을 해금합니다. 이후 이 타워만 생존한 상태에서 " + healthText("체력 " + globalAbility(AWAKENING_THRESHOLD, "percent")) + " 이하이면 각성합니다.</gray>",
-                "<gray>각성 시 " + healthText("체력 " + ability(MELEE_AWAKENING_HEAL, "number")) + "을 회복하고 " + attackDamageText("피해 +" + ability(MELEE_AWAKENING_DAMAGE, "number")) + ", " + movementSpeedText("이동 속도 +" + ability(MELEE_AWAKENING_MOVE_SPEED, "percent")) + "를 획득하며, 라운드 종료 시 해제됩니다.</gray>",
+                "<gray>생존 중인 " + healthText("양 계열") + "마다 " + healthText("체력 +" + ability(MELEE_PET_HEALTH, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE, "percent")) + "를 얻습니다.</gray>",
+                "<gray>최대 " + healthText("체력 +" + ability(MELEE_PET_HEALTH_CAP, "percent")) + ", " + attackDamageText("피해 +" + ability(MELEE_PET_DAMAGE_CAP, "percent")) + "까지 증가합니다.</gray>",
+                "<gray>이 타워만 생존한 상태에서 " + healthText("체력 " + globalAbility(AWAKENING_THRESHOLD, "percent")) + " 이하이면 각성합니다.</gray>",
+                "<gray>각성 시 " + healthText("체력") + "을 회복하고, " + attackDamageText("추가 피해") + "와 " + movementSpeedText("이동 속도") + "가 증가합니다.</gray>",
                 "<gray>능력치는 높아질수록 증가 효율이 감소합니다.</gray>"
         );
     }
