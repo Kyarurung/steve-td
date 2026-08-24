@@ -852,6 +852,29 @@ class EndTowerTransferTest {
     }
 
     @Test
+    void staggeredShulkerTransfersHealOnTheirOwnIntervals() {
+        applyEndAbilities(Map.of("transferTicks", 100.0, "transferHealRatio", 0.05));
+        PlayerLane lane = lane();
+        EndTower dragon = tower(EndTowers.BASE_END_TOWER, 0);
+        EndTower firstShulker = tower(EndTowers.T1_SHULKER_TOWER, 1);
+        EndTower secondShulker = tower(EndTowers.T1_SHULKER_TOWER, 2);
+        lane.addTower(dragon);
+        dragon.onWaveStarted(lane, 1);
+        dragon.syncHealth(10.0);
+
+        lane.addTower(firstShulker);
+        tick(dragon, lane, 10);
+        lane.addTower(secondShulker);
+        tick(dragon, lane, 10);
+        assertEquals(15.0, dragon.health(), 0.0001);
+
+        tick(dragon, lane, 9);
+        assertEquals(15.0, dragon.health(), 0.0001);
+        dragon.tick(lane);
+        assertEquals(20.0, dragon.health(), 0.0001);
+    }
+
+    @Test
     void deathNotificationSkipsTowerRemovedByAnEarlierCallback() {
         PlayerLane lane = lane();
         CallbackTower remover = new CallbackTower(EndTowers.T1_ENDERMITE_TOWER, 0);

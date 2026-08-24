@@ -9,7 +9,6 @@ import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 
 final class EndCombat {
     private static final int REGENERATION_TICKS = 20;
-    private static final int SPLASH_STEP_COUNT = 5;
     private final EndConfig config;
     private final EndTransferController transfers;
 
@@ -81,7 +80,7 @@ final class EndCombat {
         return splashRadiusForSteps(config.splash().unlockedSteps(transfers.stacks().endCrystalCount()));
     }
 
-    double maximumSplashRadius() {return splashRadiusForSteps(SPLASH_STEP_COUNT);}
+    double maximumSplashRadius() {return splashRadiusForSteps(config.splash().thresholds().size());}
 
     double resolvedSplashDamage(double resolvedOutgoingDamage) {
         if (!Double.isFinite(resolvedOutgoingDamage) || resolvedOutgoingDamage <= 0.0) {return 0.0;}

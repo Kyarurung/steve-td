@@ -24,7 +24,7 @@ public final class EndTower extends EntityBackedTower {
     private final EndCombat combat;
     private final EndStatsAssembler stats;
     private boolean waveActive;
-    private int periodicHealingTicks;
+    private int regenerationTicks;
 
     public EndTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         this(type, ownerPlayer, teamId, laneId, position, position);
@@ -68,7 +68,7 @@ public final class EndTower extends EntityBackedTower {
         if (!isCoreTower()) {
             return;
         }
-        periodicHealingTicks = 0;
+        regenerationTicks = 0;
         if (transfers.rollbackIncomplete()) {
             refreshTransferStats(lane);
         }
@@ -82,7 +82,7 @@ public final class EndTower extends EntityBackedTower {
     @Override
     public void resetForRound(PlayerLane lane) {
         waveActive = false;
-        periodicHealingTicks = 0;
+        regenerationTicks = 0;
         clearTransferLifecycleState();
         resetRoundTransferBonuses(lane);
         if (isCoreTower()) {
@@ -127,7 +127,7 @@ public final class EndTower extends EntityBackedTower {
             super.refreshMaxHealthAfterTypeChange(lane);
             return;
         }
-        Optional<SemionTowerEntity> entity = towerEntity(lane);
+        Optional<SemionTowerEntity> entity = runtimeEntity(lane);
         if (entity.isPresent()) {
             entity.get().refreshMaxHealthEffects(false);
         } else {
@@ -147,10 +147,11 @@ public final class EndTower extends EntityBackedTower {
             }
             reconcileEvolutionState(lane);
             healTransferredHealth(lane, result.completionHealing());
+            healTransferredHealth(lane, result.transferHealing());
             if (result.countsChanged()) {
-                towerEntity(lane).ifPresent(SemionTowerEntity::refreshCombatStats);
+                runtimeEntity(lane).ifPresent(SemionTowerEntity::refreshCombatStats);
             }
-            tickPeriodicHealing(lane, result.periodicHealingPerSecond());
+            tickRegeneration(lane);
         }
         super.tick(lane);
     }
@@ -257,7 +258,7 @@ public final class EndTower extends EntityBackedTower {
             endTower.refreshTransferStats(null);
         }
         transfers.copyFrom(endTower.transfers);
-        periodicHealingTicks = endTower.periodicHealingTicks;
+        regenerationTicks = endTower.regenerationTicks;
     }
 
     public EndTransferStats transferStats() {
@@ -265,14 +266,14 @@ public final class EndTower extends EntityBackedTower {
     }
 
     private void refreshTransferStats(PlayerLane lane) {
-        Optional<SemionTowerEntity> entity = towerEntity(lane);
+        Optional<SemionTowerEntity> entity = runtimeEntity(lane);
         if (entity.isPresent()) {entity.get().refreshMaxHealthEffects(false);}
         else {syncMaxHealth(effectBaseMaxHealth(), false);}
     }
 
     private void healTransferredHealth(PlayerLane lane, double amount) {
         if (amount <= 0.0) {return;}
-        Optional<SemionTowerEntity> entity = towerEntity(lane);
+        Optional<SemionTowerEntity> entity = runtimeEntity(lane);
         if (entity.isPresent()) {healTarget(entity.get(), amount);}
         else {
             double before = health();
@@ -284,7 +285,7 @@ public final class EndTower extends EntityBackedTower {
     private void switchToPhantom(PlayerLane lane) {
         if (!isCoreTower() || state() != EndTowerState.EGG) {return;}
         setData(STATE, EndTowerState.PHANTOM);
-        Optional<SemionTowerEntity> entity = towerEntity(lane);
+        Optional<SemionTowerEntity> entity = runtimeEntity(lane);
         if (entity.isPresent()) {entity.get().refreshMaxHealthEffects();}
         else {syncMaxHealth(effectBaseMaxHealth(), true);}
         if (lane != null) {onStateChanged(lane);}
@@ -302,19 +303,14 @@ public final class EndTower extends EntityBackedTower {
         return isCoreTower() ? combat.splashRadius(state()) : 0.0;
     }
 
-    private void tickPeriodicHealing(PlayerLane lane, double transferHealingPerSecond) {
-        double totalHealing = combat.regenerationPerSecond() + Math.max(0.0, transferHealingPerSecond);
-        if (totalHealing <= 0.0) {periodicHealingTicks = 0;return;}
+    private void tickRegeneration(PlayerLane lane) {
+        double healing = combat.regenerationPerSecond();
+        if (healing <= 0.0) {regenerationTicks = 0;return;}
         int intervalTicks = combat.regenerationTicks();
-        periodicHealingTicks++;
-        if (periodicHealingTicks < intervalTicks) {return;}
-        periodicHealingTicks %= intervalTicks;
-        healTransferredHealth(lane, totalHealing);
-    }
-
-    private Optional<SemionTowerEntity> towerEntity(PlayerLane lane) {
-        if (lane == null || lane.arenaWorld() == null || entityId().isEmpty()) {return Optional.empty();}
-        return Optional.ofNullable(lane.arenaWorld().getEntity(entityId().getAsInt())).filter(SemionTowerEntity.class::isInstance).map(SemionTowerEntity.class::cast);
+        regenerationTicks++;
+        if (regenerationTicks < intervalTicks) {return;}
+        regenerationTicks %= intervalTicks;
+        healTransferredHealth(lane, healing);
     }
 
     public boolean stopsBeforeFriendlyTowers() {

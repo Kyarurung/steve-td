@@ -2,9 +2,16 @@ package kim.biryeong.semiontd.tower.end;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.UUID;
+import java.util.stream.IntStream;
+import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import kim.biryeong.semiontd.game.GridPosition;
+import kim.biryeong.semiontd.game.TeamId;
+import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class EndTransferDomainTest {
@@ -12,6 +19,11 @@ class EndTransferDomainTest {
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @BeforeEach
+    void reloadCatalogs() {
+        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
     }
 
     @Test
@@ -85,5 +97,44 @@ class EndTransferDomainTest {
         assertEquals(10.0 + 10.0 * Math.log1p(0.5), stats.totalHealthBonus(), 0.0001);
         assertEquals(5.0, stats.permanentDamageBonus(), 0.0001);
         assertEquals(5.0 + 5.0 * Math.log1p(1.0), stats.totalDamageBonus(), 0.0001);
+    }
+
+    @Test
+    void zeroScaleHardCapsEndTransferBonusesAtTheThreshold() {
+        EndTransferSnapshot snapshot = new EndTransferSnapshot(
+                EndTransferStacks.EMPTY,
+                200.0,
+                50.0,
+                200.0,
+                50.0
+        );
+        EndTransferStats stats = snapshot.resolve(
+                new EndConfig.ScalingRule(100.0, 0.0),
+                new EndConfig.ScalingRule(150.0, 0.0)
+        );
+
+        assertEquals(50.0, stats.permanentHealthBonus(), 0.0001);
+        assertEquals(100.0, stats.totalHealthBonus(), 0.0001);
+        assertEquals(50.0, stats.permanentDamageBonus(), 0.0001);
+        assertEquals(150.0, stats.totalDamageBonus(), 0.0001);
+    }
+
+    @Test
+    void particleScheduleUsesStableTowerIdentity() {
+        UUID owner = UUID.fromString("96e1f36c-d2eb-4bf7-9929-96bc8bc02761");
+        GridPosition position = new GridPosition(4, 5, 6);
+        EndTower first = new EndTower(EndTowers.T2_SHULKER_TOWER, owner, TeamId.RED, 1, position);
+        EndTower equivalent = new EndTower(EndTowers.T2_SHULKER_TOWER, owner, TeamId.RED, 1, position);
+
+        long emissions = IntStream.range(0, 5)
+                .filter(tick -> EndTransferController.shouldEmitParticles(first, tick))
+                .count();
+        assertEquals(1L, emissions);
+        for (int tick = 0; tick < 10; tick++) {
+            assertEquals(
+                    EndTransferController.shouldEmitParticles(first, tick),
+                    EndTransferController.shouldEmitParticles(equivalent, tick)
+            );
+        }
     }
 }
