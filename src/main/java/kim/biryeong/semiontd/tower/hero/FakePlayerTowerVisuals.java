@@ -15,6 +15,7 @@ import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.mixin.accessor.PlayerInfoUpdatePacketAccessor;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.pet.PetTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
@@ -41,6 +42,8 @@ import net.minecraft.world.level.GameType;
 public final class FakePlayerTowerVisuals {
     static final String SUCCUBUS_TEXTURE_VALUE = "ewogICJ0aW1lc3RhbXAiIDogMTc4NzI5OTU3OTMyNCwKICAicHJvZmlsZUlkIiA6ICI1MzE4YWJhNDJiMTk0ODNiODFiMWY2N2Y1ODVjNDdkNSIsCiAgInByb2ZpbGVOYW1lIiA6ICJocHllZiIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS9kOTA1ODkzNzlmNDAyZTkwZmM2ZTQ0OTYwOGNjNjVjYjFlYzRlODk2Zjc1ZGU1MmMwYjE3MWQ2YjY4NGVmMDRmIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=";
     static final String SUCCUBUS_TEXTURE_SIGNATURE = "B4/+wtiHS8FUBBiTS46yCQPb568wY+oU9PYQ0Ri5kv1r3rPfWV+/EYEuDHLRTpzwGP6Dmr7GHV5WCHfdCyZ/MqaZx/Qht85Liy9cDCzqVOvJUhaiHAZucKvl2ziAbgQWy9sLBjFNZyEgTi+j1ZZhPzLUfhrD4OT5N9K3uHMKU2/ATa6YXSTupFBPPGwKa4139B8Q1Pd6URc+PSomiZvorVWdw8/rQMd0BnrEg5INwiQ386XuwtmbOeQS93LjFHqv815J8PtF69MB3rHvnTVRYAquqqTOgd7wUYD0aoYOdN8WwPgibLKkKesWd4TWNyY6WlKhNvlZ6RKsp1rIWnGjPyObbNuU125DzdeoayfjxvOqs1X3v7VClypYKayhQTzr+Yo0NAWSaCMdbipW2kHWB/j8na+6fGyJSqhSl2L187TuNEBBc29Rym4D1AtImJvrd5iT54vt9C1jUjAOHfq+xTgYJIyUg3BTGFNUd3qghpKBT853snuopIvRiFZp65naAmfYtOw3DNEvx51OcHVkmRjcAtScfg9QGwEBfvCwH1/p4Bsel5IpUFatnI8S+JrrLY6Pq7Wcc2zZFGWhpwWbBolvtqPgxjLqmnjyEVf3KEBZ7a8uW/d+57M+DlW7htnqII3uZbMP69bOJWlLvx//Hx/lCbDe+aOu2NTYCq34Z1w=";
+    static final String PET_OWNER_TEXTURE_VALUE = "ewogICJ0aW1lc3RhbXAiIDogMTc4NzYwODkwMzg1MSwKICAicHJvZmlsZUlkIiA6ICI4ZmZhYTYzODk0YmQ0YmQ1YjM1MjY3NWY0ZjM5ZTgwZiIsCiAgInByb2ZpbGVOYW1lIiA6ICJzb2h4eCIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS85NjMzNDEwODJlYzIyZmJiMTdkZWZhNzk1YzQ1M2EwYmQzZTlkNDI0MTA0NjJiNjg5MzQyMmE2ZDM4ZDA2MDM3IiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=";
+    static final String PET_OWNER_TEXTURE_SIGNATURE = "AyzeuDPRUVVnwaLe5+lmwy1vL44GgIM7MfwrzdhZGYgSYXmnTDCeQoY8KC+OAIw09zhlfSn1Jm9Mz569z/XOFifqVSRdjmiaR+4h1o+FNf1icwIS2GkZdpThI1jdfVXcx943YYtfw8KF3WIQfuckX90TwrF1dX/OYKLEPkMRLF273gJ7S5DSIytwSPFEWsJzFlGO/p28oU6Juu6Pz0yulxLzAci+6LS+jyzdg1DnlG0gRcDibqsUkjzil7zQsyGttoa3z9bNnxtcA0Cqr8XaOYq4uryMmOpuwpX5kc9TjTLW22bbCGceATBpvLZLowW6QyW55Fqoyj1RqySjZab/RMZzgNW3RFm3U+4QR857brmoGfXTy5l7sSJnaODQdTl8x5mt5qpmQgld/PJqdnhhSMmyNY6ptWsdIsz5SS2D/3sfFpBj8FjMhUn9tjaECA6tkHa0Ym0qdyzCOO7Osbi3PctLYxTXb+k+W2V9J7tWpD0jytKa6zKVpW20uepmDN5/gwpPkXXThFXY3Rp5VUVsHX8GGJZCH8FvTdFfnySHS8A2hdOi7bg5657CdZuvI5LlViNnhb5YG/nwu87x6fBIXBJzN47tszjEiggUsAJFSflF+cUC6BDKZJMKafgFNobCu3SiMcS0Jb858HTn/OIMgqM+FYGls31DiN8JnZcmsDE=";
     private static final double TRACKING_DISTANCE_SQR = 128.0 * 128.0;
     private static final float COMBAT_PITCH_CORRECTION = 37.5F;
     private static final Map<EntityBackedTower, Visual> VISUALS = new IdentityHashMap<>();
@@ -158,6 +161,9 @@ public final class FakePlayerTowerVisuals {
         if (SuccubusTowers.isSuccubus(tower.type())) {
             return succubusProfile(tower.ownerPlayer());
         }
+        if (PetTowers.isOwner(tower.type())) {
+            return petOwnerProfile(tower.ownerPlayer(), tower.type());
+        }
         if (HeroPartyTowers.isHero(tower.type())) {
             ServerPlayer owner = level.getServer().getPlayerList().getPlayer(tower.ownerPlayer());
             if (owner != null) {
@@ -178,6 +184,15 @@ public final class FakePlayerTowerVisuals {
         }
         UUID uuid = UUID.nameUUIDFromBytes("semion-td:hero-party:unknown".getBytes(StandardCharsets.UTF_8));
         return new GameProfile(uuid, "용사 타워");
+    }
+
+    static GameProfile petOwnerProfile(UUID ownerId, TowerType type) {
+        UUID visualId = UUID.nameUUIDFromBytes(
+                ("semion-td:pet-owner:" + type.id() + ":" + ownerId).getBytes(StandardCharsets.UTF_8));
+        GameProfile profile = new GameProfile(visualId, displayProfileName(type));
+        profile.getProperties().put("textures", new Property(
+                "textures", PET_OWNER_TEXTURE_VALUE, PET_OWNER_TEXTURE_SIGNATURE));
+        return profile;
     }
 
     static GameProfile succubusProfile(UUID ownerId) {
@@ -213,6 +228,14 @@ public final class FakePlayerTowerVisuals {
     }
 
     private static void equip(ServerPlayer player, EntityBackedTower tower) {
+        if (PetTowers.isOwner(tower.type())) {
+            player.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            player.setItemSlot(EquipmentSlot.HEAD, PetTowers.hatStack(tower.type()));
+            player.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+            player.setItemSlot(EquipmentSlot.LEGS, ItemStack.EMPTY);
+            player.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
+            return;
+        }
         ItemStack mainHand = mainHand(tower);
         player.setItemSlot(EquipmentSlot.MAINHAND, mainHand);
         int armor = displayedArmorLevel(tower);

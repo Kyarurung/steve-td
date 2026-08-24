@@ -84,6 +84,7 @@ public final class JobRegistry {
         registerIfAbsent(new GambleTowerJob());
         registerIfAbsent(new SuccubusTowerJob());
         registerIfAbsent(new BodyTowerJob());
+        registerIfAbsent(new PetTowerJob());
         registerIfAbsent(new DeveloperTowerJob());
     }
 

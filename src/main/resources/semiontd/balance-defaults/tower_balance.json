@@ -3663,6 +3663,126 @@
       "damage": 30.0,
       "attackIntervalTicks": 20,
       "aggroPriority": 5
+    },
+    "t1_pet_butler": {
+      "mineralCost": 90,
+      "maxHealth": 120.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -40
+    },
+    "t2_pet_butler": {
+      "mineralCost": 220,
+      "maxHealth": 240.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -50
+    },
+    "t1_pet_trainer": {
+      "mineralCost": 80,
+      "maxHealth": 140.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -40
+    },
+    "t2_pet_trainer": {
+      "mineralCost": 200,
+      "maxHealth": 280.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -50
+    },
+    "t1_pet_keeper": {
+      "mineralCost": 70,
+      "maxHealth": 160.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -40
+    },
+    "t2_pet_keeper": {
+      "mineralCost": 190,
+      "maxHealth": 320.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": -50
+    },
+    "t1_pet_dog": {
+      "mineralCost": 45,
+      "maxHealth": 180.0,
+      "range": 2.5,
+      "damage": 9.0,
+      "attackIntervalTicks": 18,
+      "aggroPriority": 45
+    },
+    "t2_pet_dog": {
+      "mineralCost": 110,
+      "maxHealth": 420.0,
+      "range": 2.8,
+      "damage": 17.0,
+      "attackIntervalTicks": 17,
+      "aggroPriority": 55
+    },
+    "t3_pet_dog": {
+      "mineralCost": 240,
+      "maxHealth": 780.0,
+      "range": 3.0,
+      "damage": 28.0,
+      "attackIntervalTicks": 16,
+      "aggroPriority": 65
+    },
+    "t1_pet_cat": {
+      "mineralCost": 50,
+      "maxHealth": 95.0,
+      "range": 3.5,
+      "damage": 12.0,
+      "attackIntervalTicks": 13,
+      "aggroPriority": 5
+    },
+    "t2_pet_cat": {
+      "mineralCost": 120,
+      "maxHealth": 150.0,
+      "range": 3.8,
+      "damage": 24.0,
+      "attackIntervalTicks": 12,
+      "aggroPriority": 5
+    },
+    "t3_pet_cat": {
+      "mineralCost": 260,
+      "maxHealth": 230.0,
+      "range": 4.2,
+      "damage": 38.0,
+      "attackIntervalTicks": 13,
+      "aggroPriority": 0
+    },
+    "t1_pet_bird": {
+      "mineralCost": 55,
+      "maxHealth": 85.0,
+      "range": 6.0,
+      "damage": 10.0,
+      "attackIntervalTicks": 15,
+      "aggroPriority": 0
+    },
+    "t2_pet_bird": {
+      "mineralCost": 125,
+      "maxHealth": 130.0,
+      "range": 6.5,
+      "damage": 21.0,
+      "attackIntervalTicks": 14,
+      "aggroPriority": 0
+    },
+    "t3_pet_bird": {
+      "mineralCost": 270,
+      "maxHealth": 195.0,
+      "range": 7.0,
+      "damage": 34.0,
+      "attackIntervalTicks": 13,
+      "aggroPriority": -10
     }
   },
   "upgradeCosts": {
@@ -4082,7 +4202,16 @@
     "body_eye_t1->body_eye_t2": 110,
     "body_eye_t2->body_eye_t3": 220,
     "body_genital_t1->body_genital_t2": 100,
-    "body_genital_t2->body_genital_t3": 205
+    "body_genital_t2->body_genital_t3": 205,
+    "t1_pet_butler->t2_pet_butler": 220,
+    "t1_pet_trainer->t2_pet_trainer": 200,
+    "t1_pet_keeper->t2_pet_keeper": 190,
+    "t1_pet_dog->t2_pet_dog": 110,
+    "t2_pet_dog->t3_pet_dog": 240,
+    "t1_pet_cat->t2_pet_cat": 120,
+    "t2_pet_cat->t3_pet_cat": 260,
+    "t1_pet_bird->t2_pet_bird": 125,
+    "t2_pet_bird->t3_pet_bird": 270
   },
   "abilities": {
     "villager_splash_t2": {
@@ -7253,9 +7382,15 @@
       "absorbAttackRatio": 0.03,
       "absorbMaxHealthRatio": 0.01
     },
-    "succubus_dream_dust_t1": {"stackEvery": 3.0},
-    "succubus_dream_dust_t2": {"stackEvery": 2.0},
-    "succubus_dream_dust_t3": {"stackEvery": 1.0},
+    "succubus_dream_dust_t1": {
+      "stackEvery": 3.0
+    },
+    "succubus_dream_dust_t2": {
+      "stackEvery": 2.0
+    },
+    "succubus_dream_dust_t3": {
+      "stackEvery": 1.0
+    },
     "succubus_sleepwalker_t1": {
       "counterCooldownTicks": 60.0,
       "counterStacks": 1.0,
@@ -7271,12 +7406,36 @@
       "counterStacks": 3.0,
       "dreamDamageReduction": 0.2
     },
-    "succubus_lullaby_t1": {"pulseIntervalTicks": 120.0, "radius": 4.5, "allyMaxTargets": 2.0, "enemyMaxTargets": 3.0},
-    "succubus_lullaby_t2": {"pulseIntervalTicks": 100.0, "radius": 5.0, "allyMaxTargets": 3.0, "enemyMaxTargets": 5.0},
-    "succubus_lullaby_t3": {"pulseIntervalTicks": 80.0, "radius": 5.5, "allyMaxTargets": 4.0, "enemyMaxTargets": 7.0},
-    "succubus_nightmare_t1": {"minimumStacks": 5.0, "sleepingDamageBonus": 0.0},
-    "succubus_nightmare_t2": {"minimumStacks": 3.0, "sleepingDamageBonus": 0.25},
-    "succubus_nightmare_t3": {"minimumStacks": 0.0, "sleepingDamageBonus": 0.5},
+    "succubus_lullaby_t1": {
+      "pulseIntervalTicks": 120.0,
+      "radius": 4.5,
+      "allyMaxTargets": 2.0,
+      "enemyMaxTargets": 3.0
+    },
+    "succubus_lullaby_t2": {
+      "pulseIntervalTicks": 100.0,
+      "radius": 5.0,
+      "allyMaxTargets": 3.0,
+      "enemyMaxTargets": 5.0
+    },
+    "succubus_lullaby_t3": {
+      "pulseIntervalTicks": 80.0,
+      "radius": 5.5,
+      "allyMaxTargets": 4.0,
+      "enemyMaxTargets": 7.0
+    },
+    "succubus_nightmare_t1": {
+      "minimumStacks": 5.0,
+      "sleepingDamageBonus": 0.0
+    },
+    "succubus_nightmare_t2": {
+      "minimumStacks": 3.0,
+      "sleepingDamageBonus": 0.25
+    },
+    "succubus_nightmare_t3": {
+      "minimumStacks": 0.0,
+      "sleepingDamageBonus": 0.5
+    },
     "body_heart_t2": {
       "maxDeathStacks": 60.0,
       "stacksPerIntervalReduction": 15.0
@@ -7287,7 +7446,7 @@
     },
     "body_brain_t1": {
       "splashRadius": 2.5,
-      "damageTaken": 0.10,
+      "damageTaken": 0.1,
       "attackReduction": 0.08,
       "debuffTicks": 100.0
     },
@@ -7299,7 +7458,7 @@
     },
     "body_brain_t3": {
       "splashRadius": 4.5,
-      "damageTaken": 0.20,
+      "damageTaken": 0.2,
       "attackReduction": 0.16,
       "debuffTicks": 100.0
     },
@@ -7340,8 +7499,108 @@
       "magicProcDamage": 27.0,
       "slow": 0.35,
       "slowTicks": 40.0
+    },
+    "pet_global": {
+      "bondPerRound": 1.0,
+      "praiseKillsPerBond": 10.0,
+      "praiseCapPerRound": 5.0,
+      "bondAttackPerPoint": 0.008,
+      "bondHealthPerPoint": 0.004,
+      "lostPetMultiplier": 0.4
+    },
+    "t1_pet_butler": {
+      "bondGrantBase": 20.0,
+      "bondGrantExponent": 1.0,
+      "bondCapMultiplier": 1.0,
+      "walkBondBase": 1.0,
+      "walkBondPerEmptyTile": 0.5,
+      "walkBondFlat": 0.0
+    },
+    "t2_pet_butler": {
+      "bondGrantBase": 26.0,
+      "bondGrantExponent": 1.0,
+      "bondCapMultiplier": 1.0,
+      "walkBondBase": 1.0,
+      "walkBondPerEmptyTile": 0.5,
+      "walkBondFlat": 0.0
+    },
+    "t1_pet_trainer": {
+      "bondGrantBase": 15.0,
+      "bondGrantExponent": 0.6,
+      "bondCapMultiplier": 2.0,
+      "walkBondBase": 1.0,
+      "walkBondPerEmptyTile": 0.5,
+      "walkBondFlat": 0.0
+    },
+    "t2_pet_trainer": {
+      "bondGrantBase": 20.0,
+      "bondGrantExponent": 0.6,
+      "bondCapMultiplier": 2.0,
+      "walkBondBase": 1.0,
+      "walkBondPerEmptyTile": 0.5,
+      "walkBondFlat": 0.0
+    },
+    "t1_pet_keeper": {
+      "bondGrantBase": 8.0,
+      "bondGrantExponent": 0.3,
+      "bondCapMultiplier": 1.0,
+      "walkBondBase": 0.0,
+      "walkBondPerEmptyTile": 0.0,
+      "walkBondFlat": 3.0
+    },
+    "t2_pet_keeper": {
+      "bondGrantBase": 11.0,
+      "bondGrantExponent": 0.3,
+      "bondCapMultiplier": 1.0,
+      "walkBondBase": 0.0,
+      "walkBondPerEmptyTile": 0.0,
+      "walkBondFlat": 3.0
+    },
+    "t1_pet_dog": {
+      "bondCap": 100.0,
+      "bondToUpgrade": 70.0,
+      "packDamagePerPackMate": 0.12
+    },
+    "t2_pet_dog": {
+      "bondCap": 200.0,
+      "bondToUpgrade": 160.0,
+      "packDamagePerPackMate": 0.12
+    },
+    "t3_pet_dog": {
+      "bondCap": 320.0,
+      "bondToUpgrade": 0.0,
+      "packDamagePerPackMate": 0.12
+    },
+    "t1_pet_cat": {
+      "bondCap": 100.0,
+      "bondToUpgrade": 70.0,
+      "soloDamageBonus": 0.8
+    },
+    "t2_pet_cat": {
+      "bondCap": 200.0,
+      "bondToUpgrade": 160.0,
+      "soloDamageBonus": 0.8
+    },
+    "t3_pet_cat": {
+      "bondCap": 320.0,
+      "bondToUpgrade": 0.0,
+      "soloDamageBonus": 0.8
+    },
+    "t1_pet_bird": {
+      "bondCap": 100.0,
+      "bondToUpgrade": 70.0,
+      "healRatio": 0.5
+    },
+    "t2_pet_bird": {
+      "bondCap": 200.0,
+      "bondToUpgrade": 160.0,
+      "healRatio": 0.75
+    },
+    "t3_pet_bird": {
+      "bondCap": 320.0,
+      "bondToUpgrade": 0.0,
+      "healRatio": 1.0
     }
-
   },
   "illusionCloneQueue": {
     "spreadTicks": 200,
