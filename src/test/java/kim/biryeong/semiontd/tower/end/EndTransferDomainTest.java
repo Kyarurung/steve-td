@@ -1,31 +1,13 @@
 package kim.biryeong.semiontd.tower.end;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.UUID;
-import java.util.stream.IntStream;
-import kim.biryeong.semiontd.config.TowerBalanceConfig;
-import kim.biryeong.semiontd.game.GridPosition;
-import kim.biryeong.semiontd.game.TeamId;
-import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
+import kim.biryeong.semiontd.tower.TowerCategory;
+import kim.biryeong.semiontd.tower.TowerType;
 import org.junit.jupiter.api.Test;
 
-class EndTransferDomainTest {
-    @BeforeAll
-    static void bootstrapMinecraftRegistries() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-    }
-
-    @BeforeEach
-    void reloadCatalogs() {
-        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
-    }
-
+class EndTransferDomainTest extends EndTestFixture {
     @Test
     void progressFactorySnapshotsTheRuleForEachTowerLine() {
         EndConfig.TransferRule rule = new EndConfig.TransferRule(
@@ -77,6 +59,23 @@ class EndTransferDomainTest {
     }
 
     @Test
+    void stackStateRejectsUnknownTransferFamilies() {
+        TowerType unknown = new TowerType(
+                "unknown_end_transfer",
+                "Unknown End Transfer",
+                TowerCategory.SUPPORT,
+                0,
+                100.0,
+                0.0,
+                0.0,
+                20,
+                0
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> EndTransferStacks.EMPTY.recordCompletion(unknown));
+    }
+
+    @Test
     void snapshotSeparatesRawAccumulationFromResolvedScaling() {
         EndTransferSnapshot snapshot = new EndTransferSnapshot(
                 new EndTransferStacks(2, 3, 4),
@@ -120,21 +119,15 @@ class EndTransferDomainTest {
     }
 
     @Test
-    void particleScheduleUsesStableTowerIdentity() {
-        UUID owner = UUID.fromString("96e1f36c-d2eb-4bf7-9929-96bc8bc02761");
-        GridPosition position = new GridPosition(4, 5, 6);
-        EndTower first = new EndTower(EndTowers.T2_SHULKER_TOWER, owner, TeamId.RED, 1, position);
-        EndTower equivalent = new EndTower(EndTowers.T2_SHULKER_TOWER, owner, TeamId.RED, 1, position);
+    void zeroThresholdExplicitlyDisablesEndTransferScaling() {
+        EndConfig.ScalingRule disabled = new EndConfig.ScalingRule(0.0, 25.0);
+        EndConfig.ScalingRule hardCap = new EndConfig.ScalingRule(150.0, 0.0);
 
-        long emissions = IntStream.range(0, 5)
-                .filter(tick -> EndTransferController.shouldEmitParticles(first, tick))
-                .count();
-        assertEquals(1L, emissions);
-        for (int tick = 0; tick < 10; tick++) {
-            assertEquals(
-                    EndTransferController.shouldEmitParticles(first, tick),
-                    EndTransferController.shouldEmitParticles(equivalent, tick)
-            );
-        }
+        assertEquals(true, disabled.disabled());
+        assertEquals(false, disabled.hardCap());
+        assertEquals(0.0, disabled.apply(200.0), 0.0001);
+        assertEquals(false, hardCap.disabled());
+        assertEquals(true, hardCap.hardCap());
+        assertEquals(150.0, hardCap.apply(200.0), 0.0001);
     }
 }

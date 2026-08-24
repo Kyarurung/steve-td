@@ -254,10 +254,7 @@ public final class EndTower extends EntityBackedTower {
             EndTransferController.clearProgress(this);
             return;
         }
-        if (endTower.transfers.rollbackIncomplete()) {
-            endTower.refreshTransferStats(null);
-        }
-        transfers.copyFrom(endTower.transfers);
+        transfers.copyCommittedFrom(endTower.transfers);
         regenerationTicks = endTower.regenerationTicks;
     }
 

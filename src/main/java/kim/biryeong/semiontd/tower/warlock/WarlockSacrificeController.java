@@ -129,6 +129,7 @@ final class WarlockSacrificeController {
                 && tower != warlock
                 && tower.health() > 0.0
                 && !WarlockTowers.isWarlockCore(tower.type())
+                && warlock.path().acceptsSacrificeTower(tower.type())
                 && sameOwner(warlock, tower)
                 && withinRadius(warlock, tower, radius);
     }

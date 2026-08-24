@@ -16,8 +16,7 @@ final class WarlockState {
             double healthRatio,
             double damageRatio
     ) {
-        permanentHealthBonus += Math.max(0.0, sacrificedHealth) * Math.max(0.0, healthRatio);
-        permanentDamageBonus += Math.max(0.0, sacrificedDamage) * Math.max(0.0, damageRatio);
+        absorbPermanentStats(sacrificedHealth, sacrificedDamage, healthRatio, damageRatio);
     }
 
     void absorbForRound(double sacrificedHealth, double sacrificedDamage, double ratio) {
@@ -30,6 +29,15 @@ final class WarlockState {
     }
 
     void absorbPermanently(
+            double sacrificedHealth,
+            double sacrificedDamage,
+            double healthRatio,
+            double damageRatio
+    ) {
+        absorbPermanentStats(sacrificedHealth, sacrificedDamage, healthRatio, damageRatio);
+    }
+
+    private void absorbPermanentStats(
             double sacrificedHealth,
             double sacrificedDamage,
             double healthRatio,

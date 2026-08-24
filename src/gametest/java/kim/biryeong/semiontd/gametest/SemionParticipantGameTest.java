@@ -11911,6 +11911,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(core);
         lane.addTower(sacrifice);
+        core.markWaveStarted(1);
         SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
         core.syncHealth(10.0);
         coreEntity.setHealth(10.0F);
@@ -11936,6 +11937,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 31.875,
                 core.health(),
                 "Base warlock should heal only the absorbed max-health increase plus the flat absorption heal."
+        )) {
+            return;
+        }
+        if (!assertClose(
+                context,
+                31.875,
+                core.roundMetricsTracker().snapshot().healingDone(),
+                "Warlock sacrifice healing should be recorded in round metrics."
         )) {
             return;
         }

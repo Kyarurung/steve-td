@@ -203,8 +203,8 @@ final class EndTransferController {
         state.resetRoundContributions();
     }
 
-    void copyFrom(EndTransferController source) {
-        state.copyBonusesFrom(source.state);
+    void copyCommittedFrom(EndTransferController source) {
+        state.restore(source.state.committedSnapshot(source.stacks));
         stacks = source.stacks;
     }
 

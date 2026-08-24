@@ -145,6 +145,12 @@ class EndTowerCatalogTest {
     }
 
     @Test
+    void attackLineUsesEndermanAndEndCrystalVisuals() {
+        assertEquals("minecraft:enderman", EndTowers.T2_ENDERMAN_TOWER.visual().entityTypeId());
+        assertEquals("minecraft:end_crystal", EndTowers.T3_END_CRYSTAL_TOWER.visual().entityTypeId());
+    }
+
+    @Test
     void upgradePricesComeFromBalanceConfig() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         Map<String, Long> upgradeCosts = new LinkedHashMap<>(defaults.upgradeCosts());

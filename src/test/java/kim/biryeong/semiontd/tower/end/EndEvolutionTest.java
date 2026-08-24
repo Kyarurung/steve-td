@@ -1,37 +1,18 @@
 package kim.biryeong.semiontd.tower.end;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceConfig;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.visual.BlockDisplayVisual;
-import kim.biryeong.semiontd.game.GridPosition;
-import kim.biryeong.semiontd.game.TeamId;
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import net.minecraft.world.level.block.Blocks;
 import org.junit.jupiter.api.Test;
 
-class EnderDragonScaleTest {
-    @BeforeAll
-    static void bootstrapMinecraftRegistries() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-    }
-
-    @AfterEach
-    void resetBalance() {
-        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
-    }
-
+class EndEvolutionTest extends EndTestFixture {
     @Test
     void oneTowerIsAnEggDuringPreparationAndSwitchesToPhantomAtWaveStart() {
-        EndTower tower = tower();
+        EndTower tower = core();
         assertEquals(EndTowerState.EGG, tower.state());
         assertTrue(BlockDisplayVisual.matches(tower.visual()));
         tower.onWaveStarted(null, 1);
@@ -43,7 +24,7 @@ class EnderDragonScaleTest {
 
     @Test
     void phantomScaleStartsAtOneAndGrowsByPointTwoPerHundredMaxHealth() {
-        EndTower tower = tower();
+        EndTower tower = core();
         assertEquals(1.2, tower.phantomScaleForMaxHealth(100.0), 0.0001);
         assertEquals(1.3, tower.phantomScaleForMaxHealth(150.0), 0.0001);
         assertEquals(1.4, tower.phantomScaleForMaxHealth(200.0), 0.0001);
@@ -60,7 +41,7 @@ class EnderDragonScaleTest {
                 "phantomScaleBase", 0.5,
                 "phantomScaleCap", 1.25
         ));
-        EndTower tower = tower();
+        EndTower tower = core();
         assertEquals(1.0, tower.phantomScaleForMaxHealth(100.0), 0.0001);
         assertEquals(1.25, tower.phantomScaleForMaxHealth(1000.0), 0.0001);
     }
@@ -69,7 +50,7 @@ class EnderDragonScaleTest {
     void phantomBecomesVanillaDragonWhenMaxHealthReachesThreshold() {
         double baseMaxHealth = EndTowers.BASE_END_TOWER.maxHealth();
         applyStateConfig(baseMaxHealth + 0.01);
-        EndTower tower = tower();
+        EndTower tower = core();
         tower.onWaveStarted(null, 1);
         tower.tick(null);
         assertEquals(EndTowerState.PHANTOM, tower.state());
@@ -85,31 +66,51 @@ class EnderDragonScaleTest {
     }
 
     @Test
-    void finalAttackLineTowerUsesEndCrystalVisual() {
-        assertEquals("minecraft:enderman", EndTowers.T2_ENDERMAN_TOWER.visual().entityTypeId());
-        assertEquals("minecraft:end_crystal", EndTowers.T3_END_CRYSTAL_TOWER.visual().entityTypeId());
+    void dragonEggAndHatchedPhantomAreStatesOfOneTowerType() {
+        applyTransferDuration(1);
+        EndTower tower = tower(EndTowers.BASE_END_TOWER, 0);
+        assertEquals(EndTowerState.EGG, tower.state());
+        assertEquals(1.0, tower.entityAnchorYOffset(), 0.0001);
+        assertTrue(BlockDisplayVisual.matches(tower.visual()));
+        assertEquals(
+                Blocks.DRAGON_EGG.defaultBlockState(),
+                BlockDisplayVisual.blockState(tower.visual())
+        );
+        tower.onWaveStarted(null, 1);
+        tower.tick(null);
+        assertEquals(EndTowerState.PHANTOM, tower.state());
+        assertTrue(tower.stopsBeforeFriendlyTowers());
+        assertEquals(2.0, tower.entityAnchorYOffset(), 0.0001);
+        assertEquals(EndTowers.BASE_END_TOWER, tower.type());
+        assertEquals("minecraft:phantom", tower.visual().entityTypeId());
+        assertTrue(tower.visual().blockbenchModel().isEmpty());
+        assertEquals(0.0, tower.finalDamageBonus(), 0.0001);
+        double dragonEvolution = EndConfig.RUNTIME.dragon().evolutionHealth();
+        tower.syncMaxHealth(dragonEvolution, true);
+        tower.tick(null);
+        assertEquals(EndTowerState.DRAGON, tower.state());
+        assertFalse(tower.stopsBeforeFriendlyTowers());
+        assertEquals(2.0, tower.entityAnchorYOffset(), 0.0001);
+        double dragonFinalDamage = EndConfig.RUNTIME.dragon().finalDamageBonus();
+        double dragonRangeBonus = EndConfig.RUNTIME.dragon().rangeBonus();
+        assertEquals(dragonFinalDamage, tower.finalDamageBonus(), 0.0001);
+        assertEquals(
+                EndTowers.BASE_END_TOWER.range() + dragonRangeBonus,
+                tower.adjustAttackRange(EndTowers.BASE_END_TOWER.range()),
+                0.0001
+        );
+        tower.resetForRound(null);
+        assertEquals(EndTowerState.EGG, tower.state());
+        assertEquals(1.0, tower.entityAnchorYOffset(), 0.0001);
+        assertTrue(BlockDisplayVisual.matches(tower.visual()));
+        assertEquals(EndTowers.BASE_END_TOWER.maxHealth(), tower.currentMaxHealth(), 0.0001);
     }
 
-    private static EndTower tower() {
-        return new EndTower(
-                EndTowers.BASE_END_TOWER,
-                UUID.nameUUIDFromBytes("end-state-owner".getBytes()),
-                TeamId.RED,
-                1,
-                new GridPosition(0, 64, 0)
-        );
+    private static EndTower core() {
+        return tower(EndTowers.BASE_END_TOWER, 0);
     }
 
     private static void applyStateConfig(double evolutionMaxHealth) {
         applyEndAbilities(Map.of("dragonEvolution", evolutionMaxHealth));
-    }
-
-    private static void applyEndAbilities(Map<String, Double> overrides) {
-        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> end = new LinkedHashMap<>(abilities.get(EndTower.CONFIG_ID));
-        end.putAll(overrides);
-        abilities.put(EndTower.CONFIG_ID, end);
-        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
     }
 }
