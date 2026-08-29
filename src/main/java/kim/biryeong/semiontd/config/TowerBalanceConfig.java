@@ -30,6 +30,8 @@ import kim.biryeong.semiontd.tower.futureagency.FutureAgencyLeaderTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyPolicy;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyRole;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.frost.FrostBalance;
+import kim.biryeong.semiontd.tower.frost.FrostTowers;
 import kim.biryeong.semiontd.tower.gamble.GambleBalance;
 import kim.biryeong.semiontd.tower.gamble.GambleBet;
 import kim.biryeong.semiontd.tower.gamble.GambleTowers;
@@ -252,6 +254,7 @@ public record TowerBalanceConfig(
         addDeveloperTowers(towers);
         addSuccubusTowers(towers);
         addBodyTowers(towers);
+        addFrostTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -338,6 +341,7 @@ public record TowerBalanceConfig(
         putDeveloperUpgrades(upgradeCosts);
         putSuccubusUpgrades(upgradeCosts);
         putBodyUpgrades(upgradeCosts);
+        putFrostUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -913,6 +917,7 @@ public record TowerBalanceConfig(
         putDeveloperAbilities(abilities);
         putSuccubusAbilities(abilities);
         putBodyAbilities(abilities);
+        putFrostAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -1004,6 +1009,134 @@ public record TowerBalanceConfig(
 
     private static void addBodyTowers(Map<String, TowerStats> towers) {
         BodyTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void addFrostTowers(Map<String, TowerStats> towers) {
+        FrostTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putFrostUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, FrostTowers.ICE_VANGUARD, FrostTowers.STURDY_ICE_VANGUARD.id(), 90);
+        putUpgrade(upgrades, FrostTowers.STURDY_ICE_VANGUARD, FrostTowers.DONGTAE.id(), 170);
+        putUpgrade(upgrades, FrostTowers.EMISSION_COOLING_DEVICE,
+                FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED.id(), 500);
+        putUpgrade(upgrades, FrostTowers.ERUPTION_COOLING_DEVICE,
+                FrostTowers.ERUPTION_COOLING_DEVICE_EXPANDED.id(), 1000);
+        putUpgrade(upgrades, FrostTowers.ICE_BREAKER_T1, FrostTowers.ICE_BREAKER_T2.id(), 100);
+        putUpgrade(upgrades, FrostTowers.ICE_BREAKER_T2, FrostTowers.ICE_BREAKER_T3.id(), 200);
+        putUpgrade(upgrades, FrostTowers.FROZEN_DUMPLING_T1, FrostTowers.FROZEN_DUMPLING_T2.id(), 100);
+        putUpgrade(upgrades, FrostTowers.FROZEN_DUMPLING_T2, FrostTowers.FROZEN_DUMPLING_T3.id(), 200);
+        putUpgrade(upgrades, FrostTowers.ICEBOX_T1, FrostTowers.ICEBOX_T2.id(), 145);
+        putUpgrade(upgrades, FrostTowers.ICEBOX_T2, FrostTowers.ICEBOX_T3.id(), 225);
+    }
+
+    private static void putFrostAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, FrostBalance.CONFIG_ID, Map.ofEntries(
+                Map.entry("firstThreshold", (double) FrostBalance.FIRST_THRESHOLD),
+                Map.entry("secondThreshold", (double) FrostBalance.SECOND_THRESHOLD),
+                Map.entry("thirdThreshold", (double) FrostBalance.THIRD_THRESHOLD),
+                Map.entry("chillPerHit", FrostBalance.CHILL_PER_HIT),
+                Map.entry("chillThreshold", FrostBalance.CHILL_THRESHOLD),
+                Map.entry("refrigerantDamageReduction", FrostBalance.REFRIGERANT_DAMAGE_REDUCTION),
+                Map.entry("refrigerantAttackSpeedReduction", FrostBalance.REFRIGERANT_ATTACK_SPEED_REDUCTION),
+                Map.entry("thawMaxHealthDamage", FrostBalance.THAW_MAX_HEALTH_DAMAGE),
+                Map.entry("eruptionMaxStacks", (double) FrostBalance.ERUPTION_MAX_STACKS),
+                Map.entry("eruptionStacksAt3", (double) FrostBalance.ERUPTION_STACKS_AT_3),
+                Map.entry("eruptionStacksAt6", (double) FrostBalance.ERUPTION_STACKS_AT_6),
+                Map.entry("eruptionStacksAt9", (double) FrostBalance.ERUPTION_STACKS_AT_9),
+                Map.entry("eruptionOwnDamageReductionPerStack",
+                        FrostBalance.ERUPTION_OWN_DAMAGE_REDUCTION_PER_STACK),
+                Map.entry("eruptionOwnAttackSpeedReductionPerStack",
+                        FrostBalance.ERUPTION_OWN_ATTACK_SPEED_REDUCTION_PER_STACK),
+                Map.entry("eruptionAllyDamageReductionPerStack",
+                        FrostBalance.ERUPTION_ALLY_DAMAGE_REDUCTION_PER_STACK),
+                Map.entry("eruptionAllyAttackSpeedReductionPerStack",
+                        FrostBalance.ERUPTION_ALLY_ATTACK_SPEED_REDUCTION_PER_STACK),
+                Map.entry("eruptionAuraRefreshTicks", (double) FrostBalance.ERUPTION_AURA_REFRESH_TICKS),
+                Map.entry("eruptionAuraDurationTicks", (double) FrostBalance.ERUPTION_AURA_DURATION_TICKS),
+                Map.entry("healerCoolingAdvanceTicks", (double) FrostBalance.HEALER_COOLING_ADVANCE_TICKS),
+                Map.entry("healerRefrigerantPulseMultiplier", FrostBalance.HEALER_REFRIGERANT_PULSE_MULTIPLIER),
+                Map.entry("healerDamageReductionAt3", FrostBalance.HEALER_DAMAGE_REDUCTION_AT_3),
+                Map.entry("healerDamageReductionAt6", FrostBalance.HEALER_DAMAGE_REDUCTION_AT_6),
+                Map.entry("healerDamageReductionAt9", FrostBalance.HEALER_DAMAGE_REDUCTION_AT_9),
+                Map.entry("fullyFrozenDamageReduction", FrostBalance.FULLY_FROZEN_DAMAGE_REDUCTION),
+                Map.entry("fullyFrozenDurationTicks", (double) FrostBalance.FULLY_FROZEN_DURATION_TICKS),
+                Map.entry("fullyFrozenChillRadius", FrostBalance.FULLY_FROZEN_CHILL_RADIUS),
+                Map.entry("fullOperationRequiredActivations",
+                        (double) FrostBalance.FULL_OPERATION_REQUIRED_ACTIVATIONS),
+                Map.entry("fullOperationMaxActivationsPerFamily",
+                        (double) FrostBalance.FULL_OPERATION_MAX_ACTIVATIONS_PER_FAMILY),
+                Map.entry("fullOperationEruptionChill", FrostBalance.FULL_OPERATION_ERUPTION_CHILL),
+                Map.entry("fullOperationDurationTicks", (double) FrostBalance.FULL_OPERATION_DURATION_TICKS),
+                Map.entry("fullOperationDamageReduction", FrostBalance.FULL_OPERATION_DAMAGE_REDUCTION),
+                Map.entry("fullOperationFixedAttackDamage", FrostBalance.FULL_OPERATION_FIXED_ATTACK_DAMAGE),
+                Map.entry("fullOperationChillIntervalTicks",
+                        (double) FrostBalance.FULL_OPERATION_CHILL_INTERVAL_TICKS),
+                Map.entry("fullOperationChillPerPulse", FrostBalance.FULL_OPERATION_CHILL_PER_PULSE),
+                Map.entry("fullOperationAreaRadius", FrostBalance.FULL_OPERATION_AREA_RADIUS),
+                Map.entry("frozenFoodSplashRadiusBonusAt6", FrostBalance.FROZEN_FOOD_SPLASH_RADIUS_BONUS_AT_6),
+                Map.entry("frozenFoodRefrigerantBonusAttacks",
+                        (double) FrostBalance.FROZEN_FOOD_REFRIGERANT_BONUS_ATTACKS)
+        ));
+        putAbilities(abilities, FrostTowers.ICE_VANGUARD.id(), Map.of(
+                "damageReductionAt3", 0.05,
+                "damageReductionAt6", 0.10,
+                "damageReductionAt9", 0.15
+        ));
+        putAbilities(abilities, FrostTowers.STURDY_ICE_VANGUARD.id(), Map.of(
+                "damageReductionAt3", 0.10,
+                "damageReductionAt6", 0.15,
+                "damageReductionAt9", 0.20
+        ));
+        putAbilities(abilities, FrostTowers.DONGTAE.id(), Map.of(
+                "damageReductionAt3", 0.15,
+                "damageReductionAt6", 0.20,
+                "damageReductionAt9", 0.25
+        ));
+        putAbilities(abilities, FrostTowers.EMISSION_COOLING_DEVICE.id(), Map.of(
+                "waveRange", FrostBalance.COOLING_WAVE_RANGE,
+                "waveWidth", FrostBalance.COOLING_WAVE_WIDTH
+        ));
+        putAbilities(abilities, FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED.id(), Map.of(
+                "waveRange", FrostBalance.COOLING_WAVE_RANGE,
+                "waveWidth", FrostBalance.COOLING_WAVE_WIDTH
+        ));
+        putAbilities(abilities, FrostTowers.ICE_BREAKER_T1.id(), Map.of("splashRadius", 2.0));
+        putAbilities(abilities, FrostTowers.ICE_BREAKER_T2.id(), Map.of("splashRadius", 2.5));
+        putAbilities(abilities, FrostTowers.ICE_BREAKER_T3.id(), Map.of("splashRadius", 3.0));
+        putAbilities(abilities, FrostTowers.FROZEN_DUMPLING_T1.id(), Map.of(
+                "splashRadius", 0.8,
+                "frozenFoodDamageBonusAt3", FrostBalance.FROZEN_FOOD_T1_DAMAGE_BONUS_AT_3,
+                "frozenFoodIncomeDamageBonusAt9", FrostBalance.FROZEN_FOOD_T1_INCOME_DAMAGE_BONUS_AT_9
+        ));
+        putAbilities(abilities, FrostTowers.FROZEN_DUMPLING_T2.id(), Map.of(
+                "splashRadius", 1.5,
+                "frozenFoodDamageBonusAt3", FrostBalance.FROZEN_FOOD_T2_DAMAGE_BONUS_AT_3,
+                "frozenFoodIncomeDamageBonusAt9", FrostBalance.FROZEN_FOOD_T2_INCOME_DAMAGE_BONUS_AT_9
+        ));
+        putAbilities(abilities, FrostTowers.FROZEN_DUMPLING_T3.id(), Map.of(
+                "splashRadius", 3.0,
+                "frozenFoodDamageBonusAt3", FrostBalance.FROZEN_FOOD_T3_DAMAGE_BONUS_AT_3,
+                "frozenFoodIncomeDamageBonusAt9", FrostBalance.FROZEN_FOOD_T3_INCOME_DAMAGE_BONUS_AT_9
+        ));
+        putAbilities(abilities, FrostTowers.ICEBOX_T1.id(), Map.of(
+                "healAmount", 22.5,
+                "healRadius", 6.0,
+                "healIntervalTicks", 100.0,
+                "damageReductionTicks", 100.0
+        ));
+        putAbilities(abilities, FrostTowers.ICEBOX_T2.id(), Map.of(
+                "healAmount", 52.5,
+                "healRadius", 7.0,
+                "healIntervalTicks", 100.0,
+                "damageReductionTicks", 100.0
+        ));
+        putAbilities(abilities, FrostTowers.ICEBOX_T3.id(), Map.of(
+                "healAmount", 120.0,
+                "healRadius", 8.0,
+                "healIntervalTicks", 100.0,
+                "damageReductionTicks", 100.0
+        ));
     }
 
     private static void putBodyUpgrades(Map<String, Long> upgrades) {
@@ -1443,6 +1576,131 @@ public record TowerBalanceConfig(
         validateDeveloperAbilities();
         validateSuccubusAbilities();
         validateBodyAbilities();
+        validateFrostAbilities();
+    }
+
+    private void validateFrostAbilities() {
+        String global = FrostBalance.CONFIG_ID;
+        validatePositive(global,
+                "firstThreshold", "secondThreshold", "thirdThreshold", "chillPerHit", "chillThreshold",
+                "eruptionMaxStacks", "eruptionStacksAt3", "eruptionStacksAt6", "eruptionStacksAt9",
+                "eruptionOwnDamageReductionPerStack", "eruptionOwnAttackSpeedReductionPerStack",
+                "eruptionAllyDamageReductionPerStack", "eruptionAllyAttackSpeedReductionPerStack",
+                "eruptionAuraRefreshTicks", "eruptionAuraDurationTicks",
+                "healerCoolingAdvanceTicks", "healerRefrigerantPulseMultiplier",
+                "healerDamageReductionAt3", "healerDamageReductionAt6", "healerDamageReductionAt9",
+                "fullyFrozenDamageReduction", "fullyFrozenDurationTicks", "fullyFrozenChillRadius",
+                "fullOperationRequiredActivations", "fullOperationMaxActivationsPerFamily",
+                "fullOperationEruptionChill", "fullOperationDurationTicks", "fullOperationDamageReduction",
+                "fullOperationFixedAttackDamage", "fullOperationChillIntervalTicks",
+                "fullOperationChillPerPulse", "fullOperationAreaRadius",
+                "frozenFoodSplashRadiusBonusAt6", "frozenFoodRefrigerantBonusAttacks");
+        validateIntegral(global, false,
+                "firstThreshold", "secondThreshold", "thirdThreshold",
+                "eruptionMaxStacks", "eruptionStacksAt3", "eruptionStacksAt6", "eruptionStacksAt9",
+                "eruptionAuraRefreshTicks", "eruptionAuraDurationTicks", "healerCoolingAdvanceTicks",
+                "fullyFrozenDurationTicks", "fullOperationRequiredActivations",
+                "fullOperationMaxActivationsPerFamily", "fullOperationDurationTicks",
+                "fullOperationChillIntervalTicks",
+                "frozenFoodRefrigerantBonusAttacks");
+        validateRatios(global,
+                "chillPerHit", "chillThreshold", "refrigerantDamageReduction",
+                "refrigerantAttackSpeedReduction", "thawMaxHealthDamage",
+                "eruptionOwnDamageReductionPerStack", "eruptionOwnAttackSpeedReductionPerStack",
+                "eruptionAllyDamageReductionPerStack", "eruptionAllyAttackSpeedReductionPerStack",
+                "healerDamageReductionAt3", "healerDamageReductionAt6", "healerDamageReductionAt9",
+                "fullyFrozenDamageReduction", "fullOperationDamageReduction", "fullOperationChillPerPulse");
+
+        Double healerAtThree = configuredAbility(global, "healerDamageReductionAt3");
+        Double healerAtSix = configuredAbility(global, "healerDamageReductionAt6");
+        Double healerAtNine = configuredAbility(global, "healerDamageReductionAt9");
+        if (healerAtThree != null && healerAtSix != null && healerAtNine != null
+                && !(healerAtThree <= healerAtSix && healerAtSix <= healerAtNine)) {
+            throw new IllegalArgumentException("Frost healer damage reduction must not decrease by threshold.");
+        }
+
+        Double first = configuredAbility(global, "firstThreshold");
+        Double second = configuredAbility(global, "secondThreshold");
+        Double third = configuredAbility(global, "thirdThreshold");
+        if (first != null && second != null && third != null && !(first < second && second < third)) {
+            throw new IllegalArgumentException("Frost family thresholds must be strictly increasing.");
+        }
+        Double stacksAtThree = configuredAbility(global, "eruptionStacksAt3");
+        Double stacksAtSix = configuredAbility(global, "eruptionStacksAt6");
+        Double stacksAtNine = configuredAbility(global, "eruptionStacksAt9");
+        if (stacksAtThree != null && stacksAtSix != null && stacksAtNine != null
+                && !(stacksAtThree < stacksAtSix && stacksAtSix < stacksAtNine)) {
+            throw new IllegalArgumentException("Frost eruption stack contributions must strictly increase.");
+        }
+        validateEruptionMaximum(global, "eruptionOwnDamageReductionPerStack");
+        validateEruptionMaximum(global, "eruptionOwnAttackSpeedReductionPerStack");
+        validateEruptionMaximum(global, "eruptionAllyDamageReductionPerStack");
+        validateEruptionMaximum(global, "eruptionAllyAttackSpeedReductionPerStack");
+        Double ownDamage = configuredAbility(global, "eruptionOwnDamageReductionPerStack");
+        Double allyDamage = configuredAbility(global, "eruptionAllyDamageReductionPerStack");
+        Double ownSpeed = configuredAbility(global, "eruptionOwnAttackSpeedReductionPerStack");
+        Double allySpeed = configuredAbility(global, "eruptionAllyAttackSpeedReductionPerStack");
+        if (ownDamage != null && allyDamage != null && allyDamage > ownDamage) {
+            throw new IllegalArgumentException("Frost ally-line damage reduction cannot exceed own-line reduction.");
+        }
+        if (ownSpeed != null && allySpeed != null && allySpeed > ownSpeed) {
+            throw new IllegalArgumentException("Frost ally-line attack-speed reduction cannot exceed own-line reduction.");
+        }
+        Double auraRefresh = configuredAbility(global, "eruptionAuraRefreshTicks");
+        Double auraDuration = configuredAbility(global, "eruptionAuraDurationTicks");
+        if (auraRefresh != null && auraDuration != null && auraDuration <= auraRefresh) {
+            throw new IllegalArgumentException("Frost eruption aura duration must exceed its refresh interval.");
+        }
+        for (TowerType type : List.of(
+                FrostTowers.ICE_VANGUARD,
+                FrostTowers.STURDY_ICE_VANGUARD,
+                FrostTowers.DONGTAE
+        )) {
+            validateRatios(type.id(), "damageReductionAt3", "damageReductionAt6", "damageReductionAt9");
+            Double atThree = configuredAbility(type.id(), "damageReductionAt3");
+            Double atSix = configuredAbility(type.id(), "damageReductionAt6");
+            Double atNine = configuredAbility(type.id(), "damageReductionAt9");
+            if (atThree != null && atSix != null && atNine != null
+                    && !(atThree <= atSix && atSix <= atNine)) {
+                throw new IllegalArgumentException("Frost damage reduction must not decrease by threshold: " + type.id());
+            }
+        }
+        for (TowerType type : List.of(
+                FrostTowers.EMISSION_COOLING_DEVICE,
+                FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED
+        )) {
+            validatePositive(type.id(), "waveRange", "waveWidth");
+        }
+        for (TowerType type : List.of(
+                FrostTowers.ICE_BREAKER_T1,
+                FrostTowers.ICE_BREAKER_T2,
+                FrostTowers.ICE_BREAKER_T3,
+                FrostTowers.FROZEN_DUMPLING_T1,
+                FrostTowers.FROZEN_DUMPLING_T2,
+                FrostTowers.FROZEN_DUMPLING_T3
+        )) {
+            validatePositive(type.id(), "splashRadius");
+        }
+        for (TowerType type : List.of(
+                FrostTowers.FROZEN_DUMPLING_T1,
+                FrostTowers.FROZEN_DUMPLING_T2,
+                FrostTowers.FROZEN_DUMPLING_T3
+        )) {
+            validatePositive(type.id(), "frozenFoodDamageBonusAt3");
+            validateRatios(type.id(), "frozenFoodIncomeDamageBonusAt9");
+        }
+        for (TowerType type : List.of(FrostTowers.ICEBOX_T1, FrostTowers.ICEBOX_T2, FrostTowers.ICEBOX_T3)) {
+            validatePositive(type.id(), "healAmount", "healRadius", "healIntervalTicks", "damageReductionTicks");
+            validateIntegral(type.id(), false, "healIntervalTicks", "damageReductionTicks");
+        }
+    }
+
+    private void validateEruptionMaximum(String configId, String perStackKey) {
+        Double maxStacks = configuredAbility(configId, "eruptionMaxStacks");
+        Double perStack = configuredAbility(configId, perStackKey);
+        if (maxStacks != null && perStack != null && maxStacks * perStack > 1.0) {
+            throw new IllegalArgumentException("Frost eruption maximum reduction cannot exceed 100%: " + perStackKey);
+        }
     }
 
     private void validateBodyAbilities() {

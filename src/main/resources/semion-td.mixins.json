@@ -33,6 +33,7 @@
     "accessor.SheepAccessor",
     "accessor.ShulkerAccessor",
     "accessor.SlimeAccessor",
+    "accessor.SnowGolemAccessor",
     "accessor.TamableAnimalAccessor",
     "accessor.TropicalFishAccessor",
     "accessor.VillagerAccessor",

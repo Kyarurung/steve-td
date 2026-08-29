@@ -15,6 +15,7 @@ import kim.biryeong.semiontd.tower.end.EndTowerCatalogs;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowerCatalogs;
 import kim.biryeong.semiontd.tower.illager.IllagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowerCatalogs;
+import kim.biryeong.semiontd.tower.frost.FrostTowerCatalogs;
 import kim.biryeong.semiontd.tower.gamble.GambleTowerCatalogs;
 import kim.biryeong.semiontd.tower.insect.InsectTowerCatalogs;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowerCatalogs;
@@ -67,6 +68,7 @@ public final class ProductionTowerCatalogs {
             DeveloperTowerCatalogs.register();
             SuccubusTowerCatalogs.register();
             BodyTowerCatalogs.register();
+            FrostTowerCatalogs.register();
         }
     }
 }

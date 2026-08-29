@@ -21,6 +21,7 @@ import kim.biryeong.semiontd.mixin.accessor.SalmonAccessor;
 import kim.biryeong.semiontd.mixin.accessor.SheepAccessor;
 import kim.biryeong.semiontd.mixin.accessor.ShulkerAccessor;
 import kim.biryeong.semiontd.mixin.accessor.SlimeAccessor;
+import kim.biryeong.semiontd.mixin.accessor.SnowGolemAccessor;
 import kim.biryeong.semiontd.mixin.accessor.TamableAnimalAccessor;
 import kim.biryeong.semiontd.mixin.accessor.TropicalFishAccessor;
 import kim.biryeong.semiontd.mixin.accessor.VillagerAccessor;
@@ -74,6 +75,23 @@ public final class EntityVisualApplierRegistry {
         applyMoobloomVariant(visual, entityType, data);
         applyShulkerState(visual, entityType, data);
         applyTamableState(visual, entityType, data);
+        applySnowGolemState(visual, entityType, data);
+    }
+
+    private static void applySnowGolemState(
+            EntityVisual visual,
+            EntityType<?> entityType,
+            List<SynchedEntityData.DataValue<?>> data
+    ) {
+        if (entityType != EntityType.SNOW_GOLEM) {
+            return;
+        }
+        booleanProperty(visual, EntityVisualProperties.SNOW_GOLEM_HAS_PUMPKIN)
+                .ifPresent(hasPumpkin -> put(
+                        data,
+                        SnowGolemAccessor.semiontd$dataPumpkinId(),
+                        (byte) (hasPumpkin ? 16 : 0)
+                ));
     }
 
     private static void applyShulkerState(

@@ -1037,10 +1037,13 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             return;
         }
 
-        double damageAmount = amount * (1.0 - timedEffects.magnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION));
+        double originalDamage = amount;
+        double damageAmount = originalDamage * (1.0 - timedEffects.magnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION));
         if (runtimeTower != null) {
             damageAmount = applyTraitIncomingDamage(damageAmount);
             damageAmount = runtimeTower.modifyIncomingDamage(this, damageSource, damageAmount);
+            damageAmount = runtimeTower.modifyFinalIncomingDamage(
+                    this, damageSource, originalDamage, damageAmount);
         }
         if (damageAmount <= 0.0) {
             return;

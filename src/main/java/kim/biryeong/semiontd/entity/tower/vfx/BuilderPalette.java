@@ -33,6 +33,7 @@ public enum BuilderPalette {
     DEVELOPER(0x22C55E, 0x2DD4BF, "minecraft:electric_spark", "minecraft:wax_on"),
     SUCCUBUS(0x6D28D9, 0xF0ABFC, "minecraft:witch", "minecraft:portal"),
     BODY(0xE53935, 0xF48FB1, "minecraft:damage_indicator", "minecraft:cherry_leaves"),
+    FROST(0x79D7FF, 0xE8FBFF, "minecraft:snowflake", "minecraft:end_rod"),
     DEFAULT(0xE0E0E0, 0xFFFFFF, "minecraft:end_rod", "minecraft:crit");
 
     private final DustParticleOptions rayParticle;

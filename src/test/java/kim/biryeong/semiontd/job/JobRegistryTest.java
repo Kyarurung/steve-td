@@ -45,7 +45,7 @@ class JobRegistryTest {
         JobRegistry.configureAvailability(disabled);
 
         assertTrue(JobRegistry.find(NetherTowerJob.ID).isPresent());
-        assertEquals(29, JobRegistry.all().size());
+        assertEquals(30, JobRegistry.all().size());
         assertTrue(JobRegistry.officialBuilders().stream().anyMatch(job -> job.id().equals(NetherTowerJob.ID)));
         assertTrue(JobRegistry.isEnabled(JobRegistry.defaultJob()));
         assertFalse(JobRegistry.isEnabled(NetherTowerJob.ID));
@@ -83,9 +83,10 @@ class JobRegistryTest {
                 DemonLordTowerJob.ID,
                 GambleTowerJob.ID,
                 BodyTowerJob.ID,
-                DeveloperTowerJob.ID
+                DeveloperTowerJob.ID,
+                FrostTowerJob.ID
         ), JobRegistry.creativeBuilders().stream().map(SemionJob::id).toList());
-        assertEquals(29, JobRegistry.all().size());
+        assertEquals(30, JobRegistry.all().size());
         assertTrue(JobRegistry.officialBuilders().stream().noneMatch(JobRegistry.defaultJob()::equals));
         assertTrue(JobRegistry.creativeBuilders().stream().noneMatch(JobRegistry.defaultJob()::equals));
     }
@@ -98,18 +99,26 @@ class JobRegistryTest {
         ).toList();
         Set<String> optionalLabels = Set.of("주의 ", "연계 ", "성장 ");
 
-        assertEquals(28, builders.size());
+        assertEquals(29, builders.size());
         for (SemionJob builder : builders) {
             List<String> lines = builder.description().stream().map(line -> line.getString()).toList();
-            assertTrue(lines.size() >= 2 && lines.size() <= 3, builder.id() + " 설명은 2~3줄이어야 합니다.");
+            int maximumLines = FrostTowerJob.ID.equals(builder.id()) ? 4 : 3;
+            assertTrue(lines.size() >= 2 && lines.size() <= maximumLines,
+                    builder.id() + " 설명 줄 수가 허용 범위를 벗어났습니다.");
             assertTrue(lines.get(0).startsWith("시작 "), builder.id() + " 설명은 시작 행동부터 알려야 합니다.");
             assertTrue(lines.get(1).startsWith("운영 "), builder.id() + " 설명은 운영 방법을 이어서 알려야 합니다.");
             assertTrue(lines.stream().noneMatch(String::isBlank), builder.id() + " 설명에 빈 줄이 없어야 합니다.");
-            if (lines.size() == 3) {
+            if (lines.size() >= 3) {
                 assertTrue(
                         optionalLabels.stream().anyMatch(lines.get(2)::startsWith),
                         builder.id() + " 세 번째 줄은 주의, 연계, 성장 중 하나여야 합니다."
                 );
+            }
+            if (lines.size() == 4) {
+                assertEquals(FrostTowerJob.ID, builder.id());
+                assertTrue(lines.get(3).startsWith("("), "혹한 빌더의 네 번째 줄은 괄호형 풍미 문구여야 합니다.");
+                assertTrue(lines.get(3).contains("그저 냉동창고일 뿐이라는"),
+                        "혹한 빌더의 풍미 문구가 확정된 문안을 유지해야 합니다.");
             }
         }
     }

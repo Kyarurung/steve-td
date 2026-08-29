@@ -50,6 +50,7 @@ import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowerState;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyLeaderTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyPolicy;
+import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import kim.biryeong.semiontd.tower.queen.QueenCard;
 import kim.biryeong.semiontd.tower.queen.QueenStates;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
@@ -1386,7 +1387,14 @@ public final class SemionDialogService {
     }
 
     private static void appendTowerTimedEffects(StringBuilder body, SemionTowerEntity entity) {
-        double incomingDamageReduction = entity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION);
+        Tower runtimeTower = entity.runtimeTower();
+        boolean fullOperationActive = runtimeTower != null && FrostFullOperationService.isActive(
+                runtimeTower.ownerPlayer(), entity.level().getGameTime());
+        double incomingDamageReduction = FrostFullOperationService.displayedDamageReduction(
+                runtimeTower == null ? null : runtimeTower.ownerPlayer(),
+                entity.level().getGameTime(),
+                entity.activeTimedEffectMagnitude(TimedEffectType.TOWER_DAMAGE_REDUCTION)
+        );
         if (incomingDamageReduction > 0.0) {
             body.append("<blue>🛡 받는 피해 ")
                     .append(oneDecimal((1.0 - incomingDamageReduction) * 100.0))
@@ -1400,7 +1408,9 @@ public final class SemionDialogService {
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_DAMAGE_BONUS, "<green>⚔ 피해 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_ATTACK_SPEED_BONUS, "<green>⚡ 공속 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_RANGE_BONUS, "<green>🎯 사거리 증가 +", "</green>");
-        appendTimedEffect(effects, entity, TimedEffectType.TOWER_DAMAGE_REDUCTION, "<blue>🛡 받피 감소 +", "</blue>");
+        if (!fullOperationActive) {
+            appendTimedEffect(effects, entity, TimedEffectType.TOWER_DAMAGE_REDUCTION, "<blue>🛡 받피 감소 +", "</blue>");
+        }
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_MAX_HEALTH_BONUS, "<green>❤ 최대체력 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_INCOME_DAMAGE_BONUS, "<green>⚔ 인컴 피해 증가 +", "</green>");
         appendTimedEffect(effects, entity, TimedEffectType.TOWER_WAVE_DAMAGE_BONUS, "<green>⚔ 웨이브 피해 증가 +", "</green>");
