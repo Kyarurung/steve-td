@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.end;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import kim.biryeong.semiontd.entity.visual.BlockDisplayVisual;
 import kim.biryeong.semiontd.entity.visual.EntityVisual;
 import kim.biryeong.semiontd.entity.visual.ShulkerVisual;
@@ -44,15 +45,9 @@ public final class EndTowers {
             T3_END_CRYSTAL_TOWER
     );
 
-    private static final Set<String> ENDER_TOWER_IDS = Set.of(
-            BASE_END_TOWER.id(),
-            T1_SHULKER_TOWER.id(),
-            T2_SHULKER_TOWER.id(),
-            T3_SHULKER_TOWER.id(),
-            T1_ENDERMITE_TOWER.id(),
-            T2_ENDERMAN_TOWER.id(),
-            T3_END_CRYSTAL_TOWER.id()
-    );
+    private static final Set<String> ENDER_TOWER_IDS = ALL.stream()
+            .map(TowerType::id)
+            .collect(Collectors.toUnmodifiableSet());
 
     private static final Set<String> SHULKER_LINE_IDS = Set.of(
             T1_SHULKER_TOWER.id(), T2_SHULKER_TOWER.id(), T3_SHULKER_TOWER.id()

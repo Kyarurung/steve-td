@@ -191,9 +191,11 @@ public class WarlockTower extends EntityBackedTower {
         if (towerEntity == null || amount <= 0.0) {
             return;
         }
-        double nextHealth = Math.min(currentMaxHealth(), health() + amount);
+        double before = health();
+        double nextHealth = Math.min(currentMaxHealth(), before + amount);
         syncHealth(nextHealth);
         towerEntity.setHealth((float) nextHealth);
+        recordHealingDone(health() - before);
     }
 
     void syncFromEntityHealth(double currentHealth) {

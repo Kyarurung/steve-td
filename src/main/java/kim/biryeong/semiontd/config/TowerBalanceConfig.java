@@ -4210,7 +4210,7 @@ public record TowerBalanceConfig(
         values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1250.0);
+        values.put("awakeningKills", 1400.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -4225,18 +4225,18 @@ public record TowerBalanceConfig(
 
     private static Map<String, Double> rangedWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("threshold", 0.55);
+        values.put("threshold", 0.65);
         values.put("roundStat", 0.50);
         values.put("permanentHealth", 0.025);
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.05);
-        values.put("damageThreshold", 150.0);
+        values.put("damageThreshold", 140.0);
         values.put("damageScale", 20.0);
         values.put("lifeEvery", 10.0);
         values.put("lifeStep", 0.005);
         values.put("lifeCap", 0.07);
-        values.put("incomeDebuffResistance", 0.05);
+        values.put("incomeDebuffResistance", 0.30);
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
@@ -4247,7 +4247,7 @@ public record TowerBalanceConfig(
         values.put("petHealthCap", 0.20);
         values.put("petDamage", 0.10);
         values.put("petDamageCap", 0.50);
-        values.put("awakeningHeal", 600.0);
+        values.put("awakeningHeal", 800.0);
         values.put("awakeningRegeneration", 40.0);
         values.put("awakeningRegenerationTicks", 20.0);
         return values;
@@ -4255,7 +4255,7 @@ public record TowerBalanceConfig(
 
     private static Map<String, Double> meleeWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("threshold", 0.55);
+        values.put("threshold", 0.65);
         values.put("roundStat", 0.60);
         values.put("permanentHealth", 0.05);
         values.put("healthThreshold", 3500.0);
@@ -4265,7 +4265,7 @@ public record TowerBalanceConfig(
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
         values.put("lifeCap", 0.13);
-        values.put("incomeDebuffResistance", 0.05);
+        values.put("incomeDebuffResistance", 0.40);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);
@@ -4277,7 +4277,7 @@ public record TowerBalanceConfig(
         values.put("petHealthCap", 0.50);
         values.put("petDamage", 0.04);
         values.put("petDamageCap", 0.20);
-        values.put("awakeningHeal", 600.0);
+        values.put("awakeningHeal", 800.0);
         values.put("awakeningDamage", 75.0);
         values.put("awakeningMoveSpeed", 0.30);
         return values;

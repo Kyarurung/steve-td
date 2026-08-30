@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.tower.Tower;
@@ -16,29 +15,23 @@ import kim.biryeong.semiontd.tower.TowerDataKey;
 import net.minecraft.resources.ResourceLocation;
 
 final class EndTransferController {
+    private static final int HEALING_INTERVAL_TICKS = 20;
     private static final TowerDataKey<Double> PROGRESS = TowerDataKey.of(ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "end_transfer_progress"), Double.class);
 
     private final EndTransferState state = new EndTransferState();
-    private final EndConfig config;
     private final EndTransferFactory progressFactory;
     private EndTransferStacks stacks = EndTransferStacks.EMPTY;
-    private EndTransferSnapshot snapshot = state.snapshot(stacks);
 
     EndTransferController(EndConfig config) {
-        this.config = Objects.requireNonNull(config, "config");
-        progressFactory = new EndTransferFactory(config);
+        progressFactory = new EndTransferFactory(Objects.requireNonNull(config, "config"));
     }
 
-    TickResult tick(
-            EndTower core,
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter
-    ) {
+    TickResult tick(EndTower core, PlayerLane lane) {
         if (lane == null) {
             return TickResult.NONE;
         }
         captureTargets(core, lane);
-        return advanceTransfers(lane, particleEmitter);
+        return advanceTransfers(lane);
     }
 
     private void captureTargets(EndTower core, PlayerLane lane) {
@@ -51,35 +44,22 @@ final class EndTransferController {
         }
     }
 
-    private TickResult advanceTransfers(
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter
-    ) {
+    private TickResult advanceTransfers(PlayerLane lane) {
         TransferTick tick = new TransferTick();
-        advanceActiveTransfers(lane, particleEmitter, tick);
+        advanceActiveTransfers(tick);
         resolveCompletions(lane, tick);
-        TickResult result = tick.result();
-        if (result.statsChanged() || result.countsChanged()) {
-            refreshSnapshot();
-        }
-        return result;
+        return tick.result();
     }
 
-    private void advanceActiveTransfers(
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter,
-            TransferTick tick
-    ) {
+    private void advanceActiveTransfers(TransferTick tick) {
         var iterator = state.progressEntries().iterator();
         while (iterator.hasNext()) {
-            advanceTransfer(iterator, lane, particleEmitter, tick);
+            advanceTransfer(iterator, tick);
         }
     }
 
     private void advanceTransfer(
             Iterator<Map.Entry<Tower, EndTransferState.Progress>> iterator,
-            PlayerLane lane,
-            BiConsumer<PlayerLane, Tower> particleEmitter,
             TransferTick tick
     ) {
         Map.Entry<Tower, EndTransferState.Progress> entry = iterator.next();
@@ -94,7 +74,7 @@ final class EndTransferController {
         if (progress.isComplete()) {
             collectCompletion(iterator, source, progress, tick);
         } else {
-            recordActiveTransfer(lane, source, progress, particleEmitter, tick);
+            recordActiveTransfer(source, progress, tick);
         }
     }
 
@@ -109,15 +89,15 @@ final class EndTransferController {
     }
 
     private static void recordActiveTransfer(
-            PlayerLane lane,
             Tower source,
             EndTransferState.Progress progress,
-            BiConsumer<PlayerLane, Tower> particleEmitter,
             TransferTick tick
     ) {
-        tick.addPeriodicHealing(progress.periodicHealingPerSecond);
+        if (progress.elapsedTicks % HEALING_INTERVAL_TICKS == 0) {
+            tick.addTransferHealing(progress.periodicHealingPerSecond);
+        }
         if (shouldEmitParticles(source, progress.elapsedTicks)) {
-            particleEmitter.accept(lane, source);
+            tick.addParticleSource(source);
         }
     }
 
@@ -197,42 +177,21 @@ final class EndTransferController {
             changed |= state.rollback(entry.getValue());
         }
         state.clearProgress();
-        if (changed) {
-            refreshSnapshot();
-        }
         return changed;
     }
 
     void resetRound() {
         stacks = stacks.resetRound();
         state.resetRoundContributions();
-        refreshSnapshot();
     }
 
-    void copyFrom(EndTransferController source) {
-        state.copyBonusesFrom(source.state);
+    void copyCommittedFrom(EndTransferController source) {
+        state.restore(source.state.committedSnapshot(source.stacks));
         stacks = source.stacks;
-        refreshSnapshot();
     }
 
-    EndTransferStacks stacks() {
-        return stacks;
-    }
-
-    EndTransferStats stats() {
-        return snapshot.resolve(config.healthScaling(), config.damageScaling());
-    }
-
-    double totalHealthBonus() {
-        return snapshot.totalHealthBonus(config.healthScaling());
-    }
-
-    double totalDamageBonus() {
-        return snapshot.totalDamageBonus(config.damageScaling());
-    }
-
-    private void refreshSnapshot() {
-        snapshot = state.snapshot(stacks);
+    EndTransferSnapshot progressionSnapshot() {
+        return state.snapshot(stacks);
     }
 
     static double progress(Tower tower) {
@@ -243,17 +202,25 @@ final class EndTransferController {
         tower.removeData(PROGRESS);
     }
 
-    private static boolean shouldEmitParticles(Tower source, int elapsedTicks) {
-        return Math.floorMod(elapsedTicks + System.identityHashCode(source), 5) == 0;
+    static boolean shouldEmitParticles(Tower source, int elapsedTicks) {
+        int stableOffset = source.ownerPlayer().hashCode();
+        stableOffset = 31 * stableOffset + source.type().id().hashCode();
+        stableOffset = 31 * stableOffset + source.originalPosition().hashCode();
+        return Math.floorMod(elapsedTicks + stableOffset, 5) == 0;
     }
 
     record TickResult(
             boolean statsChanged,
             boolean countsChanged,
             double completionHealing,
-            double periodicHealingPerSecond
+            double transferHealing,
+            List<Tower> particleSources
     ) {
-        private static final TickResult NONE = new TickResult(false, false, 0.0, 0.0);
+        private static final TickResult NONE = new TickResult(false, false, 0.0, 0.0, List.of());
+
+        TickResult {
+            particleSources = List.copyOf(particleSources);
+        }
     }
 
     private record Completion(Tower source, EndTransferState.Progress progress) {
@@ -264,14 +231,15 @@ final class EndTransferController {
         private boolean statsChanged;
         private boolean countsChanged;
         private double completionHealing;
-        private double periodicHealingPerSecond;
+        private double transferHealing;
+        private final List<Tower> particleSources = new ArrayList<>();
 
         private void markStatsChanged(boolean changed) {
             statsChanged |= changed;
         }
 
-        private void addPeriodicHealing(double healingPerSecond) {
-            periodicHealingPerSecond += healingPerSecond;
+        private void addTransferHealing(double healing) {
+            transferHealing += healing;
         }
 
         private void collect(Completion completion) {
@@ -290,6 +258,10 @@ final class EndTransferController {
             completionHealing += healing;
         }
 
+        private void addParticleSource(Tower source) {
+            particleSources.add(source);
+        }
+
         private void markCountsChanged() {
             countsChanged = true;
         }
@@ -299,7 +271,8 @@ final class EndTransferController {
                     statsChanged,
                     countsChanged,
                     completionHealing,
-                    periodicHealingPerSecond
+                    transferHealing,
+                    particleSources
             );
         }
     }

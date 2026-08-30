@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.end;
 
 import java.util.Objects;
-import kim.biryeong.semiontd.tower.LogarithmicScaling;
 
 record EndTransferSnapshot(
         EndTransferStacks stacks,
@@ -42,6 +41,6 @@ record EndTransferSnapshot(
     }
 
     private static double scale(double raw, EndConfig.ScalingRule rule) {
-        return LogarithmicScaling.logarithmicBonus(raw, rule.threshold(), rule.scale());
+        return rule.apply(raw);
     }
 }

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 class WarlockProgressionSnapshotTest {
     private static final WarlockAwakeningProgress.Snapshot LOCKED =
-            new WarlockAwakeningProgress.Snapshot(20, 1250, false);
+            new WarlockAwakeningProgress.Snapshot(20, 1400, false);
 
     @Test
     void everyDerivedStatUsesItsConfiguredTotalOrRoundCount() {

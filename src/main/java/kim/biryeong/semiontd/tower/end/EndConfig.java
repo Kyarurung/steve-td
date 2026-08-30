@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.tower.end;
 
 import java.util.List;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.tower.LogarithmicScaling;
 import kim.biryeong.semiontd.tower.TowerType;
 
 public final class EndConfig {
@@ -104,6 +105,29 @@ public final class EndConfig {
     }
 
     record ScalingRule(double threshold, double scale) {
+        ScalingRule {
+            if (!Double.isFinite(threshold) || threshold < 0.0) {
+                throw new IllegalArgumentException("End scaling threshold must be finite and non-negative.");
+            }
+            if (!Double.isFinite(scale) || scale < 0.0) {
+                throw new IllegalArgumentException("End scaling scale must be finite and non-negative.");
+            }
+        }
+
+        boolean disabled() {
+            return threshold == 0.0;
+        }
+
+        boolean hardCap() {
+            return !disabled() && scale == 0.0;
+        }
+
+        double apply(double rawBonus) {
+            if (disabled()) {
+                return 0.0;
+            }
+            return LogarithmicScaling.logarithmicBonus(rawBonus, threshold, scale);
+        }
     }
 
     record StackRule(int stacksPerStep, double bonusPerStep, double maximum) {

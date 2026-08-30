@@ -4360,7 +4360,7 @@
       "absorptionHeal": 30.0,
       "minInterval": 5.0,
       "speedCap": 15.0,
-      "awakeningKills": 1250.0,
+      "awakeningKills": 1400.0,
       "awakeningThreshold": 0.4
     },
     "base_warlock_tower": {
@@ -4369,18 +4369,18 @@
       "permanentDamage": 0.05
     },
     "ranged_warlock_tower": {
-      "threshold": 0.55,
+      "threshold": 0.65,
       "roundStat": 0.5,
       "permanentHealth": 0.025,
       "healthThreshold": 2000.0,
       "healthScale": 500.0,
       "permanentDamage": 0.05,
-      "damageThreshold": 150.0,
+      "damageThreshold": 140.0,
       "damageScale": 20.0,
       "lifeEvery": 10.0,
       "lifeStep": 0.005,
       "lifeCap": 0.07,
-      "incomeDebuffResistance": 0.05,
+      "incomeDebuffResistance": 0.3,
       "splashEvery": 2.0,
       "splashStep": 0.1,
       "splashCap": 8.0,
@@ -4391,12 +4391,12 @@
       "petHealthCap": 0.2,
       "petDamage": 0.1,
       "petDamageCap": 0.5,
-      "awakeningHeal": 600.0,
+      "awakeningHeal": 800.0,
       "awakeningRegeneration": 40.0,
       "awakeningRegenerationTicks": 20.0
     },
     "melee_warlock_tower": {
-      "threshold": 0.55,
+      "threshold": 0.65,
       "roundStat": 0.6,
       "permanentHealth": 0.05,
       "healthThreshold": 3500.0,
@@ -4406,7 +4406,7 @@
       "damageScale": 20.0,
       "lifeStep": 0.01,
       "lifeCap": 0.13,
-      "incomeDebuffResistance": 0.05,
+      "incomeDebuffResistance": 0.4,
       "speedStep": 1.0,
       "splashStep": 0.25,
       "splashCap": 2.0,
@@ -4418,7 +4418,7 @@
       "petHealthCap": 0.5,
       "petDamage": 0.04,
       "petDamageCap": 0.2,
-      "awakeningHeal": 600.0,
+      "awakeningHeal": 800.0,
       "awakeningDamage": 75.0,
       "awakeningMoveSpeed": 0.3
     },

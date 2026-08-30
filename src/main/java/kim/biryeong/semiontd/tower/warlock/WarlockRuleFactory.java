@@ -122,9 +122,8 @@ final class WarlockRuleFactory {
     }
 
     private WarlockRules.SacrificeRule sacrifice(WarlockAbilityKey radius) {
-        double configuredRadius = values.value(radius);
-        return new WarlockRules.SacrificeRule(
-                configuredRadius <= 0.0 ? Double.MAX_VALUE : configuredRadius,
+        return WarlockRules.SacrificeRule.fromConfiguredRadius(
+                values.value(radius),
                 values.nonNegative(ABSORPTION_HEAL)
         );
     }
