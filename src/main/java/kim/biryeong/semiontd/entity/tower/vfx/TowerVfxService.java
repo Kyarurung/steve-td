@@ -113,20 +113,6 @@ public final class TowerVfxService {
     private static final DustParticleOptions BODY_EYE_LASER_PARTICLE = new DustParticleOptions(0xFF1744, 1.1F);
     private static final DustParticleOptions BODY_EYE_LASER_CORE_PARTICLE = new DustParticleOptions(0xFFCDD2, 0.7F);
 
-    private static final Set<String> UNDEAD_TOWER_IDS = Set.of(
-            UndeadTowers.T1_ZOMBIE_TOWER.id(), UndeadTowers.T2_ZOMBIE_TOWER.id(), UndeadTowers.T3_ZOMBIE_TOWER.id(),
-            UndeadTowers.T1_SKELETON_TOWER.id(), UndeadTowers.T2_RANGED_SKELETON_TOWER.id(),
-            UndeadTowers.T2_MELEE_TOWER.id(), UndeadTowers.T3_RANGED_SKELETON_TOWER.id(),
-            UndeadTowers.T3_MELEE_TOWER.id(), UndeadTowers.T1_UNDEAD_ANIMAL_TOWER.id(),
-            UndeadTowers.T2_UNDEAD_ANIMAL_TOWER.id()
-    );
-    private static final Set<String> ANIMAL_TOWER_IDS = Set.of(
-            AnimalTowers.T1_PIG_TOWER.id(), AnimalTowers.T2_PIG_TOWER.id(), AnimalTowers.T3_PIG_TOWER.id(), AnimalTowers.T4_PIG_LEADER_TOWER.id(),
-            AnimalTowers.T1_WOLF_TOWER.id(), AnimalTowers.T2_WOLF_DPS_TOWER.id(), AnimalTowers.T3_WOLF_DPS_TOWER.id(), AnimalTowers.T4_WOLF_LEADER_TOWER.id(),
-            AnimalTowers.T1_RABBIT_TOWER.id(), AnimalTowers.T2_RABBIT_TOWER.id(), AnimalTowers.T3_RABBIT_TOWER.id(), AnimalTowers.T4_RABBIT_LEADER_TOWER.id(),
-            AnimalTowers.T1_FOX_TOWER.id(), AnimalTowers.T2_FOX_TOWER.id(), AnimalTowers.T3_FOX_TOWER.id(), AnimalTowers.T4_FOX_LEADER_TOWER.id()
-    );
-
     private static final ConcurrentLinkedQueue<PendingEvent> EVENTS = new ConcurrentLinkedQueue<>();
     private static final Map<VfxLaneKey, Integer> QUEUED_BY_LANE = new HashMap<>();
     private static final Map<VfxLaneKey, TowerVfxBudget> VANILLA_BUDGETS = new ConcurrentHashMap<>();
@@ -615,10 +601,10 @@ public final class TowerVfxService {
         if (VillagerTowers.isBaseVillagerTower(type)) {
             return BuilderPalette.VILLAGER;
         }
-        if (type != null && UNDEAD_TOWER_IDS.contains(type.id())) {
+        if (UndeadTowers.isUndeadTower(type)) {
             return BuilderPalette.UNDEAD;
         }
-        if (type != null && ANIMAL_TOWER_IDS.contains(type.id())) {
+        if (AnimalTowers.isAnimalTower(type)) {
             return BuilderPalette.ANIMAL;
         }
         if (WarlockTowers.isWarlockTower(type)) {

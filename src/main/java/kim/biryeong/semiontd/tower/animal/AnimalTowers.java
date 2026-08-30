@@ -307,6 +307,21 @@ public class AnimalTowers {
 
     // 양 타워
 
+    private static final List<TowerType> ALL = List.of(
+            T1_PIG_TOWER, T2_PIG_TOWER, T3_PIG_TOWER, T4_PIG_LEADER_TOWER,
+            T1_WOLF_TOWER, T2_WOLF_DPS_TOWER, T3_WOLF_DPS_TOWER, T4_WOLF_LEADER_TOWER,
+            T1_RABBIT_TOWER, T2_RABBIT_TOWER, T3_RABBIT_TOWER, T4_RABBIT_LEADER_TOWER,
+            T1_FOX_TOWER, T2_FOX_TOWER, T3_FOX_TOWER, T4_FOX_LEADER_TOWER
+    );
+
+    public static List<TowerType> all() {
+        return ALL;
+    }
+
+    public static boolean isAnimalTower(TowerType towerType) {
+        return towerType != null && ALL.stream().anyMatch(type -> type.id().equals(towerType.id()));
+    }
+
     static {
         TowerDescriptionRegistry.registerTemplate(T1_PIG_TOWER, List.of(
                 "<gray> 동물 빌더의 탱킹 타워입니다. </gray>",

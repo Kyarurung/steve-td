@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.job;
 
 import java.util.List;
-import java.util.Set;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
@@ -11,18 +10,6 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class UndeadTowerJob extends SemionJob {
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "undead_towers");
-    private static final Set<String> ALLOWED_TOWER_IDS = Set.of(
-            UndeadTowers.T1_ZOMBIE_TOWER.id(),
-            UndeadTowers.T2_ZOMBIE_TOWER.id(),
-            UndeadTowers.T3_ZOMBIE_TOWER.id(),
-            UndeadTowers.T1_SKELETON_TOWER.id(),
-            UndeadTowers.T2_RANGED_SKELETON_TOWER.id(),
-            UndeadTowers.T2_MELEE_TOWER.id(),
-            UndeadTowers.T3_RANGED_SKELETON_TOWER.id(),
-            UndeadTowers.T3_MELEE_TOWER.id(),
-            UndeadTowers.T1_UNDEAD_ANIMAL_TOWER.id(),
-            UndeadTowers.T2_UNDEAD_ANIMAL_TOWER.id()
-    );
 
     public UndeadTowerJob() {
         super(
@@ -37,6 +24,11 @@ public final class UndeadTowerJob extends SemionJob {
 
     @Override
     public boolean canUseTower(JobContext context, TowerType towerType) {
-        return towerType != null && ALLOWED_TOWER_IDS.contains(towerType.id());
+        return UndeadTowers.isUndeadTower(towerType);
+    }
+
+    @Override
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return UndeadTowers.isUndeadTower(towerType);
     }
 }

@@ -180,7 +180,7 @@ public final class VillagerAdvStates {
             return false;
         }
         double requirement = TowerBalanceRuntime.villagerAdvUpgradeRequirement(tower.type(), upgrade.id());
-        return requirement <= 0.0 || experience(tower) + 1.0E-6 >= requirement;
+        return VillagerAdvRules.meetsUpgradeRequirement(experience(tower), requirement);
     }
 
     public static double survivalBonusMultiplier(Tower tower) {
@@ -255,10 +255,7 @@ public final class VillagerAdvStates {
                         snapshot.ownerPlayer(),
                         snapshot.lane(),
                         snapshot.tower(),
-                        Math.min(
-                                config.resolvedExperienceMax(),
-                                snapshot.currentExperience() + config.resolvedExperiencePerTower() + Math.max(1, snapshot.tier()) * config.resolvedExperiencePerTier()
-                        )
+                        VillagerAdvRules.nextExperience(snapshot.currentExperience(), snapshot.tier(), config)
                 ))
                 .toList();
     }
@@ -267,10 +264,11 @@ public final class VillagerAdvStates {
         if (playerId == null || amount == 0.0) {
             return;
         }
-        REPUTATION.compute(playerId, (ignored, previous) -> Math.max(0.0, Math.min(
-                config.resolvedReputationMax(),
-                (previous == null ? 0.0 : previous) + amount
-        )));
+        REPUTATION.compute(playerId, (ignored, previous) -> VillagerAdvRules.nextReputation(
+                previous == null ? 0.0 : previous,
+                amount,
+                config
+        ));
     }
 
     private static boolean isAdvPlayer(SemionPlayer player) {
@@ -299,16 +297,20 @@ public final class VillagerAdvStates {
     }
 
     private static double experienceBonus(TowerBalanceConfig.VillagerAdvConfig config, String towerId, double experience, String key) {
-        return Math.min(
-                config.resolvedExperienceBuffCap(),
-                Math.max(0.0, experience) / config.buffInterval(towerId, key) * config.buff(towerId, key)
+        return VillagerAdvRules.buff(
+                experience,
+                config.buffInterval(towerId, key),
+                config.buff(towerId, key),
+                config.resolvedExperienceBuffCap()
         );
     }
 
     private static double reputationBonus(TowerBalanceConfig.VillagerAdvConfig config, String towerId, double reputation, String key) {
-        return Math.min(
-                config.resolvedReputationBuffCap(),
-                Math.max(0.0, reputation) / config.buffInterval(towerId, key) * config.buff(towerId, key)
+        return VillagerAdvRules.buff(
+                reputation,
+                config.buffInterval(towerId, key),
+                config.buff(towerId, key),
+                config.resolvedReputationBuffCap()
         );
     }
 

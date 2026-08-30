@@ -100,7 +100,7 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
         if (killStacks >= stackCap()) {
             return;
         }
-        killStacks++;
+        killStacks = UndeadCombatRules.addCappedStack(killStacks, stackCap());
         syncHealth(health() + healthPerStack());
         if (lane != null) {
             onStateChanged(lane);
@@ -125,8 +125,9 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
     }
 
     private void heal(SemionTowerEntity towerEntity, double damageAmount) {
-        if (towerEntity != null && damageAmount > 0.0) {
-            towerEntity.healTarget(towerEntity, damageAmount * lifeStealRatio());
+        double healing = UndeadCombatRules.lifeStealAmount(damageAmount, lifeStealRatio());
+        if (towerEntity != null && healing > 0.0) {
+            towerEntity.healTarget(towerEntity, healing);
         }
     }
 

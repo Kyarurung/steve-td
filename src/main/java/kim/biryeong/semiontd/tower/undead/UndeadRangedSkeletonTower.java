@@ -79,7 +79,7 @@ public class UndeadRangedSkeletonTower extends EntityBackedTower {
     }
 
     private void incrementDeathStack() {
-        killStackDamage = Math.min(stackDamageCap(), killStackDamage + stackDamageStep());
+        killStackDamage = UndeadCombatRules.addCappedDamage(killStackDamage, stackDamageStep(), stackDamageCap());
     }
 
     @Override
@@ -112,8 +112,9 @@ public class UndeadRangedSkeletonTower extends EntityBackedTower {
     }
 
     private void heal(SemionTowerEntity towerEntity, double damageAmount) {
-        if (towerEntity != null && damageAmount > 0.0) {
-            towerEntity.healTarget(towerEntity, damageAmount * lifeStealRatio());
+        double healing = UndeadCombatRules.lifeStealAmount(damageAmount, lifeStealRatio());
+        if (towerEntity != null && healing > 0.0) {
+            towerEntity.healTarget(towerEntity, healing);
         }
     }
 

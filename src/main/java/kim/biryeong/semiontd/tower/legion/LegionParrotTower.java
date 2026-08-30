@@ -33,6 +33,12 @@ public class LegionParrotTower extends EntityBackedTower {
     }
 
     @Override
+    public java.util.List<String> runtimeDetailLines() {
+        return java.util.List.of("공격 스택 " + attackStacks + "/" + maxAttackStacks()
+                + " (피해/공속 +" + percent(attackStacks * TowerBalanceRuntime.ability(type().id(), "attackStackBonus")) + ")");
+    }
+
+    @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return damageAmount * attackMultiplier();
     }

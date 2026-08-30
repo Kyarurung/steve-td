@@ -270,6 +270,33 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
         context.succeed();
     }
 
+    @GameTest
+    public void villagerAdvStateDoesNotLeakIntoSecondMatch(GameTestHelper context) {
+        UUID playerId = stableUuid("villager-adv-second-match-owner");
+        SemionGame first = startedSinglePlayerGame(context, playerId, VillagerAdvTowerJob.ID);
+        VillagerAdvStates.onWaveStarted(first, 1);
+        VillagerAdvStates.onWaveCleared(first, 1);
+        if (!assertClose(context, 0.75, VillagerAdvStates.reputation(playerId),
+                "First match should create player-scoped reputation before close.")) {
+            return;
+        }
+
+        first.close();
+        if (!assertClose(context, 0.0, VillagerAdvStates.reputation(playerId),
+                "Closing a match should clear keyed Villager ADV state.")) {
+            return;
+        }
+
+        SemionGame second = startedSinglePlayerGameWithoutPreclear(context, playerId, VillagerAdvTowerJob.ID);
+        if (!assertClose(context, 0.0, VillagerAdvStates.reputation(playerId),
+                "The same player should start a second match without reputation leakage.")) {
+            second.close();
+            return;
+        }
+        second.close();
+        context.succeed();
+    }
+
     @Override
     public void invokeTestMethod(GameTestHelper context, Method method) throws ReflectiveOperationException {
         context.setBlock(0, 0, 0, Blocks.AIR);
@@ -279,6 +306,14 @@ public final class SemionVillagerAdvGameTest implements CustomTestMethodInvoker 
 
     private static SemionGame startedSinglePlayerGame(GameTestHelper context, UUID playerId, ResourceLocation jobId) {
         VillagerAdvStates.clear(playerId);
+        return startedSinglePlayerGameWithoutPreclear(context, playerId, jobId);
+    }
+
+    private static SemionGame startedSinglePlayerGameWithoutPreclear(
+            GameTestHelper context,
+            UUID playerId,
+            ResourceLocation jobId
+    ) {
         SemionGame game = new SemionGame(
                 EconomyConfig.defaultConfig(),
                 new WaveConfig(List.of(), 20, null),

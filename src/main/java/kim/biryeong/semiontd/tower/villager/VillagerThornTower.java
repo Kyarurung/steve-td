@@ -20,7 +20,7 @@ import java.util.UUID;
 
 public class VillagerThornTower extends EntityBackedTower {
     private int thornCooldownTicks = 0;
-    private int survivalBonus = 0;
+    private final VillagerSurvivalState survival = new VillagerSurvivalState();
     public VillagerThornTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition originalPosition, GridPosition currentPosition) {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
     }
@@ -53,7 +53,7 @@ public class VillagerThornTower extends EntityBackedTower {
     @Override
     public java.util.List<String> runtimeDetailLines() {
         double bonus = survivalHealthBonus();
-        return java.util.List.of("생존 스택 " + survivalBonus + "/" + maxSurvivalStacks()
+        return java.util.List.of("생존 스택 " + survival.stacks() + "/" + maxSurvivalStacks()
                 + " (체력 +" + percent(bonus) + ")");
     }
 
@@ -82,7 +82,7 @@ public class VillagerThornTower extends EntityBackedTower {
     @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
         if (previousTower instanceof VillagerThornTower thornTower) {
-            survivalBonus = Math.min(TowerBalanceRuntime.abilityInt(type().id(), "maxSurvivalStacks"), thornTower.survivalBonus);
+            survival.copyFrom(thornTower.survival, maxSurvivalStacks());
             syncHealth(currentMaxHealth());
         }
     }
@@ -100,14 +100,12 @@ public class VillagerThornTower extends EntityBackedTower {
     }
 
     private double survivalHealthBonus() {
-        return value("healthBonusPerSurvivedRound") * survivalBonus * VillagerAdvStates.survivalBonusMultiplier(this);
+        return value("healthBonusPerSurvivedRound") * survival.stacks() * VillagerAdvStates.survivalBonusMultiplier(this);
     }
 
     private void increaseSurvivalBonus() {
         double previousMaxHealth = currentMaxHealth();
-        int previousBonus = survivalBonus;
-        survivalBonus = Math.min(TowerBalanceRuntime.abilityInt(type().id(), "maxSurvivalStacks"), survivalBonus + 1);
-        if (survivalBonus > previousBonus) {
+        if (survival.increment(maxSurvivalStacks())) {
             syncHealth(health() + Math.max(0.0, currentMaxHealth() - previousMaxHealth));
         }
     }

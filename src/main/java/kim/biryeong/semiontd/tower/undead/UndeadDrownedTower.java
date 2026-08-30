@@ -10,8 +10,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.damagesource.DamageSource;
 
 public class UndeadDrownedTower extends UndeadHuskTower {
-    private boolean lastStandUsed;
-    private long lastStandEndsAt;
+    private final UndeadLastStandState lastStand = new UndeadLastStandState();
 
     public UndeadDrownedTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -46,16 +45,12 @@ public class UndeadDrownedTower extends UndeadHuskTower {
         if (towerEntity == null || damageAmount <= 0.0) {
             return damageAmount;
         }
-        long gameTime = towerEntity.level().getGameTime();
-        if (lastStandEndsAt > gameTime) {
-            return 0.0;
-        }
-        if (!lastStandUsed && damageAmount >= towerEntity.getHealth()) {
-            lastStandUsed = true;
-            lastStandEndsAt = gameTime + ticks("lastStandTicks");
-            return Math.max(0.0, towerEntity.getHealth() - 1.0);
-        }
-        return damageAmount;
+        return lastStand.modifyDamage(
+                towerEntity.level().getGameTime(),
+                towerEntity.getHealth(),
+                damageAmount,
+                ticks("lastStandTicks")
+        );
     }
 
     @Override
@@ -72,8 +67,7 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     public void resetForRound(PlayerLane lane) {
-        lastStandUsed = false;
-        lastStandEndsAt = 0L;
+        lastStand.resetRound();
         super.resetForRound(lane);
     }
 

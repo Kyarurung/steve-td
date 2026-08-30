@@ -192,6 +192,21 @@ public class UndeadTowers {
             )
     );
 
+    private static final List<TowerType> ALL = List.of(
+            T1_ZOMBIE_TOWER, T2_ZOMBIE_TOWER, T3_ZOMBIE_TOWER,
+            T1_SKELETON_TOWER, T2_RANGED_SKELETON_TOWER, T2_MELEE_TOWER,
+            T3_RANGED_SKELETON_TOWER, T3_MELEE_TOWER,
+            T1_UNDEAD_ANIMAL_TOWER, T2_UNDEAD_ANIMAL_TOWER
+    );
+
+    public static List<TowerType> all() {
+        return ALL;
+    }
+
+    public static boolean isUndeadTower(TowerType towerType) {
+        return towerType != null && ALL.stream().anyMatch(type -> type.id().equals(towerType.id()));
+    }
+
     static {
         TowerDescriptionRegistry.registerTemplate(T1_ZOMBIE_TOWER, List.of(
                 "<gray> 지속 교전을 통한 탱킹에 주력된 타워입니다.</gray>",

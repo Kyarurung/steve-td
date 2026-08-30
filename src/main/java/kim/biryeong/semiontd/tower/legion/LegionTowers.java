@@ -11,7 +11,6 @@ import net.minecraft.world.entity.animal.ChickenVariants;
 import net.minecraft.world.entity.animal.Parrot;
 
 import java.util.List;
-import java.util.Set;
 
 import static kim.biryeong.semiontd.tower.catalog.ProductionTowerDefinitions.*;
 import static kim.biryeong.semiontd.util.EntityTypeUtil.byId;
@@ -290,27 +289,31 @@ public class LegionTowers {
             )
     );
 
-    private static final Set<String> LEGION_TOWER_IDS = Set.of(
-            T1_CHICKEN.id(),
-            T2_CHICKEN_TOWER.id(),
-            T2_DPS_CHICKEN_TOWER.id(),
-            T1_SLIME_TOWER.id(),
-            T2_SLIME_TOWER.id(),
-            T1_PENGUIN.id(),
-            T2_PENGUIN.id(),
-            T1_PARROT_TOWER.id(),
-            T2_PARROT_TOWER.id(),
-            T1_GOAT_TOWER.id(),
-            T2_STRONG_GOAT_TOWER.id(),
-            T3_EXTREME_GOAT_TOWER.id(),
+    private static final List<TowerType> ALL = List.of(
+            T1_CHICKEN,
+            T2_CHICKEN_TOWER,
+            T2_DPS_CHICKEN_TOWER,
+            T1_SLIME_TOWER,
+            T2_SLIME_TOWER,
+            T1_PENGUIN,
+            T2_PENGUIN,
+            T1_PARROT_TOWER,
+            T2_PARROT_TOWER,
+            T1_GOAT_TOWER,
+            T2_STRONG_GOAT_TOWER,
+            T3_EXTREME_GOAT_TOWER,
 //            T1_BEE_TOWER.id(),
 //            T2_BEE_TOWER.id(),
 //            T3_BEE_TOWER.id(),
-            ILLUSION_TOWER.id()
+            ILLUSION_TOWER
     );
 
+    public static List<TowerType> all() {
+        return ALL;
+    }
+
     public static boolean isLegionTower(TowerType towerType) {
-        return towerType != null && LEGION_TOWER_IDS.contains(towerType.id());
+        return towerType != null && ALL.stream().anyMatch(type -> type.id().equals(towerType.id()));
     }
 
     static {

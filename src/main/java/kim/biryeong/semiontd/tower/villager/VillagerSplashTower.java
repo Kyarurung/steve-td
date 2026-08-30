@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public class VillagerSplashTower extends SplashTower {
     private int attackAttempt = 0;
-    private int survivalBouns = 0;
+    private final VillagerSurvivalState survival = new VillagerSurvivalState();
 
     public VillagerSplashTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -34,7 +34,7 @@ public class VillagerSplashTower extends SplashTower {
     }
 
     private void incrementSurvivalBonus() {
-        this.survivalBouns = Math.min(TowerBalanceRuntime.abilityInt(type().id(), "maxSurvivalStacks"), survivalBouns + 1);
+        survival.increment(maxSurvivalStacks());
     }
 
     @Override
@@ -56,7 +56,7 @@ public class VillagerSplashTower extends SplashTower {
         java.util.ArrayList<String> lines = new java.util.ArrayList<>();
         double bonus = survivalBonus();
         String effect = isT3() ? "피해/공속 +" + percent(bonus) : "피해 +" + percent(bonus);
-        lines.add("생존 스택 " + survivalBouns + "/" + maxSurvivalStacks() + " (" + effect + ")");
+        lines.add("생존 스택 " + survival.stacks() + "/" + maxSurvivalStacks() + " (" + effect + ")");
         return lines;
     }
 
@@ -81,7 +81,7 @@ public class VillagerSplashTower extends SplashTower {
     @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
         if (previousTower instanceof VillagerSplashTower splashTower) {
-            survivalBouns = Math.min(TowerBalanceRuntime.abilityInt(type().id(), "maxSurvivalStacks"), splashTower.survivalBouns);
+            survival.copyFrom(splashTower.survival, maxSurvivalStacks());
         }
     }
 
@@ -104,7 +104,7 @@ public class VillagerSplashTower extends SplashTower {
     }
 
     private double survivalBonus() {
-        return value("bonusPerSurvivedRound") * survivalBouns * VillagerAdvStates.survivalBonusMultiplier(this);
+        return value("bonusPerSurvivedRound") * survival.stacks() * VillagerAdvStates.survivalBonusMultiplier(this);
     }
 
     private boolean isT3() {

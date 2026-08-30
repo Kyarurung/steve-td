@@ -170,7 +170,7 @@ public class AllayTower extends SupportTower {
     }
 
     private boolean canApply(Tower target, TowerDataKey<Long> key, long gameTime) {
-        return target.getDataOrDefault(key, 0L) <= gameTime;
+        return VillagerSupportRules.canApplyAt(target.getDataOrDefault(key, 0L), gameTime);
     }
 
     private void block(Tower target, TowerDataKey<Long> key, PlayerLane lane, long gameTime) {
@@ -195,7 +195,9 @@ public class AllayTower extends SupportTower {
 
     @Override
     protected int cooldownTicksAfterExecute(PlayerLane lane) {
-        return reducedTicks(super.cooldownTicksAfterExecute(lane), intervalReduction(lane), minimumReducedIntervalTicks());
+        return VillagerSupportRules.reducedTicks(
+                super.cooldownTicksAfterExecute(lane), intervalReduction(lane), minimumReducedIntervalTicks()
+        );
     }
 
     private double healAmount(PlayerLane lane, double baseAmount) {
@@ -203,11 +205,9 @@ public class AllayTower extends SupportTower {
     }
 
     private int supportBlockTicks(PlayerLane lane) {
-        return reducedTicks(ticks("supportBlockTicks"), intervalReduction(lane), minimumReducedIntervalTicks());
-    }
-
-    static int reducedTicks(int baseTicks, double reduction, int minimumTicks) {
-        return Math.max(minimumTicks, (int) Math.ceil(baseTicks * Math.max(0.01, 1.0 - reduction)));
+        return VillagerSupportRules.reducedTicks(
+                ticks("supportBlockTicks"), intervalReduction(lane), minimumReducedIntervalTicks()
+        );
     }
 
     private int minimumReducedIntervalTicks() {

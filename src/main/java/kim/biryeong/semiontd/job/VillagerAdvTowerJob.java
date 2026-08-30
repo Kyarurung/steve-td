@@ -37,4 +37,14 @@ public final class VillagerAdvTowerJob extends SemionJob {
     public void onEliminated(JobContext context) {
         VillagerAdvStates.clear(context.player().uuid());
     }
+
+    @Override
+    public void onMatchClosed(JobContext context) {
+        VillagerAdvStates.clear(context.player().uuid());
+    }
+
+    @Override
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return VillagerTowers.isAdvVillagerTower(towerType);
+    }
 }

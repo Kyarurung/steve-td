@@ -31,8 +31,7 @@ public final class IllusionCloneSpawnQueue {
         int spreadTicks = TowerBalanceRuntime.illusionCloneSpawnSpreadTicks();
         for (int index = 0; index < profile.cloneCount(); index++) {
             Vec3 offset = offsets.get(index % offsets.size());
-            int delayTicks = (int) Math.floor(index * (double) spreadTicks / profile.cloneCount());
-            int dueTick = currentTick + delayTicks + (delayTicks > 0 ? 1 : 0);
+            int dueTick = IllusionSpawnRules.dueTick(currentTick, index, profile.cloneCount(), spreadTicks);
             PENDING_CLONE_SPAWNS
                     .computeIfAbsent(dueTick, ignored -> new ArrayDeque<>())
                     .add(new PendingCloneSpawn(owner, lane, sourceTower, profile, offset));

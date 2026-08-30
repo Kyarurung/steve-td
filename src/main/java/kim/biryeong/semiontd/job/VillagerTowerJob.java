@@ -30,4 +30,9 @@ public final class VillagerTowerJob extends SemionJob {
     public static boolean canUseVillagerTower(TowerType towerType) {
         return VillagerTowers.isBaseVillagerTower(towerType);
     }
+
+    @Override
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return VillagerTowers.isBaseVillagerTower(towerType);
+    }
 }
