@@ -393,7 +393,7 @@ public final class PlantIntegrationGameTest {
      *
      * <p>잔디는 자기 자신은 회복시키지 않으므로 회복하는 둘과 받는 하나, 셋이 필요합니다.
      */
-    @GameTest
+    @GameTest(maxTicks = 60)
     public void twoMeadowPlantsHealingOneTargetLoseHalfOfTheSecondHeal(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         UUID owner = stableUuid("plant-heal-overlap-owner");
@@ -431,11 +431,37 @@ public final class PlantIntegrationGameTest {
             double reduction = defaults.ability(PlantTowers.GLOBAL_CONFIG_ID, "meadowHealOverlapReduction", 0.5);
             requireClose(fullGain * (1.0 - reduction), overlapGain,
                     "The overlapping heal must be reduced: full=" + fullGain + " overlap=" + overlapGain);
-            context.succeed();
+
+            // 창이 지나면 온전한 회복이 다시 옵니다. 깎인 회복까지 창을 갱신하면 창이 계속
+            // 밀려나서 잔디가 둘만 돼도 온전한 회복이 두 번 다시 오지 않습니다.
+            int window = (int) defaults.ability(PlantTowers.GLOBAL_CONFIG_ID, "soilPulseIntervalTicks", 20.0);
+            context.runAfterDelay(window + 2, () -> {
+                try {
+                    float rewounded = (float) (target.currentMaxHealth() * 0.2);
+                    target.syncHealth(rewounded);
+                    targetEntity.setHealth(rewounded);
+                    // 타워 자체 쿨다운(펄스 간격)이 남아 있으므로 다 태워야 실제로 펄스가 돕니다.
+                    for (int tick = 0; tick <= window; tick++) {
+                        healerOne.tick(lane);
+                    }
+                    double nextWindowGain = targetEntity.getHealth() - rewounded;
+                    requireClose(fullGain, nextWindowGain,
+                            "창이 지났으면 온전한 회복이 다시 와야 합니다: full=" + fullGain
+                                    + " next=" + nextWindowGain);
+                    context.succeed();
+                } catch (RuntimeException | Error failure) {
+                    failure.printStackTrace();
+                    context.fail(Component.literal("Plant heal window failed: " + failure.getMessage()));
+                } finally {
+                    group.closeRuntime();
+                    PlantSoilStates.clear(owner);
+                    TowerBalanceRuntime.apply(defaults);
+                }
+            });
+            return;
         } catch (RuntimeException | Error failure) {
             failure.printStackTrace();
             context.fail(Component.literal("Plant heal overlap failed: " + failure.getMessage()));
-        } finally {
             group.closeRuntime();
             PlantSoilStates.clear(owner);
             TowerBalanceRuntime.apply(defaults);

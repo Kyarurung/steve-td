@@ -229,6 +229,27 @@ final class PlantTowerCatalogTest {
         }
     }
 
+    /**
+     * 무적인 지형 설비가 라인을 살려 두면 안 됩니다.
+     *
+     * <p>테라포머는 절대 파괴되지 않습니다. 방어 판정에 세면 전투 타워가 전부 무너져도 라인이
+     * 계속 살아 있는 것으로 잡혀, 최종 방어 전투로 넘어가지 않고 인컴 레인 판정도 이전 상태에
+     * 묶입니다.
+     */
+    @Test
+    void terraformersDoNotKeepABrokenLaneAlive() {
+        for (TowerType type : PlantTowers.TERRAFORM_TOWERS) {
+            Tower tower = create(type);
+            assertTrue(tower.invulnerable(), type.id() + " 는 무적이어야 이 테스트의 전제가 성립합니다");
+            assertFalse(tower.countsForLaneDefense(),
+                    type.id() + " 가 방어 판정에 세지면 라인이 영영 안 무너집니다");
+        }
+        for (TowerType type : PlantTowers.COMBAT_TOWERS) {
+            assertTrue(create(type).countsForLaneDefense(),
+                    type.id() + " 는 실제로 라인을 지키므로 방어 판정에 세야 합니다");
+        }
+    }
+
     @Test
     void soilEffectsUseMidgameEnvironmentDefaults() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
