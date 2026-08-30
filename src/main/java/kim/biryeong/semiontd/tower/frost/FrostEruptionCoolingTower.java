@@ -85,6 +85,25 @@ public final class FrostEruptionCoolingTower extends SupportTower {
     }
 
     @Override
+    public boolean countsForLaneDefense() {
+        return false;
+    }
+
+    @Override
+    public boolean participatesInFinalDefense() {
+        return false;
+    }
+
+    public boolean showDebugVfx(PlayerLane lane) {
+        SemionTowerEntity source = runtimeEntity(lane).orElse(null);
+        if (source == null) {
+            return false;
+        }
+        TowerVfxService.showFrostAura(source, FrostTowers.isExpandedEruptionCoolingDevice(type()));
+        return true;
+    }
+
+    @Override
     public double modifyFinalIncomingDamage(
             SemionTowerEntity towerEntity,
             DamageSource damageSource,

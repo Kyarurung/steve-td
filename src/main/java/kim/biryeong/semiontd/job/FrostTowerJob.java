@@ -19,9 +19,9 @@ public final class FrostTowerJob extends SemionJob {
                 ID,
                 Component.literal("혹한 빌더"),
                 List.of(
-                        SemionText.mini("<green><bold>시작</bold></green> <gray>3 / 6 / 9 단위로 강해지는 혹한의 전사들을 배치하여 적들을 막아내세요.</gray>"),
+                        SemionText.mini("<green><bold>시작</bold></green> <gray>보유 수 임계점마다 강해지는 혹한의 전사들을 배치하여 적들을 막아내세요.</gray>"),
                         SemionText.mini("<aqua><bold>운영</bold></aqua> <gray>냉기 장치를 활성화하여 적들을 냉매 상태로 만드세요. 공격하여 처치하거나 해동시켜 최대체력에 비례한 피해를 입히세요.</gray>"),
-                        SemionText.mini("<yellow><bold>연계</bold></yellow> <gray>시간이 지날수록 전장을 얼립니다. 본인의 타워를 얼리고 특수 능력을 9회 발동하여 라인을 얼리세요.  모든 라인의 적에게 디버프를 적용해 아군을 도우세요.</gray>"),
+                        SemionText.mini("<yellow><bold>연계</bold></yellow> <gray>시간이 지날수록 전장을 얼립니다. 본인의 타워를 얼리고 특수 능력을 반복 발동하여 라인을 얼리세요. 모든 라인의 적에게 디버프를 적용해 아군을 도우세요.</gray>"),
                         SemionText.mini("<dark_gray><italic>(절대 그들의 고향이 그저 냉동창고일 뿐이라는 것을 알리지 마세요!)</italic></dark_gray>")
                 )
         );

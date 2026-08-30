@@ -51,8 +51,8 @@ public final class FrostCoolingTower extends SupportTower {
             return false;
         }
 
-        double range = Math.max(0.01, FrostBalance.coolingWaveRange());
-        double width = Math.max(0.01, FrostBalance.coolingWaveWidth());
+        double range = Math.max(0.01, FrostBalance.coolingWaveRange(type()));
+        double width = Math.max(0.01, FrostBalance.coolingWaveWidth(type()));
         double searchRadius = Math.hypot(range, width * 0.5) + 0.25;
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "cooling_wave"),
@@ -84,8 +84,8 @@ public final class FrostCoolingTower extends SupportTower {
     @Override
     public List<String> runtimeDetailLines() {
         return List.of(
-                "관통 파동 " + oneDecimal(FrostBalance.coolingWaveWidth()) + "×"
-                        + oneDecimal(FrostBalance.coolingWaveRange()) + "칸",
+                "관통 파동 " + oneDecimal(FrostBalance.coolingWaveWidth(type())) + "×"
+                        + oneDecimal(FrostBalance.coolingWaveRange(type())) + "칸",
                 "적중당 한기 +" + percent(FrostBalance.chillPerHit()),
                 "고유 타워 · 1기 제한"
         );
@@ -94,6 +94,31 @@ public final class FrostCoolingTower extends SupportTower {
     @Override
     public boolean drawsAggro() {
         return false;
+    }
+
+    @Override
+    public boolean countsForLaneDefense() {
+        return false;
+    }
+
+    @Override
+    public boolean participatesInFinalDefense() {
+        return false;
+    }
+
+    public boolean showDebugVfx(PlayerLane lane) {
+        SemionTowerEntity source = runtimeEntity(lane).orElse(null);
+        Vec3 direction = waveDirection(lane == null ? null : lane.laneLayout());
+        if (source == null || direction.lengthSqr() <= 1.0E-6) {
+            return false;
+        }
+        TowerVfxService.showFrostWave(
+                source,
+                direction,
+                Math.max(0.01, FrostBalance.coolingWaveRange(type())),
+                Math.max(0.01, FrostBalance.coolingWaveWidth(type()))
+        );
+        return true;
     }
 
     @Override

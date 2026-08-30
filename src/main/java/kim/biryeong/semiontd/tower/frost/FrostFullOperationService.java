@@ -1,6 +1,9 @@
 package kim.biryeong.semiontd.tower.frost;
 
+import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.format;
+
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,20 +11,22 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.api.SemionTdApi;
 import kim.biryeong.semiontd.api.area.AreaEffectOutcome;
 import kim.biryeong.semiontd.api.area.AreaVfxSpec;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.job.FrostTowerJob;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -31,18 +36,20 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.phys.Vec3;
 
 /** 혹한 빌더의 웨이브별 생산라인 충전과 9번 슬롯 완전 가동 능력. */
 public final class FrostFullOperationService {
     private static final int ACTIVATION_SLOT = 8;
-    private static final int VFX_INTERVAL_TICKS = 5;
+    private static final String ACTIVATION_ITEM_KEY = "semion_td_frost_full_operation";
     private static final float FULL_OPERATION_SOUND_PITCH = 0.75F;
     private static final Component ACTIVATION_NAME = Component.literal("냉동창고 완전 가동")
             .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
-    private static final DustParticleOptions ACTIVE_PARTICLE = new DustParticleOptions(0x43C9FF, 1.45F);
     private static final ResourceLocation CHILL_PULSE_ID =
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "frost_full_operation_chill");
     private static final ResourceLocation DAMAGE_REDUCTION_ID =
@@ -165,10 +172,6 @@ public final class FrostFullOperationService {
             applyChillPulse(lane);
             state.nextChillPulseTick = gameTime + Math.max(1, FrostBalance.fullOperationChillIntervalTicks());
         }
-        if (gameTime >= state.nextVfxTick) {
-            showActiveParticles(lane);
-            state.nextVfxTick = gameTime + VFX_INTERVAL_TICKS;
-        }
     }
 
     public static double fixedOutgoingDamage(UUID ownerPlayer, long gameTime, double normalDamage) {
@@ -193,8 +196,8 @@ public final class FrostFullOperationService {
         if (stack == null || !stack.is(Items.ICE)) {
             return false;
         }
-        Component name = stack.get(DataComponents.CUSTOM_NAME);
-        return name != null && ACTIVATION_NAME.getString().equals(name.getString());
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data != null && data.getUnsafe().getBooleanOr(ACTIVATION_ITEM_KEY, false);
     }
 
     static PlayerState stateForTest(UUID ownerPlayer) {
@@ -213,9 +216,11 @@ public final class FrostFullOperationService {
         clearActivationItem(player);
         refreshFullOperationEffects(lane, state, gameTime);
         startFullOperationPresentation(player);
-        showActiveParticles(lane);
+        showFullOperationVfx(lane);
         player.sendSystemMessage(SemionText.prefixedMini(
-                "<aqua><bold>냉동창고 완전 가동!</bold></aqua> <gray>5초 동안 방어 체계가 작동합니다.</gray>"
+                "<aqua><bold>냉동창고 완전 가동!</bold></aqua> <gray>"
+                        + format(FrostBalance.fullOperationDurationTicks(), "seconds")
+                        + " 동안 방어 체계가 작동합니다.</gray>"
         ));
         return true;
     }
@@ -314,27 +319,34 @@ public final class FrostFullOperationService {
         });
     }
 
-    private static void showActiveParticles(PlayerLane lane) {
-        ServerLevel level = lane.arenaWorld();
-        if (level == null) {
-            return;
+    public static boolean showFullOperationVfx(PlayerLane lane) {
+        if (lane == null || lane.arenaWorld() == null) {
+            return false;
         }
-        for (Tower tower : lane.towers()) {
-            if (!lane.ownerPlayer().equals(tower.ownerPlayer()) || tower.isDestroyed(lane)) {
-                continue;
-            }
-            towerEntity(level, tower).ifPresent(entity -> level.sendParticles(
-                    ACTIVE_PARTICLE,
-                    entity.getX(),
-                    entity.getY() + Math.max(0.5, entity.getBbHeight() * 0.6),
-                    entity.getZ(),
-                    12,
-                    0.35,
-                    0.45,
-                    0.35,
-                    0.02
-            ));
+        SemionTowerEntity source = operationSource(lane);
+        if (source == null || source.runtimeTower() == null) {
+            return false;
         }
+        List<Vec3> towerCenters = lane.towers().stream()
+                .filter(tower -> lane.ownerPlayer().equals(tower.ownerPlayer()))
+                .filter(tower -> !tower.isDestroyed(lane))
+                .map(tower -> towerEntity(lane.arenaWorld(), tower).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .filter(SemionTowerEntity::isAlive)
+                .map(SemionTowerEntity::position)
+                .toList();
+        TowerVfxService.showAreaEffect(
+                source,
+                AreaEffectIds.tower(source.runtimeTower(), "frost_full_operation"),
+                AreaVfxStyles.BUFF,
+                source.position(),
+                Math.max(0.01, FrostBalance.fullOperationAreaRadius()),
+                towerCenters,
+                towerCenters.size(),
+                towerCenters.size(),
+                0
+        );
+        return true;
     }
 
     private static SemionTowerEntity operationSource(PlayerLane lane) {
@@ -348,6 +360,7 @@ public final class FrostFullOperationService {
                         || FrostTowers.isEmissionCoolingDevice(tower.type()))
                 .map(tower -> towerEntity(level, tower).orElse(null))
                 .filter(java.util.Objects::nonNull)
+                .filter(SemionTowerEntity::isAlive)
                 .findFirst()
                 .orElse(null);
     }
@@ -377,10 +390,21 @@ public final class FrostFullOperationService {
 
     private static ItemStack activationItem() {
         ItemStack stack = new ItemStack(Items.ICE);
+        CustomData.update(DataComponents.CUSTOM_DATA, stack,
+                tag -> tag.putBoolean(ACTIVATION_ITEM_KEY, true));
         stack.set(DataComponents.CUSTOM_NAME, ACTIVATION_NAME);
-        stack.set(DataComponents.LORE, new ItemLore(java.util.List.of(
-                SemionText.mini("<gray>[5초간 지속, 5초간 자신의 모든 타워의 받는 피해 감소가 95%로 고정되며 매초 모든 적에게 100%의 한기가 부여됨.</gray>"),
-                SemionText.mini("<gray>지속 시간 동안 본인의 모든 타워가 입히는 공격력 피해가 5로 고정됨. ]</gray>")
+        stack.set(DataComponents.LORE, new ItemLore(List.of(
+                SemionText.mini("<gray>[" + format(FrostBalance.fullOperationDurationTicks(), "seconds")
+                        + " 동안 자신의 모든 타워의 받는 피해 감소가 "
+                        + format(FrostBalance.fullOperationDamageReduction(), "percent")
+                        + "로 고정되며 "
+                        + format(FrostBalance.fullOperationChillIntervalTicks(), "seconds")
+                        + "마다 모든 적에게 한기 "
+                        + format(FrostBalance.fullOperationChillPerPulse(), "percent")
+                        + "가 부여됨.</gray>"),
+                SemionText.mini("<gray>지속 시간 동안 본인의 모든 타워가 입히는 공격력 피해가 "
+                        + format(FrostBalance.fullOperationFixedAttackDamage(), "number")
+                        + "로 고정됨. ]</gray>")
         )));
         return stack;
     }
@@ -424,11 +448,20 @@ public final class FrostFullOperationService {
     }
 
     public static void clearActivationItem(ServerPlayer player) {
-        ItemStack existing = player.getInventory().getItem(ACTIVATION_SLOT);
-        if (isActivationItem(existing)) {
-            player.getInventory().setItem(ACTIVATION_SLOT, ItemStack.EMPTY);
+        if (clearActivationItems(player.getInventory())) {
             player.containerMenu.sendAllDataToRemote();
         }
+    }
+
+    static boolean clearActivationItems(Container inventory) {
+        boolean changed = false;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            if (isActivationItem(inventory.getItem(slot))) {
+                inventory.setItem(slot, ItemStack.EMPTY);
+                changed = true;
+            }
+        }
+        return changed;
     }
 
     private static java.util.Optional<ServerPlayer> onlinePlayer(PlayerLane lane) {
@@ -457,7 +490,6 @@ public final class FrostFullOperationService {
         private boolean active;
         private long activeUntilTick;
         private long nextChillPulseTick;
-        private long nextVfxTick;
 
         void beginWave() {
             familyActivations.clear();
@@ -469,7 +501,6 @@ public final class FrostFullOperationService {
             active = false;
             activeUntilTick = 0L;
             nextChillPulseTick = 0L;
-            nextVfxTick = 0L;
         }
 
         void endWave() {
@@ -498,7 +529,6 @@ public final class FrostFullOperationService {
             active = true;
             activeUntilTick = gameTime + Math.max(1, FrostBalance.fullOperationDurationTicks());
             nextChillPulseTick = gameTime;
-            nextVfxTick = gameTime;
         }
 
         int totalActivations() {

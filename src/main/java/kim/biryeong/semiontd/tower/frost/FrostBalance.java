@@ -96,17 +96,17 @@ public final class FrostBalance {
         return TowerBalanceRuntime.ability(CONFIG_ID, "thawMaxHealthDamage", THAW_MAX_HEALTH_DAMAGE);
     }
 
-    public static double coolingWaveRange() {
+    public static double coolingWaveRange(TowerType type) {
         return TowerBalanceRuntime.ability(
-                FrostTowers.EMISSION_COOLING_DEVICE.id(),
+                type.id(),
                 "waveRange",
                 COOLING_WAVE_RANGE
         );
     }
 
-    public static double coolingWaveWidth() {
+    public static double coolingWaveWidth(TowerType type) {
         return TowerBalanceRuntime.ability(
-                FrostTowers.EMISSION_COOLING_DEVICE.id(),
+                type.id(),
                 "waveWidth",
                 COOLING_WAVE_WIDTH
         );

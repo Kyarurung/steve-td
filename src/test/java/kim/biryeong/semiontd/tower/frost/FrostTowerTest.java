@@ -3,6 +3,7 @@ package kim.biryeong.semiontd.tower.frost;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,7 +41,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.component.ItemLore;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.BeforeAll;
@@ -174,6 +178,10 @@ class FrostTowerTest {
         assertInstanceOf(FrostHealingTower.class, create(FrostTowers.ICEBOX_T3, position));
         assertFalse(emission.drawsAggro());
         assertFalse(eruption.drawsAggro());
+        assertFalse(emission.countsForLaneDefense());
+        assertFalse(emission.participatesInFinalDefense());
+        assertFalse(eruption.countsForLaneDefense());
+        assertFalse(eruption.participatesInFinalDefense());
     }
 
     @Test
@@ -291,7 +299,7 @@ class FrostTowerTest {
         assertEquals(false, FrostTowers.ICE_VANGUARD.visual().properties().get("snow_golem_has_pumpkin"));
         assertEquals(0.75, FrostTowers.ICE_VANGUARD.visual().scale());
         assertEquals("minecraft:snow_golem", FrostTowers.STURDY_ICE_VANGUARD.visual().entityTypeId());
-        assertEquals(true, FrostTowers.STURDY_ICE_VANGUARD.visual().properties().get("snow_golem_has_pumpkin"));
+        assertEquals(false, FrostTowers.STURDY_ICE_VANGUARD.visual().properties().get("snow_golem_has_pumpkin"));
         assertEquals(1.0, FrostTowers.STURDY_ICE_VANGUARD.visual().scale());
         assertEquals("minecraft:axolotl", FrostTowers.DONGTAE.visual().entityTypeId());
         assertEquals(Axolotl.Variant.BLUE, FrostTowers.DONGTAE.visual().properties().get("axolotl_variant"));
@@ -372,9 +380,99 @@ class FrostTowerTest {
         String jobDescription = String.join("\n", new FrostTowerJob().description().stream()
                 .map(Component::getString)
                 .toList());
-        assertTrue(jobDescription.contains("본인의 타워를 얼리고 특수 능력을 9회 발동하여 라인을 얼리세요."));
+        assertFalse(jobDescription.contains("3 / 6 / 9"));
+        assertFalse(jobDescription.contains("9회"));
         assertTrue(String.join("\n", FrostTowers.ERUPTION_COOLING_DEVICE.description())
                 .contains("!!냉기 방출 타워의 앞에 위치하게 하세요!!"));
+    }
+
+    @Test
+    void activationItemUsesCustomDataAndClearsEveryInventorySlot() {
+        ItemStack activation = FrostFullOperationService.activationItemForTest();
+        ItemStack namedIce = new ItemStack(Items.ICE);
+        namedIce.set(DataComponents.CUSTOM_NAME, Component.literal("냉동창고 완전 가동"));
+        assertTrue(FrostFullOperationService.isActivationItem(activation));
+        assertFalse(FrostFullOperationService.isActivationItem(namedIce));
+        assertNull(activation.get(DataComponents.CREATIVE_SLOT_LOCK));
+
+        SimpleContainer inventory = new SimpleContainer(20);
+        inventory.setItem(0, activation.copy());
+        inventory.setItem(8, activation.copy());
+        inventory.setItem(19, activation.copy());
+        inventory.setItem(5, namedIce);
+
+        assertTrue(FrostFullOperationService.clearActivationItems(inventory));
+        assertTrue(inventory.getItem(0).isEmpty());
+        assertTrue(inventory.getItem(8).isEmpty());
+        assertTrue(inventory.getItem(19).isEmpty());
+        assertFalse(inventory.getItem(5).isEmpty());
+        assertFalse(FrostFullOperationService.clearActivationItems(inventory));
+    }
+
+    @Test
+    void nonDefaultSettingsUpdateWaveDetailsDescriptionsAndOperationLore() {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        LinkedHashMap<String, Double> emission = new LinkedHashMap<>(
+                abilities.get(FrostTowers.EMISSION_COOLING_DEVICE.id()));
+        emission.put("waveRange", 41.0);
+        emission.put("waveWidth", 5.0);
+        abilities.put(FrostTowers.EMISSION_COOLING_DEVICE.id(), emission);
+        LinkedHashMap<String, Double> expanded = new LinkedHashMap<>(
+                abilities.get(FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED.id()));
+        expanded.put("waveRange", 73.0);
+        expanded.put("waveWidth", 9.0);
+        abilities.put(FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED.id(), expanded);
+        LinkedHashMap<String, Double> global = new LinkedHashMap<>(abilities.get(FrostBalance.CONFIG_ID));
+        global.put("firstThreshold", 2.0);
+        global.put("secondThreshold", 4.0);
+        global.put("thirdThreshold", 7.0);
+        global.put("fullOperationRequiredActivations", 6.0);
+        global.put("fullOperationMaxActivationsPerFamily", 2.0);
+        global.put("fullOperationDurationTicks", 160.0);
+        global.put("fullOperationDamageReduction", 0.80);
+        global.put("fullOperationFixedAttackDamage", 7.0);
+        global.put("fullOperationChillIntervalTicks", 40.0);
+        global.put("fullOperationChillPerPulse", 0.50);
+        abilities.put(FrostBalance.CONFIG_ID, global);
+        TowerBalanceConfig custom = new TowerBalanceConfig(
+                defaults.towers(),
+                defaults.upgradeCosts(),
+                abilities,
+                defaults.illusionCloneQueue(),
+                defaults.villagerAdv(),
+                defaults.schemaVersion()
+        );
+
+        try {
+            ProductionTowerCatalogs.reloadBuiltIns(custom);
+            assertEquals(41.0, FrostBalance.coolingWaveRange(FrostTowers.EMISSION_COOLING_DEVICE));
+            assertEquals(5.0, FrostBalance.coolingWaveWidth(FrostTowers.EMISSION_COOLING_DEVICE));
+            assertEquals(73.0, FrostBalance.coolingWaveRange(FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED));
+            assertEquals(9.0, FrostBalance.coolingWaveWidth(FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED));
+            FrostCoolingTower expandedTower = (FrostCoolingTower) create(
+                    FrostTowers.EMISSION_COOLING_DEVICE_EXPANDED,
+                    new GridPosition(0, 64, 0)
+            );
+            assertTrue(expandedTower.runtimeDetailLines().getFirst().contains("9.0×73.0"));
+
+            String vanguardDescription = String.join("\n",
+                    TowerBalanceRuntime.resolve(FrostTowers.ICE_VANGUARD).description());
+            String eruptionDescription = String.join("\n",
+                    TowerBalanceRuntime.resolve(FrostTowers.ERUPTION_COOLING_DEVICE).description());
+            assertTrue(vanguardDescription.contains("2/4/7기"));
+            assertTrue(eruptionDescription.contains("각각 2회 발동해 6스택"));
+
+            ItemLore lore = FrostFullOperationService.activationItemForTest().get(DataComponents.LORE);
+            String loreText = String.join("\n", lore.lines().stream().map(Component::getString).toList());
+            assertTrue(loreText.contains("8초 동안"));
+            assertTrue(loreText.contains("80%로 고정"));
+            assertTrue(loreText.contains("2초마다"));
+            assertTrue(loreText.contains("한기 50%"));
+            assertTrue(loreText.contains("공격력 피해가 7로 고정"));
+        } finally {
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
+        }
     }
 
     @Test

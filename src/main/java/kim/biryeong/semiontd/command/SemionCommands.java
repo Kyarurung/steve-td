@@ -53,6 +53,9 @@ import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordVfx;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.frost.FrostCoolingTower;
+import kim.biryeong.semiontd.tower.frost.FrostEruptionCoolingTower;
+import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import kim.biryeong.semiontd.tower.insect.InsectSpawnerTower;
 import kim.biryeong.semiontd.tower.insect.InsectUnitTower;
 import kim.biryeong.semiontd.tower.mage.MageProphetTower;
@@ -588,6 +591,16 @@ public final class SemionCommands {
                                 .executes(context -> debugOceanSupplyVfx(context.getSource())))
                         .then(literal("ocean_dehydrated")
                                 .executes(context -> debugOceanDehydratedVfx(context.getSource())))
+                        .then(literal("frost")
+                                .then(literal("wave")
+                                        .executes(context -> debugFrostVfx(
+                                                context.getSource(), gameManager, "wave")))
+                                .then(literal("aura")
+                                        .executes(context -> debugFrostVfx(
+                                                context.getSource(), gameManager, "aura")))
+                                .then(literal("full_operation")
+                                        .executes(context -> debugFrostVfx(
+                                                context.getSource(), gameManager, "full_operation"))))
                         .then(literal("ancient_city")
                                 .then(literal("growth")
                                         .executes(context -> debugAncientCityVfx(context.getSource(), AncientCityVfx.DebugKind.GROWTH)))
@@ -882,6 +895,35 @@ public final class SemionCommands {
             }
         }
         failure(source, "살아 있는 물병 식물 타워가 필요합니다.");
+        return 0;
+    }
+
+    private static int debugFrostVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager,
+            String kind
+    ) throws CommandSyntaxException {
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null
+                ? null
+                : game.playerLane(source.getPlayerOrException().getUUID()).orElse(null);
+        if (lane != null) {
+            if ("full_operation".equals(kind) && FrostFullOperationService.showFullOperationVfx(lane)) {
+                success(source, "혹한 full_operation VFX를 재생했습니다.");
+                return 1;
+            }
+            for (Tower tower : lane.towers()) {
+                boolean shown = "wave".equals(kind) && tower instanceof FrostCoolingTower cooling
+                        ? cooling.showDebugVfx(lane)
+                        : "aura".equals(kind) && tower instanceof FrostEruptionCoolingTower eruption
+                        && eruption.showDebugVfx(lane);
+                if (shown) {
+                    success(source, "혹한 " + kind + " VFX를 재생했습니다.");
+                    return 1;
+                }
+            }
+        }
+        failure(source, "살아 있는 혹한 냉각 장치가 필요합니다.");
         return 0;
     }
 

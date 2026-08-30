@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -15,6 +16,8 @@ import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.AreaEffectVfxEvent;
+import kim.biryeong.semiontd.entity.tower.vfx.AreaEffectVfxTestHooks;
 import kim.biryeong.semiontd.entity.tower.goal.TowerAttackMonsterGoal;
 import kim.biryeong.semiontd.entity.visual.EntityVisualApplierRegistry;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -34,8 +37,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -184,8 +189,8 @@ public final class FrostGameTest {
                 throw new AssertionError("The T1 vanguard must be a pumpkinless snow golem.");
             }
             if (towerEntity(context, tierTwo).getPolymerEntityType(null) != EntityType.SNOW_GOLEM
-                    || snowGolemPumpkinData(context, FrostTowers.STURDY_ICE_VANGUARD) != 16) {
-                throw new AssertionError("The T2 vanguard must keep its pumpkin head.");
+                    || snowGolemPumpkinData(context, FrostTowers.STURDY_ICE_VANGUARD) != 0) {
+                throw new AssertionError("The T2 vanguard must be a pumpkinless 1.0x snow golem.");
             }
             SemionTowerEntity tierThreeEntity = towerEntity(context, tierThree);
             if (tierThreeEntity.getPolymerEntityType(null) != EntityType.AXOLOTL
@@ -201,6 +206,89 @@ public final class FrostGameTest {
             if (setup != null) {
                 cleanup(setup);
             }
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void coolingDevicesAloneBreakLaneDefenseAndStayOutOfFinalDefense(GameTestHelper context) {
+        TestSetup setup = setup(context, "frost-device-only-defense-owner");
+        FrostCoolingTower emission = cooling(setup.owner(), context, new BlockPos(10, 2, 6));
+        FrostEruptionCoolingTower eruption = eruption(
+                setup.owner(), 1, context, new BlockPos(9, 2, 6));
+        SemionMonsterEntity target = null;
+        try {
+            setup.lane().addTower(emission);
+            setup.lane().addTower(eruption);
+            GridPosition emissionPosition = emission.position();
+            GridPosition eruptionPosition = eruption.position();
+            target = spawnTarget(context, Vec3.atCenterOf(context.absolutePos(new BlockPos(5, 2, 6))));
+            setup.lane().activeMonsters().add(target.runtimeMonster());
+
+            setup.lane().tick(context.getLevel().getServer());
+            if (!target.runtimeMonster().inFinalDefenseCombat()) {
+                throw new AssertionError("A lane with only cooling devices must collapse normally.");
+            }
+            setup.lane().moveTowersToFinalDefense();
+            if (!emission.position().equals(emissionPosition) || !eruption.position().equals(eruptionPosition)) {
+                throw new AssertionError("Cooling devices must not occupy final-defense slots.");
+            }
+            context.succeed();
+        } finally {
+            setup.lane().activeMonsters().clear();
+            if (target != null) {
+                target.discard();
+            }
+            cleanup(setup);
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void activationItemCannotBeDroppedOrMovedThroughInventoryClicks(GameTestHelper context) {
+        ServerPlayer player = context.makeMockServerPlayerInLevel();
+        try {
+            if (player.drop(FrostFullOperationService.activationItemForTest().copy(), false) != null) {
+                throw new AssertionError("The full-operation item must not create a dropped item entity.");
+            }
+            player.inventoryMenu.setCarried(FrostFullOperationService.activationItemForTest().copy());
+            player.inventoryMenu.clicked(9, 0, ClickType.PICKUP, player);
+            if (!FrostFullOperationService.isActivationItem(player.inventoryMenu.getCarried())) {
+                throw new AssertionError("Container clicks must not move the full-operation item.");
+            }
+            context.succeed();
+        } finally {
+            player.inventoryMenu.setCarried(net.minecraft.world.item.ItemStack.EMPTY);
+            player.discard();
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void fullOperationQueuesOneSharedBuffAreaEvent(GameTestHelper context) {
+        TestSetup setup = setup(context, "frost-full-operation-vfx-owner");
+        FrostCoolingTower emission = cooling(setup.owner(), context, new BlockPos(10, 2, 6));
+        FrostEruptionCoolingTower eruption = eruption(
+                setup.owner(), 1, context, new BlockPos(9, 2, 6));
+        FrostVanguardTower vanguard = vanguard(
+                FrostTowers.ICE_VANGUARD, setup.owner(), context, new BlockPos(7, 2, 6));
+        List<AreaEffectVfxEvent> observed = new ArrayList<>();
+        try {
+            setup.lane().addTower(emission);
+            setup.lane().addTower(eruption);
+            setup.lane().addTower(vanguard);
+            AreaEffectVfxTestHooks.setObserver(observed::add);
+
+            if (!FrostFullOperationService.showFullOperationVfx(setup.lane())) {
+                throw new AssertionError("A live cooling device must provide the full-operation VFX source.");
+            }
+            if (observed.size() != 1
+                    || !observed.getFirst().visual().styleId().equals(AreaVfxStyles.BUFF)
+                    || observed.getFirst().visual().appliedCount() != 3
+                    || !observed.getFirst().visual().effectId().getPath().endsWith("/frost_full_operation")) {
+                throw new AssertionError("Full operation must queue one shared BUFF area event: " + observed);
+            }
+            context.succeed();
+        } finally {
+            AreaEffectVfxTestHooks.setObserver(null);
+            cleanup(setup);
         }
     }
 

@@ -421,6 +421,19 @@ public final class TowerVfxGameTest {
     }
 
     @GameTest
+    public void frostDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("wave", "aura", "full_operation")) {
+            String command = "semiontd-debug vfx frost " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
     public void transcendenceDebugCommandParses(GameTestHelper context) {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         var parsed = dispatcher.parse(
