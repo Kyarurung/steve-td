@@ -394,6 +394,9 @@
 | `..._hellfire_brand_tower` | `placementRange`, `zoneRadius`, `zoneDurationTicks`, `tickIntervalTicks` | 시선으로 까는 최대 거리, 장판 반경, 지속 시간, 피해 주기입니다. 장판은 한 번에 하나만 유지되고 재시전하면 이전 것을 덮어씁니다. |
 | `..._hellfire_brand_tower` | `damage`, `damageTakenBonus` | 주기마다 들어가는 피해와, 장판 위 적이 받는 피해 증가입니다. |
 | `..._soul_drain_tower` | `range`, `width`, `damage` | 전방 직선 판정의 길이·폭과 대상당 피해입니다. |
+| 판다 계열 id | `chargeIntervalTicks`, `chargeDistance`, `chargeHitRadius` | 돌진 주기·거리·경로 판정 반경입니다. |
+| 판다 계열 id | `chargeHealthRatio` | 돌진 피해입니다. **공격력이 아니라 자기 최대 체력**에 곱합니다 — 공격력 기준이면 근접 평타와 같은 축을 두 번 타서 체력을 올리는 선택이 화력에 의미가 없어집니다. |
+| 판다 계열 id | `chargeKnockback`, `chargeDebuffTicks`, `chargeAttackSpeedReduction`, `chargeRangeReduction` | 넉백 세기와, 밀려난 적에게 걸리는 사거리·공격 속도 감소의 지속·비율입니다. 넉백과 함께 어그로도 초기화됩니다. |
 | `..._soul_drain_tower` | `rootDurationTicks` | 꿰뚫린 적을 그 자리에 묶는 시간입니다. 이동 속도를 100% 깎는 것이라 **공격은 계속합니다** — 붙어 있는 적을 떼어내는 용도가 아니라 지나가려는 줄을 세우는 용도입니다. |
 | `..._soul_drain_tower` | `lifeStealRatio`, `lifeStealCap` | 입힌 피해 대비 회복 비율과, 1회 회복량의 최대 체력 대비 상한입니다. 여럿을 꿰뚫어도 상한을 넘지 않습니다. |
 | `..._roar_of_dread_tower` | `radius`, `damage`, `knockback` | 광역 반경, 피해, 넉백 세기입니다. |

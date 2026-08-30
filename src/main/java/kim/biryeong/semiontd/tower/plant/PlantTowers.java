@@ -86,6 +86,24 @@ public final class PlantTowers {
                     + "<dark_gray> (</dark_gray>합계 상한 "
                     + "<aqua>{ability.plant_soil_podzol.growthShareCap:percent}</aqua><dark_gray>)</dark_gray>.</green>";
 
+    /** 판다만 유일하게 움직입니다. 다른 식물이 전부 뿌리를 내리므로 이 차이를 먼저 밝힙니다. */
+    private static final String PANDA_ROAMS_LINE =
+            "<green>뿌리를 내리지 않아 사거리 밖의 적을 쫓아 움직입니다.</green>";
+
+    private static final String PANDA_CHARGE_LINE =
+            "<green><aqua>{ability.chargeIntervalTicks:seconds}</aqua>마다 앞으로 돌진해 "
+                    + "경로 위의 적에게 <yellow>자기 최대 체력의 {ability.chargeHealthRatio:percent}</yellow> "
+                    + "피해를 주고 밀어냅니다.</green>";
+
+    private static final String PANDA_DEBUFF_LINE =
+            "<green>밀려난 적은 <aqua>{ability.chargeDebuffTicks:seconds}</aqua> 동안 "
+                    + "사거리 <yellow>{ability.chargeRangeReduction:percent}</yellow>, "
+                    + "공격 속도 <yellow>{ability.chargeAttackSpeedReduction:percent}</yellow>가 깎이고 "
+                    + "노리던 대상을 잊습니다.</green>";
+
+    private static final String PANDA_NO_SOIL_LINE =
+            "<gray>지형 계열에 묶이지 않아 개화·회복·성장 같은 지형 효과를 받지 않습니다.</gray>";
+
     /** 지형 수치는 계열 공용이고 티어별 배율이 따로 곱해지므로, 그 사실을 한 줄로 밝혀 둡니다. */
     private static final String SOIL_POWER_LINE =
             "<gray>위 지형 수치에는 이 티어의 계열 배율 "
@@ -341,6 +359,52 @@ public final class PlantTowers {
                     "<gray>공격 속도는 가장 느립니다.</gray>"
             ));
 
+    // 판다 - 지형이 필요 없고 걸어 다니는 계열 밖 타워. 4티어입니다.
+    public static final TowerType T1_PANDA_TOWER = pandaTower(
+            "t1_panda_tower", "작은 판다", 70, 260, 2.5, 12, 22, 55,
+            plantVisual(Blocks.BAMBOO, 1.0), 1,
+            List.of(
+                    "<gray>지형 없이 어디에나 세우는 근접 타워입니다.</gray>",
+                    PANDA_ROAMS_LINE,
+                    PANDA_CHARGE_LINE,
+                    PANDA_DEBUFF_LINE,
+                    PANDA_NO_SOIL_LINE
+            ));
+    public static final TowerType T2_PANDA_TOWER = pandaTower(
+            "t2_panda_tower", "판다", 150, 480, 2.5, 22, 21, 62,
+            plantVisual(Blocks.BAMBOO_BLOCK, 1.15), 2,
+            List.of(
+                    "<gray>지형 없이 어디에나 세우는 근접 타워입니다.</gray>",
+                    PANDA_ROAMS_LINE,
+                    PANDA_CHARGE_LINE,
+                    PANDA_DEBUFF_LINE,
+                    PANDA_NO_SOIL_LINE
+            ));
+    public static final TowerType T3_PANDA_TOWER = pandaTower(
+            "t3_panda_tower", "화난 판다", 260, 800, 2.5, 38, 20, 70,
+            plantVisual(Blocks.STRIPPED_BAMBOO_BLOCK, 1.3), 3,
+            List.of(
+                    "<gray>지형 없이 어디에나 세우는 근접 타워입니다.</gray>",
+                    PANDA_ROAMS_LINE,
+                    PANDA_CHARGE_LINE,
+                    PANDA_DEBUFF_LINE,
+                    PANDA_NO_SOIL_LINE
+            ));
+    public static final TowerType T4_PANDA_TOWER = pandaTower(
+            "t4_panda_tower", "갈색 판다", 400, 1250, 2.5, 58, 18, 78,
+            plantVisual(Blocks.BAMBOO_MOSAIC, 1.45), 4,
+            List.of(
+                    "<gray>판다 계열의 최종 형태입니다.</gray>",
+                    PANDA_ROAMS_LINE,
+                    PANDA_CHARGE_LINE,
+                    PANDA_DEBUFF_LINE,
+                    PANDA_NO_SOIL_LINE
+            ));
+
+    public static final List<TowerType> PANDA_TOWERS = List.of(
+            T1_PANDA_TOWER, T2_PANDA_TOWER, T3_PANDA_TOWER, T4_PANDA_TOWER
+    );
+
     public static final List<TowerType> TERRAFORM_TOWERS = List.of(
             T1_OAK_SEED_TOWER, T2_OAK_SEED_TOWER, T3_OAK_SEED_TOWER,
             T1_MUSHROOM_SPORE_TOWER, T2_MUSHROOM_SPORE_TOWER, T3_MUSHROOM_SPORE_TOWER,
@@ -360,6 +424,7 @@ public final class PlantTowers {
     static {
         TERRAFORM_TOWERS.forEach(type -> TowerDescriptionRegistry.registerTemplate(type, type.description()));
         COMBAT_TOWERS.forEach(type -> TowerDescriptionRegistry.registerTemplate(type, type.description()));
+        PANDA_TOWERS.forEach(type -> TowerDescriptionRegistry.registerTemplate(type, type.description()));
     }
 
     private PlantTowers() {
@@ -377,6 +442,12 @@ public final class PlantTowers {
     public static boolean isCombatTower(TowerType type) {
         Definition definition = definition(type);
         return definition != null && !definition.terraformer();
+    }
+
+    /** 판다 계열인지. 지형에 묶이지 않는 유일한 식물 타워라 따로 물어볼 일이 많습니다. */
+    public static boolean isPandaTower(TowerType type) {
+        Definition definition = definition(type);
+        return definition != null && !definition.terraformer() && definition.soil() == null;
     }
 
     public static PlantSoil soilOf(TowerType type) {
@@ -460,6 +531,33 @@ public final class PlantTowers {
                 )
         );
         DEFINITIONS.put(id, new Definition(soil, tier, true));
+        return type;
+    }
+
+    /**
+     * 판다 전용 등록. 지형({@code soil})이 없다는 점만 빼면 전투 타워와 같습니다.
+     *
+     * <p>{@code soil} 이 {@code null} 이면 {@code PlantSoilStates.canPlantAt} 이 곧바로 통과시켜
+     * 어디에나 설 수 있고, 지형 효과 계산도 전부 건너뜁니다. 뿌리 문구도 붙이지 않습니다 -
+     * 판다는 유일하게 움직이는 식물 타워입니다.
+     */
+    private static TowerType pandaTower(
+            String id,
+            String displayName,
+            long mineralCost,
+            double maxHealth,
+            double range,
+            double damage,
+            int attackIntervalTicks,
+            int aggroPriority,
+            EntityVisual visual,
+            int tier,
+            List<String> description
+    ) {
+        TowerType type = tower(
+                id, displayName, mineralCost, maxHealth, range, damage,
+                attackIntervalTicks, aggroPriority, visual, List.copyOf(description));
+        DEFINITIONS.put(id, new Definition(null, tier, false));
         return type;
     }
 

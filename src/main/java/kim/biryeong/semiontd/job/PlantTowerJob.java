@@ -41,7 +41,12 @@ public final class PlantTowerJob extends SemionJob {
     @Override
     public String towerGroup(TowerType towerType) {
         PlantSoil soil = PlantTowers.soilOf(towerType);
-        return soil == null ? null : soil.displayName();
+        if (soil != null) {
+            return soil.displayName();
+        }
+        // 판다는 지형 계열이 아니라 자기 묶음을 씁니다. 지형별 상점 사이에 섞여 들어가면
+        // "이 지형을 깔아야 살 수 있다" 는 상점의 규칙이 깨져 보입니다.
+        return PlantTowers.isPandaTower(towerType) ? "판다" : null;
     }
 
     @Override

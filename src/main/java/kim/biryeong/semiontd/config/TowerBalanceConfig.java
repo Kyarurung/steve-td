@@ -1100,6 +1100,9 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER.id(), 240);
         putUpgrade(upgradeCosts, PlantTowers.T1_MEADOW_NOVA_TOWER, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), 175);
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_NOVA_TOWER, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), 275);
+        putUpgrade(upgradeCosts, PlantTowers.T1_PANDA_TOWER, PlantTowers.T2_PANDA_TOWER.id(), 150);
+        putUpgrade(upgradeCosts, PlantTowers.T2_PANDA_TOWER, PlantTowers.T3_PANDA_TOWER.id(), 260);
+        putUpgrade(upgradeCosts, PlantTowers.T3_PANDA_TOWER, PlantTowers.T4_PANDA_TOWER.id(), 400);
         putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 80);
         putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 130);
         putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 190);
@@ -1285,6 +1288,11 @@ public record TowerBalanceConfig(
         putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 8.0);
         putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 10.0);
         putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 12.0);
+        // 판다는 지형 계열이 아니라 soilPower 가 없습니다. 돌진 수치만 가집니다.
+        putPanda(abilities, PlantTowers.T1_PANDA_TOWER, 200.0, 6.0, 1.6, 0.08, 1.0, 60.0, 0.30, 0.30);
+        putPanda(abilities, PlantTowers.T2_PANDA_TOWER, 180.0, 7.0, 1.8, 0.10, 1.2, 70.0, 0.35, 0.35);
+        putPanda(abilities, PlantTowers.T3_PANDA_TOWER, 160.0, 8.0, 2.0, 0.12, 1.4, 80.0, 0.40, 0.40);
+        putPanda(abilities, PlantTowers.T4_PANDA_TOWER, 140.0, 9.0, 2.2, 0.15, 1.6, 100.0, 0.50, 0.50);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1332,6 +1340,36 @@ public record TowerBalanceConfig(
                 "snareDurationTicks", 20.0,
                 // 곡사 연출용 포물선 높이입니다. 0 이면 궤적을 그리지 않습니다.
                 "lobArcHeight", 5.0
+        ));
+    }
+
+    /**
+     * 판다 돌진 수치.
+     *
+     * <p>{@code chargeHealthRatio} 는 공격력이 아니라 <b>자기 최대 체력</b>에 곱합니다. 공격력
+     * 기준이면 근접 평타와 같은 축을 두 번 타서 체력을 올리는 선택이 화력에 아무 의미가 없어집니다.
+     */
+    private static void putPanda(
+            LinkedHashMap<String, Map<String, Double>> abilities,
+            TowerType type,
+            double chargeIntervalTicks,
+            double chargeDistance,
+            double chargeHitRadius,
+            double chargeHealthRatio,
+            double chargeKnockback,
+            double chargeDebuffTicks,
+            double chargeAttackSpeedReduction,
+            double chargeRangeReduction
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "chargeIntervalTicks", chargeIntervalTicks,
+                "chargeDistance", chargeDistance,
+                "chargeHitRadius", chargeHitRadius,
+                "chargeHealthRatio", chargeHealthRatio,
+                "chargeKnockback", chargeKnockback,
+                "chargeDebuffTicks", chargeDebuffTicks,
+                "chargeAttackSpeedReduction", chargeAttackSpeedReduction,
+                "chargeRangeReduction", chargeRangeReduction
         ));
     }
 
@@ -1821,6 +1859,14 @@ public record TowerBalanceConfig(
         validateIntegral(PlantSoil.PODZOL.configId(), false, "supportDurationTicks");
         validateIntegral(PlantSoil.MYCELIUM.configId(), false, "environmentDurationTicks");
         validateIntegral(PlantSoil.DESERT.configId(), false, "environmentDurationTicks", "debuffDurationTicks");
+
+        for (TowerType panda : PlantTowers.PANDA_TOWERS) {
+            validatePositive(panda.id(),
+                    "chargeIntervalTicks", "chargeDistance", "chargeHitRadius", "chargeHealthRatio");
+            validateIntegral(panda.id(), false, "chargeIntervalTicks", "chargeDebuffTicks");
+            validateRatios(panda.id(),
+                    "chargeHealthRatio", "chargeAttackSpeedReduction", "chargeRangeReduction");
+        }
 
         for (TowerType mine : List.of(
                 PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
