@@ -44,6 +44,12 @@ public final class PlantTowerCatalogs {
         registerTower(PlantTowers.T3_PODZOL_ROSE_TOWER, PlantCombatTower::new, 3);
         registerTower(PlantTowers.T3_PODZOL_PITCHER_TOWER, PlantCombatTower::new, 3);
 
+        // 판다 - 지형이 필요 없어 어디에나 서고, 유일하게 걸어 다닙니다. 4티어입니다.
+        registerTower(PlantTowers.T1_PANDA_TOWER, PandaTower::new, 1);
+        registerTower(PlantTowers.T2_PANDA_TOWER, PandaTower::new, 2);
+        registerTower(PlantTowers.T3_PANDA_TOWER, PandaTower::new, 3);
+        registerTower(PlantTowers.T4_PANDA_TOWER, PandaTower::new, 4);
+
         link(PlantTowers.T1_OAK_SEED_TOWER, PlantTowers.T2_OAK_SEED_TOWER);
         link(PlantTowers.T2_OAK_SEED_TOWER, PlantTowers.T3_OAK_SEED_TOWER);
         link(PlantTowers.T1_MUSHROOM_SPORE_TOWER, PlantTowers.T2_MUSHROOM_SPORE_TOWER);
@@ -61,6 +67,10 @@ public final class PlantTowerCatalogs {
         link(PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER);
         link(PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER);
         link(PlantTowers.T2_DESERT_TOWER, PlantTowers.T3_DESERT_TOWER);
+
+        link(PlantTowers.T1_PANDA_TOWER, PlantTowers.T2_PANDA_TOWER);
+        link(PlantTowers.T2_PANDA_TOWER, PlantTowers.T3_PANDA_TOWER);
+        link(PlantTowers.T3_PANDA_TOWER, PlantTowers.T4_PANDA_TOWER);
 
         // 회백토만 T2 에서 세 갈래로 갈라집니다.
         link(PlantTowers.T1_PODZOL_TOWER, PlantTowers.T2_PODZOL_TOWER);

@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
@@ -30,17 +32,17 @@ class WarlockAwakeningProgressTest {
     void awakeningUnlocksExactlyAtConfiguredKillThreshold() {
         UUID owner = UUID.randomUUID();
 
-        for (int kill = 1; kill < 1200; kill++) {
+        for (int kill = 1; kill < 1400; kill++) {
             assertFalse(WarlockAwakeningProgress.recordKill(owner));
         }
         WarlockAwakeningProgress.Snapshot locked = WarlockAwakeningProgress.snapshot(owner);
-        assertEquals(1199L, locked.kills());
-        assertEquals(1200L, locked.requiredKills());
+        assertEquals(1399L, locked.kills());
+        assertEquals(1400L, locked.requiredKills());
         assertFalse(locked.unlocked());
 
         assertTrue(WarlockAwakeningProgress.recordKill(owner));
         WarlockAwakeningProgress.Snapshot unlocked = WarlockAwakeningProgress.snapshot(owner);
-        assertEquals(1200L, unlocked.kills());
+        assertEquals(1400L, unlocked.kills());
         assertTrue(unlocked.unlocked());
         assertFalse(WarlockAwakeningProgress.recordKill(owner));
     }
@@ -54,5 +56,31 @@ class WarlockAwakeningProgressTest {
 
         assertEquals(0L, WarlockAwakeningProgress.snapshot(owner).kills());
         assertFalse(WarlockAwakeningProgress.snapshot(owner).unlocked());
+    }
+
+    @Test
+    void unlockedStateIsChangedByKillEventsAndDoesNotRelockAfterConfigReload() {
+        UUID owner = UUID.randomUUID();
+        applyAwakeningKills(2.0);
+
+        assertFalse(WarlockAwakeningProgress.recordKill(owner));
+        applyAwakeningKills(1.0);
+        assertFalse(WarlockAwakeningProgress.snapshot(owner).unlocked());
+
+        assertTrue(WarlockAwakeningProgress.recordKill(owner));
+        applyAwakeningKills(100.0);
+        WarlockAwakeningProgress.Snapshot snapshot = WarlockAwakeningProgress.snapshot(owner);
+        assertEquals(2L, snapshot.kills());
+        assertEquals(100L, snapshot.requiredKills());
+        assertTrue(snapshot.unlocked());
+    }
+
+    private static void applyAwakeningKills(double requiredKills) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
+        Map<String, Double> warlock = new LinkedHashMap<>(abilities.get(WarlockTowers.CONFIG_ID));
+        warlock.put("awakeningKills", requiredKills);
+        abilities.put(WarlockTowers.CONFIG_ID, warlock);
+        TowerBalanceRuntime.apply(new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), abilities));
     }
 }

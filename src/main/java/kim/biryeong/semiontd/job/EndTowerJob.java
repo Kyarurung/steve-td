@@ -1,8 +1,8 @@
 package kim.biryeong.semiontd.job;
 
 import java.util.List;
+import java.util.UUID;
 import kim.biryeong.semiontd.SemionTd;
-import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.ui.SemionText;
@@ -29,12 +29,22 @@ public final class EndTowerJob extends SemionJob {
 
     @Override
     public boolean canUseTower(JobContext context, TowerType towerType) {
-        if (!EndTowers.isEndTower(towerType)) {
+        if (!includesTowerInCatalog(towerType)) {
             return false;
         }
         if (!EndTowers.isBaseEndTower(towerType) || context == null) {
             return true;
         }
-        return context.game().playerLane(context.player().uuid()).map(lane -> lane.towers().stream().map(Tower::type).noneMatch(EndTowers::isBaseEndTower)).orElse(true);
+        UUID owner = context.player().uuid();
+        return context.game().playerLane(owner)
+                .map(lane -> lane.towers().stream()
+                        .noneMatch(tower -> owner.equals(tower.ownerPlayer())
+                                && EndTowers.isBaseEndTower(tower.type())))
+                .orElse(true);
+    }
+
+    @Override
+    public boolean includesTowerInCatalog(TowerType towerType) {
+        return EndTowers.isEndTower(towerType);
     }
 }

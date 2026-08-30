@@ -3783,6 +3783,38 @@
       "damage": 34.0,
       "attackIntervalTicks": 13,
       "aggroPriority": -10
+    },
+    "t1_panda_tower": {
+      "mineralCost": 70,
+      "maxHealth": 260.0,
+      "range": 2.5,
+      "damage": 12.0,
+      "attackIntervalTicks": 22,
+      "aggroPriority": 55
+    },
+    "t2_panda_tower": {
+      "mineralCost": 150,
+      "maxHealth": 480.0,
+      "range": 2.5,
+      "damage": 22.0,
+      "attackIntervalTicks": 21,
+      "aggroPriority": 62
+    },
+    "t3_panda_tower": {
+      "mineralCost": 260,
+      "maxHealth": 800.0,
+      "range": 2.5,
+      "damage": 38.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 70
+    },
+    "t4_panda_tower": {
+      "mineralCost": 400,
+      "maxHealth": 1250.0,
+      "range": 2.5,
+      "damage": 58.0,
+      "attackIntervalTicks": 18,
+      "aggroPriority": 78
     }
   },
   "upgradeCosts": {
@@ -4211,7 +4243,10 @@
     "t1_pet_cat->t2_pet_cat": 120,
     "t2_pet_cat->t3_pet_cat": 260,
     "t1_pet_bird->t2_pet_bird": 125,
-    "t2_pet_bird->t3_pet_bird": 270
+    "t2_pet_bird->t3_pet_bird": 270,
+    "t1_panda_tower->t2_panda_tower": 150,
+    "t2_panda_tower->t3_panda_tower": 260,
+    "t3_panda_tower->t4_panda_tower": 400
   },
   "abilities": {
     "villager_splash_t2": {
@@ -4454,27 +4489,27 @@
       "absorptionHeal": 30.0,
       "minInterval": 5.0,
       "speedCap": 15.0,
-      "awakeningKills": 1200.0,
+      "awakeningKills": 1400.0,
       "awakeningThreshold": 0.4
     },
     "base_warlock_tower": {
       "sacrificeRadius": 6.0,
-      "fatalHeal": 0.35,
       "permanentHealth": 0.025,
       "permanentDamage": 0.05
     },
     "ranged_warlock_tower": {
-      "threshold": 0.55,
+      "threshold": 0.65,
       "roundStat": 0.5,
       "permanentHealth": 0.025,
       "healthThreshold": 2000.0,
       "healthScale": 500.0,
       "permanentDamage": 0.05,
-      "damageThreshold": 145.0,
+      "damageThreshold": 140.0,
       "damageScale": 20.0,
       "lifeEvery": 10.0,
       "lifeStep": 0.005,
-      "lifeCap": 0.08,
+      "lifeCap": 0.07,
+      "incomeDebuffResistance": 0.3,
       "splashEvery": 2.0,
       "splashStep": 0.1,
       "splashCap": 8.0,
@@ -4485,12 +4520,12 @@
       "petHealthCap": 0.2,
       "petDamage": 0.1,
       "petDamageCap": 0.5,
-      "awakeningHeal": 600.0,
+      "awakeningHeal": 800.0,
       "awakeningRegeneration": 40.0,
       "awakeningRegenerationTicks": 20.0
     },
     "melee_warlock_tower": {
-      "threshold": 0.55,
+      "threshold": 0.65,
       "roundStat": 0.6,
       "permanentHealth": 0.05,
       "healthThreshold": 3500.0,
@@ -4499,7 +4534,8 @@
       "damageThreshold": 200.0,
       "damageScale": 20.0,
       "lifeStep": 0.01,
-      "lifeCap": 0.14,
+      "lifeCap": 0.13,
+      "incomeDebuffResistance": 0.4,
       "speedStep": 1.0,
       "splashStep": 0.25,
       "splashCap": 2.0,
@@ -4511,12 +4547,12 @@
       "petHealthCap": 0.5,
       "petDamage": 0.04,
       "petDamageCap": 0.2,
-      "awakeningHeal": 600.0,
+      "awakeningHeal": 800.0,
       "awakeningDamage": 75.0,
       "awakeningMoveSpeed": 0.3
     },
     "t2_slave": {
-      "towerDamageTakenBonus": 0.05,
+      "towerDamageTakenBonus": 0.1,
       "deathEffectRadius": 20.0,
       "deathEffectDurationTicks": 72000.0
     },
@@ -4526,7 +4562,7 @@
       "deathEffectDurationTicks": 72000.0
     },
     "t2_ranged_slave": {
-      "attackSpeedReduction": 0.05,
+      "attackSpeedReduction": 0.1,
       "deathEffectRadius": 20.0,
       "deathEffectDurationTicks": 72000.0
     },
@@ -5286,8 +5322,8 @@
       "healthScale": 500.0,
       "roundDamageRatio": 0.66,
       "permanentDamageRatio": 0.04,
-      "damageThreshold": 140.0,
-      "damageScale": 20.0,
+      "damageThreshold": 150.0,
+      "damageScale": 25.0,
       "lifeStealStacks": 30.0,
       "lifeStealStep": 0.01,
       "lifeStealCap": 0.1,
@@ -6055,6 +6091,7 @@
       "heartHealAmount": 12.0,
       "heartHealRadius": 5.0,
       "clubDamageReduction": 0.15,
+      "pokerDamageReductionCap": 0.4,
       "cardSplashRadius": 2.0,
       "cardSplashExtraTargets": 5.0,
       "spadeRadius": 2.5,
@@ -7246,6 +7283,18 @@
       "patchHealth": 0.13,
       "patchAggro": 8.0,
       "patchDiminishing": 0.88,
+      "patchMilestone1Threshold": 3.0,
+      "patchMilestone2Threshold": 5.0,
+      "patchMilestone3Threshold": 7.0,
+      "attackSplashRadius1": 1.25,
+      "attackSplashRadius2": 1.5,
+      "attackSplashRadius3": 1.75,
+      "attackSplashRatio1": 0.4,
+      "attackSplashRatio2": 0.5,
+      "attackSplashRatio3": 0.6,
+      "defenseDamageReduction1": 0.1,
+      "defenseDamageReduction2": 0.15,
+      "defenseDamageReduction3": 0.2,
       "testBuildAuraBonus": 0.25,
       "testBuildAuraRadius": 5.0,
       "maxBugsPerTower": 4.0,
@@ -7600,6 +7649,46 @@
       "bondCap": 320.0,
       "bondToUpgrade": 0.0,
       "healRatio": 1.0
+    },
+    "t1_panda_tower": {
+      "chargeIntervalTicks": 200.0,
+      "chargeDistance": 6.0,
+      "chargeHitRadius": 1.6,
+      "chargeHealthRatio": 0.08,
+      "chargeKnockback": 1.0,
+      "chargeDebuffTicks": 60.0,
+      "chargeAttackSpeedReduction": 0.3,
+      "chargeRangeReduction": 0.3
+    },
+    "t2_panda_tower": {
+      "chargeIntervalTicks": 180.0,
+      "chargeDistance": 7.0,
+      "chargeHitRadius": 1.8,
+      "chargeHealthRatio": 0.1,
+      "chargeKnockback": 1.2,
+      "chargeDebuffTicks": 70.0,
+      "chargeAttackSpeedReduction": 0.35,
+      "chargeRangeReduction": 0.35
+    },
+    "t3_panda_tower": {
+      "chargeIntervalTicks": 160.0,
+      "chargeDistance": 8.0,
+      "chargeHitRadius": 2.0,
+      "chargeHealthRatio": 0.12,
+      "chargeKnockback": 1.4,
+      "chargeDebuffTicks": 80.0,
+      "chargeAttackSpeedReduction": 0.4,
+      "chargeRangeReduction": 0.4
+    },
+    "t4_panda_tower": {
+      "chargeIntervalTicks": 140.0,
+      "chargeDistance": 9.0,
+      "chargeHitRadius": 2.2,
+      "chargeHealthRatio": 0.15,
+      "chargeKnockback": 1.6,
+      "chargeDebuffTicks": 100.0,
+      "chargeAttackSpeedReduction": 0.5,
+      "chargeRangeReduction": 0.5
     }
   },
   "illusionCloneQueue": {

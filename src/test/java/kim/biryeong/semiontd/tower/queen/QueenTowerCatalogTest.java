@@ -90,16 +90,19 @@ final class QueenTowerCatalogTest {
     }
 
     @Test
-    void pokerSnapshotAppliesTheConfiguredHealthAndAttackSpeedBonus() {
+    void pokerSnapshotAppliesConfiguredBonusesAndCapsDamageReduction() {
         ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
         QueenCardTower card = (QueenCardTower) ProductionTowerCatalog.find(QueenTowers.RANDOM_CARD_SOLDIER.id())
                 .orElseThrow().create(OWNER, TeamId.RED, 1, new GridPosition(1, 64, 0));
         card.assignCard(new QueenCard(QueenCard.Suit.HEART, 2));
 
+        card.applyPokerSnapshot(PokerHand.ONE_PAIR);
+        assertEquals(90.0, card.modifyIncomingDamage(null, null, 100.0), 0.0001);
         card.applyPokerSnapshot(PokerHand.FIVE_OF_A_KIND);
 
         assertEquals(QueenBalance.cardMaxHealth(QueenCard.Suit.HEART) * 2.0, card.currentMaxHealth(), 0.0001);
         assertEquals(QueenBalance.cardInterval(QueenCard.Suit.HEART) / 2, card.adjustAttackInterval(999));
+        assertEquals(60.0, card.modifyIncomingDamage(null, null, 100.0), 0.0001);
         for (QueenCard.Suit suit : QueenCard.Suit.values()) {
             card.assignCard(new QueenCard(suit, 2));
             assertEquals(QueenBalance.cardAggro(suit), card.aggroPriority());
@@ -191,6 +194,8 @@ final class QueenTowerCatalogTest {
         assertEquals(0.20, defaults.ability(QueenBalance.GLOBAL_ID, "minimumStatScale", -1), 0.0001);
         assertEquals(0.20, defaults.ability(
                 QueenBalance.GLOBAL_ID, "giantExecutionVisualShrink", -1), 0.0001);
+        assertEquals(0.40, defaults.ability(
+                QueenBalance.GLOBAL_ID, "pokerDamageReductionCap", -1), 0.0001);
         assertEquals(7.0, defaults.ability(QueenBalance.GLOBAL_ID, "queenShrinkPoints", -1), 0.0001);
         TowerBalanceConfig merged = new TowerBalanceConfig(Map.of(), Map.of(), Map.of(
                 QueenBalance.GLOBAL_ID, Map.of("queenShrinkPoints", 4.0))).withMissingDefaults(defaults);
@@ -206,6 +211,8 @@ final class QueenTowerCatalogTest {
                 "queenMaxHealthPerRound", -1), 0.0001);
         assertEquals(3.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "queenPokerHealthBonusCap", -1), 0.0001);
+        assertEquals(0.40, merged.ability(QueenBalance.GLOBAL_ID,
+                "pokerDamageReductionCap", -1), 0.0001);
         assertEquals(2.0, merged.ability(QueenBalance.GLOBAL_ID,
                 "giantGrowthTargetCapMultiplier", -1), 0.0001);
         assertEquals(80, merged.abilityInt(QueenBalance.GLOBAL_ID,
@@ -225,6 +232,7 @@ final class QueenTowerCatalogTest {
         assertInvalidAbility(defaults, "minimumStatScale", 0.0);
         assertInvalidAbility(defaults, "minimumVisualScale", 1.1);
         assertInvalidAbility(defaults, "giantExecutionVisualShrink", 1.1);
+        assertInvalidAbility(defaults, "pokerDamageReductionCap", 1.1);
         assertInvalidAbility(defaults, "queenPokerHealthBonusCap", 0.0);
         assertInvalidAbility(defaults, "rangeVfxIntervalTicks", 20.5);
         assertInvalidAbility(defaults, "card.heart.aggro", 55.5);

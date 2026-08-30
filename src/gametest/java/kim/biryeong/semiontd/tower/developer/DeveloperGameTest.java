@@ -1,18 +1,29 @@
 package kim.biryeong.semiontd.tower.developer;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import kim.biryeong.semiontd.api.area.AreaVfxStyles;
+import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.entity.SemionEntityTypes;
+import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.monster.MonsterDimensions;
+import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.AreaEffectVfxEvent;
+import kim.biryeong.semiontd.entity.tower.vfx.AreaEffectVfxTestHooks;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.area.AreaEffectLaneIndex;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -93,20 +104,110 @@ public final class DeveloperGameTest {
         PlayerLane lane = testLane(context, owner);
         prepareFloor(context);
 
-        DeveloperTower beta = tower(DeveloperTowers.BETA, owner, context, new BlockPos(6, 2, 6));
+        DeveloperTower beta = tower(DeveloperTowers.BETA, owner, context, new BlockPos(5, 2, 5));
+        DeveloperTower hotfixTarget = tower(DeveloperTowers.LTS, owner, context, new BlockPos(8, 2, 5));
         try {
             lane.addTower(beta);
+            lane.addTower(hotfixTarget);
             double baseRange = towerEntity(context, beta).attackRange();
 
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.ATTACK, 0.01);
+            DeveloperTowerData.addActivePatch(beta, DeveloperPatch.FIRE_RATE, 0.01);
             DeveloperTowerData.addPendingPatch(beta, DeveloperPatch.RANGE, 0.20);
             beta.onStateChanged(lane);
             requireClose(baseRange, towerEntity(context, beta).attackRange(),
                     "A reviewed patch must not change anything before the next wave.");
+            require(DeveloperBalance.patchMilestone(DeveloperTowerData.activeAttackPatchCount(beta)) == 0,
+                    "A pending patch must not unlock an attack milestone.");
 
             beta.onWaveStarted(lane, 2);
             require(towerEntity(context, beta).attackRange() > baseRange,
                     "A reviewed patch must take hold when the next wave starts.");
+            require(DeveloperBalance.patchMilestone(DeveloperTowerData.activeAttackPatchCount(beta)) == 1,
+                    "The promoted patch must unlock the milestone on the next wave.");
 
+            DeveloperTowerData.addActivePatch(hotfixTarget, DeveloperPatch.ATTACK, 0.01);
+            DeveloperTowerData.addActivePatch(hotfixTarget, DeveloperPatch.RANGE, 0.01);
+            DeveloperStates.openRound(owner, 2, new DeveloperStates.Capacity(0, 1, false, false, 0, false, 0));
+            require(DeveloperPatchService.applyPatch(lane, hotfixTarget, DeveloperPatch.FIRE_RATE, true).success(),
+                    "A wave-time hotfix must succeed when capacity remains.");
+            require(DeveloperBalance.patchMilestone(DeveloperTowerData.activeAttackPatchCount(hotfixTarget)) == 1,
+                    "A hotfix must unlock its milestone immediately.");
+
+            context.succeed();
+        } finally {
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void attackPatchMilestoneSplashesNearbySecondariesWithSharedVfx(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        UUID owner = stableUuid("developer-milestone-splash-owner");
+        PlayerLane lane = testLane(context, owner);
+        prepareFloor(context);
+        DeveloperTower release = tower(DeveloperTowers.RELEASE, owner, context, new BlockPos(5, 2, 5));
+        List<AreaEffectVfxEvent> observed = new ArrayList<>();
+        AreaEffectLaneIndex.register(lane);
+        try {
+            lane.addTower(release);
+            release.markWaveStarted(1);
+            DeveloperTowerData.addActivePatch(release, DeveloperPatch.ATTACK, 0.01);
+            DeveloperTowerData.addActivePatch(release, DeveloperPatch.RANGE, 0.01);
+            DeveloperTowerData.addActivePatch(release, DeveloperPatch.FIRE_RATE, 0.01);
+
+            SemionTowerEntity source = towerEntity(context, release);
+            SemionMonsterEntity primary = monster(context, lane, "developer-splash-primary",
+                    source.position().add(2.0, 0.0, 0.0), 100.0);
+            SemionMonsterEntity secondary = monster(context, lane, "developer-splash-secondary",
+                    primary.position().add(0.75, 0.0, 0.0), 30.0);
+            SemionMonsterEntity distant = monster(context, lane, "developer-splash-distant",
+                    primary.position().add(2.0, 0.0, 0.0), 100.0);
+            AreaEffectVfxTestHooks.setObserver(observed::add);
+
+            release.onAttackResolved(source, primary, 100.0, 100.0, 100.0, false);
+
+            if (!assertClose(context, 100.0, primary.runtimeMonster().health(),
+                    "The primary target must not take splash damage.")) return;
+            if (!assertClose(context, 0.0, secondary.runtimeMonster().health(),
+                    "The nearby secondary must take the 40% splash.")) return;
+            if (!assertClose(context, 100.0, distant.runtimeMonster().health(),
+                    "Targets outside the radius must remain untouched.")) return;
+            if (!assertTrue(context, release.roundMetricsTracker().snapshot().killCount() == 1,
+                    "A splash kill must remain attributed to the developer tower.")) return;
+            if (!assertTrue(context,
+                    observed.stream().anyMatch(event -> event.visual().styleId().equals(AreaVfxStyles.SPLASH)),
+                    "The patch splash must use the shared splash VFX.")) return;
+            context.succeed();
+        } finally {
+            AreaEffectVfxTestHooks.setObserver(null);
+            AreaEffectLaneIndex.unregister(lane);
+            lane.clearTowers();
+        }
+    }
+
+    @GameTest(maxTicks = 120)
+    public void defensePatchMilestoneReducesDamageOnALiveTowerEntity(GameTestHelper context) {
+        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
+        UUID owner = stableUuid("developer-milestone-defense-owner");
+        PlayerLane lane = testLane(context, owner);
+        prepareFloor(context);
+        DeveloperTower release = tower(DeveloperTowers.RELEASE, owner, context, new BlockPos(5, 2, 5));
+        try {
+            lane.addTower(release);
+            for (int index = 0; index < 7; index++) {
+                DeveloperTowerData.addActivePatch(release, DeveloperPatch.HEALTH, 0.01);
+            }
+            release.resyncHealth(lane, false);
+            SemionTowerEntity entity = towerEntity(context, release);
+            double previousHealth = entity.getHealth();
+
+            require(entity.hurtServer(context.getLevel(), entity.damageSources().generic(), 50.0F),
+                    "The live tower entity must accept the test hit.");
+            requireClose(previousHealth - 40.0, entity.getHealth(),
+                    "Seven defense patches must reduce incoming damage by 20%.");
+            requireClose(entity.getHealth(), release.health(),
+                    "Runtime and entity health must stay synchronized after mitigation.");
             context.succeed();
         } finally {
             lane.clearTowers();
@@ -283,6 +384,39 @@ public final class DeveloperGameTest {
     private static SemionTowerEntity towerEntity(GameTestHelper context, DeveloperTower tower) {
         require(tower.entityId().isPresent(), tower.type().id() + " 의 엔티티가 스폰되지 않았습니다.");
         return (SemionTowerEntity) context.getLevel().getEntity(tower.entityId().getAsInt());
+    }
+
+    private static SemionMonsterEntity monster(
+            GameTestHelper context,
+            PlayerLane lane,
+            String id,
+            Vec3 position,
+            double maxHealth
+    ) {
+        Monster monster = new Monster(
+                id,
+                TeamId.RED,
+                1,
+                Optional.empty(),
+                Optional.empty(),
+                maxHealth,
+                0.0,
+                0.0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                MonsterDimensions.DEFAULT,
+                0
+        );
+        SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        entity.configureFrom(monster, lane.laneLayout());
+        entity.setNoAi(true);
+        entity.setNoGravity(true);
+        entity.setPos(position);
+        require(context.getLevel().addFreshEntity(entity), "The splash target must spawn.");
+        monster.markMinecraftEntitySpawned(entity.getId(), position.x, position.y, position.z);
+        lane.activeMonsters().add(monster);
+        return entity;
     }
 
     private static PlayerLane testLane(GameTestHelper context, UUID owner) {

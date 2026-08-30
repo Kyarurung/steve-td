@@ -9,8 +9,7 @@ import kim.biryeong.semiontd.tower.Tower;
 
 final class EndTransferState {
     private final Map<Tower, Progress> progressByTower = new IdentityHashMap<>();
-    private final Set<Tower> presentTowerSnapshot =
-            Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<Tower> presentTowerSnapshot = Collections.newSetFromMap(new IdentityHashMap<>());
     private double roundHealthContribution;
     private double permanentHealthBonus;
     private double roundDamageContribution;
@@ -71,27 +70,41 @@ final class EndTransferState {
         return true;
     }
 
-    void copyBonusesFrom(EndTransferState source) {
-        roundHealthContribution = source.roundHealthContribution;
-        permanentHealthBonus = source.permanentHealthBonus;
-        roundDamageContribution = source.roundDamageContribution;
-        permanentDamageBonus = source.permanentDamageBonus;
+    void restore(EndTransferSnapshot snapshot) {
+        roundHealthContribution = snapshot.roundHealthContribution();
+        permanentHealthBonus = snapshot.permanentHealthContribution();
+        roundDamageContribution = snapshot.roundDamageContribution();
+        permanentDamageBonus = snapshot.permanentDamageContribution();
     }
 
-    double roundHealthContribution() {
-        return roundHealthContribution;
+    EndTransferSnapshot snapshot(EndTransferStacks stacks) {
+        return new EndTransferSnapshot(
+                stacks,
+                roundHealthContribution,
+                permanentHealthBonus,
+                roundDamageContribution,
+                permanentDamageBonus
+        );
     }
 
-    double permanentHealthBonus() {
-        return permanentHealthBonus;
-    }
-
-    double roundDamageContribution() {
-        return roundDamageContribution;
-    }
-
-    double permanentDamageBonus() {
-        return permanentDamageBonus;
+    EndTransferSnapshot committedSnapshot(EndTransferStacks stacks) {
+        double committedRoundHealth = roundHealthContribution;
+        double committedPermanentHealth = permanentHealthBonus;
+        double committedRoundDamage = roundDamageContribution;
+        double committedPermanentDamage = permanentDamageBonus;
+        for (Progress progress : progressByTower.values()) {
+            committedRoundHealth = subtract(committedRoundHealth, progress.roundHealthBonus * progress.appliedRatio);
+            committedPermanentHealth = subtract(committedPermanentHealth, progress.permanentHealthBonus * progress.appliedRatio);
+            committedRoundDamage = subtract(committedRoundDamage, progress.roundDamageBonus * progress.appliedRatio);
+            committedPermanentDamage = subtract(committedPermanentDamage, progress.permanentDamageBonus * progress.appliedRatio);
+        }
+        return new EndTransferSnapshot(
+                stacks,
+                committedRoundHealth,
+                committedPermanentHealth,
+                committedRoundDamage,
+                committedPermanentDamage
+        );
     }
 
     private static double subtract(double value, double amount) {
@@ -125,6 +138,14 @@ final class EndTransferState {
             this.permanentDamageBonus = permanentDamageBonus;
             this.completionHealing = completionHealing;
             this.periodicHealingPerSecond = periodicHealingPerSecond;
+        }
+
+        void advance() {
+            elapsedTicks++;
+        }
+
+        boolean isComplete() {
+            return elapsedTicks >= durationTicks;
         }
     }
 }

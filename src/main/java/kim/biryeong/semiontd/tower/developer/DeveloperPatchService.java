@@ -16,11 +16,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 
 /**
- * Every preparation-phase operation the 개발자 builder can perform.
+ * Every patch-console operation the 개발자 builder can perform.
  *
- * <p>All of it is deliberately gated to the preparation phase by the caller; nothing here fires
- * mid-wave. The builder's entire decision surface is "what do I change before the wave runs", and
- * the wave itself is where the player finds out whether the call was right.
+ * <p>The caller permits patches and hotfixes during preparation and lane waves. Optimisation,
+ * maintenance, debugging, reproduction and version pinning remain preparation-only.
  */
 public final class DeveloperPatchService {
 

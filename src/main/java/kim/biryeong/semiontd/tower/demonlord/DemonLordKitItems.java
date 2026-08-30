@@ -14,7 +14,6 @@ public final class DemonLordKitItems {
 
     public static ItemStack mark(ItemStack stack) {
         CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(KIT_KEY, true));
-        stack.set(DataComponents.CREATIVE_SLOT_LOCK, Unit.INSTANCE);
         stack.set(DataComponents.UNBREAKABLE, Unit.INSTANCE);
         return stack;
     }

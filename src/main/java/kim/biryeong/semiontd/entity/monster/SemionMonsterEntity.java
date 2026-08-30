@@ -24,6 +24,8 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.summon.SummonRegistry;
 import kim.biryeong.semiontd.tower.Tower;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordState;
+import kim.biryeong.semiontd.tower.demonlord.DemonLordStates;
 import kim.biryeong.semiontd.tower.legion.BeeStingPolicy;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
@@ -208,11 +210,21 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
     }
 
     public boolean canTargetDefense(LivingEntity target) {
-        if (!(target instanceof LaneDefenseEntity defenseEntity) || runtimeMonster == null) {
+        if (runtimeMonster == null) {
             return true;
         }
         double targetSearchRange = defenseTargetSearchRange();
         double leashRangeSqr = targetSearchRange * targetSearchRange;
+        if (target instanceof ServerPlayer player) {
+            DemonLordState state = DemonLordStates.get(player.getUUID());
+            return state != null
+                    && state.inCombat()
+                    && state.canFight(runtimeMonster)
+                    && distanceToSqr(target) <= leashRangeSqr;
+        }
+        if (!(target instanceof LaneDefenseEntity defenseEntity)) {
+            return true;
+        }
         return defenseEntity.defendsLane(runtimeMonster.targetLaneId()) && distanceToSqr(target) <= leashRangeSqr;
     }
 
@@ -354,7 +366,10 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         if (runtimeMonster == null) {
             return DEFAULT_MELEE_RANGE;
         }
-        return runtimeMonster.attackRange();
+        // 사거리 감소는 여기 한 곳만 지나갑니다. 공격 판정도 추적 상자도 이 값을 다시 물어보므로,
+        // 원거리 몹을 밀어낸 뒤 다시 붙을 때까지 실제로 못 때리게 됩니다.
+        double reduction = timedEffects.magnitude(TimedEffectType.MONSTER_ATTACK_RANGE_REDUCTION);
+        return Math.max(0.0, runtimeMonster.attackRange() * Math.max(0.0, 1.0 - reduction));
     }
 
     public int attackIntervalTicks() {

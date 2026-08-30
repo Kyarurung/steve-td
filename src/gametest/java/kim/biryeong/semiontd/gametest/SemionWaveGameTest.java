@@ -813,8 +813,8 @@ public final class SemionWaveGameTest {
         coreEntity.setHealth(0.0F);
         lane.tick(context.getLevel().getServer());
 
-        assertClose(0.0, core.roundDamageBonus(), "destroyed core round damage bonus");
-        assertClose(0.0, core.permanentDamageBonus(), "destroyed core permanent damage bonus");
+        assertClose(0.0, core.transferStats().roundDamageBonus(), "destroyed core round damage bonus");
+        assertClose(0.0, core.transferStats().permanentDamageBonus(), "destroyed core permanent damage bonus");
         if (source.health() <= 0.0) {
             throw new AssertionError("A destroyed End core must not finish absorbing feeder towers.");
         }

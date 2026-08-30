@@ -1,7 +1,5 @@
 package kim.biryeong.semiontd.tower.warlock;
 
-import static kim.biryeong.semiontd.tower.warlock.WarlockConfig.Ability.*;
-
 import java.util.Comparator;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
@@ -19,11 +17,10 @@ final class WarlockSacrificeController {
         this.state = state;
     }
 
-    boolean sacrifice(
+    boolean absorbNearest(
             WarlockTower warlock,
             SemionTowerEntity towerEntity,
             PlayerLane lane,
-            double radius,
             Comparator<Tower> priority
     ) {
         if (warlock == null
@@ -33,184 +30,106 @@ final class WarlockSacrificeController {
                 || priority == null) {
             return false;
         }
+        WarlockRules.SacrificeRule rule = config.path(warlock.path()).sacrifice();
         Tower target = lane.towers().stream()
-                .filter(tower -> isEligibleTarget(warlock, tower, radius))
-                .min(priority)
+                .filter(tower -> isEligibleTarget(warlock, tower, rule))
+                .min(deterministicPriority(warlock, priority))
                 .orElse(null);
         if (target == null) {
             return false;
         }
 
-        double sacrificedHealth = target.currentMaxHealth();
-        double sacrificedDamage = target.modifyAttackDamage(null, null, target.type().damage());
-        int sacrificedInterval = target.type().attackIntervalTicks();
+        WarlockSacrifice.Snapshot snapshot = WarlockSacrifice.snapshot(target);
         Vec3 center = sacrificedCenter(lane, target);
-        if (!lane.killTower(target)) {
+        WarlockSacrifice.Gain gain = sacrificeGain(warlock, snapshot);
+        boolean killed = lane.killTower(target);
+        if (!killed) {
             return false;
         }
 
-        TowerVfxService.showWarlockSacrifice(towerEntity, center);
         double previousMaxHealth = warlock.currentMaxHealth();
-        absorbStats(warlock, sacrificedHealth, sacrificedDamage, sacrificedInterval);
+        if (!WarlockSacrifice.commit(true, state, gain)) {
+            return false;
+        }
         double increasedMaxHealth = Math.max(0.0, warlock.currentMaxHealth() - previousMaxHealth);
-        double healAmount = increasedMaxHealth + Math.max(0.0, config.value(ABSORPTION_HEAL));
-        warlock.refreshAfterSacrifice(lane, towerEntity, healAmount);
+        warlock.refreshAfterSacrifice(lane, towerEntity, increasedMaxHealth + rule.completionHealing());
+        TowerVfxService.showWarlockSacrifice(towerEntity, center);
         return true;
     }
 
     double passiveHealthBonus(WarlockTower warlock, PlayerLane lane) {
-        if (warlock.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
-            return passiveBonus(warlock, lane, RANGED_PET_HEALTH, RANGED_PET_HEALTH_CAP);
-        }
-        if (warlock.is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            return passiveBonus(warlock, lane, MELEE_PET_HEALTH, MELEE_PET_HEALTH_CAP);
-        }
-        return 0.0;
+        return config.path(warlock.path()).passive().healthBonus(passiveStackCount(warlock, lane));
     }
 
     double passiveDamageBonus(WarlockTower warlock, PlayerLane lane) {
-        if (warlock.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
-            return passiveBonus(warlock, lane, RANGED_PET_DAMAGE, RANGED_PET_DAMAGE_CAP);
-        }
-        if (warlock.is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            return passiveBonus(warlock, lane, MELEE_PET_DAMAGE, MELEE_PET_DAMAGE_CAP);
-        }
-        return 0.0;
+        return config.path(warlock.path()).passive().damageBonus(passiveStackCount(warlock, lane));
     }
 
-    double damageReduction(WarlockTower warlock) {
-        if (warlock.is(WarlockTowers.RANGED_WARLOCK_TOWER)
-                && state.roundSacrificeCount() > config.integer(RANGED_DEFENSE_THRESHOLD)) {
-            return Math.max(0.0, config.value(RANGED_DEFENSE));
-        }
-        if (warlock.is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            int every = config.integer(MELEE_DEFENSE_EVERY);
-            if (every <= 0) {
-                return 0.0;
-            }
-            return Math.min(
-                    Math.max(0.0, config.value(MELEE_DEFENSE_CAP)),
-                    (state.totalSacrificeCount() / every) * Math.max(0.0, config.value(MELEE_DEFENSE_STEP))
-            );
-        }
-        return 0.0;
+    double damageReduction(WarlockPath path) {
+        var progression = WarlockProgressionSnapshot.from(state, null);
+        return config.path(path).defense().value(progression.defenseSacrificeCount(path));
     }
 
-    double maximumDamageReduction(WarlockTower warlock) {
-        if (warlock.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
-            return Math.max(0.0, config.value(RANGED_DEFENSE));
-        }
-        if (warlock.is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            return Math.max(0.0, config.value(MELEE_DEFENSE_CAP));
-        }
-        return 0.0;
+    double maximumDamageReduction(WarlockPath path) {
+        return config.path(path).defense().maximum();
     }
 
-    private void absorbStats(
-            WarlockTower warlock,
-            double sacrificedHealth,
-            double sacrificedDamage,
-            int sacrificedIntervalTicks
-    ) {
-        if (warlock.is(WarlockTowers.BASE_WARLOCK_TOWER)) {
-            state.absorbBasePermanently(
-                    sacrificedHealth,
-                    sacrificedDamage,
-                    config.value(BASE_PERMANENT_HEALTH),
-                    config.value(BASE_PERMANENT_DAMAGE)
-            );
-        }
-
-        if (warlock.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
-            state.absorbForRound(
-                    sacrificedHealth,
-                    sacrificedDamage,
-                    config.value(RANGED_ROUND_STAT)
-            );
-            state.absorbPermanently(
-                    sacrificedHealth,
-                    sacrificedDamage,
-                    config.value(RANGED_PERMANENT_HEALTH),
-                    config.value(RANGED_PERMANENT_DAMAGE)
-            );
-            state.absorbAttackInterval(
-                    warlock.type().attackIntervalTicks(),
-                    sacrificedIntervalTicks,
-                    config.value(SPEED_CAP)
-            );
-            return;
-        }
-
-        if (warlock.is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            state.absorbForRound(
-                    sacrificedHealth,
-                    sacrificedDamage,
-                    config.value(MELEE_ROUND_STAT)
-            );
-            state.absorbPermanently(
-                    sacrificedHealth,
-                    sacrificedDamage,
-                    config.value(MELEE_PERMANENT_HEALTH),
-                    config.value(MELEE_PERMANENT_DAMAGE)
-            );
-            return;
-        }
-    }
-
-    private double passiveBonus(
-            WarlockTower warlock,
-            PlayerLane lane,
-            WarlockConfig.Ability perStack,
-            WarlockConfig.Ability cap
-    ) {
-        int stacks = passiveStackCount(warlock, lane);
-        return Math.min(Math.max(0.0, config.value(cap)), stacks * Math.max(0.0, config.value(perStack)));
+    private WarlockSacrifice.Gain sacrificeGain(WarlockTower warlock, WarlockSacrifice.Snapshot snapshot) {
+        WarlockPath path = warlock.path();
+        return WarlockSacrifice.calculate(
+                path,
+                snapshot,
+                config.path(path),
+                config.combat(),
+                warlock.type().attackIntervalTicks()
+        );
     }
 
     private int passiveStackCount(WarlockTower warlock, PlayerLane lane) {
-        if (lane == null) {
+        if (lane == null || warlock.path() == WarlockPath.BASE) {
             return 0;
         }
         return (int) lane.towers().stream()
                 .filter(tower -> tower != warlock)
                 .filter(tower -> tower.health() > 0.0)
                 .filter(tower -> sameOwner(warlock, tower))
-                .filter(tower -> isPassiveStackTower(warlock, tower))
+                .filter(tower -> warlock.path().acceptsSacrificeTower(tower.type()))
                 .count();
-    }
-
-    private boolean isPassiveStackTower(WarlockTower warlock, Tower tower) {
-        if (warlock.is(WarlockTowers.RANGED_WARLOCK_TOWER)) {
-            return WarlockTowers.isRangedSlave(tower.type());
-        }
-        if (warlock.is(WarlockTowers.MELEE_WARLOCK_TOWER)) {
-            return WarlockTowers.isMeleeSlave(tower.type());
-        }
-        return false;
     }
 
     private static boolean sameOwner(WarlockTower warlock, Tower tower) {
         return tower != null && warlock.ownerPlayer().equals(tower.ownerPlayer());
     }
 
-    static boolean isEligibleTarget(WarlockTower warlock, Tower tower, double radius) {
+    static boolean isEligibleTarget(
+            WarlockTower warlock,
+            Tower tower,
+            WarlockRules.SacrificeRule rule
+    ) {
         return warlock != null
                 && tower != null
+                && rule != null
                 && tower != warlock
                 && tower.health() > 0.0
                 && !WarlockTowers.isWarlockCore(tower.type())
+                && warlock.path().acceptsSacrificeTower(tower.type())
                 && sameOwner(warlock, tower)
-                && withinRadius(warlock, tower, radius);
+                && rule.includes(squaredDistance(warlock, tower));
     }
 
-    private static boolean withinRadius(WarlockTower warlock, Tower tower, double radius) {
-        if (tower == null || radius <= 0.0) {
-            return tower != null;
-        }
+    private static double squaredDistance(WarlockTower warlock, Tower tower) {
         double dx = tower.position().x() - warlock.position().x();
         double dy = tower.position().y() - warlock.position().y();
         double dz = tower.position().z() - warlock.position().z();
-        return dx * dx + dy * dy + dz * dz <= radius * radius;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    static Comparator<Tower> deterministicPriority(WarlockTower warlock, Comparator<Tower> priority) {
+        return priority
+                .thenComparingDouble(tower -> squaredDistance(warlock, tower))
+                .thenComparingInt(tower -> tower.position().x())
+                .thenComparingInt(tower -> tower.position().y())
+                .thenComparingInt(tower -> tower.position().z());
     }
 
     private static Vec3 sacrificedCenter(PlayerLane lane, Tower target) {

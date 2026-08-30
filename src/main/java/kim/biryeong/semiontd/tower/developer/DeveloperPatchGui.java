@@ -15,11 +15,10 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Items;
 
 /**
- * The 개발자 builder's preparation-phase console for one tower.
+ * The 개발자 builder's patch console for one tower.
  *
- * <p>Every operation this family has lives here, and every one of them is refused outside
- * {@link RoundPhase#PREPARE_AND_SUMMON}. That is the builder's defining constraint: decisions are
- * made before the wave and the wave is where the player finds out whether they were right.
+ * <p>Patches and hotfixes remain available during {@link RoundPhase#LANE_WAVE}. Optimisation,
+ * maintenance, debugging, reproduction and version pinning remain preparation-only.
  *
  * <p>Reached from a 패치 콘솔 button on that tower's own details dialog, the same way the 용사 builder
  * hangs its shop off a hero tower. Scoping the console to one tower is deliberate: a lane-wide list
@@ -62,8 +61,20 @@ public final class DeveloperPatchGui extends SimpleGui {
         return game.playerLane(player.getUUID()).orElse(null);
     }
 
-    private boolean editable() {
-        return game.phase() == RoundPhase.PREPARE_AND_SUMMON;
+    static boolean patchingAllowed(RoundPhase phase) {
+        return phase == RoundPhase.PREPARE_AND_SUMMON || phase == RoundPhase.LANE_WAVE;
+    }
+
+    static boolean preparationActionsAllowed(RoundPhase phase) {
+        return phase == RoundPhase.PREPARE_AND_SUMMON;
+    }
+
+    private boolean patchesEditable() {
+        return patchingAllowed(game.phase());
+    }
+
+    private boolean preparationEditable() {
+        return preparationActionsAllowed(game.phase());
     }
 
     private void refresh() {
@@ -102,8 +113,14 @@ public final class DeveloperPatchGui extends SimpleGui {
         for (String line : DeveloperTowerLines.describe(tower)) {
             status.addLoreLine(Component.literal(stripTags(line)).withStyle(ChatFormatting.DARK_GRAY));
         }
-        if (!editable()) {
-            status.addLoreLine(Component.literal("준비 단계에만 조작할 수 있습니다.").withStyle(ChatFormatting.RED));
+        if (game.phase() == RoundPhase.PREPARE_AND_SUMMON) {
+            status.addLoreLine(Component.literal("준비 중에는 모든 콘솔 조작을 사용할 수 있습니다.")
+                    .withStyle(ChatFormatting.GREEN));
+        } else if (game.phase() == RoundPhase.LANE_WAVE) {
+            status.addLoreLine(Component.literal("웨이브 중에는 패치·핫픽스만 사용할 수 있습니다.")
+                    .withStyle(ChatFormatting.YELLOW));
+        } else if (!patchesEditable()) {
+            status.addLoreLine(Component.literal("현재 단계에는 조작할 수 없습니다.").withStyle(ChatFormatting.RED));
         }
         setSlot(STATUS_SLOT, status);
     }
@@ -115,7 +132,7 @@ public final class DeveloperPatchGui extends SimpleGui {
             double step = patch.stepAmount(existing) * tower.patchEfficiency(lane)
                     * (hotfix ? DeveloperBalance.hotfixScale(tower.type()) : 1.0);
             int remaining = hotfix ? state.hotfixesRemaining() : state.patchesRemaining();
-            boolean usable = editable() && remaining > 0 && !DeveloperTowerData.isPinned(tower)
+            boolean usable = patchesEditable() && remaining > 0 && !DeveloperTowerData.isPinned(tower)
                     && (hotfix || !tower.hasBug(DeveloperBug.ROLLBACK_FAILURE));
 
             GuiElementBuilder button = new GuiElementBuilder(patch.item())
@@ -140,8 +157,8 @@ public final class DeveloperPatchGui extends SimpleGui {
                         .withStyle(ChatFormatting.YELLOW));
             }
             button.setCallback((slot, type, action) -> {
-                if (!editable()) {
-                    notify("준비 단계에만 패치할 수 있습니다.");
+                if (!patchesEditable()) {
+                    notify("준비 또는 웨이브 단계에만 패치할 수 있습니다.");
                     return;
                 }
                 notify(DeveloperPatchService.applyPatch(lane(), tower, patch, hotfix));
@@ -157,7 +174,7 @@ public final class DeveloperPatchGui extends SimpleGui {
         for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
             boolean owned = tower.hasOptimization(optimization);
             boolean conflict = DeveloperPatchService.wouldConflict(tower, optimization);
-            boolean usable = editable() && !owned && state.optimizationsRemaining() > 0
+            boolean usable = preparationEditable() && !owned && state.optimizationsRemaining() > 0
                     && !tower.hasBug(DeveloperBug.READ_ONLY);
 
             GuiElementBuilder button = new GuiElementBuilder(optimization.item())
@@ -178,7 +195,7 @@ public final class DeveloperPatchGui extends SimpleGui {
                         .withStyle(ChatFormatting.RED));
             }
             button.setCallback((slot, type, action) -> {
-                if (!editable()) {
+                if (!preparationEditable()) {
                     notify("준비 단계에만 최적화할 수 있습니다.");
                     return;
                 }
@@ -210,11 +227,11 @@ public final class DeveloperPatchGui extends SimpleGui {
                 button.addLoreLine(Component.literal("테스터를 지으면 내용을 볼 수 있습니다")
                         .withStyle(ChatFormatting.DARK_GRAY));
             }
-            boolean canDebug = editable() && state.debugRemovalsRemaining() > 0;
+            boolean canDebug = preparationEditable() && state.debugRemovalsRemaining() > 0;
             button.addLoreLine(Component.literal(canDebug ? "클릭: 버그 제거" : "디버거가 필요합니다")
                     .withStyle(canDebug ? ChatFormatting.AQUA : ChatFormatting.DARK_GRAY));
             button.setCallback((slot, type, action) -> {
-                if (!editable()) {
+                if (!preparationEditable()) {
                     notify("준비 단계에만 제거할 수 있습니다.");
                     return;
                 }
@@ -229,7 +246,7 @@ public final class DeveloperPatchGui extends SimpleGui {
                             .withStyle(ChatFormatting.GRAY))
                     .addLoreLine(Component.literal("웅크린 채 타워 클릭: 취소").withStyle(ChatFormatting.DARK_GRAY));
             reproduce.setCallback((slot, type, action) -> {
-                if (!editable()) {
+                if (!preparationEditable()) {
                     notify("준비 단계에만 재현할 수 있습니다.");
                     return;
                 }
@@ -252,7 +269,7 @@ public final class DeveloperPatchGui extends SimpleGui {
     }
 
     private void drawMaintenance(PlayerLane lane, DeveloperStates.PlayerState state) {
-        boolean usable = editable() && state.maintenancesRemaining() > 0;
+        boolean usable = preparationEditable() && state.maintenancesRemaining() > 0;
         setSlot(MAINTENANCE_SLOT, new GuiElementBuilder(Items.ANVIL)
                 .setName(Component.literal("긴급 점검")
                         .withStyle(usable ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY))
@@ -262,7 +279,7 @@ public final class DeveloperPatchGui extends SimpleGui {
                         .withStyle(ChatFormatting.GREEN))
                 .addLoreLine(Component.literal("메모리 누수도 함께 초기화됩니다").withStyle(ChatFormatting.GRAY))
                 .setCallback((slot, type, action) -> {
-                    if (!editable()) {
+                    if (!preparationEditable()) {
                         notify("준비 단계에만 점검할 수 있습니다.");
                         return;
                     }
@@ -283,7 +300,7 @@ public final class DeveloperPatchGui extends SimpleGui {
                         .withStyle(ChatFormatting.DARK_GRAY))
                 .glow(pinned)
                 .setCallback((slot, type, action) -> {
-                    if (!editable()) {
+                    if (!preparationEditable()) {
                         notify("준비 단계에만 고정할 수 있습니다.");
                         return;
                     }

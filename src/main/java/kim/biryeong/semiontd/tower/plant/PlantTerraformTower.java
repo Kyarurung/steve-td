@@ -47,6 +47,20 @@ public class PlantTerraformTower extends ProductionTower {
         return false;
     }
 
+    /**
+     * 지형 설비는 라인 방어 판정에서 빠집니다.
+     *
+     * <p>무적이라 절대 파괴되지 않습니다. 방어 판정에 세면 전투 타워가 전부 무너져도 테라포머가
+     * 남아 있다는 이유로 라인이 계속 살아 있는 것으로 잡혀, 최종 방어 전투로 넘어가지도 않고
+     * 인컴 레인 판정도 이전 상태에 묶입니다.
+     *
+     * <p>공격도 어그로도 없는 설비라 실제로 지키는 것이 아무것도 없습니다. 세지 않는 쪽이 맞습니다.
+     */
+    @Override
+    public boolean countsForLaneDefense() {
+        return false;
+    }
+
     @Override
     public void onPlaced(PlayerLane lane) {
         super.onPlaced(lane);

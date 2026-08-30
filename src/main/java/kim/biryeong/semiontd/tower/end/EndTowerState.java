@@ -8,8 +8,4 @@ public enum EndTowerState {
     public boolean hatched() {
         return this == PHANTOM || this == DRAGON;
     }
-
-    public static EndTowerState evolvedState(double currentMaxHealth, double evolutionThreshold) {
-        return currentMaxHealth >= evolutionThreshold ? DRAGON : PHANTOM;
-    }
 }

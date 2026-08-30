@@ -29,6 +29,7 @@ import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
@@ -586,6 +587,7 @@ final class DemonLordTowerCatalogTest {
         inventory.setItem(2, new ItemStack(Items.DIAMOND));
 
         assertTrue(DemonLordKitItems.isKitItem(inventory.getItem(0)));
+        assertNull(inventory.getItem(0).get(DataComponents.CREATIVE_SLOT_LOCK));
         DemonLordKitItems.clear(inventory);
 
         assertTrue(inventory.getItem(0).isEmpty());

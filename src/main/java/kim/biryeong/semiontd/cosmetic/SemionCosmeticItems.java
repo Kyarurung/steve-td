@@ -144,6 +144,7 @@ public final class SemionCosmeticItems {
     );
 
     private static final List<Item> ITEMS = new ArrayList<>(DEFINITIONS.size());
+    private static Item succubusHead;
 
     private SemionCosmeticItems() {
     }
@@ -153,10 +154,15 @@ public final class SemionCosmeticItems {
             return;
         }
         DEFINITIONS.forEach(definition -> ITEMS.add(register(definition)));
+        succubusHead = register(define("tower/succubus_head", "서큐버스 머리 장식", ChatFormatting.LIGHT_PURPLE));
     }
 
     public static List<Item> items() {
         return List.copyOf(ITEMS);
+    }
+
+    public static Item succubusHead() {
+        return succubusHead;
     }
 
     private static Item register(Definition definition) {

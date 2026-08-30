@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import kim.biryeong.semiontd.cosmetic.SemionCosmeticItems;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.mixin.accessor.PlayerInfoUpdatePacketAccessor;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
@@ -239,7 +240,9 @@ public final class FakePlayerTowerVisuals {
         ItemStack mainHand = mainHand(tower);
         player.setItemSlot(EquipmentSlot.MAINHAND, mainHand);
         int armor = displayedArmorLevel(tower);
-        player.setItemSlot(EquipmentSlot.HEAD, armorStack(armor, EquipmentSlot.HEAD));
+        player.setItemSlot(EquipmentSlot.HEAD, SuccubusTowers.isSuccubus(tower.type())
+                ? SemionCosmeticItems.succubusHead().getDefaultInstance()
+                : armorStack(armor, EquipmentSlot.HEAD));
         player.setItemSlot(EquipmentSlot.CHEST, armorStack(armor, EquipmentSlot.CHEST));
         player.setItemSlot(EquipmentSlot.LEGS, armorStack(armor, EquipmentSlot.LEGS));
         player.setItemSlot(EquipmentSlot.FEET, armorStack(armor, EquipmentSlot.FEET));

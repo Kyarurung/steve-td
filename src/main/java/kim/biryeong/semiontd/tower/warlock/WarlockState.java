@@ -10,41 +10,20 @@ final class WarlockState {
     private int roundSacrificeCount;
     private boolean awakenedThisRound;
 
-    void absorbBasePermanently(
-            double sacrificedHealth,
-            double sacrificedDamage,
-            double healthRatio,
-            double damageRatio
-    ) {
-        permanentHealthBonus += Math.max(0.0, sacrificedHealth) * Math.max(0.0, healthRatio);
-        permanentDamageBonus += Math.max(0.0, sacrificedDamage) * Math.max(0.0, damageRatio);
-    }
-
-    void absorbForRound(double sacrificedHealth, double sacrificedDamage, double ratio) {
-        totalSacrificeCount++;
-        roundSacrificeCount++;
-        double resolvedRatio = Math.max(0.0, ratio);
-        double gainedHealth = Math.max(0.0, sacrificedHealth) * resolvedRatio;
-        roundHealthBonus += gainedHealth;
-        roundDamageBonus += Math.max(0.0, sacrificedDamage) * resolvedRatio;
-    }
-
-    void absorbPermanently(
-            double sacrificedHealth,
-            double sacrificedDamage,
-            double healthRatio,
-            double damageRatio
-    ) {
-        permanentHealthBonus += Math.max(0.0, sacrificedHealth) * Math.max(0.0, healthRatio);
-        permanentDamageBonus += Math.max(0.0, sacrificedDamage) * Math.max(0.0, damageRatio);
-    }
-
-    void absorbAttackInterval(int baseIntervalTicks, int sacrificedIntervalTicks, double cap) {
-        if (sacrificedIntervalTicks >= baseIntervalTicks) {
+    void recordSacrifice(WarlockSacrifice.Gain gain) {
+        if (gain == null) {
             return;
         }
-        double reduction = baseIntervalTicks - sacrificedIntervalTicks;
-        roundIntervalReduction = Math.min(Math.max(0.0, cap), roundIntervalReduction + reduction);
+        totalSacrificeCount++;
+        roundSacrificeCount++;
+        permanentHealthBonus += gain.permanentHealth();
+        permanentDamageBonus += gain.permanentDamage();
+        roundHealthBonus += gain.roundHealth();
+        roundDamageBonus += gain.roundDamage();
+        roundIntervalReduction = Math.min(
+                gain.maximumIntervalReduction(),
+                roundIntervalReduction + gain.intervalReduction()
+        );
     }
 
     void resetRound() {

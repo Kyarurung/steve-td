@@ -424,7 +424,8 @@ public class DeveloperTower extends ProductionTower {
             DeveloperVfx.show(this, AreaVfxStyles.PULSE, "garbage_collection");
             return 0.0;
         }
-        return damage;
+        int milestone = DeveloperBalance.patchMilestone(DeveloperTowerData.activeDefensePatchCount(this));
+        return damage * (1.0 - DeveloperBalance.defenseDamageReduction(milestone));
     }
 
     @Override
@@ -507,6 +508,7 @@ public class DeveloperTower extends ProductionTower {
         if (towerEntity != null) {
             spawnedEntity = towerEntity;
         }
+        applyPatchSplash(towerEntity, target, resolvedOutgoingDamage);
         if (hasBug(DeveloperBug.HARDCODED) && target != null) {
             DeveloperTowerData.latchHardcodedType(this, monsterId(target));
         }
@@ -524,6 +526,34 @@ public class DeveloperTower extends ProductionTower {
                 overkillTicksRemaining = (int) DeveloperBug.OVERKILL.primary();
             }
         }
+    }
+
+    private void applyPatchSplash(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double resolvedOutgoingDamage
+    ) {
+        int milestone = DeveloperBalance.patchMilestone(DeveloperTowerData.activeAttackPatchCount(this));
+        double radius = DeveloperBalance.attackSplashRadius(milestone);
+        double ratio = DeveloperBalance.attackSplashRatio(milestone);
+        if (towerEntity == null || target == null || resolvedOutgoingDamage <= 0.0 || radius <= 0.0 || ratio <= 0.0) {
+            return;
+        }
+        MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTarget(
+                AreaEffectIds.tower(this, "patch_splash"),
+                towerEntity,
+                target,
+                radius,
+                AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
+        );
+        TowerAreaDamage.applyResolved(
+                this,
+                towerEntity,
+                request,
+                ignored -> resolvedOutgoingDamage * ratio,
+                true,
+                (ignored, damage, killed) -> {}
+        );
     }
 
     /**

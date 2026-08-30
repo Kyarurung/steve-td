@@ -1,6 +1,6 @@
 package kim.biryeong.semiontd.config;
 
-import static kim.biryeong.semiontd.tower.end.EndConfig.Ability.*;
+import static kim.biryeong.semiontd.tower.end.EndAbilityKey.*;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -753,7 +753,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "towerDamageTakenBonus", 0.05
+                "towerDamageTakenBonus", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -763,7 +763,7 @@ public record TowerBalanceConfig(
         putAbilities(abilities, WarlockTowers.T2_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
                 "deathEffectDurationTicks", 72000.0,
-                "attackSpeedReduction", 0.05
+                "attackSpeedReduction", 0.10
         ));
         putAbilities(abilities, WarlockTowers.T3_RANGED_SLAVE.id(), Map.of(
                 "deathEffectRadius", 20.0,
@@ -1208,6 +1208,9 @@ public record TowerBalanceConfig(
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_TOWER, PlantTowers.T3_MEADOW_TOWER.id(), 240);
         putUpgrade(upgradeCosts, PlantTowers.T1_MEADOW_NOVA_TOWER, PlantTowers.T2_MEADOW_NOVA_TOWER.id(), 175);
         putUpgrade(upgradeCosts, PlantTowers.T2_MEADOW_NOVA_TOWER, PlantTowers.T3_MEADOW_NOVA_TOWER.id(), 275);
+        putUpgrade(upgradeCosts, PlantTowers.T1_PANDA_TOWER, PlantTowers.T2_PANDA_TOWER.id(), 150);
+        putUpgrade(upgradeCosts, PlantTowers.T2_PANDA_TOWER, PlantTowers.T3_PANDA_TOWER.id(), 260);
+        putUpgrade(upgradeCosts, PlantTowers.T3_PANDA_TOWER, PlantTowers.T4_PANDA_TOWER.id(), 400);
         putUpgrade(upgradeCosts, PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER.id(), 80);
         putUpgrade(upgradeCosts, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER.id(), 130);
         putUpgrade(upgradeCosts, PlantTowers.T1_DESERT_TOWER, PlantTowers.T2_DESERT_TOWER.id(), 190);
@@ -1393,6 +1396,11 @@ public record TowerBalanceConfig(
         putPlantMine(abilities, PlantTowers.T1_MYCELIUM_TOWER, 1.5, 3.0, 0.35, 40.0, 8.0);
         putPlantMine(abilities, PlantTowers.T2_MYCELIUM_TOWER, 1.8, 3.5, 0.45, 60.0, 10.0);
         putPlantMine(abilities, PlantTowers.T3_MYCELIUM_TOWER, 2.0, 4.0, 0.55, 80.0, 12.0);
+        // 판다는 지형 계열이 아니라 soilPower 가 없습니다. 돌진 수치만 가집니다.
+        putPanda(abilities, PlantTowers.T1_PANDA_TOWER, 200.0, 6.0, 1.6, 0.08, 1.0, 60.0, 0.30, 0.30);
+        putPanda(abilities, PlantTowers.T2_PANDA_TOWER, 180.0, 7.0, 1.8, 0.10, 1.2, 70.0, 0.35, 0.35);
+        putPanda(abilities, PlantTowers.T3_PANDA_TOWER, 160.0, 8.0, 2.0, 0.12, 1.4, 80.0, 0.40, 0.40);
+        putPanda(abilities, PlantTowers.T4_PANDA_TOWER, 140.0, 9.0, 2.2, 0.15, 1.6, 100.0, 0.50, 0.50);
         plantSoilPower(abilities, PlantTowers.T1_DESERT_TOWER, 0.6);
         plantSoilPower(abilities, PlantTowers.T2_DESERT_TOWER, 1.0);
         plantSoilPower(abilities, PlantTowers.T3_DESERT_TOWER, 1.4);
@@ -1440,6 +1448,36 @@ public record TowerBalanceConfig(
                 "snareDurationTicks", 20.0,
                 // 곡사 연출용 포물선 높이입니다. 0 이면 궤적을 그리지 않습니다.
                 "lobArcHeight", 5.0
+        ));
+    }
+
+    /**
+     * 판다 돌진 수치.
+     *
+     * <p>{@code chargeHealthRatio} 는 공격력이 아니라 <b>자기 최대 체력</b>에 곱합니다. 공격력
+     * 기준이면 근접 평타와 같은 축을 두 번 타서 체력을 올리는 선택이 화력에 아무 의미가 없어집니다.
+     */
+    private static void putPanda(
+            LinkedHashMap<String, Map<String, Double>> abilities,
+            TowerType type,
+            double chargeIntervalTicks,
+            double chargeDistance,
+            double chargeHitRadius,
+            double chargeHealthRatio,
+            double chargeKnockback,
+            double chargeDebuffTicks,
+            double chargeAttackSpeedReduction,
+            double chargeRangeReduction
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                "chargeIntervalTicks", chargeIntervalTicks,
+                "chargeDistance", chargeDistance,
+                "chargeHitRadius", chargeHitRadius,
+                "chargeHealthRatio", chargeHealthRatio,
+                "chargeKnockback", chargeKnockback,
+                "chargeDebuffTicks", chargeDebuffTicks,
+                "chargeAttackSpeedReduction", chargeAttackSpeedReduction,
+                "chargeRangeReduction", chargeRangeReduction
         ));
     }
 
@@ -1531,6 +1569,8 @@ public record TowerBalanceConfig(
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "lifeEvery");
         validateIntegralAbility(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashEvery");
         validateIntegralAbility(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery");
+        validateRatios(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance");
+        validateRatios(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance");
         validateRatios(IllagerRaidStates.RAID_CONFIG_ID,
                 "attackSpeedPercentPerTower", "damagePercentPerTower",
                 "attackSpeedBonusCap", "damageBonusCap");
@@ -1928,6 +1968,14 @@ public record TowerBalanceConfig(
         validateIntegral(PlantSoil.MYCELIUM.configId(), false, "environmentDurationTicks");
         validateIntegral(PlantSoil.DESERT.configId(), false, "environmentDurationTicks", "debuffDurationTicks");
 
+        for (TowerType panda : PlantTowers.PANDA_TOWERS) {
+            validatePositive(panda.id(),
+                    "chargeIntervalTicks", "chargeDistance", "chargeHitRadius", "chargeHealthRatio");
+            validateIntegral(panda.id(), false, "chargeIntervalTicks", "chargeDebuffTicks");
+            validateRatios(panda.id(),
+                    "chargeHealthRatio", "chargeAttackSpeedReduction", "chargeRangeReduction");
+        }
+
         for (TowerType mine : List.of(
                 PlantTowers.T1_MYCELIUM_TOWER, PlantTowers.T2_MYCELIUM_TOWER, PlantTowers.T3_MYCELIUM_TOWER)) {
             validatePositive(mine.id(), "triggerIntervalTicks", "fuseTicks");
@@ -2188,6 +2236,18 @@ public record TowerBalanceConfig(
         global.put("patchHealth", DeveloperBalance.PATCH_HEALTH);
         global.put("patchAggro", (double) DeveloperBalance.PATCH_AGGRO);
         global.put("patchDiminishing", DeveloperBalance.PATCH_DIMINISHING);
+        global.put("patchMilestone1Threshold", (double) DeveloperBalance.PATCH_MILESTONE_1_THRESHOLD);
+        global.put("patchMilestone2Threshold", (double) DeveloperBalance.PATCH_MILESTONE_2_THRESHOLD);
+        global.put("patchMilestone3Threshold", (double) DeveloperBalance.PATCH_MILESTONE_3_THRESHOLD);
+        global.put("attackSplashRadius1", DeveloperBalance.ATTACK_SPLASH_RADIUS_1);
+        global.put("attackSplashRadius2", DeveloperBalance.ATTACK_SPLASH_RADIUS_2);
+        global.put("attackSplashRadius3", DeveloperBalance.ATTACK_SPLASH_RADIUS_3);
+        global.put("attackSplashRatio1", DeveloperBalance.ATTACK_SPLASH_RATIO_1);
+        global.put("attackSplashRatio2", DeveloperBalance.ATTACK_SPLASH_RATIO_2);
+        global.put("attackSplashRatio3", DeveloperBalance.ATTACK_SPLASH_RATIO_3);
+        global.put("defenseDamageReduction1", DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_1);
+        global.put("defenseDamageReduction2", DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_2);
+        global.put("defenseDamageReduction3", DeveloperBalance.DEFENSE_DAMAGE_REDUCTION_3);
         global.put("testBuildAuraBonus", DeveloperBalance.TEST_BUILD_AURA_BONUS);
         global.put("testBuildAuraRadius", DeveloperBalance.TEST_BUILD_AURA_RADIUS);
         global.put("maxBugsPerTower", (double) DeveloperBalance.MAX_BUGS_PER_TOWER);
@@ -2256,7 +2316,9 @@ public record TowerBalanceConfig(
                 "patchAttack", "patchRange", "patchInterval", "patchHealth", "patchAggro",
                 "patchDiminishing", "testBuildAuraBonus", "testBuildAuraRadius",
                 "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
-                "maintenanceDamageBonus", "patchSlotsPerTowers");
+                "maintenanceDamageBonus", "patchSlotsPerTowers",
+                "patchMilestone1Threshold", "patchMilestone2Threshold", "patchMilestone3Threshold",
+                "attackSplashRadius1", "attackSplashRadius2", "attackSplashRadius3");
         validateRange(global, "patchAttack", 0.0, 1.0);
         validateRange(global, "patchRange", 0.0, 1.0);
         validateRange(global, "patchInterval", 0.0, 1.0);
@@ -2265,12 +2327,23 @@ public record TowerBalanceConfig(
         validateRange(global, "testBuildAuraBonus", 0.0, 1.0);
         validateRange(global, "instabilityStallChance", 0.0, 0.5);
         validateRange(global, "patchAggro", 1.0, 100.0);
+        validateRatios(global,
+                "attackSplashRatio1", "attackSplashRatio2", "attackSplashRatio3",
+                "defenseDamageReduction1", "defenseDamageReduction2", "defenseDamageReduction3");
         validateIntegral(global, false,
                 "patchAggro", "maxBugsPerTower", "maxInstability", "instabilityStallTicks",
-                "patchSlotsPerTowers");
+                "patchSlotsPerTowers",
+                "patchMilestone1Threshold", "patchMilestone2Threshold", "patchMilestone3Threshold");
         validateIntegral(global, true,
                 "maintenancePerRound", "debugRemovalsPerRound", "reproducePerRound",
                 "optimizationsPerMatch", "versionPinSlots", "basePatchSlots");
+
+        double milestone1 = ability(global, "patchMilestone1Threshold", DeveloperBalance.PATCH_MILESTONE_1_THRESHOLD);
+        double milestone2 = ability(global, "patchMilestone2Threshold", DeveloperBalance.PATCH_MILESTONE_2_THRESHOLD);
+        double milestone3 = ability(global, "patchMilestone3Threshold", DeveloperBalance.PATCH_MILESTONE_3_THRESHOLD);
+        if (!(milestone1 < milestone2 && milestone2 < milestone3)) {
+            throw new IllegalArgumentException("Developer patch milestone thresholds must increase");
+        }
 
         for (DeveloperOptimization optimization : DeveloperOptimization.values()) {
             validatePositive(global, optimization.gainKey());
@@ -3087,6 +3160,7 @@ public record TowerBalanceConfig(
         values.put("heartHealAmount", 12.0);
         values.put("heartHealRadius", 5.0);
         values.put("clubDamageReduction", 0.15);
+        values.put("pokerDamageReductionCap", 0.40);
         values.put("cardSplashRadius", 2.0);
         values.put("cardSplashExtraTargets", 5.0);
         values.put("spadeRadius", 2.5);
@@ -3148,7 +3222,7 @@ public record TowerBalanceConfig(
             throw new IllegalArgumentException("Queen minimumStatScale must be between 0 (exclusive) and 1.");
         }
         for (String key : java.util.List.of(
-                "clubDamageReduction", "giantExecutionVisualShrink", "giantExecutionGrowthRatio", "giantSlow")) {
+                "clubDamageReduction", "pokerDamageReductionCap", "giantExecutionVisualShrink", "giantExecutionGrowthRatio", "giantSlow")) {
             double value = values.getOrDefault(key, -1.0);
             if (value < 0.0 || value > 1.0) throw new IllegalArgumentException("Queen ratio must be between 0 and 1: " + key);
         }
@@ -4082,8 +4156,8 @@ public record TowerBalanceConfig(
         values.put(HEALTH_SCALE.key(), 500.0);
         values.put(ROUND_DAMAGE_RATIO.key(), 0.66);
         values.put(PERMANENT_DAMAGE_RATIO.key(), 0.04);
-        values.put(DAMAGE_THRESHOLD.key(), 140.0);
-        values.put(DAMAGE_SCALE.key(), 20.0);
+        values.put(DAMAGE_THRESHOLD.key(), 150.0);
+        values.put(DAMAGE_SCALE.key(), 25.0);
         values.put(LIFE_STEAL_STACKS.key(), 30.0);
         values.put(LIFE_STEAL_STEP.key(), 0.01);
         values.put(LIFE_STEAL_CAP.key(), 0.10);
@@ -4244,7 +4318,7 @@ public record TowerBalanceConfig(
         values.put("absorptionHeal", 30.0);
         values.put("minInterval", 5.0);
         values.put("speedCap", 15.0);
-        values.put("awakeningKills", 1200.0);
+        values.put("awakeningKills", 1400.0);
         values.put("awakeningThreshold", 0.40);
         return values;
     }
@@ -4252,7 +4326,6 @@ public record TowerBalanceConfig(
     private static Map<String, Double> baseWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
         values.put("sacrificeRadius", 6.0);
-        values.put("fatalHeal", 0.35);
         values.put("permanentHealth", 0.025);
         values.put("permanentDamage", 0.05);
         return values;
@@ -4260,17 +4333,18 @@ public record TowerBalanceConfig(
 
     private static Map<String, Double> rangedWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("threshold", 0.55);
+        values.put("threshold", 0.65);
         values.put("roundStat", 0.50);
         values.put("permanentHealth", 0.025);
         values.put("healthThreshold", 2000.0);
         values.put("healthScale", 500.0);
         values.put("permanentDamage", 0.05);
-        values.put("damageThreshold", 145.0);
+        values.put("damageThreshold", 140.0);
         values.put("damageScale", 20.0);
         values.put("lifeEvery", 10.0);
         values.put("lifeStep", 0.005);
-        values.put("lifeCap", 0.08);
+        values.put("lifeCap", 0.07);
+        values.put("incomeDebuffResistance", 0.30);
         values.put("splashEvery", 2.0);
         values.put("splashStep", 0.1);
         values.put("splashCap", 8.0);
@@ -4281,7 +4355,7 @@ public record TowerBalanceConfig(
         values.put("petHealthCap", 0.20);
         values.put("petDamage", 0.10);
         values.put("petDamageCap", 0.50);
-        values.put("awakeningHeal", 600.0);
+        values.put("awakeningHeal", 800.0);
         values.put("awakeningRegeneration", 40.0);
         values.put("awakeningRegenerationTicks", 20.0);
         return values;
@@ -4289,7 +4363,7 @@ public record TowerBalanceConfig(
 
     private static Map<String, Double> meleeWarlockAbilities() {
         LinkedHashMap<String, Double> values = new LinkedHashMap<>();
-        values.put("threshold", 0.55);
+        values.put("threshold", 0.65);
         values.put("roundStat", 0.60);
         values.put("permanentHealth", 0.05);
         values.put("healthThreshold", 3500.0);
@@ -4298,7 +4372,8 @@ public record TowerBalanceConfig(
         values.put("damageThreshold", 200.0);
         values.put("damageScale", 20.0);
         values.put("lifeStep", 0.01);
-        values.put("lifeCap", 0.14);
+        values.put("lifeCap", 0.13);
+        values.put("incomeDebuffResistance", 0.40);
         values.put("speedStep", 1.0);
         values.put("splashStep", 0.25);
         values.put("splashCap", 2.0);
@@ -4310,7 +4385,7 @@ public record TowerBalanceConfig(
         values.put("petHealthCap", 0.50);
         values.put("petDamage", 0.04);
         values.put("petDamageCap", 0.20);
-        values.put("awakeningHeal", 600.0);
+        values.put("awakeningHeal", 800.0);
         values.put("awakeningDamage", 75.0);
         values.put("awakeningMoveSpeed", 0.30);
         return values;

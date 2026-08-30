@@ -10,8 +10,9 @@ import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
-import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.game.RoundPhase;
+import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.SharedConstants;
@@ -103,6 +104,29 @@ class DeveloperPatchServiceTest {
         assertEquals(1, DeveloperStates.of(OWNER).patchesRemaining());
         assertTrue(DeveloperTowerData.pendingAmount(beta, DeveloperPatch.ATTACK) > 0.0);
         assertEquals(0.0, DeveloperTowerData.activeAmount(beta, DeveloperPatch.ATTACK), 1.0e-9);
+    }
+
+    @Test
+    void onlyPatchesRemainEditableDuringTheWave() {
+        assertTrue(DeveloperPatchGui.patchingAllowed(RoundPhase.PREPARE_AND_SUMMON));
+        assertTrue(DeveloperPatchGui.patchingAllowed(RoundPhase.LANE_WAVE));
+        assertFalse(DeveloperPatchGui.patchingAllowed(RoundPhase.ROUND_PAYOUT));
+        assertTrue(DeveloperPatchGui.preparationActionsAllowed(RoundPhase.PREPARE_AND_SUMMON));
+        assertFalse(DeveloperPatchGui.preparationActionsAllowed(RoundPhase.LANE_WAVE));
+    }
+
+    @Test
+    void refreshingTheConsoleDuringAWaveDoesNotRefillPatchBudget() {
+        grant(3, 0, false, false, false);
+        DeveloperTower workbench = tower(DeveloperTowers.WORKBENCH, OWNER, 0, 0);
+        DeveloperTower beta = tower(DeveloperTowers.BETA, OWNER, 0, 1);
+        PlayerLane lane = lane(workbench, beta);
+
+        assertTrue(DeveloperPatchService.applyPatch(lane, beta, DeveloperPatch.ATTACK, false).success());
+        assertEquals(2, DeveloperStates.of(OWNER).patchesRemaining());
+
+        DeveloperPatchService.refreshCapacity(lane, OWNER);
+        assertEquals(2, DeveloperStates.of(OWNER).patchesRemaining());
     }
 
     @Test

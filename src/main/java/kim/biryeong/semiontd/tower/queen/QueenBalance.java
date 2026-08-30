@@ -18,6 +18,7 @@ public final class QueenBalance {
     public static double heartHealAmount() {return ability("heartHealAmount", 12.0);}
     public static double heartHealRadius() {return ability("heartHealRadius", 5.0);}
     public static double clubDamageReduction() {return ability("clubDamageReduction", 0.15);}
+    public static double pokerDamageReductionCap() {return ability("pokerDamageReductionCap", 0.40);}
     public static double cardSplashRadius() {return ability("cardSplashRadius", 2.0);}
     public static int cardSplashExtraTargets() {return abilityInt("cardSplashExtraTargets", 5);}
     public static double spadeRadius() {return ability("spadeRadius", 2.5);}

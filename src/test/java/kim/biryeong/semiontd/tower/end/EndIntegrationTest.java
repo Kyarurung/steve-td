@@ -20,7 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-final class EndIntegrationSliceTest {
+final class EndIntegrationTest {
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
