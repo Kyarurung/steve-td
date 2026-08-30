@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
+import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -193,9 +194,9 @@ public class PetTower extends ProductionTower {
         if (!isCompanion() || !ownerActive) {
             return;
         }
-        addBond(PetBalance.bondPerRound());
-        addBond(PetBalance.bondGrant(loyalOwnerType, yardCompanions));
-        addBond(PetBalance.walkBond(loyalOwnerType, yardCompanions));
+        addBond(PetBalance.bondPerRound()
+                + PetBalance.bondGrant(loyalOwnerType, yardCompanions)
+                + PetBalance.walkBond(loyalOwnerType, yardCompanions));
     }
 
     @Override
@@ -212,7 +213,7 @@ public class PetTower extends ProductionTower {
             recordPraise();
         }
         if (role() == PetRole.BIRD && dealtDamage > 0.0) {
-            healYardmate(dealtDamage * PetBalance.healRatio(type()));
+            healYardmate(towerEntity, dealtDamage * PetBalance.healRatio(type()));
         }
     }
 
@@ -312,10 +313,17 @@ public class PetTower extends ProductionTower {
         }
         double cap = bondCap();
         double previousMaxHealth = currentMaxHealth();
+        double previousBond = bond;
         bond = cap > 0.0 ? Math.min(cap, bond + amount) : bond + amount;
+        if (bond <= previousBond) {
+            return;
+        }
         double gainedMaxHealth = currentMaxHealth() - previousMaxHealth;
         if (gainedMaxHealth > 0.0 && health() > 0.0) {
             syncHealth(health() + gainedMaxHealth);
+        }
+        if (currentLane != null) {
+            onStateChanged(currentLane);
         }
     }
 
@@ -338,7 +346,7 @@ public class PetTower extends ProductionTower {
         }
     }
 
-    private void healYardmate(double amount) {
+    private void healYardmate(SemionTowerEntity source, double amount) {
         if (amount <= 0.0 || currentLane == null) {
             return;
         }
@@ -355,8 +363,8 @@ public class PetTower extends ProductionTower {
             return;
         }
         SemionTowerEntity target = towerEntityOf(patient, currentLane);
-        if (target != null) {
-            healTarget(target, amount);
+        if (target != null && healTarget(target, amount)) {
+            TowerVfxService.showPetHeal(source, target);
         }
     }
 

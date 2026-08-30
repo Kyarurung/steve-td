@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
+import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -15,6 +16,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
 
@@ -32,6 +34,7 @@ public final class PetGameTest {
 
         require(butler.entityId().isPresent(), "The owner must spawn a tower entity.");
         require(cat.entityId().isPresent(), "The companion must spawn a tower entity.");
+        SemionTowerEntity catEntity = cat.runtimeEntity(lane).orElseThrow();
         require(butler.position().equals(cat.loyalOwnerPosition()), "The companion must imprint on the adjacent owner.");
         require(cat.hasActiveOwner() && !cat.isLost(), "A companion beside a living owner is not lost.");
         requireClose(0.7, cat.renderScale(), "A freshly placed companion is a pup");
@@ -43,6 +46,12 @@ public final class PetGameTest {
         for (int round = 1; round <= 3; round++) {
             lane.towers().forEach(tower -> tower.onWaveStarted(lane, 1));
             require(cat.bond() > previousBond, "Each round must grant bond.");
+            requireClose(cat.currentMaxHealth(), catEntity.getAttributeValue(Attributes.MAX_HEALTH),
+                    "Bonded companion entity max health");
+            requireHealthClose(cat.health(), catEntity.getHealth(), "Bonded companion entity health");
+            double synchronizedHealth = cat.health();
+            require(!cat.isDestroyed(lane), "A bonded living companion must remain alive.");
+            requireHealthClose(synchronizedHealth, cat.health(), "Entity health must not erase the bond health gain");
             previousBond = cat.bond();
         }
 
@@ -175,6 +184,10 @@ public final class PetGameTest {
 
     private static void requireClose(double expected, double actual, String message) {
         require(Math.abs(expected - actual) < 1.0E-6, message + ": expected " + expected + ", got " + actual);
+    }
+
+    private static void requireHealthClose(double expected, double actual, String message) {
+        require(Math.abs(expected - actual) < 0.01, message + ": expected " + expected + ", got " + actual);
     }
 
     private static void require(boolean condition, String message) {
