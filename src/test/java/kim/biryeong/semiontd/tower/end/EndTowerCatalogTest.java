@@ -110,6 +110,10 @@ class EndTowerCatalogTest {
         assertTrue(job.canUseTower(null, EndTowers.T1_SHULKER_TOWER));
         assertTrue(job.canUseTower(null, EndTowers.T3_SHULKER_TOWER));
         assertFalse(job.canUseTower(null, AnimalTowers.T1_PIG_TOWER));
+        assertTrue(job.includesTowerInCatalog(EndTowers.BASE_END_TOWER));
+        assertTrue(job.includesTowerInCatalog(EndTowers.T1_ENDERMITE_TOWER));
+        assertTrue(job.includesTowerInCatalog(EndTowers.T1_SHULKER_TOWER));
+        assertFalse(job.includesTowerInCatalog(AnimalTowers.T1_PIG_TOWER));
     }
 
     @Test
@@ -138,6 +142,12 @@ class EndTowerCatalogTest {
         assertFalse(EndTowers.T1_SHULKER_TOWER.visual().properties().containsKey("shulker_color"));
         assertEquals(DyeColor.PURPLE, EndTowers.T2_SHULKER_TOWER.visual().properties().get("shulker_color"));
         assertEquals(DyeColor.BLACK, EndTowers.T3_SHULKER_TOWER.visual().properties().get("shulker_color"));
+    }
+
+    @Test
+    void attackLineUsesEndermanAndEndCrystalVisuals() {
+        assertEquals("minecraft:enderman", EndTowers.T2_ENDERMAN_TOWER.visual().entityTypeId());
+        assertEquals("minecraft:end_crystal", EndTowers.T3_END_CRYSTAL_TOWER.visual().entityTypeId());
     }
 
     @Test

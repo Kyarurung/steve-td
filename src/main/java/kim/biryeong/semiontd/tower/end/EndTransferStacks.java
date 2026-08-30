@@ -13,17 +13,21 @@ record EndTransferStacks(int shulkerCount, int endCrystalCount, int roundComplet
 
     EndTransferStacks recordCompletion(TowerType sourceType) {
         int tier = EndTowers.transferTier(sourceType);
-        return EndTowers.isShulkerLine(sourceType)
-                ? new EndTransferStacks(
-                        saturatedAdd(shulkerCount, tier),
-                        endCrystalCount,
-                        saturatedAdd(roundCompletedCount, 1)
-                )
-                : new EndTransferStacks(
-                        shulkerCount,
-                        saturatedAdd(endCrystalCount, tier),
-                        saturatedAdd(roundCompletedCount, 1)
-                );
+        if (EndTowers.isShulkerLine(sourceType)) {
+            return new EndTransferStacks(
+                    saturatedAdd(shulkerCount, tier),
+                    endCrystalCount,
+                    saturatedAdd(roundCompletedCount, 1)
+            );
+        }
+        if (EndTowers.isEndCrystalLine(sourceType)) {
+            return new EndTransferStacks(
+                    shulkerCount,
+                    saturatedAdd(endCrystalCount, tier),
+                    saturatedAdd(roundCompletedCount, 1)
+            );
+        }
+        throw new IllegalArgumentException("Not a transferable End tower: " + (sourceType == null ? "null" : sourceType.id()));
     }
 
     EndTransferStacks resetRound() {

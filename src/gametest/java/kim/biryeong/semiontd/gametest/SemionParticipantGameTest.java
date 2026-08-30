@@ -9189,9 +9189,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
         if (!assertClose(
                 context,
-                SummonBalancePolicy.NULL_IMP_RANGE_REDUCTION * 0.95,
+                SummonBalancePolicy.NULL_IMP_RANGE_REDUCTION * 0.70,
                 target.activeTimedEffectMagnitude(TimedEffectType.TOWER_RANGE_REDUCTION),
-                "Warlock income-debuff resistance should reduce the applied null-imp magnitude by five percent."
+                "Ranged Warlock income-debuff resistance should reduce the applied null-imp magnitude by thirty percent."
         )) {
             return;
         }
@@ -10551,7 +10551,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertPresent(context, JobRegistry.find(FrostTowerJob.ID), "Built-in reload should register the frost tower job.")) {
             return;
         }
-        if (!assertEquals(context, 133L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
+        if (!assertEquals(context, 134L, ProductionTowerCatalog.all().stream().filter(ProductionTowerCatalog.CatalogEntry::starter).count(), "Built-in reload should expose every production starter family.")) {
             return;
         }
         context.succeed();
@@ -10643,6 +10643,17 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TowerPlacementResult.SUCCESS,
                 ProductionTowerService.placeTower(game, playerId, corePos, EndTowers.BASE_END_TOWER.id()),
                 "End job should place its first core tower."
+        )) {
+            return;
+        }
+        Set<String> availableAfterCore = ProductionTowerService.availableTowers(game, playerId).stream()
+                .map(entry -> entry.type().id())
+                .collect(java.util.stream.Collectors.toSet());
+        if (!assertEquals(
+                context,
+                Set.of(EndTowers.T1_ENDERMITE_TOWER.id(), EndTowers.T1_SHULKER_TOWER.id()),
+                availableAfterCore,
+                "End feeders should remain available after the single core is placed."
         )) {
             return;
         }
@@ -11904,6 +11915,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         );
         lane.addTower(core);
         lane.addTower(sacrifice);
+        core.markWaveStarted(1);
         SemionTowerEntity coreEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(core.entityId().orElseThrow());
         core.syncHealth(10.0);
         coreEntity.setHealth(10.0F);
@@ -11929,6 +11941,22 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 31.875,
                 core.health(),
                 "Base warlock should heal only the absorbed max-health increase plus the flat absorption heal."
+        )) {
+            return;
+        }
+        if (!assertClose(
+                context,
+                31.875,
+                core.roundMetricsTracker().snapshot().healingDone(),
+                "Warlock sacrifice healing should be recorded in round metrics."
+        )) {
+            return;
+        }
+        String details = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
+        if (!assertTrue(
+                context,
+                details.contains("영구 흡수: 1기") && details.contains("라운드 흡수: 1기"),
+                "Base warlock sacrifice should advance both permanent and round progression."
         )) {
             return;
         }
@@ -12267,10 +12295,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void rangedWarlockAwakensWithoutSacrificeRequirementAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-ranged-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1249; kill++) {
+        for (int kill = 0; kill < 1399; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
-        if (!assertEquals(context, 1249L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
+        if (!assertEquals(context, 1399L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
             return;
         }
         PlayerLane lane = redLane(game, 1);
@@ -12288,7 +12316,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         coreEntity.setHealth(40.0F);
 
         String lockedDetails = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
-        if (!assertTrue(context, lockedDetails.contains("각성 해금: 1249/1250킬"), "Ranged awakening should stay locked before the kill requirement.")) {
+        if (!assertTrue(context, lockedDetails.contains("각성 해금: 1399/1400킬"), "Ranged awakening should stay locked before the kill requirement.")) {
             return;
         }
         Monster creditedKill = new Monster(
@@ -12307,12 +12335,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         creditedKill.recordLastHit(playerId, KillSourceKind.TOWER);
         creditedKill.syncHealth(0.0);
         new EconomyService(game.economyConfig(), game).awardMonsterKillReward(creditedKill, game.players());
-        if (!assertEquals(context, 1250L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1250th kill should unlock awakening.")) {
+        if (!assertEquals(context, 1400L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1400th kill should unlock awakening.")) {
             return;
         }
 
         String awakenedDetails = String.join("\n", core.runtimeDetailLines()).replaceAll("<[^>]+>", "");
-        if (!assertTrue(context, awakenedDetails.contains("각성 상태: 각성 완료"), "The 1250th kill should immediately awaken a ranged warlock that already satisfies the combat conditions.")) {
+        if (!assertTrue(context, awakenedDetails.contains("각성 상태: 각성 완료"), "The 1400th kill should immediately awaken a ranged warlock that already satisfies the combat conditions.")) {
             return;
         }
         if (!assertTrue(context, awakenedDetails.contains("라운드 흡수: 0기"), "Ranged awakening should not require sacrifices.")) {
@@ -12346,7 +12374,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void rangedWarlockUsesPostSacrificeHealthForAwakening(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-post-sacrifice-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1250; kill++) {
+        for (int kill = 0; kill < 1400; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
@@ -12394,7 +12422,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     public void meleeWarlockAwakeningCreatesRoundBurstAndResetsNextRound(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-melee-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
-        for (int kill = 0; kill < 1250; kill++) {
+        for (int kill = 0; kill < 1400; kill++) {
             WarlockAwakeningProgress.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
@@ -12433,7 +12461,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertTrue(context, awakenedDamage >= 82.0, "Melee awakening should add its configured 75 attack damage burst.")) {
             return;
         }
-        if (!assertTrue(context, core.health() > 600.0, "Melee awakening should apply its configured 600 health recovery.")) {
+        if (!assertTrue(context, core.health() > 800.0, "Melee awakening should apply its configured 800 health recovery.")) {
             return;
         }
         if (!assertClose(context, 1.30, core.adjustMovementSpeed(1.0), "Melee awakening should add thirty percent movement speed.")) {

@@ -24,4 +24,10 @@ class LogarithmicScalingTest {
         assertEquals(3972.9551, LogarithmicScaling.logarithmicBonus(6_000.0, 3_000.0, 500.0), 0.0001);
         assertEquals(4354.0251, LogarithmicScaling.logarithmicBonus(10_000.0, 3_000.0, 500.0), 0.0001);
     }
+
+    @Test
+    void zeroScaleTurnsTheThresholdIntoAHardCap() {
+        assertEquals(50.0, LogarithmicScaling.logarithmicBonus(50.0, 150.0, 0.0), 0.0001);
+        assertEquals(150.0, LogarithmicScaling.logarithmicBonus(1_000.0, 150.0, 0.0), 0.0001);
+    }
 }

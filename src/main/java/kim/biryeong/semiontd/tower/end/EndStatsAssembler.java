@@ -5,23 +5,27 @@ import java.util.List;
 final class EndStatsAssembler {
     private final EndConfig config;
     private final EndCombat combat;
-    private final EndTransferController transfers;
+    private final EndEvolutionController evolution;
 
-    EndStatsAssembler(EndConfig config, EndCombat combat, EndTransferController transfers) {
+    EndStatsAssembler(EndConfig config, EndCombat combat, EndEvolutionController evolution) {
         this.config = config;
         this.combat = combat;
-        this.transfers = transfers;
+        this.evolution = evolution;
     }
 
-    List<String> create(EndTower tower, boolean waveActive) {
+    List<String> create(EndTower tower, boolean waveActive, EndTransferSnapshot progression) {
         if (!tower.isCoreTower()) {
             double reduction = EndTowers.isShulkerLine(tower.type()) ? combat.shulkerDamageReduction(tower.type()) : 0.0;
             return EndStatsView.feeder(waveActive, EndTransferController.progress(tower), reduction);
         }
         EndTowerState state = tower.state();
-        EndTransferStats transfer = transfers.stats();
-        double maxHealth = state == EndTowerState.EGG ? tower.previewHatchedMaxHealth() : tower.currentMaxHealth();
-        int intervalReduction = Math.max(0, tower.type().attackIntervalTicks() - tower.previewHatchedAttackIntervalTicks());
+        EndTransferStacks stacks = progression.stacks();
+        EndTransferStats transfer = progression.resolve(config.healthScaling(), config.damageScaling());
+        double projectedMaxHealth = tower.previewEvolutionMaxHealth(progression);
+        int intervalReduction = Math.max(
+                0,
+                tower.type().attackIntervalTicks() - combat.attackInterval(tower.type(), stacks)
+        );
         EndConfig.StackRule regeneration = config.regeneration();
         EndConfig.StackRule lifeSteal = config.lifeSteal();
         EndConfig.StackRule damageReduction = config.damageReduction();
@@ -34,24 +38,24 @@ final class EndStatsAssembler {
                 transfer.endCrystalCount(),
                 new EndStatsView.DefenseStats(
                         transfer.permanentHealthBonus(),
-                        combat.lifeStealRatio(),
+                        combat.lifeStealRatio(stacks),
                         combat.maximumLifeSteal(),
-                        combat.damageReduction(),
+                        combat.damageReduction(stacks),
                         combat.maximumDamageReduction(),
-                        combat.regenerationPerSecond(),
+                        combat.regenerationPerSecond(stacks),
                         combat.maximumRegeneration()
                 ),
                 new EndStatsView.CombatStats(
                         transfer.permanentDamageBonus(),
-                        combat.splashRadius(state == EndTowerState.EGG ? EndTowerState.PHANTOM : state),
+                        combat.splashRadius(state == EndTowerState.EGG ? EndTowerState.PHANTOM : state, stacks),
                         combat.maximumSplashRadius(),
                         intervalReduction,
                         combat.maximumAttackIntervalReduction(tower.type()),
-                        tower.previewHatchedAttackRange(),
+                        combat.attackRange(tower.type(), state, stacks),
                         combat.maximumAttackRange(tower.type(), state)
                 ),
                 new EndStatsView.EvolutionStats(
-                        state != EndTowerState.PHANTOM && maxHealth >= combat.dragonEvolutionHealth(),
+                        state != EndTowerState.PHANTOM && evolution.qualifiesForDragon(projectedMaxHealth),
                         combat.finalDamageBonus(EndTowerState.DRAGON),
                         combat.dragonRangeBonus(EndTowerState.DRAGON)
                 ),

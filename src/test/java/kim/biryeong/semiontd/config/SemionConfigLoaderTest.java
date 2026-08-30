@@ -474,22 +474,25 @@ final class SemionConfigLoaderTest {
         assertFalse(global.containsKey("damageScale"));
         assertFalse(global.containsKey("healthThreshold"));
         assertFalse(global.containsKey("healthScale"));
-        assertEquals(1250.0, global.get("awakeningKills"));
+        assertEquals(1400.0, global.get("awakeningKills"));
         assertEquals(30.0, global.get("absorptionHeal"));
-        assertEquals(150.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0));
+        assertEquals(140.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0));
+        assertEquals(0.65, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "threshold", -1.0));
         assertEquals(20.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageScale", -1.0));
         assertEquals(2000.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthThreshold", -1.0));
         assertEquals(500.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthScale", -1.0));
         assertEquals(2.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "splashEvery", -1.0));
         assertEquals(200.0, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "damageThreshold", -1.0));
+        assertEquals(0.65, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "threshold", -1.0));
         assertEquals(20.0, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "damageScale", -1.0));
         assertEquals(3500.0, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthThreshold", -1.0));
         assertEquals(500.0, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthScale", -1.0));
         assertEquals(0.25, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0));
         assertEquals(0.25, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0));
-        assertEquals(0.05, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance", -1.0));
-        assertEquals(0.05, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance", -1.0));
-        assertEquals(600.0, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "awakeningHeal", -1.0));
+        assertEquals(0.30, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance", -1.0));
+        assertEquals(0.40, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance", -1.0));
+        assertEquals(800.0, configs.towerBalance().ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "awakeningHeal", -1.0));
+        assertEquals(800.0, configs.towerBalance().ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "awakeningHeal", -1.0));
 
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         var writtenGlobal = JsonParser.parseString(written)
@@ -500,11 +503,11 @@ final class SemionConfigLoaderTest {
         assertFalse(writtenGlobal.has("damageScale"));
         assertFalse(writtenGlobal.has("healthThreshold"));
         assertFalse(writtenGlobal.has("healthScale"));
-        assertTrue(written.contains("\"damageThreshold\": 150.0"));
+        assertTrue(written.contains("\"damageThreshold\": 140.0"));
         assertTrue(written.contains("\"healthThreshold\": 3000.0"));
-        assertTrue(written.contains("\"awakeningKills\": 1250.0"));
+        assertTrue(written.contains("\"awakeningKills\": 1400.0"));
         assertTrue(written.contains("\"absorptionHeal\": 30.0"));
-        assertTrue(written.contains("\"awakeningHeal\": 600.0"));
+        assertTrue(written.contains("\"awakeningHeal\": 800.0"));
         assertTrue(written.contains("\"splashEvery\": 2.0"));
         assertTrue(written.contains("\"petHealthCap\": 0.25"));
         assertTrue(written.contains("\"petDamageCap\": 0.25"));

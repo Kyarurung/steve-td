@@ -503,6 +503,10 @@ public abstract class Tower {
         return damageAmount;
     }
 
+    public double sacrificeAttackDamage() {
+        return type.damage();
+    }
+
     public double modifyResolvedAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
         return damageAmount;
     }

@@ -11,10 +11,8 @@ class WarlockStateTest {
     void absorptionSeparatesPermanentAndRoundState() {
         WarlockState state = new WarlockState();
 
-        state.absorbForRound(100.0, 20.0, 0.40);
+        state.recordSacrifice(gain(2.5, 1.0, 40.0, 8.0, 8.0));
         assertEquals(40.0, state.roundHealthBonus(), 0.0001);
-        state.absorbPermanently(100.0, 20.0, 0.025, 0.05);
-        state.absorbAttackInterval(20, 12, 15.0);
 
         assertEquals(40.0, state.roundHealthBonus(), 0.0001);
         assertEquals(8.0, state.roundDamageBonus(), 0.0001);
@@ -39,9 +37,9 @@ class WarlockStateTest {
     void attackIntervalAbsorptionHonorsCapAndOnlyFasterTargets() {
         WarlockState state = new WarlockState();
 
-        state.absorbAttackInterval(20, 10, 15.0);
-        state.absorbAttackInterval(20, 12, 15.0);
-        state.absorbAttackInterval(20, 20, 15.0);
+        state.recordSacrifice(gain(0.0, 0.0, 0.0, 0.0, 10.0));
+        state.recordSacrifice(gain(0.0, 0.0, 0.0, 0.0, 8.0));
+        state.recordSacrifice(gain(0.0, 0.0, 0.0, 0.0, 0.0));
 
         assertEquals(15.0, state.roundIntervalReduction(), 0.0001);
     }
@@ -49,8 +47,7 @@ class WarlockStateTest {
     @Test
     void copiedStateDoesNotShareFutureMutations() {
         WarlockState source = new WarlockState();
-        source.absorbForRound(100.0, 20.0, 0.60);
-        source.absorbPermanently(100.0, 20.0, 0.05, 0.025);
+        source.recordSacrifice(gain(5.0, 0.5, 60.0, 12.0, 0.0));
 
         WarlockState copy = new WarlockState();
         copy.copyFrom(source);
@@ -62,6 +59,24 @@ class WarlockStateTest {
         assertEquals(0.5, copy.permanentDamageBonus(), 0.0001);
         assertEquals(1, copy.totalSacrificeCount());
         assertEquals(1, copy.roundSacrificeCount());
+    }
+
+    @Test
+    void copiedBaseProgressionImmediatelyUsesSpecializedCountRules() {
+        WarlockState base = new WarlockState();
+        for (int sacrifice = 0; sacrifice < 5; sacrifice++) {
+            base.recordSacrifice(gain(1.0, 1.0, 0.0, 0.0, 0.0));
+        }
+        WarlockState specialized = new WarlockState();
+        specialized.copyFrom(base);
+        WarlockProgressionSnapshot progression = WarlockProgressionSnapshot.from(specialized, null);
+
+        assertEquals(5, progression.totalSacrificeCount());
+        assertEquals(5, progression.roundSacrificeCount());
+        assertEquals(5, progression.lifeStealSacrificeCount(WarlockPath.RANGED));
+        assertEquals(5, progression.defenseSacrificeCount(WarlockPath.RANGED));
+        assertEquals(5, progression.lifeStealSacrificeCount(WarlockPath.MELEE));
+        assertEquals(5, progression.defenseSacrificeCount(WarlockPath.MELEE));
     }
 
     @Test
@@ -88,5 +103,22 @@ class WarlockStateTest {
         assertFalse(rule.canActivate(true, 0.40, false));
         assertFalse(rule.canActivate(true, 0.0, true));
         assertFalse(rule.canActivate(true, Double.NaN, true));
+    }
+
+    private static WarlockSacrifice.Gain gain(
+            double permanentHealth,
+            double permanentDamage,
+            double roundHealth,
+            double roundDamage,
+            double intervalReduction
+    ) {
+        return new WarlockSacrifice.Gain(
+                permanentHealth,
+                permanentDamage,
+                roundHealth,
+                roundDamage,
+                intervalReduction,
+                15.0
+        );
     }
 }

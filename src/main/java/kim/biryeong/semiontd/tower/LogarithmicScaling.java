@@ -9,7 +9,8 @@ public final class LogarithmicScaling {
     }
 
     public static double logarithmicBonus(double rawBonus, double threshold, double scale) {
-        if (!Double.isFinite(rawBonus) || rawBonus <= 0.0 || !Double.isFinite(threshold) || threshold <= 0.0 || !Double.isFinite(scale) || scale <= 0.0) {return 0.0;}
-        return rawBonus <= threshold ? rawBonus : threshold + scale * Math.log1p((rawBonus - threshold) / scale);
+        if (!Double.isFinite(rawBonus) || rawBonus <= 0.0 || !Double.isFinite(threshold) || threshold <= 0.0 || !Double.isFinite(scale) || scale < 0.0) {return 0.0;}
+        if (rawBonus <= threshold) {return rawBonus;}
+        return scale == 0.0 ? threshold : threshold + scale * Math.log1p((rawBonus - threshold) / scale);
     }
 }

@@ -1,19 +1,13 @@
 package kim.biryeong.semiontd.tower.end;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-import org.junit.jupiter.api.BeforeAll;
+import kim.biryeong.semiontd.tower.TowerCategory;
+import kim.biryeong.semiontd.tower.TowerType;
 import org.junit.jupiter.api.Test;
 
-class EndTransferDomainTest {
-    @BeforeAll
-    static void bootstrapMinecraftRegistries() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-    }
-
+class EndTransferDomainTest extends EndTestFixture {
     @Test
     void progressFactorySnapshotsTheRuleForEachTowerLine() {
         EndConfig.TransferRule rule = new EndConfig.TransferRule(
@@ -65,6 +59,23 @@ class EndTransferDomainTest {
     }
 
     @Test
+    void stackStateRejectsUnknownTransferFamilies() {
+        TowerType unknown = new TowerType(
+                "unknown_end_transfer",
+                "Unknown End Transfer",
+                TowerCategory.SUPPORT,
+                0,
+                100.0,
+                0.0,
+                0.0,
+                20,
+                0
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> EndTransferStacks.EMPTY.recordCompletion(unknown));
+    }
+
+    @Test
     void snapshotSeparatesRawAccumulationFromResolvedScaling() {
         EndTransferSnapshot snapshot = new EndTransferSnapshot(
                 new EndTransferStacks(2, 3, 4),
@@ -85,5 +96,65 @@ class EndTransferDomainTest {
         assertEquals(10.0 + 10.0 * Math.log1p(0.5), stats.totalHealthBonus(), 0.0001);
         assertEquals(5.0, stats.permanentDamageBonus(), 0.0001);
         assertEquals(5.0 + 5.0 * Math.log1p(1.0), stats.totalDamageBonus(), 0.0001);
+    }
+
+    @Test
+    void zeroScaleHardCapsEndTransferBonusesAtTheThreshold() {
+        EndTransferSnapshot snapshot = new EndTransferSnapshot(
+                EndTransferStacks.EMPTY,
+                200.0,
+                50.0,
+                200.0,
+                50.0
+        );
+        EndTransferStats stats = snapshot.resolve(
+                new EndConfig.ScalingRule(100.0, 0.0),
+                new EndConfig.ScalingRule(150.0, 0.0)
+        );
+
+        assertEquals(50.0, stats.permanentHealthBonus(), 0.0001);
+        assertEquals(100.0, stats.totalHealthBonus(), 0.0001);
+        assertEquals(50.0, stats.permanentDamageBonus(), 0.0001);
+        assertEquals(150.0, stats.totalDamageBonus(), 0.0001);
+    }
+
+    @Test
+    void zeroThresholdExplicitlyDisablesEndTransferScaling() {
+        EndConfig.ScalingRule disabled = new EndConfig.ScalingRule(0.0, 25.0);
+        EndConfig.ScalingRule hardCap = new EndConfig.ScalingRule(150.0, 0.0);
+
+        assertEquals(true, disabled.disabled());
+        assertEquals(false, disabled.hardCap());
+        assertEquals(0.0, disabled.apply(200.0), 0.0001);
+        assertEquals(false, hardCap.disabled());
+        assertEquals(true, hardCap.hardCap());
+        assertEquals(150.0, hardCap.apply(200.0), 0.0001);
+    }
+
+    @Test
+    void repeatedApplyAndRollbackLeavesNoAccumulatedTransferState() {
+        EndTransferState state = new EndTransferState();
+        for (int iteration = 0; iteration < 1000; iteration++) {
+            EndTransferState.Progress progress = new EndTransferState.Progress(
+                    7,
+                    13.0,
+                    3.0,
+                    11.0,
+                    2.0,
+                    0.0,
+                    0.0
+            );
+            for (int tick = 0; tick < 3; tick++) {
+                progress.advance();
+                state.apply(progress);
+            }
+            state.rollback(progress);
+        }
+
+        EndTransferSnapshot snapshot = state.snapshot(EndTransferStacks.EMPTY);
+        assertEquals(0.0, snapshot.roundHealthContribution(), 1.0E-9);
+        assertEquals(0.0, snapshot.permanentHealthContribution(), 1.0E-9);
+        assertEquals(0.0, snapshot.roundDamageContribution(), 1.0E-9);
+        assertEquals(0.0, snapshot.permanentDamageContribution(), 1.0E-9);
     }
 }

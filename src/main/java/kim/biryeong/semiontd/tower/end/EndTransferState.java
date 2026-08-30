@@ -70,11 +70,11 @@ final class EndTransferState {
         return true;
     }
 
-    void copyBonusesFrom(EndTransferState source) {
-        roundHealthContribution = source.roundHealthContribution;
-        permanentHealthBonus = source.permanentHealthBonus;
-        roundDamageContribution = source.roundDamageContribution;
-        permanentDamageBonus = source.permanentDamageBonus;
+    void restore(EndTransferSnapshot snapshot) {
+        roundHealthContribution = snapshot.roundHealthContribution();
+        permanentHealthBonus = snapshot.permanentHealthContribution();
+        roundDamageContribution = snapshot.roundDamageContribution();
+        permanentDamageBonus = snapshot.permanentDamageContribution();
     }
 
     EndTransferSnapshot snapshot(EndTransferStacks stacks) {
@@ -84,6 +84,26 @@ final class EndTransferState {
                 permanentHealthBonus,
                 roundDamageContribution,
                 permanentDamageBonus
+        );
+    }
+
+    EndTransferSnapshot committedSnapshot(EndTransferStacks stacks) {
+        double committedRoundHealth = roundHealthContribution;
+        double committedPermanentHealth = permanentHealthBonus;
+        double committedRoundDamage = roundDamageContribution;
+        double committedPermanentDamage = permanentDamageBonus;
+        for (Progress progress : progressByTower.values()) {
+            committedRoundHealth = subtract(committedRoundHealth, progress.roundHealthBonus * progress.appliedRatio);
+            committedPermanentHealth = subtract(committedPermanentHealth, progress.permanentHealthBonus * progress.appliedRatio);
+            committedRoundDamage = subtract(committedRoundDamage, progress.roundDamageBonus * progress.appliedRatio);
+            committedPermanentDamage = subtract(committedPermanentDamage, progress.permanentDamageBonus * progress.appliedRatio);
+        }
+        return new EndTransferSnapshot(
+                stacks,
+                committedRoundHealth,
+                committedPermanentHealth,
+                committedRoundDamage,
+                committedPermanentDamage
         );
     }
 
