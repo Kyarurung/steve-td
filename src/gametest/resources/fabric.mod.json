@@ -31,6 +31,8 @@
       "kim.biryeong.semiontd.tower.gamble.GambleGameTest",
       "kim.biryeong.semiontd.tower.developer.DeveloperGameTest",
       "kim.biryeong.semiontd.tower.succubus.SuccubusGameTest",
+      "kim.biryeong.semiontd.tower.pet.PetGameTest",
+      "kim.biryeong.semiontd.command.SemionCommandsPetVfxGameTest",
       "kim.biryeong.semiontd.entity.tower.vfx.TowerVfxGameTest",
       "kim.biryeong.semiontd.game.RatingProfileCacheGameTest"
     ]

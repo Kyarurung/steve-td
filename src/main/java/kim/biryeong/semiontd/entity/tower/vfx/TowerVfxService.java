@@ -53,6 +53,7 @@ import kim.biryeong.semiontd.tower.mage.MageTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
+import kim.biryeong.semiontd.tower.pet.PetTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
@@ -242,6 +243,25 @@ public final class TowerVfxService {
         if (context != null) {
             enqueue(new AttackEvent(context, towerCenter(tower), impact, visualKind(tower.attackRange()), true));
         }
+    }
+
+    public static void showPetHeal(SemionTowerEntity source, SemionTowerEntity target) {
+        if (source == null || target == null || source.runtimeTower() == null) {
+            return;
+        }
+        Vec3 targetPosition = towerCenter(target);
+        showAreaEffect(
+                source,
+                AreaEffectIds.tower(source.runtimeTower(), "pet_heal"),
+                AreaVfxStyles.PULSE,
+                towerCenter(source),
+                0.7,
+                List.of(targetPosition),
+                1,
+                1,
+                0
+        );
+        showSecondaryAttack(source, targetPosition);
     }
 
     public static void showMagicHit(SemionTowerEntity tower, SemionMonsterEntity target) {
@@ -672,6 +692,9 @@ public final class TowerVfxService {
         }
         if (FrostTowers.isFrostTower(type)) {
             return BuilderPalette.FROST;
+        }
+        if (PetTowers.isPetTower(type)) {
+            return BuilderPalette.PET;
         }
         return BuilderPalette.DEFAULT;
     }

@@ -12,6 +12,7 @@ import eu.pb4.polymer.virtualentity.api.elements.InteractionElement;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.UUID;
 import kim.biryeong.semiontd.effect.TimedEffectSet;
 import kim.biryeong.semiontd.effect.TimedEffectType;
@@ -33,6 +34,7 @@ import kim.biryeong.semiontd.map.LaneRegionLayout;
 import kim.biryeong.semiontd.entity.tower.goal.TowerAttackMonsterGoal;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerDataKey;
+import kim.biryeong.semiontd.tower.pet.PetTower;
 import kim.biryeong.semiontd.tower.end.EndTower;
 import kim.biryeong.semiontd.tower.end.EndTowerState;
 import kim.biryeong.semiontd.tower.end.EndTowers;
@@ -1130,11 +1132,11 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             boolean initial
     ) {
         AnimatedEntity.super.modifyRawEntityAttributeData(data, player, initial);
-        if (!(runtimeTower instanceof EndTower endTower)
-                || endTower.state() != EndTowerState.PHANTOM) {
+        OptionalDouble resolvedScale = runtimeRenderScale();
+        if (resolvedScale.isEmpty()) {
             return;
         }
-        double renderScale = endTower.phantomScaleForMaxHealth(runtimeTower.currentMaxHealth());
+        double renderScale = resolvedScale.getAsDouble();
         for (int index = 0; index < data.size(); index++) {
             ClientboundUpdateAttributesPacket.AttributeSnapshot snapshot = data.get(index);
             if (snapshot.attribute().equals(Attributes.SCALE)) {
@@ -1147,6 +1149,17 @@ public final class SemionTowerEntity extends PathfinderMob implements AnimatedEn
             }
         }
         data.add(new ClientboundUpdateAttributesPacket.AttributeSnapshot(Attributes.SCALE, renderScale, List.of()));
+    }
+
+    /** Towers that render at a size their tower type does not describe on its own. */
+    private OptionalDouble runtimeRenderScale() {
+        if (runtimeTower instanceof EndTower endTower && endTower.state() == EndTowerState.PHANTOM) {
+            return OptionalDouble.of(endTower.phantomScaleForMaxHealth(runtimeTower.currentMaxHealth()));
+        }
+        if (runtimeTower instanceof PetTower petTower && petTower.isCompanion()) {
+            return OptionalDouble.of(petTower.renderScale());
+        }
+        return OptionalDouble.empty();
     }
 
     private void discardEndCoreInteractionHitbox() {

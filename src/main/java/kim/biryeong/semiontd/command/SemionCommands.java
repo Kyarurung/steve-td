@@ -61,6 +61,8 @@ import kim.biryeong.semiontd.tower.insect.InsectUnitTower;
 import kim.biryeong.semiontd.tower.mage.MageProphetTower;
 import kim.biryeong.semiontd.tower.mage.MageWizardTower;
 import kim.biryeong.semiontd.tower.ocean.OceanVfx;
+import kim.biryeong.semiontd.tower.pet.PetRole;
+import kim.biryeong.semiontd.tower.pet.PetTower;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.plant.PlantVfx;
 import kim.biryeong.semiontd.tower.queen.QueenBalance;
@@ -715,6 +717,10 @@ public final class SemionCommands {
                                 .then(literal("eye_laser")
                                         .executes(context -> debugBodyVfx(
                                                 context.getSource(), gameManager, BodyTowers.Role.EYE))))
+                        .then(literal("pet")
+                                .then(literal("heal")
+                                        .executes(context -> debugPetHealVfx(
+                                                context.getSource(), gameManager))))
                         .then(literal("developer")
                                 .then(literal("attack")
                                         .executes(context -> debugDeveloperVfx(
@@ -1142,6 +1148,45 @@ public final class SemionCommands {
         }
         failure(source, "살아 있는 신체 " + role.name().toLowerCase(java.util.Locale.ROOT) + " 타워가 필요합니다.");
         return 0;
+    }
+
+    private static int debugPetHealVfx(
+            CommandSourceStack source,
+            SemionGameManager gameManager
+    ) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        SemionGame game = playableGame(source, gameManager);
+        PlayerLane lane = game == null ? null : game.playerLane(player.getUUID()).orElse(null);
+        if (!tryShowPetHealVfx(lane)) {
+            failure(source, "같은 마당의 살아 있는 새와 반려동물이 필요합니다.");
+            return 0;
+        }
+        success(source, "펫 heal VFX를 재생했습니다.");
+        return 1;
+    }
+
+    static boolean tryShowPetHealVfx(PlayerLane lane) {
+        PetTower bird = lane == null ? null : lane.towers().stream()
+                .filter(PetTower.class::isInstance)
+                .map(PetTower.class::cast)
+                .filter(pet -> pet.role() == PetRole.BIRD && pet.health() > 0.0)
+                .findFirst()
+                .orElse(null);
+        PetTower patient = bird == null ? null : lane.towers().stream()
+                .filter(PetTower.class::isInstance)
+                .map(PetTower.class::cast)
+                .filter(pet -> pet != bird && pet.isCompanion() && pet.health() > 0.0)
+                .filter(pet -> bird.loyalOwnerPosition() != null
+                        && bird.loyalOwnerPosition().equals(pet.loyalOwnerPosition()))
+                .findFirst()
+                .orElse(null);
+        var sourceEntity = bird == null ? null : bird.runtimeEntity(lane).orElse(null);
+        var targetEntity = patient == null ? null : patient.runtimeEntity(lane).orElse(null);
+        if (sourceEntity == null || targetEntity == null || !sourceEntity.isAlive() || !targetEntity.isAlive()) {
+            return false;
+        }
+        TowerVfxService.showPetHeal(sourceEntity, targetEntity);
+        return true;
     }
 
     private static int debugDeveloperVfx(

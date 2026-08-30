@@ -53,6 +53,7 @@ import kim.biryeong.semiontd.tower.nether.NetherTowerState;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
+import kim.biryeong.semiontd.tower.pet.PetTowers;
 import kim.biryeong.semiontd.tower.plant.PlantTowers;
 import kim.biryeong.semiontd.tower.plant.PlantVfx;
 import kim.biryeong.semiontd.tower.queen.QueenTowers;
@@ -124,7 +125,44 @@ public final class TowerVfxGameTest {
         assertPalette(FrostTowers.ICE_BREAKER_T3, BuilderPalette.FROST);
         assertPalette(FrostTowers.FROZEN_DUMPLING_T3, BuilderPalette.FROST);
         assertPalette(FrostTowers.ICEBOX_T3, BuilderPalette.FROST);
+        for (TowerType type : PetTowers.all()) {
+            assertPalette(type, BuilderPalette.PET);
+        }
         context.succeed();
+    }
+
+    @GameTest
+    public void petHealUsesDedicatedPaletteAndSharedPulse(GameTestHelper context) {
+        if (!BuilderPalette.PET.gcbRayParticle().equals("minecraft:heart")
+                || !BuilderPalette.PET.gcbAccentParticle().equals("minecraft:happy_villager")) {
+            throw new AssertionError("Pet must keep its dedicated heart and happy-villager palette.");
+        }
+        assertDustColor(BuilderPalette.PET.rayParticle(), 0xF59E0B, "Pet primary");
+        assertDustColor(BuilderPalette.PET.accentParticle(), 0xF472B6, "Pet accent");
+
+        List<AreaEffectVfxEvent> observed = new ArrayList<>();
+        TowerVfxService.setAreaEffectTestObserver(observed::add);
+        try {
+            UUID owner = UUID.nameUUIDFromBytes("pet-heal-vfx".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            SemionTowerEntity source = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            source.setPos(2.0, 2.0, 2.0);
+            source.configure(new TestTower(PetTowers.BIRD_T1, owner), null);
+            SemionTowerEntity target = new SemionTowerEntity(SemionEntityTypes.TOWER, context.getLevel());
+            target.setPos(4.0, 2.0, 2.0);
+            target.configure(new TestTower(PetTowers.DOG_T1, owner), null);
+
+            TowerVfxService.showPetHeal(source, target);
+
+            if (observed.size() != 1
+                    || !observed.getFirst().visual().styleId().equals(AreaVfxStyles.PULSE)
+                    || !observed.getFirst().visual().palette().equals(BuilderPalette.PET.areaPalette())
+                    || observed.getFirst().visual().sampledAppliedPositions().size() != 1) {
+                throw new AssertionError("Pet healing must use the shared pulse with one visible receipt target.");
+            }
+            context.succeed();
+        } finally {
+            TowerVfxService.setAreaEffectTestObserver(null);
+        }
     }
 
     @GameTest
@@ -403,6 +441,19 @@ public final class TowerVfxGameTest {
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");
             }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void petHealDebugCommandParses(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        var parsed = dispatcher.parse(
+                "semiontd-debug vfx pet heal",
+                context.getLevel().getServer().createCommandSourceStack()
+        );
+        if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+            throw new AssertionError("Expected /semiontd-debug vfx pet heal to parse completely");
         }
         context.succeed();
     }

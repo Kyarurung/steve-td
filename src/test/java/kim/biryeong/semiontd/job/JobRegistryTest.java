@@ -45,7 +45,7 @@ class JobRegistryTest {
         JobRegistry.configureAvailability(disabled);
 
         assertTrue(JobRegistry.find(NetherTowerJob.ID).isPresent());
-        assertEquals(30, JobRegistry.all().size());
+        assertEquals(31, JobRegistry.all().size());
         assertTrue(JobRegistry.officialBuilders().stream().anyMatch(job -> job.id().equals(NetherTowerJob.ID)));
         assertTrue(JobRegistry.isEnabled(JobRegistry.defaultJob()));
         assertFalse(JobRegistry.isEnabled(NetherTowerJob.ID));
@@ -83,10 +83,11 @@ class JobRegistryTest {
                 DemonLordTowerJob.ID,
                 GambleTowerJob.ID,
                 BodyTowerJob.ID,
+                PetTowerJob.ID,
                 DeveloperTowerJob.ID,
                 FrostTowerJob.ID
         ), JobRegistry.creativeBuilders().stream().map(SemionJob::id).toList());
-        assertEquals(30, JobRegistry.all().size());
+        assertEquals(31, JobRegistry.all().size());
         assertTrue(JobRegistry.officialBuilders().stream().noneMatch(JobRegistry.defaultJob()::equals));
         assertTrue(JobRegistry.creativeBuilders().stream().noneMatch(JobRegistry.defaultJob()::equals));
     }
@@ -99,7 +100,7 @@ class JobRegistryTest {
         ).toList();
         Set<String> optionalLabels = Set.of("주의 ", "연계 ", "성장 ");
 
-        assertEquals(29, builders.size());
+        assertEquals(30, builders.size());
         for (SemionJob builder : builders) {
             List<String> lines = builder.description().stream().map(line -> line.getString()).toList();
             int maximumLines = FrostTowerJob.ID.equals(builder.id()) ? 4 : 3;
