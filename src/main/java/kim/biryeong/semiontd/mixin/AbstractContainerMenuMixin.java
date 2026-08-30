@@ -1,6 +1,7 @@
 package kim.biryeong.semiontd.mixin;
 
 import kim.biryeong.semiontd.cosmetic.CosmeticItemSupport;
+import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
@@ -21,8 +22,10 @@ abstract class AbstractContainerMenuMixin {
     ) {
         AbstractContainerMenu menu = (AbstractContainerMenu) (Object) this;
         if (CosmeticItemSupport.isLockedOffhandCosmetic(menu.getCarried())
+                || FrostFullOperationService.isActivationItem(menu.getCarried())
                 || menu.isValidSlotIndex(slotId)
-                && CosmeticItemSupport.isLockedOffhandCosmetic(menu.getSlot(slotId).getItem())) {
+                && (CosmeticItemSupport.isLockedOffhandCosmetic(menu.getSlot(slotId).getItem())
+                        || FrostFullOperationService.isActivationItem(menu.getSlot(slotId).getItem()))) {
             ci.cancel();
         }
     }

@@ -724,6 +724,15 @@ public abstract class Tower {
         return damageAmount;
     }
 
+    public double modifyFinalIncomingDamage(
+            SemionTowerEntity towerEntity,
+            DamageSource damageSource,
+            double originalDamage,
+            double normallyReducedDamage
+    ) {
+        return normallyReducedDamage;
+    }
+
     public double modifyIncomingDamageIgnoringReductions(
             SemionTowerEntity towerEntity,
             DamageSource damageSource,
@@ -858,6 +867,17 @@ public abstract class Tower {
         if (execute(lane)) {
             cooldownTicks = cooldownTicksAfterExecute(lane);
         }
+    }
+
+    /** Advances the currently pending active-tower action without changing its configured interval. */
+    protected final void reduceCooldownTicks(int ticks) {
+        if (ticks > 0) {
+            cooldownTicks = Math.max(0, cooldownTicks - ticks);
+        }
+    }
+
+    protected final int cooldownTicksRemaining() {
+        return cooldownTicks;
     }
 
     protected int cooldownTicksAfterExecute(PlayerLane lane) {

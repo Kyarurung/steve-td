@@ -40,6 +40,7 @@ import kim.biryeong.semiontd.tower.developer.DeveloperPatchService;
 import kim.biryeong.semiontd.tower.developer.DeveloperStates;
 import kim.biryeong.semiontd.tower.developer.DeveloperTower;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.frost.FrostTowers;
 import kim.biryeong.semiontd.tower.gamble.GambleTowers;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTower;
@@ -118,6 +119,12 @@ public final class TowerVfxGameTest {
         }
         assertPalette(BodyTowers.HEART_T1, BuilderPalette.BODY);
         assertPalette(SuccubusTowers.SUCCUBUS, BuilderPalette.SUCCUBUS);
+        assertPalette(FrostTowers.ICE_VANGUARD, BuilderPalette.FROST);
+        assertPalette(FrostTowers.EMISSION_COOLING_DEVICE, BuilderPalette.FROST);
+        assertPalette(FrostTowers.ERUPTION_COOLING_DEVICE_EXPANDED, BuilderPalette.FROST);
+        assertPalette(FrostTowers.ICE_BREAKER_T3, BuilderPalette.FROST);
+        assertPalette(FrostTowers.FROZEN_DUMPLING_T3, BuilderPalette.FROST);
+        assertPalette(FrostTowers.ICEBOX_T3, BuilderPalette.FROST);
         for (TowerType type : PetTowers.all()) {
             assertPalette(type, BuilderPalette.PET);
         }
@@ -456,6 +463,19 @@ public final class TowerVfxGameTest {
         var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
         for (String effect : List.of("attack", "patch", "hotfix", "reproduce", "maintenance", "pin")) {
             String command = "semiontd-debug vfx developer " + effect;
+            var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
+            if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
+                throw new AssertionError("Expected /" + command + " to parse completely");
+            }
+        }
+        context.succeed();
+    }
+
+    @GameTest
+    public void frostDebugCommandsParse(GameTestHelper context) {
+        var dispatcher = context.getLevel().getServer().getCommands().getDispatcher();
+        for (String effect : List.of("wave", "aura", "full_operation")) {
+            String command = "semiontd-debug vfx frost " + effect;
             var parsed = dispatcher.parse(command, context.getLevel().getServer().createCommandSourceStack());
             if (parsed.getContext().getNodes().isEmpty() || parsed.getReader().canRead()) {
                 throw new AssertionError("Expected /" + command + " to parse completely");

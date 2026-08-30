@@ -3664,6 +3664,134 @@
       "attackIntervalTicks": 20,
       "aggroPriority": 5
     },
+    "frost_ice_vanguard": {
+      "mineralCost": 40,
+      "maxHealth": 80.0,
+      "range": 2.0,
+      "damage": 5.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 40
+    },
+    "frost_sturdy_ice_vanguard": {
+      "mineralCost": 0,
+      "maxHealth": 180.0,
+      "range": 2.0,
+      "damage": 9.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 55
+    },
+    "frost_dongtae": {
+      "mineralCost": 0,
+      "maxHealth": 400.0,
+      "range": 2.0,
+      "damage": 16.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 60
+    },
+    "frost_emission_cooling_device": {
+      "mineralCost": 300,
+      "maxHealth": 100.0,
+      "range": 0.0,
+      "damage": 1.0,
+      "attackIntervalTicks": 40,
+      "aggroPriority": 0
+    },
+    "frost_emission_cooling_device_expanded": {
+      "mineralCost": 0,
+      "maxHealth": 100.0,
+      "range": 0.0,
+      "damage": 1.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "frost_eruption_cooling_device": {
+      "mineralCost": 800,
+      "maxHealth": 100.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 2147483647,
+      "aggroPriority": 0
+    },
+    "frost_eruption_cooling_device_expanded": {
+      "mineralCost": 0,
+      "maxHealth": 100.0,
+      "range": 0.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 2147483647,
+      "aggroPriority": 0
+    },
+    "frost_ice_breaker_t1": {
+      "mineralCost": 55,
+      "maxHealth": 70.0,
+      "range": 6.0,
+      "damage": 10.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "frost_ice_breaker_t2": {
+      "mineralCost": 0,
+      "maxHealth": 70.0,
+      "range": 6.0,
+      "damage": 10.0,
+      "attackIntervalTicks": 17,
+      "aggroPriority": 0
+    },
+    "frost_ice_breaker_t3": {
+      "mineralCost": 0,
+      "maxHealth": 70.0,
+      "range": 6.0,
+      "damage": 20.0,
+      "attackIntervalTicks": 17,
+      "aggroPriority": 0
+    },
+    "frost_frozen_dumpling_t1": {
+      "mineralCost": 55,
+      "maxHealth": 70.0,
+      "range": 6.0,
+      "damage": 12.0,
+      "attackIntervalTicks": 20,
+      "aggroPriority": 0
+    },
+    "frost_frozen_dumpling_t2": {
+      "mineralCost": 0,
+      "maxHealth": 70.0,
+      "range": 6.0,
+      "damage": 30.0,
+      "attackIntervalTicks": 17,
+      "aggroPriority": 0
+    },
+    "frost_frozen_dumpling_t3": {
+      "mineralCost": 0,
+      "maxHealth": 70.0,
+      "range": 6.0,
+      "damage": 45.0,
+      "attackIntervalTicks": 14,
+      "aggroPriority": 0
+    },
+    "frost_icebox_t1": {
+      "mineralCost": 45,
+      "maxHealth": 100.0,
+      "range": 3.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 100,
+      "aggroPriority": 0
+    },
+    "frost_icebox_t2": {
+      "mineralCost": 0,
+      "maxHealth": 100.0,
+      "range": 3.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 100,
+      "aggroPriority": 0
+    },
+    "frost_icebox_t3": {
+      "mineralCost": 0,
+      "maxHealth": 100.0,
+      "range": 3.0,
+      "damage": 0.0,
+      "attackIntervalTicks": 100,
+      "aggroPriority": 0
+    },
     "t1_pet_butler": {
       "mineralCost": 90,
       "maxHealth": 120.0,
@@ -4235,6 +4363,16 @@
     "body_eye_t2->body_eye_t3": 220,
     "body_genital_t1->body_genital_t2": 100,
     "body_genital_t2->body_genital_t3": 205,
+    "frost_ice_vanguard->frost_sturdy_ice_vanguard": 90,
+    "frost_sturdy_ice_vanguard->frost_dongtae": 170,
+    "frost_emission_cooling_device->frost_emission_cooling_device_expanded": 500,
+    "frost_eruption_cooling_device->frost_eruption_cooling_device_expanded": 1000,
+    "frost_ice_breaker_t1->frost_ice_breaker_t2": 100,
+    "frost_ice_breaker_t2->frost_ice_breaker_t3": 200,
+    "frost_frozen_dumpling_t1->frost_frozen_dumpling_t2": 100,
+    "frost_frozen_dumpling_t2->frost_frozen_dumpling_t3": 200,
+    "frost_icebox_t1->frost_icebox_t2": 145,
+    "frost_icebox_t2->frost_icebox_t3": 225,
     "t1_pet_butler->t2_pet_butler": 220,
     "t1_pet_trainer->t2_pet_trainer": 200,
     "t1_pet_keeper->t2_pet_keeper": 190,
@@ -7548,6 +7686,110 @@
       "magicProcDamage": 27.0,
       "slow": 0.35,
       "slowTicks": 40.0
+    },
+    "frost_global": {
+      "firstThreshold": 3.0,
+      "secondThreshold": 6.0,
+      "thirdThreshold": 9.0,
+      "chillPerHit": 0.20,
+      "chillThreshold": 1.0,
+      "refrigerantDamageReduction": 0.20,
+      "refrigerantAttackSpeedReduction": 0.20,
+      "thawMaxHealthDamage": 0.05,
+      "eruptionMaxStacks": 10.0,
+      "eruptionStacksAt3": 1.0,
+      "eruptionStacksAt6": 2.0,
+      "eruptionStacksAt9": 4.0,
+      "eruptionOwnDamageReductionPerStack": 0.02,
+      "eruptionOwnAttackSpeedReductionPerStack": 0.015,
+      "eruptionAllyDamageReductionPerStack": 0.015,
+      "eruptionAllyAttackSpeedReductionPerStack": 0.01,
+      "eruptionAuraRefreshTicks": 10.0,
+      "eruptionAuraDurationTicks": 30.0,
+      "healerCoolingAdvanceTicks": 10.0,
+      "healerRefrigerantPulseMultiplier": 1.41,
+      "healerDamageReductionAt3": 0.05,
+      "healerDamageReductionAt6": 0.07,
+      "healerDamageReductionAt9": 0.10,
+      "fullyFrozenDamageReduction": 0.10,
+      "fullyFrozenDurationTicks": 20.0,
+      "fullyFrozenChillRadius": 3.0,
+      "fullOperationRequiredActivations": 9.0,
+      "fullOperationMaxActivationsPerFamily": 3.0,
+      "fullOperationEruptionChill": 3.0,
+      "fullOperationDurationTicks": 100.0,
+      "fullOperationDamageReduction": 0.95,
+      "fullOperationFixedAttackDamage": 5.0,
+      "fullOperationChillIntervalTicks": 20.0,
+      "fullOperationChillPerPulse": 1.0,
+      "fullOperationAreaRadius": 128.0,
+      "frozenFoodSplashRadiusBonusAt6": 1.0,
+      "frozenFoodRefrigerantBonusAttacks": 3.0
+    },
+    "frost_ice_vanguard": {
+      "damageReductionAt3": 0.05,
+      "damageReductionAt6": 0.10,
+      "damageReductionAt9": 0.15
+    },
+    "frost_sturdy_ice_vanguard": {
+      "damageReductionAt3": 0.10,
+      "damageReductionAt6": 0.15,
+      "damageReductionAt9": 0.20
+    },
+    "frost_dongtae": {
+      "damageReductionAt3": 0.15,
+      "damageReductionAt6": 0.20,
+      "damageReductionAt9": 0.25
+    },
+    "frost_emission_cooling_device": {
+      "waveRange": 50.0,
+      "waveWidth": 7.0
+    },
+    "frost_emission_cooling_device_expanded": {
+      "waveRange": 50.0,
+      "waveWidth": 7.0
+    },
+    "frost_ice_breaker_t1": {
+      "splashRadius": 2.0
+    },
+    "frost_ice_breaker_t2": {
+      "splashRadius": 2.5
+    },
+    "frost_ice_breaker_t3": {
+      "splashRadius": 3.0
+    },
+    "frost_frozen_dumpling_t1": {
+      "splashRadius": 0.8,
+      "frozenFoodDamageBonusAt3": 3.0,
+      "frozenFoodIncomeDamageBonusAt9": 0.1
+    },
+    "frost_frozen_dumpling_t2": {
+      "splashRadius": 1.5,
+      "frozenFoodDamageBonusAt3": 5.0,
+      "frozenFoodIncomeDamageBonusAt9": 0.2
+    },
+    "frost_frozen_dumpling_t3": {
+      "splashRadius": 3.0,
+      "frozenFoodDamageBonusAt3": 10.0,
+      "frozenFoodIncomeDamageBonusAt9": 0.3
+    },
+    "frost_icebox_t1": {
+      "healAmount": 22.5,
+      "healRadius": 6.0,
+      "healIntervalTicks": 100.0,
+      "damageReductionTicks": 100.0
+    },
+    "frost_icebox_t2": {
+      "healAmount": 52.5,
+      "healRadius": 7.0,
+      "healIntervalTicks": 100.0,
+      "damageReductionTicks": 100.0
+    },
+    "frost_icebox_t3": {
+      "healAmount": 120.0,
+      "healRadius": 8.0,
+      "healIntervalTicks": 100.0,
+      "damageReductionTicks": 100.0
     },
     "pet_global": {
       "bondPerRound": 1.0,

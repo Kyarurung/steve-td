@@ -43,6 +43,7 @@ import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
 import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
+import kim.biryeong.semiontd.tower.frost.FrostTowers;
 import kim.biryeong.semiontd.tower.gamble.GambleTowers;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
@@ -309,6 +310,36 @@ public final class TowerVfxService {
             observer.accept(source, end);
         }
         enqueue(new BodyEyeLaserEvent(context, source, end));
+    }
+
+    public static void showFrostWave(SemionTowerEntity tower, Vec3 direction, double range, double width) {
+        if (!config.enabled() || tower == null || direction == null
+                || !Double.isFinite(range) || range <= 0.0
+                || !Double.isFinite(width) || width <= 0.0) {
+            return;
+        }
+        Vec3 horizontal = new Vec3(direction.x, 0.0, direction.z);
+        if (horizontal.lengthSqr() <= 1.0E-6) {
+            return;
+        }
+        Vec3 source = towerCenter(tower);
+        Vec3 normalized = horizontal.normalize();
+        Vec3 end = source.add(normalized.scale(range));
+        EventContext context = context(tower, end);
+        if (context != null) {
+            enqueue(new FrostWaveEvent(context, source, end, normalized, width));
+        }
+    }
+
+    public static void showFrostAura(SemionTowerEntity tower, boolean expanded) {
+        if (!config.enabled() || tower == null) {
+            return;
+        }
+        Vec3 center = towerCenter(tower);
+        EventContext context = context(tower, center);
+        if (context != null) {
+            enqueue(new FrostAuraEvent(context, center, expanded));
+        }
     }
 
     public static void showProphecyLightning(SemionTowerEntity tower, SemionMonsterEntity target) {
@@ -659,6 +690,9 @@ public final class TowerVfxService {
         if (BodyTowers.isBodyTower(type)) {
             return BuilderPalette.BODY;
         }
+        if (FrostTowers.isFrostTower(type)) {
+            return BuilderPalette.FROST;
+        }
         if (PetTowers.isPetTower(type)) {
             return BuilderPalette.PET;
         }
@@ -941,6 +975,10 @@ public final class TowerVfxService {
                 renderBodyHeartbeat(heartbeat, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             } else if (event instanceof BodyEyeLaserEvent eyeLaser) {
                 renderBodyEyeLaser(eyeLaser, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof FrostWaveEvent frostWave) {
+                renderFrostWave(frostWave, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
+            } else if (event instanceof FrostAuraEvent frostAura) {
+                renderFrostAura(frostAura, gameTime, batchConfig, vanillaPacketsByRecipient, gcbShapesByLane);
             }
         }
 
@@ -1028,6 +1066,91 @@ public final class TowerVfxService {
         if (corePoints > 0) {
             sendLine(event.context(), BODY_EYE_LASER_CORE_PARTICLE, "minecraft:end_rod", event.source, event.end,
                     corePoints, false, config, packetCounts, shapeCounts);
+        }
+    }
+
+    private static void renderFrostWave(
+            FrostWaveEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        Vec3 lateral = new Vec3(-event.direction.z, 0.0, event.direction.x);
+        int strips = Math.max(1, Math.min(7, (int) Math.round(event.width)));
+        double step = strips == 1 ? 0.0 : event.width / (strips - 1);
+        for (int index = 0; index < strips; index++) {
+            double offset = strips == 1 ? 0.0 : -event.width * 0.5 + index * step;
+            Vec3 stripStart = event.source.add(lateral.scale(offset));
+            Vec3 stripEnd = event.end.add(lateral.scale(offset));
+            int points = claimVanillaPoints(
+                    event.context().lane(),
+                    gameTime,
+                    config,
+                    preferredRayPointCount(stripStart.distanceTo(stripEnd)),
+                    index == strips / 2 ? MIN_RAY_POINTS : 0,
+                    index == strips / 2
+            );
+            if (points > 0) {
+                sendLine(
+                        event.context(),
+                        event.context().palette().rayParticle(),
+                        event.context().palette().gcbRayParticle(),
+                        stripStart,
+                        stripEnd,
+                        points,
+                        index == strips / 2,
+                        config,
+                        packetCounts,
+                        shapeCounts
+                );
+            }
+        }
+        int accents = claimVanillaPoints(event.context().lane(), gameTime, config, 18, 0, false);
+        if (accents > 0) {
+            sendLine(
+                    event.context(),
+                    event.context().palette().accentParticle(),
+                    event.context().palette().gcbAccentParticle(),
+                    event.source,
+                    event.end,
+                    accents,
+                    false,
+                    config,
+                    packetCounts,
+                    shapeCounts
+            );
+        }
+    }
+
+    private static void renderFrostAura(
+            FrostAuraEvent event,
+            long gameTime,
+            VfxConfig config,
+            Map<UUID, Integer> packetCounts,
+            Map<VfxLaneKey, Integer> shapeCounts
+    ) {
+        int points = claimVanillaPoints(
+                event.context().lane(),
+                gameTime,
+                config,
+                event.expanded ? 18 : 12,
+                0,
+                false
+        );
+        if (points > 0) {
+            sendSphere(
+                    event.context(),
+                    event.context().palette().accentParticle(),
+                    event.context().palette().gcbAccentParticle(),
+                    event.center,
+                    event.expanded ? 1.35 : 0.95,
+                    points,
+                    false,
+                    config,
+                    packetCounts,
+                    shapeCounts
+            );
         }
     }
 
@@ -1783,6 +1906,32 @@ public final class TowerVfxService {
             super(context, Phase.PRIMARY_ATTACK);
             this.source = source;
             this.end = end;
+        }
+    }
+
+    private static final class FrostWaveEvent extends PendingEvent {
+        private final Vec3 source;
+        private final Vec3 end;
+        private final Vec3 direction;
+        private final double width;
+
+        private FrostWaveEvent(EventContext context, Vec3 source, Vec3 end, Vec3 direction, double width) {
+            super(context, Phase.AREA_DAMAGE);
+            this.source = source;
+            this.end = end;
+            this.direction = direction;
+            this.width = width;
+        }
+    }
+
+    private static final class FrostAuraEvent extends PendingEvent {
+        private final Vec3 center;
+        private final boolean expanded;
+
+        private FrostAuraEvent(EventContext context, Vec3 center, boolean expanded) {
+            super(context, Phase.AREA_DAMAGE);
+            this.center = center;
+            this.expanded = expanded;
         }
     }
 

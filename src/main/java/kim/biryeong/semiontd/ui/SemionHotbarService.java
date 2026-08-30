@@ -2,6 +2,7 @@ package kim.biryeong.semiontd.ui;
 
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
+import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
@@ -58,6 +59,7 @@ public final class SemionHotbarService {
         clearTool(player, SUMMON_TOOL_SLOT, Items.ECHO_SHARD);
         clearTool(player, LEADER_TOOL_SLOT, Items.BLAZE_ROD);
         clearTool(player, SANDBOX_ROUND_TOOL_SLOT, Items.CLOCK);
+        FrostFullOperationService.clearActivationItem(player);
     }
 
     private static InteractionResult handleUse(

@@ -87,6 +87,7 @@ public final class JobRegistry {
         registerIfAbsent(new BodyTowerJob());
         registerIfAbsent(new PetTowerJob());
         registerIfAbsent(new DeveloperTowerJob());
+        registerIfAbsent(new FrostTowerJob());
     }
 
     public static synchronized Optional<SemionJob> find(ResourceLocation id) {

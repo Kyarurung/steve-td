@@ -10,6 +10,7 @@ import kim.biryeong.semiontd.tip.SemionTipService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordBinding;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordStates;
+import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
@@ -34,6 +35,7 @@ public final class Events {
         SemionPlayerProtectionService.register(gameManager);
         // 보호 서비스 뒤에 등록해야 마왕만 예외로 피해를 받고 평타를 넣을 수 있습니다.
         DemonLordService.register(gameManager);
+        FrostFullOperationService.register(gameManager);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             gameManager.tick(server);
@@ -52,6 +54,7 @@ public final class Events {
             TowerVfxService.shutdown();
             skyboxService.shutdown();
             tipService.shutdown();
+            FrostFullOperationService.clearAll();
             gameManager.shutdown();
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -69,6 +72,7 @@ public final class Events {
                 tipService.handlePlayerDisconnect(player);
                 gameManager.handlePlayerDisconnect(player);
                 DemonLordService.cleanupPlayer(player);
+                FrostFullOperationService.cleanupPlayer(player);
             });
         });
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
