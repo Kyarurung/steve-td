@@ -45,6 +45,8 @@ import kim.biryeong.semiontd.tower.legion.LegionTowers;
 import kim.biryeong.semiontd.tower.mage.MageBalance;
 import kim.biryeong.semiontd.tower.mage.MageSpell;
 import kim.biryeong.semiontd.tower.mage.MageTowers;
+import kim.biryeong.semiontd.tower.pet.PetBalance;
+import kim.biryeong.semiontd.tower.pet.PetTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusBalance;
 import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
 import kim.biryeong.semiontd.tower.nether.NetherTower;
@@ -252,6 +254,7 @@ public record TowerBalanceConfig(
         addDeveloperTowers(towers);
         addSuccubusTowers(towers);
         addBodyTowers(towers);
+        addPetTowers(towers);
 
         LinkedHashMap<String, Long> upgradeCosts = new LinkedHashMap<>();
         putUpgrade(upgradeCosts, VillagerTowers.T1_SPLASH_TOWER, "villager_splash_t2", 110);
@@ -338,6 +341,7 @@ public record TowerBalanceConfig(
         putDeveloperUpgrades(upgradeCosts);
         putSuccubusUpgrades(upgradeCosts);
         putBodyUpgrades(upgradeCosts);
+        putPetUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
         putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
@@ -913,6 +917,7 @@ public record TowerBalanceConfig(
         putDeveloperAbilities(abilities);
         putSuccubusAbilities(abilities);
         putBodyAbilities(abilities);
+        putPetAbilities(abilities);
 
         TowerBalanceConfig fallback = new TowerBalanceConfig(
                 towers,
@@ -922,6 +927,109 @@ public record TowerBalanceConfig(
                 VillagerAdvConfig.defaultConfig()
         );
         return fallback;
+    }
+
+    private static void addPetTowers(Map<String, TowerStats> towers) {
+        PetTowers.all().forEach(type -> addTower(towers, type));
+    }
+
+    private static void putPetUpgrades(Map<String, Long> upgrades) {
+        putUpgrade(upgrades, PetTowers.BUTLER_T1, PetTowers.BUTLER_T2.id(), 220);
+        putUpgrade(upgrades, PetTowers.TRAINER_T1, PetTowers.TRAINER_T2.id(), 200);
+        putUpgrade(upgrades, PetTowers.KEEPER_T1, PetTowers.KEEPER_T2.id(), 190);
+        putUpgrade(upgrades, PetTowers.DOG_T1, PetTowers.DOG_T2.id(), 110);
+        putUpgrade(upgrades, PetTowers.DOG_T2, PetTowers.DOG_T3.id(), 240);
+        putUpgrade(upgrades, PetTowers.CAT_T1, PetTowers.CAT_T2.id(), 120);
+        putUpgrade(upgrades, PetTowers.CAT_T2, PetTowers.CAT_T3.id(), 260);
+        putUpgrade(upgrades, PetTowers.BIRD_T1, PetTowers.BIRD_T2.id(), 125);
+        putUpgrade(upgrades, PetTowers.BIRD_T2, PetTowers.BIRD_T3.id(), 270);
+    }
+
+    private static void putPetAbilities(Map<String, Map<String, Double>> abilities) {
+        putAbilities(abilities, PetBalance.CONFIG_ID, Map.of(
+                "bondPerRound", PetBalance.BOND_PER_ROUND,
+                "praiseKillsPerBond", (double) PetBalance.PRAISE_KILLS_PER_BOND,
+                "praiseCapPerRound", PetBalance.PRAISE_CAP_PER_ROUND,
+                "bondAttackPerPoint", PetBalance.BOND_ATTACK_PER_POINT,
+                "bondHealthPerPoint", PetBalance.BOND_HEALTH_PER_POINT,
+                "lostPetMultiplier", PetBalance.LOST_PET_MULTIPLIER
+        ));
+        putPetOwnerAbilities(abilities, PetTowers.BUTLER_T1, 20.0, 1.0, 1.0, 1.0, 0.5, 0.0);
+        putPetOwnerAbilities(abilities, PetTowers.BUTLER_T2, 26.0, 1.0, 1.0, 1.0, 0.5, 0.0);
+        putPetOwnerAbilities(abilities, PetTowers.TRAINER_T1, 15.0, 0.6, 2.0, 1.0, 0.5, 0.0);
+        putPetOwnerAbilities(abilities, PetTowers.TRAINER_T2, 20.0, 0.6, 2.0, 1.0, 0.5, 0.0);
+        putPetOwnerAbilities(abilities, PetTowers.KEEPER_T1, 8.0, 0.3, 1.0, 0.0, 0.0, 3.0);
+        putPetOwnerAbilities(abilities, PetTowers.KEEPER_T2, 11.0, 0.3, 1.0, 0.0, 0.0, 3.0);
+
+        putPetDogAbilities(abilities, PetTowers.DOG_T1, 100.0, 70.0);
+        putPetDogAbilities(abilities, PetTowers.DOG_T2, 200.0, 160.0);
+        putPetDogAbilities(abilities, PetTowers.DOG_T3, 320.0, 0.0);
+        putPetCatAbilities(abilities, PetTowers.CAT_T1, 100.0, 70.0);
+        putPetCatAbilities(abilities, PetTowers.CAT_T2, 200.0, 160.0);
+        putPetCatAbilities(abilities, PetTowers.CAT_T3, 320.0, 0.0);
+        putPetBirdAbilities(abilities, PetTowers.BIRD_T1, 100.0, 70.0, 0.50);
+        putPetBirdAbilities(abilities, PetTowers.BIRD_T2, 200.0, 160.0, 0.75);
+        putPetBirdAbilities(abilities, PetTowers.BIRD_T3, 320.0, 0.0, 1.00);
+    }
+
+    private static void putPetOwnerAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double grantBase,
+            double grantExponent,
+            double bondCapMultiplier,
+            double walkBase,
+            double walkPerEmptyTile,
+            double walkFlat
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                PetBalance.KEY_BOND_GRANT_BASE, grantBase,
+                PetBalance.KEY_BOND_GRANT_EXPONENT, grantExponent,
+                PetBalance.KEY_BOND_CAP_MULTIPLIER, bondCapMultiplier,
+                PetBalance.KEY_WALK_BOND_BASE, walkBase,
+                PetBalance.KEY_WALK_BOND_PER_EMPTY_TILE, walkPerEmptyTile,
+                PetBalance.KEY_WALK_BOND_FLAT, walkFlat
+        ));
+    }
+
+    private static void putPetDogAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double bondCap,
+            double bondToUpgrade
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                PetBalance.KEY_BOND_CAP, bondCap,
+                PetBalance.KEY_BOND_TO_UPGRADE, bondToUpgrade,
+                PetBalance.KEY_PACK_DAMAGE_PER_MATE, 0.12
+        ));
+    }
+
+    private static void putPetCatAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double bondCap,
+            double bondToUpgrade
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                PetBalance.KEY_BOND_CAP, bondCap,
+                PetBalance.KEY_BOND_TO_UPGRADE, bondToUpgrade,
+                PetBalance.KEY_SOLO_DAMAGE_BONUS, 0.80
+        ));
+    }
+
+    private static void putPetBirdAbilities(
+            Map<String, Map<String, Double>> abilities,
+            TowerType type,
+            double bondCap,
+            double bondToUpgrade,
+            double healRatio
+    ) {
+        putAbilities(abilities, type.id(), Map.of(
+                PetBalance.KEY_BOND_CAP, bondCap,
+                PetBalance.KEY_BOND_TO_UPGRADE, bondToUpgrade,
+                PetBalance.KEY_HEAL_RATIO, healRatio
+        ));
     }
 
     private static void addSuccubusTowers(Map<String, TowerStats> towers) {
