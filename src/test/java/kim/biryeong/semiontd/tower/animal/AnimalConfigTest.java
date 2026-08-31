@@ -1,7 +1,10 @@
 package kim.biryeong.semiontd.tower.animal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import net.minecraft.SharedConstants;
@@ -39,5 +42,25 @@ class AnimalConfigTest {
                 ),
                 0.0001
         );
+    }
+
+    @Test
+    void invalidAnimalAbilityDoesNotReplaceTheLastKnownRuntimeConfig() {
+        TowerBalanceConfig valid = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(valid);
+        int previous = AnimalConfig.RUNTIME.integer(
+                AnimalTowers.T1_PIG_TOWER, AnimalAbilityKey.MAX_STACKS
+        );
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(valid.abilities());
+        Map<String, Double> pig = new LinkedHashMap<>(abilities.get(AnimalTowers.T1_PIG_TOWER.id()));
+        pig.put("maxStacks", -1.0);
+        abilities.put(AnimalTowers.T1_PIG_TOWER.id(), pig);
+
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(
+                new TowerBalanceConfig(valid.towers(), valid.upgradeCosts(), abilities)
+        ));
+        assertEquals(previous, AnimalConfig.RUNTIME.integer(
+                AnimalTowers.T1_PIG_TOWER, AnimalAbilityKey.MAX_STACKS
+        ));
     }
 }

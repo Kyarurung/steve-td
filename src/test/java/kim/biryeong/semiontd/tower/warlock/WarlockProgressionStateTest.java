@@ -6,10 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-class WarlockStateTest {
+class WarlockProgressionStateTest {
     @Test
     void absorptionSeparatesPermanentAndRoundState() {
-        WarlockState state = new WarlockState();
+        WarlockProgressionState state = new WarlockProgressionState();
 
         state.recordSacrifice(gain(2.5, 1.0, 40.0, 8.0, 8.0));
         assertEquals(40.0, state.roundHealthBonus(), 0.0001);
@@ -35,7 +35,7 @@ class WarlockStateTest {
 
     @Test
     void attackIntervalAbsorptionHonorsCapAndOnlyFasterTargets() {
-        WarlockState state = new WarlockState();
+        WarlockProgressionState state = new WarlockProgressionState();
 
         state.recordSacrifice(gain(0.0, 0.0, 0.0, 0.0, 10.0));
         state.recordSacrifice(gain(0.0, 0.0, 0.0, 0.0, 8.0));
@@ -46,10 +46,10 @@ class WarlockStateTest {
 
     @Test
     void copiedStateDoesNotShareFutureMutations() {
-        WarlockState source = new WarlockState();
+        WarlockProgressionState source = new WarlockProgressionState();
         source.recordSacrifice(gain(5.0, 0.5, 60.0, 12.0, 0.0));
 
-        WarlockState copy = new WarlockState();
+        WarlockProgressionState copy = new WarlockProgressionState();
         copy.copyFrom(source);
         source.resetRound();
 
@@ -63,11 +63,11 @@ class WarlockStateTest {
 
     @Test
     void copiedBaseProgressionImmediatelyUsesSpecializedCountRules() {
-        WarlockState base = new WarlockState();
+        WarlockProgressionState base = new WarlockProgressionState();
         for (int sacrifice = 0; sacrifice < 5; sacrifice++) {
             base.recordSacrifice(gain(1.0, 1.0, 0.0, 0.0, 0.0));
         }
-        WarlockState specialized = new WarlockState();
+        WarlockProgressionState specialized = new WarlockProgressionState();
         specialized.copyFrom(base);
         WarlockProgressionSnapshot progression = WarlockProgressionSnapshot.from(specialized, null);
 
@@ -81,7 +81,7 @@ class WarlockStateTest {
 
     @Test
     void awakeningCanOccurOncePerRoundAndResetsWithRoundState() {
-        WarlockState state = new WarlockState();
+        WarlockProgressionState state = new WarlockProgressionState();
 
         assertTrue(state.awaken());
         assertFalse(state.awaken());
@@ -105,14 +105,14 @@ class WarlockStateTest {
         assertFalse(rule.canActivate(true, Double.NaN, true));
     }
 
-    private static WarlockSacrifice.Gain gain(
+    private static WarlockSacrificeDomain.Gain gain(
             double permanentHealth,
             double permanentDamage,
             double roundHealth,
             double roundDamage,
             double intervalReduction
     ) {
-        return new WarlockSacrifice.Gain(
+        return new WarlockSacrificeDomain.Gain(
                 permanentHealth,
                 permanentDamage,
                 roundHealth,

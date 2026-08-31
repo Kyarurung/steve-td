@@ -5,18 +5,18 @@ import java.util.UUID;
 record WarlockProgressionSnapshot(
         int totalSacrificeCount,
         int roundSacrificeCount,
-        WarlockAwakeningProgress.Snapshot awakening
+        WarlockAwakeningStates.Snapshot awakening
 ) {
     WarlockProgressionSnapshot {
         totalSacrificeCount = Math.max(0, totalSacrificeCount);
         roundSacrificeCount = Math.max(0, roundSacrificeCount);
     }
 
-    static WarlockProgressionSnapshot from(WarlockState state, UUID ownerPlayer) {
+    static WarlockProgressionSnapshot from(WarlockProgressionState state, UUID ownerPlayer) {
         return new WarlockProgressionSnapshot(
                 state.totalSacrificeCount(),
                 state.roundSacrificeCount(),
-                WarlockAwakeningProgress.snapshot(ownerPlayer)
+                WarlockAwakeningStates.snapshot(ownerPlayer)
         );
     }
 

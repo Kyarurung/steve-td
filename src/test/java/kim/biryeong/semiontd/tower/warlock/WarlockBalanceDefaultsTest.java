@@ -20,7 +20,7 @@ class WarlockBalanceDefaultsTest {
 
     @AfterEach
     void resetBalance() {
-        WarlockAwakeningProgress.clearAllForTesting();
+        WarlockAwakeningStates.clearAllForTesting();
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
     }
 

@@ -17,7 +17,7 @@ import java.util.UUID;
 
 public class VillagerThornTower extends EntityBackedTower {
     private int thornCooldownTicks = 0;
-    private final VillagerSurvivalState survival = new VillagerSurvivalState();
+    private final VillagerGolemSurvivalState survival = new VillagerGolemSurvivalState();
     public VillagerThornTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition originalPosition, GridPosition currentPosition) {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
     }

@@ -1,7 +1,10 @@
 package kim.biryeong.semiontd.tower.undead;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import net.minecraft.SharedConstants;
@@ -39,5 +42,25 @@ class UndeadConfigTest {
                 ),
                 0.0001
         );
+    }
+
+    @Test
+    void invalidUndeadAbilityDoesNotReplaceTheLastKnownRuntimeConfig() {
+        TowerBalanceConfig valid = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(valid);
+        double previous = UndeadConfig.RUNTIME.value(
+                UndeadTowers.T1_ZOMBIE_TOWER, UndeadAbilityKey.LIFE_STEAL_RATIO
+        );
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(valid.abilities());
+        Map<String, Double> zombie = new LinkedHashMap<>(abilities.get(UndeadTowers.T1_ZOMBIE_TOWER.id()));
+        zombie.put("lifeStealRatio", -1.0);
+        abilities.put(UndeadTowers.T1_ZOMBIE_TOWER.id(), zombie);
+
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(
+                new TowerBalanceConfig(valid.towers(), valid.upgradeCosts(), abilities)
+        ));
+        assertEquals(previous, UndeadConfig.RUNTIME.value(
+                UndeadTowers.T1_ZOMBIE_TOWER, UndeadAbilityKey.LIFE_STEAL_RATIO
+        ));
     }
 }

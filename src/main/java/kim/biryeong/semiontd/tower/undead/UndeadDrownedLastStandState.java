@@ -1,7 +1,7 @@
 package kim.biryeong.semiontd.tower.undead;
 
 /** Round-scoped last-stand state for a drowned tower. */
-final class UndeadLastStandState {
+final class UndeadDrownedLastStandState {
     private boolean used;
     private long endsAt;
 

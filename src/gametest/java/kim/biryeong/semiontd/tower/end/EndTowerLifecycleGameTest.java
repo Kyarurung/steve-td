@@ -27,7 +27,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 
-public final class EndIntegrationGameTest {
+public final class EndTowerLifecycleGameTest {
     @GameTest
     public void placementUpgradeWaveResetAndCloseUseRealLifecycle(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();

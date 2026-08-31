@@ -7,13 +7,13 @@ import kim.biryeong.semiontd.game.PlayerLane;
 
 public final class WarlockAwakeningController {
     private final WarlockConfig config;
-    private final WarlockState state;
+    private final WarlockProgressionState state;
     private final WarlockPath path;
     private final UUID ownerPlayer;
     private int regenerationTicks;
     private int vfxTicks;
 
-    WarlockAwakeningController(WarlockConfig config, WarlockState state, WarlockPath path, UUID ownerPlayer) {
+    WarlockAwakeningController(WarlockConfig config, WarlockProgressionState state, WarlockPath path, UUID ownerPlayer) {
         this.config = config;
         this.state = state;
         this.path = path;
@@ -24,7 +24,7 @@ public final class WarlockAwakeningController {
         if (towerEntity == null || !path.specialized() || state.awakenedThisRound()) {
             return false;
         }
-        WarlockAwakeningProgress.Snapshot progress = WarlockAwakeningProgress.snapshot(ownerPlayer);
+        WarlockAwakeningStates.Snapshot progress = WarlockAwakeningStates.snapshot(ownerPlayer);
         WarlockRules.AwakeningRule rule = config.awakening(path);
         tower.syncFromEntityHealth(towerEntity.getHealth());
         if (!rule.canActivate(

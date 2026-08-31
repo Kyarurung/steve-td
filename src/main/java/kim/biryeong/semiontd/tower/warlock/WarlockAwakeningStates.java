@@ -4,10 +4,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class WarlockAwakeningProgress {
+public final class WarlockAwakeningStates {
     private static final Map<UUID, State> PROGRESS = new ConcurrentHashMap<>();
 
-    private WarlockAwakeningProgress() {
+    private WarlockAwakeningStates() {
     }
 
     public static boolean recordKill(UUID ownerPlayer) {

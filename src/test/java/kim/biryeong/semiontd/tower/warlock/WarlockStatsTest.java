@@ -25,7 +25,7 @@ class WarlockStatsTest {
 
     @AfterEach
     void resetState() {
-        WarlockAwakeningProgress.clearAllForTesting();
+        WarlockAwakeningStates.clearAllForTesting();
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
     }
 
@@ -67,7 +67,7 @@ class WarlockStatsTest {
         assertFalse(baseLockedDetails.contains("디버프 저항:"));
         assertTrue(baseLockedDetails.contains("각성 해금: 0/1400킬"));
         for (int kill = 0; kill < 1400; kill++) {
-            WarlockAwakeningProgress.recordKill(baseOwner);
+            WarlockAwakeningStates.recordKill(baseOwner);
         }
         String baseUnlockedDetails = String.join("\n", base.runtimeDetailLines()).replaceAll("<[^>]+>", "");
         assertTrue(baseUnlockedDetails.contains("각성 해금: 완료 · 분기 선택 필요"));

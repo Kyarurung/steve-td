@@ -15,7 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class WarlockAwakeningProgressTest {
+class WarlockAwakeningStatesTest {
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
@@ -24,7 +24,7 @@ class WarlockAwakeningProgressTest {
 
     @AfterEach
     void resetState() {
-        WarlockAwakeningProgress.clearAllForTesting();
+        WarlockAwakeningStates.clearAllForTesting();
         TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
     }
 
@@ -33,29 +33,29 @@ class WarlockAwakeningProgressTest {
         UUID owner = UUID.randomUUID();
 
         for (int kill = 1; kill < 1400; kill++) {
-            assertFalse(WarlockAwakeningProgress.recordKill(owner));
+            assertFalse(WarlockAwakeningStates.recordKill(owner));
         }
-        WarlockAwakeningProgress.Snapshot locked = WarlockAwakeningProgress.snapshot(owner);
+        WarlockAwakeningStates.Snapshot locked = WarlockAwakeningStates.snapshot(owner);
         assertEquals(1399L, locked.kills());
         assertEquals(1400L, locked.requiredKills());
         assertFalse(locked.unlocked());
 
-        assertTrue(WarlockAwakeningProgress.recordKill(owner));
-        WarlockAwakeningProgress.Snapshot unlocked = WarlockAwakeningProgress.snapshot(owner);
+        assertTrue(WarlockAwakeningStates.recordKill(owner));
+        WarlockAwakeningStates.Snapshot unlocked = WarlockAwakeningStates.snapshot(owner);
         assertEquals(1400L, unlocked.kills());
         assertTrue(unlocked.unlocked());
-        assertFalse(WarlockAwakeningProgress.recordKill(owner));
+        assertFalse(WarlockAwakeningStates.recordKill(owner));
     }
 
     @Test
     void clearRemovesProgressForTheNextMatch() {
         UUID owner = UUID.randomUUID();
-        WarlockAwakeningProgress.recordKill(owner);
+        WarlockAwakeningStates.recordKill(owner);
 
-        WarlockAwakeningProgress.clear(owner);
+        WarlockAwakeningStates.clear(owner);
 
-        assertEquals(0L, WarlockAwakeningProgress.snapshot(owner).kills());
-        assertFalse(WarlockAwakeningProgress.snapshot(owner).unlocked());
+        assertEquals(0L, WarlockAwakeningStates.snapshot(owner).kills());
+        assertFalse(WarlockAwakeningStates.snapshot(owner).unlocked());
     }
 
     @Test
@@ -63,13 +63,13 @@ class WarlockAwakeningProgressTest {
         UUID owner = UUID.randomUUID();
         applyAwakeningKills(2.0);
 
-        assertFalse(WarlockAwakeningProgress.recordKill(owner));
+        assertFalse(WarlockAwakeningStates.recordKill(owner));
         applyAwakeningKills(1.0);
-        assertFalse(WarlockAwakeningProgress.snapshot(owner).unlocked());
+        assertFalse(WarlockAwakeningStates.snapshot(owner).unlocked());
 
-        assertTrue(WarlockAwakeningProgress.recordKill(owner));
+        assertTrue(WarlockAwakeningStates.recordKill(owner));
         applyAwakeningKills(100.0);
-        WarlockAwakeningProgress.Snapshot snapshot = WarlockAwakeningProgress.snapshot(owner);
+        WarlockAwakeningStates.Snapshot snapshot = WarlockAwakeningStates.snapshot(owner);
         assertEquals(2L, snapshot.kills());
         assertEquals(100L, snapshot.requiredKills());
         assertTrue(snapshot.unlocked());

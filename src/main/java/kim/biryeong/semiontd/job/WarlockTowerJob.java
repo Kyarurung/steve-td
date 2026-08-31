@@ -7,7 +7,7 @@ import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
 import kim.biryeong.semiontd.tower.warlock.WarlockConfig;
 import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -55,7 +55,7 @@ public final class WarlockTowerJob extends SemionJob {
 
     @Override
     public void onMonsterKilled(JobContext context, Monster monster, long mineralReward) {
-        if (!WarlockAwakeningProgress.recordKill(context.player().uuid())) {
+        if (!WarlockAwakeningStates.recordKill(context.player().uuid())) {
             return;
         }
         context.game().playerLane(context.player().uuid())

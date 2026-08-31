@@ -2,8 +2,8 @@ package kim.biryeong.semiontd.tower.warlock;
 
 import kim.biryeong.semiontd.tower.Tower;
 
-final class WarlockSacrifice {
-    private WarlockSacrifice() {
+final class WarlockSacrificeDomain {
+    private WarlockSacrificeDomain() {
     }
 
     static Snapshot snapshot(Tower tower) {
@@ -39,7 +39,7 @@ final class WarlockSacrifice {
         );
     }
 
-    static boolean commit(boolean killSucceeded, WarlockState state, Gain gain) {
+    static boolean commit(boolean killSucceeded, WarlockProgressionState state, Gain gain) {
         if (!killSucceeded || state == null || gain == null) {
             return false;
         }

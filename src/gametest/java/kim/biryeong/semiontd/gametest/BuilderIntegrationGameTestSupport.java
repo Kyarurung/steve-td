@@ -89,6 +89,20 @@ public final class BuilderIntegrationGameTestSupport {
             double y,
             double z
     ) {
+        return spawnMonster(context, lane, id, targetLaneId, maximumHealth, 1.0, x, y, z);
+    }
+
+    public static SemionMonsterEntity spawnMonster(
+            GameTestHelper context,
+            PlayerLane lane,
+            String id,
+            int targetLaneId,
+            double maximumHealth,
+            double attackDamage,
+            double x,
+            double y,
+            double z
+    ) {
         Monster monster = new Monster(
                 id,
                 lane.teamId(),
@@ -97,7 +111,7 @@ public final class BuilderIntegrationGameTestSupport {
                 Optional.empty(),
                 maximumHealth,
                 0.0,
-                1.0,
+                attackDamage,
                 AttackKind.MELEE,
                 "minecraft:zombie",
                 0L

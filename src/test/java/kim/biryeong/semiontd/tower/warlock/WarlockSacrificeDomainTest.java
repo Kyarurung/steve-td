@@ -15,7 +15,7 @@ import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class WarlockSacrificeTest {
+class WarlockSacrificeDomainTest {
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
@@ -25,15 +25,15 @@ class WarlockSacrificeTest {
     @Test
     void baseSacrificeRecordsProgressAndPermanentStatsAtomically() {
         WarlockConfig config = WarlockConfig.RUNTIME;
-        WarlockSacrifice.Snapshot snapshot = new WarlockSacrifice.Snapshot(100.0, 20.0, 12);
-        WarlockSacrifice.Gain gain = WarlockSacrifice.calculate(
+        WarlockSacrificeDomain.Snapshot snapshot = new WarlockSacrificeDomain.Snapshot(100.0, 20.0, 12);
+        WarlockSacrificeDomain.Gain gain = WarlockSacrificeDomain.calculate(
                 WarlockPath.BASE,
                 snapshot,
                 config.path(WarlockPath.BASE),
                 config.combat(),
                 20
         );
-        WarlockState state = new WarlockState();
+        WarlockProgressionState state = new WarlockProgressionState();
 
         state.recordSacrifice(gain);
 
@@ -77,7 +77,7 @@ class WarlockSacrificeTest {
         };
         tower.syncMaxHealth(222.0, false);
 
-        WarlockSacrifice.Snapshot snapshot = WarlockSacrifice.snapshot(tower);
+        WarlockSacrificeDomain.Snapshot snapshot = WarlockSacrificeDomain.snapshot(tower);
 
         assertEquals(222.0, snapshot.maxHealth(), 0.0001);
         assertEquals(37.0, snapshot.attackDamage(), 0.0001);
@@ -95,8 +95,8 @@ class WarlockSacrificeTest {
 
     @Test
     void failedKillLeavesEverySacrificeStateFieldUnchanged() {
-        WarlockState state = new WarlockState();
-        WarlockSacrifice.Gain gain = new WarlockSacrifice.Gain(
+        WarlockProgressionState state = new WarlockProgressionState();
+        WarlockSacrificeDomain.Gain gain = new WarlockSacrificeDomain.Gain(
                 5.0,
                 3.0,
                 50.0,
@@ -105,7 +105,7 @@ class WarlockSacrificeTest {
                 15.0
         );
 
-        WarlockSacrifice.commit(false, state, gain);
+        WarlockSacrificeDomain.commit(false, state, gain);
         assertEquals(0, state.totalSacrificeCount());
         assertEquals(0, state.roundSacrificeCount());
         assertEquals(0.0, state.permanentHealthBonus(), 0.0001);

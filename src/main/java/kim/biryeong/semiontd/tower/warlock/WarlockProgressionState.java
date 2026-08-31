@@ -1,6 +1,6 @@
 package kim.biryeong.semiontd.tower.warlock;
 
-final class WarlockState {
+final class WarlockProgressionState {
     private double permanentHealthBonus;
     private double permanentDamageBonus;
     private double roundHealthBonus;
@@ -10,7 +10,7 @@ final class WarlockState {
     private int roundSacrificeCount;
     private boolean awakenedThisRound;
 
-    void recordSacrifice(WarlockSacrifice.Gain gain) {
+    void recordSacrifice(WarlockSacrificeDomain.Gain gain) {
         if (gain == null) {
             return;
         }
@@ -34,7 +34,7 @@ final class WarlockState {
         awakenedThisRound = false;
     }
 
-    void copyFrom(WarlockState source) {
+    void copyFrom(WarlockProgressionState source) {
         if (source == null) {
             return;
         }

@@ -117,7 +117,7 @@ class WarlockSacrificeControllerTest {
 
     @Test
     void rangedDamageReductionActivatesAtFifteenPercentAfterThreshold() {
-        WarlockState state = new WarlockState();
+        WarlockProgressionState state = new WarlockProgressionState();
         WarlockSacrificeController sacrifice = new WarlockSacrificeController(WarlockConfig.RUNTIME, state);
 
         for (int count = 0; count < 3; count++) {
@@ -130,7 +130,7 @@ class WarlockSacrificeControllerTest {
 
     @Test
     void meleeDamageReductionGrowsEveryTenAbsorptionsAndCapsAtThirtyPercent() {
-        WarlockState state = new WarlockState();
+        WarlockProgressionState state = new WarlockProgressionState();
         WarlockSacrificeController sacrifice = new WarlockSacrificeController(WarlockConfig.RUNTIME, state);
 
         for (int count = 0; count < 9; count++) {
@@ -157,8 +157,8 @@ class WarlockSacrificeControllerTest {
         return WarlockRules.SacrificeRule.fromConfiguredRadius(radius, 0.0);
     }
 
-    private static void recordSacrifice(WarlockState state) {
-        state.recordSacrifice(new WarlockSacrifice.Gain(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+    private static void recordSacrifice(WarlockProgressionState state) {
+        state.recordSacrifice(new WarlockSacrificeDomain.Gain(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
     }
 
     private static WarlockSacrificeTower sacrifice(

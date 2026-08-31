@@ -1,7 +1,10 @@
 package kim.biryeong.semiontd.tower.villager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import net.minecraft.SharedConstants;
@@ -42,5 +45,25 @@ class VillagerConfigTest {
                 ),
                 0.0001
         );
+    }
+
+    @Test
+    void invalidVillagerAbilityDoesNotReplaceTheLastKnownRuntimeConfig() {
+        TowerBalanceConfig valid = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(valid);
+        double previous = VillagerConfig.RUNTIME.value(
+                VillagerTowers.T1_ALLAY_TOWER, VillagerAbilityKey.HEAL_AMOUNT
+        );
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(valid.abilities());
+        Map<String, Double> allay = new LinkedHashMap<>(abilities.get(VillagerTowers.T1_ALLAY_TOWER.id()));
+        allay.put("healAmount", -1.0);
+        abilities.put(VillagerTowers.T1_ALLAY_TOWER.id(), allay);
+
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(
+                new TowerBalanceConfig(valid.towers(), valid.upgradeCosts(), abilities)
+        ));
+        assertEquals(previous, VillagerConfig.RUNTIME.value(
+                VillagerTowers.T1_ALLAY_TOWER, VillagerAbilityKey.HEAL_AMOUNT
+        ));
     }
 }

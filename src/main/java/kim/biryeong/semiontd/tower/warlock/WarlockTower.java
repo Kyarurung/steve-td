@@ -18,7 +18,7 @@ public class WarlockTower extends EntityBackedTower {
 
     private final WarlockConfig config;
     private final WarlockPath path;
-    private final WarlockState state;
+    private final WarlockProgressionState state;
     private final WarlockSacrificeController sacrifice;
     private final WarlockCombat combat;
     private final WarlockAwakeningController awakening;
@@ -40,7 +40,7 @@ public class WarlockTower extends EntityBackedTower {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
         this.config = WarlockConfig.RUNTIME;
         this.path = WarlockPath.fromCore(type);
-        this.state = new WarlockState();
+        this.state = new WarlockProgressionState();
         this.sacrifice = new WarlockSacrificeController(config, state);
         this.combat = new WarlockCombat(config);
         this.awakening = new WarlockAwakeningController(config, state, path, ownerPlayer);

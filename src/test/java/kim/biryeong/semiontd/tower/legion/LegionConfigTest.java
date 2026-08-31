@@ -1,7 +1,10 @@
 package kim.biryeong.semiontd.tower.legion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import net.minecraft.SharedConstants;
@@ -42,5 +45,25 @@ class LegionConfigTest {
                 profile.cloneCount(),
                 0.0001
         );
+    }
+
+    @Test
+    void invalidLegionAbilityDoesNotReplaceTheLastKnownRuntimeConfig() {
+        TowerBalanceConfig valid = TowerBalanceConfig.defaultConfig();
+        TowerBalanceRuntime.apply(valid);
+        int previous = LegionConfig.RUNTIME.integer(
+                LegionTowers.T1_PARROT_TOWER, LegionAbilityKey.MAX_ATTACK_STACKS
+        );
+        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(valid.abilities());
+        Map<String, Double> parrot = new LinkedHashMap<>(abilities.get(LegionTowers.T1_PARROT_TOWER.id()));
+        parrot.put("maxAttackStacks", -1.0);
+        abilities.put(LegionTowers.T1_PARROT_TOWER.id(), parrot);
+
+        assertThrows(IllegalArgumentException.class, () -> TowerBalanceRuntime.apply(
+                new TowerBalanceConfig(valid.towers(), valid.upgradeCosts(), abilities)
+        ));
+        assertEquals(previous, LegionConfig.RUNTIME.integer(
+                LegionTowers.T1_PARROT_TOWER, LegionAbilityKey.MAX_ATTACK_STACKS
+        ));
     }
 }

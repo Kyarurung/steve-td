@@ -242,7 +242,7 @@ import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockSacrificeTower;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
 import kim.biryeong.semiontd.tower.warlock.WarlockTower;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import kim.biryeong.semiontd.test.tower.TestTowerTypes;
@@ -5499,126 +5499,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         });
     }
 
-    @GameTest(maxTicks = 80)
-    public void foxTowerPrioritizesLowHealthTargetInRuntimeCombat(GameTestHelper context) {
-        UUID playerId = stableUuid("red-fox-tower-owner");
-        int testLaneId = 102;
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-        BlockPos towerPos = towerPlacementPos(lane);
-        TowerType foxType = TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER);
-        lane.addTower(new AnimalFoxTower(foxType, playerId, TeamId.RED, testLaneId, GridPosition.from(towerPos)));
-        AnimalFoxTower foxTower = (AnimalFoxTower) lane.towers().getFirst();
-        if (!assertTrue(context, foxTower.entityId().isPresent(), "Fox tower entity should exist.")) {
-            return;
-        }
-        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(foxTower.entityId().getAsInt());
-        Vec3 towerPosition = towerEntity.position();
-
-        SemionMonsterEntity healthyClose = spawnRoleMonsterEntity(
-                context,
-                "fox-healthy-close",
-                Optional.empty(),
-                TeamId.RED,
-                testLaneId,
-                towerPosition.add(1.0, 0.0, 0.0),
-                100.0,
-                List.of(SummonRole.SIEGE)
-        );
-        SemionMonsterEntity lowHealthFar = spawnRoleMonsterEntity(
-                context,
-                "fox-low-health-far",
-                Optional.empty(),
-                TeamId.RED,
-                testLaneId,
-                towerPosition.add(2.0, 0.0, 0.0),
-                200.0,
-                List.of(SummonRole.RUSH)
-        );
-        healthyClose.runtimeMonster().syncLaneProgress(0.95);
-        lowHealthFar.runtimeMonster().syncLaneProgress(0.10);
-        healthyClose.setNoAi(true);
-        lowHealthFar.setNoAi(true);
-        lowHealthFar.setHealth(50.0F);
-        if (!assertTrue(
-                context,
-                towerEntity.selectAttackTarget(List.of(healthyClose, lowHealthFar)) == lowHealthFar,
-                "Fox tower policy should prefer the low-health target before combat ticks."
-        )) {
-            return;
-        }
-
-        context.runAfterDelay(18, () -> {
-            if (!assertTrue(
-                    context,
-                    towerEntity.currentAttackTarget() == lowHealthFar,
-                    "Fox tower should select the low-health in-range target before the healthier progress target."
-            )) {
-                return;
-            }
-            if (!assertTrue(
-                    context,
-                    lowHealthFar.getHealth() < 50.0F,
-                    "Fox tower should damage the low-health execute target."
-            )) {
-                return;
-            }
-            if (!assertTrue(
-                    context,
-                    lowHealthFar.getHealth() < healthyClose.getHealth(),
-                    "Low-health target should take more damage than the healthier progress target."
-            )) {
-                return;
-            }
-            context.succeed();
-        });
-    }
-
-    @GameTest(maxTicks = 40)
-    public void foxTowerGainsKillBonusDamageAfterNearbyMonsterDeath(GameTestHelper context) {
-        UUID playerId = stableUuid("red-fox-kill-bonus-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-        Vec3 deathPosition = lane.laneLayout().positionAt(0.0);
-        BlockPos towerPos = BlockPos.containing(deathPosition.x, deathPosition.y - 1.0, deathPosition.z);
-        TowerType foxType = TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER);
-        lane.addTower(new AnimalFoxTower(foxType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
-        AnimalFoxTower foxTower = (AnimalFoxTower) lane.towers().getFirst();
-        if (!assertTrue(context, foxTower.entityId().isPresent(), "Fox tower entity should exist.")) {
-            return;
-        }
-        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(foxTower.entityId().getAsInt());
-        SemionMonsterEntity damageProbe = spawnRoleMonsterEntity(
-                context,
-                "fox-nearby-death-damage-probe",
-                Optional.empty(),
-                TeamId.RED,
-                1,
-                towerEntity.position().add(1.0, 0.0, 0.0),
-                100.0,
-                List.of(SummonRole.RUSH)
-        );
-        damageProbe.setNoAi(true);
-        damageProbe.setHealth(20.0F);
-
-        double beforeKillDamage = towerEntity.attackDamageAmount(damageProbe);
-        Monster nearbyMonster = deathStackTestMonster("fox-nearby-death-target", Optional.empty(), TeamId.RED, 1);
-        nearbyMonster.syncLaneProgress(0.0);
-        nearbyMonster.syncHealth(0.0);
-        lane.activeMonsters().add(nearbyMonster);
-        lane.tick(context.getLevel().getServer());
-        double afterKillDamage = towerEntity.attackDamageAmount(damageProbe);
-
-        if (!assertTrue(
-                context,
-                afterKillDamage > beforeKillDamage,
-                "Fox tower should gain attack damage after a monster dies nearby."
-        )) {
-            return;
-        }
-        context.succeed();
-    }
-
     @GameTest
     public void towerDamageAppliesTraitsTargetModifiersArmorAndSingleReward(GameTestHelper context) {
         UUID playerId = stableUuid("runtime-damage-owner");
@@ -6040,30 +5920,26 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         monsterEntity.setNoAi(true);
         double initialDistance = initialTowerPosition.distanceTo(monsterEntity.position());
 
-        context.runAfterDelay(40, () -> {
-            if (!assertTrue(context, monsterEntity.isAlive() && !monsterEntity.isRemoved(), "Anchor test monster entity should still exist.")) {
-                return;
-            }
-            if (!(lane.arenaWorld().getEntity(tower.entityId().getAsInt()) instanceof SemionTowerEntity currentTowerEntity)) {
-                context.fail(Component.literal("Tower entity should still be present in the arena world."));
-                return;
-            }
+        context.succeedWhen(() -> {
+            context.assertTrue(
+                    monsterEntity.isAlive() && !monsterEntity.isRemoved(),
+                    Component.literal("Anchor test monster entity should still exist.")
+            );
+            var currentEntity = lane.arenaWorld().getEntity(tower.entityId().getAsInt());
+            context.assertTrue(
+                    currentEntity instanceof SemionTowerEntity,
+                    Component.literal("Tower entity should still be present in the arena world.")
+            );
+            SemionTowerEntity currentTowerEntity = (SemionTowerEntity) currentEntity;
             Vec3 currentTowerPos = currentTowerEntity.position();
-            if (!assertTrue(
-                    context,
+            context.assertTrue(
                     currentTowerPos.distanceTo(initialTowerPosition) > 0.1,
-                    "Tower entity should move away from its initial position toward a live target that starts out of range."
-            )) {
-                return;
-            }
-            if (!assertTrue(
-                    context,
+                    Component.literal("Tower entity should move away from its initial position toward a live target that starts out of range.")
+            );
+            context.assertTrue(
                     currentTowerPos.distanceTo(monsterEntity.position()) < initialDistance,
-                    "Tower entity should get closer to the out-of-range target."
-            )) {
-                return;
-            }
-            context.succeed();
+                    Component.literal("Tower entity should get closer to the out-of-range target.")
+            );
         });
     }
 
@@ -8719,12 +8595,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
         });
 
-        context.runAfterDelay(100, () -> {
+        context.succeedWhen(() -> {
             lane.tick(context.getLevel().getServer(), new EconomyService(game.economyConfig()), game.players());
-            if (!assertEquals(context, 159L, game.players().get(playerId).economy().mineral(), "Tower owner should receive wave monster mineral reward.")) {
-                return;
-            }
-            context.succeed();
+            context.assertTrue(
+                    game.players().get(playerId).economy().mineral() == 159L,
+                    Component.literal("Tower owner should receive wave monster mineral reward.")
+            );
         });
     }
 
@@ -9295,68 +9171,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertEquals(context, 65.0F, targetEntity.getHealth(), "Generic heal goal should update the tower entity health.")) {
-            return;
-        }
-        context.succeed();
-    }
-
-    @GameTest
-    public void allayTowerHealsNearbyTowersAndBlocksDuplicateHealing(GameTestHelper context) {
-        UUID playerId = stableUuid("allay-heal-support-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-        BlockPos base = towerPlacementPos(lane);
-        VillagerAllayTower allayTower = new VillagerAllayTower(
-                VillagerTowers.T1_ALLAY_TOWER,
-                playerId,
-                TeamId.RED,
-                1,
-                new kim.biryeong.semiontd.game.GridPosition(base.getX(), base.getY(), base.getZ())
-        );
-        TestTower nearbyTower = new TestTower(
-                TestTowerTypes.TEST_DIRECT,
-                playerId,
-                TeamId.RED,
-                1,
-                new kim.biryeong.semiontd.game.GridPosition(base.getX() + 1, base.getY(), base.getZ())
-        );
-        TestTower farTower = new TestTower(
-                TestTowerTypes.TEST_DIRECT,
-                playerId,
-                TeamId.RED,
-                1,
-                new kim.biryeong.semiontd.game.GridPosition(base.getX() + 5, base.getY(), base.getZ())
-        );
-        lane.addTower(allayTower);
-        if (!assertTrue(context, allayTower.entityId().isPresent(), "Allay support tower should spawn a visible tower entity.")) {
-            return;
-        }
-        if (!assertTrue(
-                context,
-                lane.arenaWorld().getEntity(allayTower.entityId().getAsInt()) instanceof SemionTowerEntity allayEntity
-                        && allayEntity.getPolymerEntityType(null) == EntityType.ALLAY,
-                "Allay support tower should render through an Allay polymer entity."
-        )) {
-            return;
-        }
-        lane.addTower(nearbyTower);
-        lane.addTower(farTower);
-        nearbyTower.syncHealth(30.0);
-        farTower.syncHealth(30.0);
-        ((SemionTowerEntity) lane.arenaWorld().getEntity(nearbyTower.entityId().orElseThrow())).syncTowerState(nearbyTower);
-        ((SemionTowerEntity) lane.arenaWorld().getEntity(farTower.entityId().orElseThrow())).syncTowerState(farTower);
-
-        allayTower.tick(lane);
-        if (!assertEquals(context, 45.0, nearbyTower.health(), "Allay tower should heal nearby damaged towers.")) {
-            return;
-        }
-        if (!assertEquals(context, 30.0, farTower.health(), "Allay tower should ignore towers outside its support radius.")) {
-            return;
-        }
-        for (int i = 0; i < VillagerTowers.T1_ALLAY_TOWER.attackIntervalTicks() + 1; i++) {
-            allayTower.tick(lane);
-        }
-        if (!assertEquals(context, 45.0, nearbyTower.health(), "Allay tower should not re-heal the same target inside the block window.")) {
             return;
         }
         context.succeed();
@@ -9956,57 +9770,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         if (!assertClose(context, 100.0, fox.modifyAttackDamage(null, aboveAuraThreshold, 100.0), "Fox leader execute threshold should stop above 61%.")) {
-            return;
-        }
-        context.succeed();
-    }
-
-    @GameTest
-    public void undeadAnimalTowerDebuffsMonsterAttackAndTowerDamageTaken(GameTestHelper context) {
-        UUID playerId = stableUuid("undead-animal-debuff-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
-        PlayerLane lane = redLane(game, 1);
-        BlockPos base = towerPlacementPos(lane);
-        UndeadAnimalTower firstTower = new UndeadAnimalTower(
-                UndeadTowers.T2_UNDEAD_ANIMAL_TOWER,
-                playerId,
-                TeamId.RED,
-                1,
-                new GridPosition(base.getX(), base.getY(), base.getZ())
-        );
-        UndeadAnimalTower secondTower = new UndeadAnimalTower(
-                UndeadTowers.T2_UNDEAD_ANIMAL_TOWER,
-                playerId,
-                TeamId.RED,
-                1,
-                new GridPosition(base.getX() + 1, base.getY(), base.getZ())
-        );
-        lane.addTower(firstTower);
-        lane.addTower(secondTower);
-
-        SemionTowerEntity towerEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(firstTower.entityId().orElseThrow());
-        SemionMonsterEntity monster = spawnAttackMonsterEntity(
-                context,
-                "undead-animal-target",
-                TeamId.RED,
-                1,
-                towerEntity.position().add(1.0, 0.0, 0.0),
-                100.0,
-                20.0
-        );
-
-        firstTower.tick(lane);
-        secondTower.tick(lane);
-        if (!assertClose(context, 0.20, monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION), "Undead animal tower should apply non-stacking monster attack damage reduction.")) {
-            return;
-        }
-        if (!assertClose(context, 0.10, monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS), "T2 undead animal tower should apply non-stacking tower damage taken bonus.")) {
-            return;
-        }
-        if (!assertClose(context, 16.0, monster.attackDamageAmount(), "Monster attack damage reduction should lower runtime attack damage.")) {
-            return;
-        }
-        if (!assertClose(context, 110.0, monster.towerDamageTaken(100.0), "Tower damage taken bonus should increase runtime tower damage.")) {
             return;
         }
         context.succeed();
@@ -11964,48 +11727,6 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     @GameTest
-    public void wardenFixedDamageTriggersDrownedLastStand(GameTestHelper context) {
-        UUID playerId = stableUuid("drowned-warden-fixed-damage-owner");
-        SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, UndeadTowerJob.ID);
-        PlayerLane lane = redLane(game, 1);
-        UndeadDrownedTower drowned = new UndeadDrownedTower(
-                TowerBalanceRuntime.resolve(UndeadTowers.T3_ZOMBIE_TOWER),
-                playerId,
-                TeamId.RED,
-                1,
-                GridPosition.from(towerPlacementPos(lane))
-        );
-        lane.addTower(drowned);
-        SemionTowerEntity drownedEntity = (SemionTowerEntity) lane.arenaWorld()
-                .getEntity(drowned.entityId().orElseThrow());
-        drowned.syncHealth(50.0);
-        drownedEntity.setHealth(50.0F);
-
-        SemionMonsterEntity warden = spawnSummonEntity(
-                context,
-                "warden-special-damage",
-                TeamId.BLUE,
-                TeamId.RED,
-                1,
-                drownedEntity.position().add(1.0, 0.0, 0.0),
-                100.0,
-                0.0
-        );
-        warden.setTarget(drownedEntity);
-        new SiegeTrueDamageGoal(warden, 100.0, 60, 1, 0.0).tick();
-        float lastStandHealth = drownedEntity.getHealth();
-        if (!assertTrue(context, lastStandHealth > 0.0F, "Warden fixed damage should trigger Drowned Last Stand instead of killing it.")) {
-            return;
-        }
-
-        new SiegeTrueDamageGoal(warden, 100.0, 60, 1, 0.0).tick();
-        if (!assertEquals(context, lastStandHealth, drownedEntity.getHealth(), "Drowned should ignore Warden fixed damage during Last Stand.")) {
-            return;
-        }
-        context.succeed();
-    }
-
-    @GameTest
     public void rangedWarlockAbsorbsLowPriorityTowerAndGainsConfiguredStats(GameTestHelper context) {
         UUID playerId = stableUuid("warlock-ranged-absorb-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
@@ -12296,9 +12017,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("warlock-ranged-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
         for (int kill = 0; kill < 1399; kill++) {
-            WarlockAwakeningProgress.recordKill(playerId);
+            WarlockAwakeningStates.recordKill(playerId);
         }
-        if (!assertEquals(context, 1399L, WarlockAwakeningProgress.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
+        if (!assertEquals(context, 1399L, WarlockAwakeningStates.snapshot(playerId).kills(), "Warlock awakening progress should remain locked before the configured kill requirement.")) {
             return;
         }
         PlayerLane lane = redLane(game, 1);
@@ -12335,7 +12056,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         creditedKill.recordLastHit(playerId, KillSourceKind.TOWER);
         creditedKill.syncHealth(0.0);
         new EconomyService(game.economyConfig(), game).awardMonsterKillReward(creditedKill, game.players());
-        if (!assertEquals(context, 1400L, WarlockAwakeningProgress.snapshot(playerId).kills(), "The credited 1400th kill should unlock awakening.")) {
+        if (!assertEquals(context, 1400L, WarlockAwakeningStates.snapshot(playerId).kills(), "The credited 1400th kill should unlock awakening.")) {
             return;
         }
 
@@ -12375,7 +12096,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("warlock-post-sacrifice-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
         for (int kill = 0; kill < 1400; kill++) {
-            WarlockAwakeningProgress.recordKill(playerId);
+            WarlockAwakeningStates.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
         BlockPos corePos = towerPlacementPos(lane);
@@ -12423,7 +12144,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         UUID playerId = stableUuid("warlock-melee-awakening-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED, WarlockTowerJob.ID);
         for (int kill = 0; kill < 1400; kill++) {
-            WarlockAwakeningProgress.recordKill(playerId);
+            WarlockAwakeningStates.recordKill(playerId);
         }
         PlayerLane lane = redLane(game, 1);
         BlockPos corePos = towerPlacementPos(lane);

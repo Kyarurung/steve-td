@@ -34,29 +34,29 @@ public final class WarlockAwakeningLifecycleGameTest {
             ProductionTowerCatalogs.reloadBuiltIns(defaults);
             recordKills(owner, 3);
             firstGame = startedGame(context, owner, "warlock-first");
-            require(WarlockAwakeningProgress.snapshot(owner).kills() == 0,
+            require(WarlockAwakeningStates.snapshot(owner).kills() == 0,
                     "Warlock match start must clear progress left by a previous match.");
 
             recordKills(owner, 5);
             require(firstGame.killBoss(context.getLevel().getServer(), TeamId.RED),
                     "Warlock lifecycle test must eliminate the active team.");
-            require(WarlockAwakeningProgress.snapshot(owner).kills() == 0,
+            require(WarlockAwakeningStates.snapshot(owner).kills() == 0,
                     "Warlock elimination must clear awakening progress.");
 
             recordKills(owner, 7);
             firstGame.close();
             firstClosed = true;
-            require(WarlockAwakeningProgress.snapshot(owner).kills() == 0,
+            require(WarlockAwakeningStates.snapshot(owner).kills() == 0,
                     "Warlock game close must clear progress even after elimination.");
 
             recordKills(owner, 11);
             secondGame = startedGame(context, owner, "warlock-reuse");
-            require(WarlockAwakeningProgress.snapshot(owner).kills() == 0,
+            require(WarlockAwakeningStates.snapshot(owner).kills() == 0,
                     "Reusing a player in a second match must not retain Warlock progress.");
             recordKills(owner, 1);
             secondGame.close();
             secondClosed = true;
-            require(WarlockAwakeningProgress.snapshot(owner).kills() == 0,
+            require(WarlockAwakeningStates.snapshot(owner).kills() == 0,
                     "The reused player's second game close must clear Warlock progress.");
             context.succeed();
         } catch (RuntimeException | Error failure) {
@@ -69,7 +69,7 @@ public final class WarlockAwakeningLifecycleGameTest {
             if (secondGame != null && !secondClosed) {
                 secondGame.close();
             }
-            WarlockAwakeningProgress.clear(owner);
+            WarlockAwakeningStates.clear(owner);
             TowerBalanceRuntime.apply(defaults);
         }
     }
@@ -95,7 +95,7 @@ public final class WarlockAwakeningLifecycleGameTest {
 
     private static void recordKills(UUID owner, int count) {
         for (int index = 0; index < count; index++) {
-            WarlockAwakeningProgress.recordKill(owner);
+            WarlockAwakeningStates.recordKill(owner);
         }
     }
 

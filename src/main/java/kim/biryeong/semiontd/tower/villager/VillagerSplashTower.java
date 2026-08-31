@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public class VillagerSplashTower extends SplashTower {
     private int attackAttempt = 0;
-    private final VillagerSurvivalState survival = new VillagerSurvivalState();
+    private final VillagerGolemSurvivalState survival = new VillagerGolemSurvivalState();
 
     public VillagerSplashTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);

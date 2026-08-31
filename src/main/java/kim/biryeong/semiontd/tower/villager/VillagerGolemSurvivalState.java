@@ -1,7 +1,7 @@
 package kim.biryeong.semiontd.tower.villager;
 
 /** Tower-scoped survival progress that must survive upgrades but not a new tower. */
-final class VillagerSurvivalState {
+final class VillagerGolemSurvivalState {
     private int stacks;
 
     int stacks() {
@@ -14,7 +14,7 @@ final class VillagerSurvivalState {
         return stacks > previous;
     }
 
-    void copyFrom(VillagerSurvivalState source, int maximum) {
+    void copyFrom(VillagerGolemSurvivalState source, int maximum) {
         if (source != null) {
             stacks = Math.min(Math.max(0, maximum), source.stacks);
         }

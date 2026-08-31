@@ -10,7 +10,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.damagesource.DamageSource;
 
 public class UndeadDrownedTower extends UndeadHuskTower {
-    private final UndeadLastStandState lastStand = new UndeadLastStandState();
+    private final UndeadDrownedLastStandState lastStand = new UndeadDrownedLastStandState();
 
     public UndeadDrownedTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);

@@ -6,16 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-class VillagerSurvivalStateTest {
+class VillagerGolemSurvivalStateTest {
     @Test
     void incrementsToCapAndCopiesOnlyUpToNewTowerCap() {
-        VillagerSurvivalState source = new VillagerSurvivalState();
+        VillagerGolemSurvivalState source = new VillagerGolemSurvivalState();
         assertTrue(source.increment(2));
         assertTrue(source.increment(2));
         assertFalse(source.increment(2));
         assertEquals(2, source.stacks());
 
-        VillagerSurvivalState upgraded = new VillagerSurvivalState();
+        VillagerGolemSurvivalState upgraded = new VillagerGolemSurvivalState();
         upgraded.copyFrom(source, 1);
         assertEquals(1, upgraded.stacks());
     }

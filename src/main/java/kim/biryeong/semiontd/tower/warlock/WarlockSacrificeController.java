@@ -10,9 +10,9 @@ import net.minecraft.world.phys.Vec3;
 
 final class WarlockSacrificeController {
     private final WarlockConfig config;
-    private final WarlockState state;
+    private final WarlockProgressionState state;
 
-    WarlockSacrificeController(WarlockConfig config, WarlockState state) {
+    WarlockSacrificeController(WarlockConfig config, WarlockProgressionState state) {
         this.config = config;
         this.state = state;
     }
@@ -39,16 +39,16 @@ final class WarlockSacrificeController {
             return false;
         }
 
-        WarlockSacrifice.Snapshot snapshot = WarlockSacrifice.snapshot(target);
+        WarlockSacrificeDomain.Snapshot snapshot = WarlockSacrificeDomain.snapshot(target);
         Vec3 center = sacrificedCenter(lane, target);
-        WarlockSacrifice.Gain gain = sacrificeGain(warlock, snapshot);
+        WarlockSacrificeDomain.Gain gain = sacrificeGain(warlock, snapshot);
         boolean killed = lane.killTower(target);
         if (!killed) {
             return false;
         }
 
         double previousMaxHealth = warlock.currentMaxHealth();
-        if (!WarlockSacrifice.commit(true, state, gain)) {
+        if (!WarlockSacrificeDomain.commit(true, state, gain)) {
             return false;
         }
         double increasedMaxHealth = Math.max(0.0, warlock.currentMaxHealth() - previousMaxHealth);
@@ -74,9 +74,9 @@ final class WarlockSacrificeController {
         return config.path(path).defense().maximum();
     }
 
-    private WarlockSacrifice.Gain sacrificeGain(WarlockTower warlock, WarlockSacrifice.Snapshot snapshot) {
+    private WarlockSacrificeDomain.Gain sacrificeGain(WarlockTower warlock, WarlockSacrificeDomain.Snapshot snapshot) {
         WarlockPath path = warlock.path();
-        return WarlockSacrifice.calculate(
+        return WarlockSacrificeDomain.calculate(
                 path,
                 snapshot,
                 config.path(path),

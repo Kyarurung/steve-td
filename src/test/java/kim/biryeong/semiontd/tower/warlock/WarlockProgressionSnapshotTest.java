@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 
 class WarlockProgressionSnapshotTest {
-    private static final WarlockAwakeningProgress.Snapshot LOCKED =
-            new WarlockAwakeningProgress.Snapshot(20, 1400, false);
+    private static final WarlockAwakeningStates.Snapshot LOCKED =
+            new WarlockAwakeningStates.Snapshot(20, 1400, false);
 
     @Test
     void everyDerivedStatUsesItsConfiguredTotalOrRoundCount() {
