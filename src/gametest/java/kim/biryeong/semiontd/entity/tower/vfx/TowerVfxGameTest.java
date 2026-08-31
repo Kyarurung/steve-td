@@ -80,12 +80,22 @@ public final class TowerVfxGameTest {
 
     @GameTest
     public void builderFamiliesChooseDistinctPalettes(GameTestHelper context) {
-        assertPalette(VillagerTowers.T1_CAT_TOWER, BuilderPalette.VILLAGER);
-        assertPalette(VillagerTowers.ADV_T1_CAT_TOWER, BuilderPalette.VILLAGER_ADV);
-        assertPalette(UndeadTowers.T1_ZOMBIE_TOWER, BuilderPalette.UNDEAD);
-        assertPalette(AnimalTowers.T1_PIG_TOWER, BuilderPalette.ANIMAL);
+        for (TowerType type : VillagerTowers.baseTowers()) {
+            assertPalette(type, BuilderPalette.VILLAGER);
+        }
+        for (TowerType type : VillagerTowers.advTowers()) {
+            assertPalette(type, BuilderPalette.VILLAGER_ADV);
+        }
+        for (TowerType type : UndeadTowers.all()) {
+            assertPalette(type, BuilderPalette.UNDEAD);
+        }
+        for (TowerType type : AnimalTowers.all()) {
+            assertPalette(type, BuilderPalette.ANIMAL);
+        }
         assertPalette(WarlockTowers.BASE_WARLOCK_TOWER, BuilderPalette.WARLOCK);
-        assertPalette(LegionTowers.T1_CHICKEN, BuilderPalette.LEGION);
+        for (TowerType type : LegionTowers.all()) {
+            assertPalette(type, BuilderPalette.LEGION);
+        }
         assertPalette(ResonanceTowers.FOCUS_CRYSTAL, BuilderPalette.RESONANCE);
         assertPalette(IllagerTowers.T1_VINDICATOR, BuilderPalette.ILLAGER);
         assertPalette(NetherTowers.T1_STRIDER, BuilderPalette.NETHER);
