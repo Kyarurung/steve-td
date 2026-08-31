@@ -3,10 +3,7 @@ package kim.biryeong.semiontd.tower.undead;
 import java.util.UUID;
 import kim.biryeong.semiontd.api.SemionTdApi;
 import kim.biryeong.semiontd.api.area.AreaEffectOutcome;
-import kim.biryeong.semiontd.api.area.AreaVfxSpec;
-import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
@@ -43,7 +40,7 @@ public class UndeadAnimalTower extends EntityBackedTower {
             return;
         }
         if (applyDebuffs(lane)) {
-            scanCooldownTicks = ticks("scanIntervalTicks");
+            scanCooldownTicks = ticks(UndeadAbilityKey.SCAN_INTERVAL_TICKS);
         }
     }
 
@@ -55,16 +52,16 @@ public class UndeadAnimalTower extends EntityBackedTower {
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "debuff"),
                 towerEntity,
-                value("radius"),
-                AreaVfxSpec.onChange(AreaVfxStyles.DEBUFF)
+                value(UndeadAbilityKey.RADIUS),
+                UndeadVfx.debuff()
         ).withFilter(monster -> monster.runtimeMonster().targetTeam() == teamId());
         var result = SemionTdApi.areaEffects().applyToMonsters(request, monster -> {
             boolean changed = false;
             double previousAttack = monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION);
             monster.applyTimedEffect(
                     TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION,
-                    value("attackDamageReduction"),
-                    ticks("debuffDurationTicks")
+                    value(UndeadAbilityKey.ATTACK_DAMAGE_REDUCTION),
+                    ticks(UndeadAbilityKey.DEBUFF_DURATION_TICKS)
             );
             changed |= Double.compare(previousAttack,
                     monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_ATTACK_DAMAGE_REDUCTION)) != 0;
@@ -72,8 +69,8 @@ public class UndeadAnimalTower extends EntityBackedTower {
                 double previousTaken = monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS);
                 monster.applyTimedEffect(
                         TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS,
-                        value("towerDamageTakenBonus"),
-                        ticks("debuffDurationTicks")
+                        value(UndeadAbilityKey.TOWER_DAMAGE_TAKEN_BONUS),
+                        ticks(UndeadAbilityKey.DEBUFF_DURATION_TICKS)
                 );
                 changed |= Double.compare(previousTaken,
                         monster.activeTimedEffectMagnitude(TimedEffectType.MONSTER_TOWER_DAMAGE_TAKEN_BONUS)) != 0;
@@ -94,11 +91,11 @@ public class UndeadAnimalTower extends EntityBackedTower {
         return type().id().equals(towerType.id());
     }
 
-    private double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    private double value(UndeadAbilityKey ability) {
+        return UndeadConfig.RUNTIME.value(type(), ability);
     }
 
-    private int ticks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
+    private int ticks(UndeadAbilityKey ability) {
+        return UndeadConfig.RUNTIME.ticks(type(), ability);
     }
 }

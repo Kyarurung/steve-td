@@ -1,11 +1,8 @@
 package kim.biryeong.semiontd.tower.villager;
 
-import kim.biryeong.semiontd.api.area.AreaVfxSpec;
-import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -34,15 +31,15 @@ public class VillagerThornTower extends EntityBackedTower {
         if (this.thornCooldownTicks > 0) {
             return;
         }
-        float range = (float) value("thornRadius");
-        double damage = value("thornDamage");
+        float range = (float) value(VillagerAbilityKey.THORN_RADIUS);
+        double damage = value(VillagerAbilityKey.THORN_DAMAGE);
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "thorns"), towerEntity, range,
-                AreaVfxSpec.onTrigger(AreaVfxStyles.PULSE)
+                VillagerVfx.pulse()
         );
         TowerAreaDamage.apply(this, towerEntity, request, monster -> damage, false);
 
-        this.thornCooldownTicks = ticks("thornCooldownTicks");
+        this.thornCooldownTicks = ticks(VillagerAbilityKey.THORN_COOLDOWN_TICKS);
     }
 
     @Override
@@ -87,20 +84,24 @@ public class VillagerThornTower extends EntityBackedTower {
         }
     }
 
-    private double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    private double value(VillagerAbilityKey ability) {
+        return VillagerConfig.RUNTIME.value(type(), ability);
     }
 
-    private int ticks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
+    private int ticks(VillagerAbilityKey ability) {
+        return VillagerConfig.RUNTIME.ticks(type(), ability);
     }
 
     private int maxSurvivalStacks() {
-        return TowerBalanceRuntime.abilityInt(type().id(), "maxSurvivalStacks");
+        return VillagerConfig.RUNTIME.integer(type(), VillagerAbilityKey.MAX_SURVIVAL_STACKS);
     }
 
     private double survivalHealthBonus() {
-        return value("healthBonusPerSurvivedRound") * survival.stacks() * VillagerAdvStates.survivalBonusMultiplier(this);
+        return VillagerCombat.survivalBonus(
+                value(VillagerAbilityKey.HEALTH_BONUS_PER_SURVIVED_ROUND),
+                survival.stacks(),
+                VillagerAdvStates.survivalBonusMultiplier(this)
+        );
     }
 
     private void increaseSurvivalBonus() {

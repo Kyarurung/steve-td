@@ -194,10 +194,10 @@ import kim.biryeong.semiontd.tower.adversary.RivalContribution;
 import kim.biryeong.semiontd.tower.adversary.RivalKind;
 import kim.biryeong.semiontd.tower.animal.AnimalTowerCatalogs;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
-import kim.biryeong.semiontd.tower.animal.FoxTower;
-import kim.biryeong.semiontd.tower.animal.PigTower;
-import kim.biryeong.semiontd.tower.animal.RabbitTower;
-import kim.biryeong.semiontd.tower.animal.WolfTower;
+import kim.biryeong.semiontd.tower.animal.AnimalFoxTower;
+import kim.biryeong.semiontd.tower.animal.AnimalPigTower;
+import kim.biryeong.semiontd.tower.animal.AnimalRabbitTower;
+import kim.biryeong.semiontd.tower.animal.AnimalWolfTower;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisTower;
@@ -216,11 +216,11 @@ import kim.biryeong.semiontd.tower.undead.UndeadRangedSkeletonTower;
 import kim.biryeong.semiontd.tower.undead.UndeadTowerCatalogs;
 import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.undead.UndeadZombieTower;
-import kim.biryeong.semiontd.tower.legion.BeeTower;
-import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
-import kim.biryeong.semiontd.tower.legion.IllusionProfile;
-import kim.biryeong.semiontd.tower.legion.IllusionRuntimeTower;
-import kim.biryeong.semiontd.tower.legion.IllusionSummonerTower;
+import kim.biryeong.semiontd.tower.legion.LegionBeeTower;
+import kim.biryeong.semiontd.tower.legion.LegionIllusionSpawnQueue;
+import kim.biryeong.semiontd.tower.legion.LegionIllusionProfile;
+import kim.biryeong.semiontd.tower.legion.LegionIllusionRuntimeTower;
+import kim.biryeong.semiontd.tower.legion.LegionIllusionSummonerTower;
 import kim.biryeong.semiontd.tower.legion.LegionGlobalIllusionTower;
 import kim.biryeong.semiontd.tower.legion.LegionGoatTower;
 import kim.biryeong.semiontd.tower.legion.LegionParrotTower;
@@ -235,9 +235,9 @@ import kim.biryeong.semiontd.tower.ocean.OceanWaterTower;
 import kim.biryeong.semiontd.tower.resonance.ResonanceService;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTower;
 import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
-import kim.biryeong.semiontd.tower.villager.AllayTower;
-import kim.biryeong.semiontd.tower.villager.AntiTankerCatTower;
-import kim.biryeong.semiontd.tower.villager.LaneClearCatTower;
+import kim.biryeong.semiontd.tower.villager.VillagerAllayTower;
+import kim.biryeong.semiontd.tower.villager.VillagerAntiTankerCatTower;
+import kim.biryeong.semiontd.tower.villager.VillagerLaneClearCatTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerThornTower;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
@@ -5507,8 +5507,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
         TowerType foxType = TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER);
-        lane.addTower(new FoxTower(foxType, playerId, TeamId.RED, testLaneId, GridPosition.from(towerPos)));
-        FoxTower foxTower = (FoxTower) lane.towers().getFirst();
+        lane.addTower(new AnimalFoxTower(foxType, playerId, TeamId.RED, testLaneId, GridPosition.from(towerPos)));
+        AnimalFoxTower foxTower = (AnimalFoxTower) lane.towers().getFirst();
         if (!assertTrue(context, foxTower.entityId().isPresent(), "Fox tower entity should exist.")) {
             return;
         }
@@ -5582,8 +5582,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         Vec3 deathPosition = lane.laneLayout().positionAt(0.0);
         BlockPos towerPos = BlockPos.containing(deathPosition.x, deathPosition.y - 1.0, deathPosition.z);
         TowerType foxType = TowerBalanceRuntime.resolve(AnimalTowers.T1_FOX_TOWER);
-        lane.addTower(new FoxTower(foxType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
-        FoxTower foxTower = (FoxTower) lane.towers().getFirst();
+        lane.addTower(new AnimalFoxTower(foxType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
+        AnimalFoxTower foxTower = (AnimalFoxTower) lane.towers().getFirst();
         if (!assertTrue(context, foxTower.entityId().isPresent(), "Fox tower entity should exist.")) {
             return;
         }
@@ -5725,8 +5725,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         PlayerLane lane = redLane(game, 1);
         BlockPos towerPos = towerPlacementPos(lane);
         TowerType beeType = TowerBalanceRuntime.resolve(baseBee);
-        lane.addTower(new BeeTower(beeType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
-        BeeTower beeTower = (BeeTower) lane.towers().getFirst();
+        lane.addTower(new LegionBeeTower(beeType, playerId, TeamId.RED, 1, GridPosition.from(towerPos)));
+        LegionBeeTower beeTower = (LegionBeeTower) lane.towers().getFirst();
         if (!assertTrue(context, beeTower.entityId().isPresent(), "Bee tower entity should exist.")) {
             TowerBalanceRuntime.apply(defaults);
             return;
@@ -6333,7 +6333,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId.RED,
                 1,
                 position,
-                new IllusionProfile(2, 0, 0.25, 0.5, 1.5, 2.0, 1.0, 99)
+                new LegionIllusionProfile(2, 0, 0.25, 0.5, 1.5, 2.0, 1.0, 99)
         );
         lane.addTower(tower);
 
@@ -6379,12 +6379,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             }
             if (!assertTrue(
                     context,
-                    cloneEntity.runtimeTower() instanceof IllusionRuntimeTower,
+                    cloneEntity.runtimeTower() instanceof LegionIllusionRuntimeTower,
                     "Spawned clone should be backed by an illusion runtime tower."
             )) {
                 return;
             }
-            IllusionRuntimeTower cloneTower = (IllusionRuntimeTower) cloneEntity.runtimeTower();
+            LegionIllusionRuntimeTower cloneTower = (LegionIllusionRuntimeTower) cloneEntity.runtimeTower();
             if (!assertEquals(context, "illusion_fixture#illusion", cloneTower.type().id(), "Clone type should use an internal illusion id.")) {
                 return;
             }
@@ -6421,12 +6421,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         for (SemionTowerEntity cloneEntity : firstRoundClones) {
             if (!assertTrue(
                     context,
-                    cloneEntity.runtimeTower() instanceof IllusionRuntimeTower,
+                    cloneEntity.runtimeTower() instanceof LegionIllusionRuntimeTower,
                     "Final-defense clone should still be backed by an illusion runtime tower."
             )) {
                 return;
             }
-            IllusionRuntimeTower cloneTower = (IllusionRuntimeTower) cloneEntity.runtimeTower();
+            LegionIllusionRuntimeTower cloneTower = (LegionIllusionRuntimeTower) cloneEntity.runtimeTower();
             finalDefensePositions.add(cloneTower.position());
             if (!assertTrue(context, cloneTower.deployedAtFinalDefense(), "Wave-cleared clone should move to final defense.")) {
                 return;
@@ -6488,7 +6488,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId.RED,
                 1,
                 position,
-                new IllusionProfile(10, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
+                new LegionIllusionProfile(10, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
         );
         lane.addTower(tower);
 
@@ -6533,7 +6533,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void gameCloseDiscardsRuntimeEntitiesAndCancelsPendingIllusionClones(GameTestHelper context) {
-        IllusionCloneSpawnQueue.clear();
+        LegionIllusionSpawnQueue.clear();
         UUID playerId = stableUuid("red-illusion-close-owner");
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
@@ -6545,7 +6545,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId.RED,
                 1,
                 position,
-                new IllusionProfile(10, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
+                new LegionIllusionProfile(10, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
         );
         lane.addTower(tower);
         int bodyEntityId = tower.entityId().orElse(-1);
@@ -6571,12 +6571,12 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         for (int tick = 0; tick < 40; tick++) {
-            IllusionCloneSpawnQueue.tick();
+            LegionIllusionSpawnQueue.tick();
         }
         if (!assertEquals(context, 1, tower.spawnedCloneEntities().size(), "Closing the game should cancel pending illusion clone spawns.")) {
             return;
         }
-        IllusionCloneSpawnQueue.clear();
+        LegionIllusionSpawnQueue.clear();
         context.succeed();
     }
 
@@ -6593,7 +6593,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId.RED,
                 1,
                 position,
-                new IllusionProfile(12, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
+                new LegionIllusionProfile(12, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
         );
         lane.addTower(tower);
 
@@ -6634,7 +6634,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId.RED,
                 1,
                 position,
-                new IllusionProfile(1, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
+                new LegionIllusionProfile(1, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
         );
         lane.addTower(tower);
         lane.markWaveStarted(1);
@@ -6701,7 +6701,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId.RED,
                 1,
                 position,
-                new IllusionProfile(5, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
+                new LegionIllusionProfile(5, 0, 0.25, 0.5, 1.0, 1.0, 1.0, 0)
         );
         lane.addTower(tower);
 
@@ -9306,7 +9306,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
-        AllayTower allayTower = new AllayTower(
+        VillagerAllayTower allayTower = new VillagerAllayTower(
                 VillagerTowers.T1_ALLAY_TOWER,
                 playerId,
                 TeamId.RED,
@@ -9475,7 +9475,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
-        AllayTower weaponSmithTower = new AllayTower(
+        VillagerAllayTower weaponSmithTower = new VillagerAllayTower(
                 VillagerTowers.T2_WEAPON_SMITH_TOWER,
                 playerId,
                 TeamId.RED,
@@ -9515,7 +9515,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
-        PigTower tower = new PigTower(
+        AnimalPigTower tower = new AnimalPigTower(
                 AnimalTowers.T3_PIG_TOWER,
                 playerId,
                 TeamId.RED,
@@ -9523,8 +9523,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 new GridPosition(base.getX(), base.getY(), base.getZ())
         );
         lane.addTower(tower);
-        lane.addTower(new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 1, base.getY(), base.getZ())));
-        lane.addTower(new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 2, base.getY(), base.getZ())));
+        lane.addTower(new AnimalPigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 1, base.getY(), base.getZ())));
+        lane.addTower(new AnimalPigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 2, base.getY(), base.getZ())));
 
         if (!assertClose(context, 530.0, tower.currentMaxHealth(), "T3 pig should gain max health from two same-owner pig stacks.")) {
             return;
@@ -9561,21 +9561,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
-        WolfTower tower = new WolfTower(
+        AnimalWolfTower tower = new AnimalWolfTower(
                 AnimalTowers.T2_WOLF_DPS_TOWER,
                 playerId,
                 TeamId.RED,
                 1,
                 new GridPosition(base.getX(), base.getY(), base.getZ())
         );
-        WolfTower t1Tower = new WolfTower(
+        AnimalWolfTower t1Tower = new AnimalWolfTower(
                 AnimalTowers.T1_WOLF_TOWER,
                 playerId,
                 TeamId.RED,
                 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ() + 1)
         );
-        WolfTower t3Tower = new WolfTower(
+        AnimalWolfTower t3Tower = new AnimalWolfTower(
                 AnimalTowers.T3_WOLF_DPS_TOWER,
                 playerId,
                 TeamId.RED,
@@ -9585,9 +9585,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.addTower(tower);
         lane.addTower(t1Tower);
         lane.addTower(t3Tower);
-        lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 3, base.getY(), base.getZ() + 1)));
-        lane.addTower(new RabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 4, base.getY(), base.getZ() + 2)));
-        lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, stableUuid("other-wolf-owner"), TeamId.RED, 1, new GridPosition(base.getX() + 5, base.getY(), base.getZ() + 2)));
+        lane.addTower(new AnimalWolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 3, base.getY(), base.getZ() + 1)));
+        lane.addTower(new AnimalRabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 4, base.getY(), base.getZ() + 2)));
+        lane.addTower(new AnimalWolfTower(AnimalTowers.T1_WOLF_TOWER, stableUuid("other-wolf-owner"), TeamId.RED, 1, new GridPosition(base.getX() + 5, base.getY(), base.getZ() + 2)));
 
         if (!assertClose(context, 25.0, tower.modifyAttackDamage(null, null, tower.type().damage()), "Four total same-owner wolves should stay below max stacks.")) {
             return;
@@ -9595,7 +9595,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 16, tower.adjustAttackInterval(tower.type().attackIntervalTicks()), "Different-family and different-owner towers should not grant wolf stacks.")) {
             return;
         }
-        lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 6, base.getY(), base.getZ() + 1)));
+        lane.addTower(new AnimalWolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 6, base.getY(), base.getZ() + 1)));
 
         if (!assertClose(context, 13.0, t1Tower.modifyAttackDamage(null, null, t1Tower.type().damage()), "T1 wolf should reach 13 damage with five total wolves.")) {
             return;
@@ -9637,21 +9637,21 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
-        RabbitTower tower = new RabbitTower(
+        AnimalRabbitTower tower = new AnimalRabbitTower(
                 AnimalTowers.T3_RABBIT_TOWER,
                 playerId,
                 TeamId.RED,
                 1,
                 new GridPosition(base.getX(), base.getY(), base.getZ())
         );
-        RabbitTower t1Tower = new RabbitTower(
+        AnimalRabbitTower t1Tower = new AnimalRabbitTower(
                 AnimalTowers.T1_RABBIT_TOWER,
                 playerId,
                 TeamId.RED,
                 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ() + 2)
         );
-        RabbitTower t2Tower = new RabbitTower(
+        AnimalRabbitTower t2Tower = new AnimalRabbitTower(
                 AnimalTowers.T2_RABBIT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -9661,9 +9661,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         lane.addTower(tower);
         lane.addTower(t1Tower);
         lane.addTower(t2Tower);
-        lane.addTower(new RabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 3, base.getY(), base.getZ() + 2)));
-        lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 4, base.getY(), base.getZ() + 1)));
-        lane.addTower(new RabbitTower(AnimalTowers.T1_RABBIT_TOWER, stableUuid("other-rabbit-owner"), TeamId.RED, 1, new GridPosition(base.getX() + 5, base.getY(), base.getZ() + 1)));
+        lane.addTower(new AnimalRabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 3, base.getY(), base.getZ() + 2)));
+        lane.addTower(new AnimalWolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 4, base.getY(), base.getZ() + 1)));
+        lane.addTower(new AnimalRabbitTower(AnimalTowers.T1_RABBIT_TOWER, stableUuid("other-rabbit-owner"), TeamId.RED, 1, new GridPosition(base.getX() + 5, base.getY(), base.getZ() + 1)));
 
         if (!assertClose(context, 47.5, tower.modifyAttackDamage(null, null, tower.type().damage()), "Four total same-owner rabbits should stay below max stacks.")) {
             return;
@@ -9687,7 +9687,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        lane.addTower(new RabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 6, base.getY(), base.getZ() + 2)));
+        lane.addTower(new AnimalRabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1, new GridPosition(base.getX() + 6, base.getY(), base.getZ() + 2)));
 
         if (!assertClose(context, 15.0, t1Tower.modifyAttackDamage(null, null, t1Tower.type().damage()), "T1 rabbit should reach 15 damage with five total rabbits.")) {
             return;
@@ -9723,7 +9723,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         game.players().get(playerId).economy().addMineral(3_000);
 
         GridPosition pigPosition = new GridPosition(base.getX(), base.getY(), base.getZ());
-        PigTower pig = new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1, pigPosition);
+        AnimalPigTower pig = new AnimalPigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1, pigPosition);
         lane.addTower(pig);
         long beforeRejectedUpgrade = game.players().get(playerId).economy().mineral();
         if (!assertTrue(context, ProductionTowerService.availableUpgrades(game, playerId, pigPosition).isEmpty(), "Leader upgrade should stay hidden below max stacks.")) {
@@ -9738,9 +9738,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        lane.addTower(new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+        lane.addTower(new AnimalPigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ())));
-        lane.addTower(new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+        lane.addTower(new AnimalPigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 2, base.getY(), base.getZ())));
         if (!assertEquals(context, Set.of(AnimalTowers.T4_PIG_LEADER_TOWER.id()),
                 ProductionTowerService.availableUpgrades(game, playerId, pigPosition).stream()
@@ -9755,7 +9755,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         GridPosition secondPigPosition = new GridPosition(base.getX() + 3, base.getY(), base.getZ());
-        lane.addTower(new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1, secondPigPosition));
+        lane.addTower(new AnimalPigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1, secondPigPosition));
         long beforeDuplicateLeader = game.players().get(playerId).economy().mineral();
         if (!assertEquals(context, TowerUpgradeResult.UPGRADE_REQUIREMENTS_NOT_MET,
                 ProductionTowerService.upgradeTower(game, playerId, secondPigPosition, AnimalTowers.T4_PIG_LEADER_TOWER.id()),
@@ -9767,9 +9767,9 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         GridPosition wolfPosition = new GridPosition(base.getX(), base.getY(), base.getZ() + 4);
-        lane.addTower(new WolfTower(AnimalTowers.T3_WOLF_DPS_TOWER, playerId, TeamId.RED, 1, wolfPosition));
+        lane.addTower(new AnimalWolfTower(AnimalTowers.T3_WOLF_DPS_TOWER, playerId, TeamId.RED, 1, wolfPosition));
         for (int index = 0; index < 4; index++) {
-            lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1,
+            lane.addTower(new AnimalWolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1,
                     new GridPosition(base.getX() + index + 1, base.getY(), base.getZ() + 4)));
         }
         if (!assertEquals(context, TowerUpgradeResult.SUCCESS,
@@ -9779,10 +9779,10 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         GridPosition foxPosition = new GridPosition(base.getX(), base.getY(), base.getZ() + 8);
-        FoxTower fox = new FoxTower(AnimalTowers.T3_FOX_TOWER, playerId, TeamId.RED, 1, foxPosition);
+        AnimalFoxTower fox = new AnimalFoxTower(AnimalTowers.T3_FOX_TOWER, playerId, TeamId.RED, 1, foxPosition);
         lane.addTower(fox);
         for (int index = 0; index < 4; index++) {
-            lane.addTower(new FoxTower(AnimalTowers.T1_FOX_TOWER, playerId, TeamId.RED, 1,
+            lane.addTower(new AnimalFoxTower(AnimalTowers.T1_FOX_TOWER, playerId, TeamId.RED, 1,
                     new GridPosition(base.getX() + index + 1, base.getY(), base.getZ() + 8)));
         }
         fox.onNearbyMonsterDeath(lane, deathStackTestMonster("leader-fox-kill", Optional.empty(), TeamId.RED, 1),
@@ -9793,7 +9793,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
         Tower upgradedFox = lane.towerAt(foxPosition);
-        if (!assertTrue(context, upgradedFox instanceof FoxTower foxLeader
+        if (!assertTrue(context, upgradedFox instanceof AnimalFoxTower foxLeader
                         && foxLeader.modifyAttackDamage(null, null, foxLeader.type().damage())
                         > foxLeader.type().damage(),
                 "Fox kill bonus should survive the T3-to-leader upgrade.")) {
@@ -9809,11 +9809,11 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
 
-        PigTower leader = new PigTower(AnimalTowers.T4_PIG_LEADER_TOWER, playerId, TeamId.RED, 1,
+        AnimalPigTower leader = new AnimalPigTower(AnimalTowers.T4_PIG_LEADER_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX(), base.getY(), base.getZ()));
-        PigTower recipient = new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1,
+        AnimalPigTower recipient = new AnimalPigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ()));
-        PigTower support = new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+        AnimalPigTower support = new AnimalPigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 2, base.getY(), base.getZ()));
         lane.addTower(leader);
         lane.addTower(recipient);
@@ -9835,18 +9835,18 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertClose(context, 100.0, recipient.modifyIncomingDamage(null, null, 100.0), "Max-stack and leader reductions should both deactivate after stack loss.")) {
             return;
         }
-        PigTower restoredSupport = new PigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
+        AnimalPigTower restoredSupport = new AnimalPigTower(AnimalTowers.T1_PIG_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 2, base.getY(), base.getZ()));
         lane.addTower(restoredSupport);
         if (!assertClose(context, 609.5, recipient.currentMaxHealth(), "Leader aura should reactivate when max stacks return.")) {
             return;
         }
 
-        PigTower otherOwner = new PigTower(AnimalTowers.T3_PIG_TOWER, stableUuid("other-pig-owner"), TeamId.RED, 1,
+        AnimalPigTower otherOwner = new AnimalPigTower(AnimalTowers.T3_PIG_TOWER, stableUuid("other-pig-owner"), TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ() + 1));
-        RabbitTower otherFamily = new RabbitTower(AnimalTowers.T3_RABBIT_TOWER, playerId, TeamId.RED, 1,
+        AnimalRabbitTower otherFamily = new AnimalRabbitTower(AnimalTowers.T3_RABBIT_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ() + 2));
-        PigTower outOfRange = new PigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1,
+        AnimalPigTower outOfRange = new AnimalPigTower(AnimalTowers.T3_PIG_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 20, base.getY(), base.getZ()));
         lane.addTower(otherOwner);
         lane.addTower(otherFamily);
@@ -9871,7 +9871,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 "A dead leader should stop its aura on the next state refresh.")) {
             return;
         }
-        PigTower replacementLeader = new PigTower(AnimalTowers.T4_PIG_LEADER_TOWER, playerId, TeamId.RED, 1,
+        AnimalPigTower replacementLeader = new AnimalPigTower(AnimalTowers.T4_PIG_LEADER_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX(), base.getY(), base.getZ() + 1));
         lane.addTower(replacementLeader);
         if (!assertClose(context, activeAuraHealth, recipient.currentMaxHealth(),
@@ -9893,14 +9893,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
 
-        WolfTower wolfLeader = new WolfTower(AnimalTowers.T4_WOLF_LEADER_TOWER, playerId, TeamId.RED, 1,
+        AnimalWolfTower wolfLeader = new AnimalWolfTower(AnimalTowers.T4_WOLF_LEADER_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX(), base.getY(), base.getZ()));
-        WolfTower wolf = new WolfTower(AnimalTowers.T3_WOLF_DPS_TOWER, playerId, TeamId.RED, 1,
+        AnimalWolfTower wolf = new AnimalWolfTower(AnimalTowers.T3_WOLF_DPS_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), base.getZ()));
         lane.addTower(wolfLeader);
         lane.addTower(wolf);
         for (int index = 0; index < 3; index++) {
-            lane.addTower(new WolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1,
+            lane.addTower(new AnimalWolfTower(AnimalTowers.T1_WOLF_TOWER, playerId, TeamId.RED, 1,
                     new GridPosition(base.getX() + index + 2, base.getY(), base.getZ())));
         }
         if (!assertEquals(context, 9, wolf.adjustAttackInterval(wolf.type().attackIntervalTicks()), "Wolf leader should reduce the T3 max-stack interval from 10 to 9 ticks.")) {
@@ -9916,14 +9916,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         int rabbitZ = base.getZ() + 10;
-        RabbitTower rabbitLeader = new RabbitTower(AnimalTowers.T4_RABBIT_LEADER_TOWER, playerId, TeamId.RED, 1,
+        AnimalRabbitTower rabbitLeader = new AnimalRabbitTower(AnimalTowers.T4_RABBIT_LEADER_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX(), base.getY(), rabbitZ));
-        RabbitTower rabbit = new RabbitTower(AnimalTowers.T3_RABBIT_TOWER, playerId, TeamId.RED, 1,
+        AnimalRabbitTower rabbit = new AnimalRabbitTower(AnimalTowers.T3_RABBIT_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), rabbitZ));
         lane.addTower(rabbitLeader);
         lane.addTower(rabbit);
         for (int index = 0; index < 3; index++) {
-            lane.addTower(new RabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1,
+            lane.addTower(new AnimalRabbitTower(AnimalTowers.T1_RABBIT_TOWER, playerId, TeamId.RED, 1,
                     new GridPosition(base.getX() + index + 2, base.getY(), rabbitZ)));
         }
         if (!assertClose(context, 64.8, rabbit.modifyAttackDamage(null, null, rabbit.type().damage()), "Rabbit leader should multiply max-stack T3 damage by 8%.")) {
@@ -9934,14 +9934,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         int foxZ = base.getZ() + 20;
-        FoxTower foxLeader = new FoxTower(AnimalTowers.T4_FOX_LEADER_TOWER, playerId, TeamId.RED, 1,
+        AnimalFoxTower foxLeader = new AnimalFoxTower(AnimalTowers.T4_FOX_LEADER_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX(), base.getY(), foxZ));
-        FoxTower fox = new FoxTower(AnimalTowers.T3_FOX_TOWER, playerId, TeamId.RED, 1,
+        AnimalFoxTower fox = new AnimalFoxTower(AnimalTowers.T3_FOX_TOWER, playerId, TeamId.RED, 1,
                 new GridPosition(base.getX() + 1, base.getY(), foxZ));
         lane.addTower(foxLeader);
         lane.addTower(fox);
         for (int index = 0; index < 3; index++) {
-            lane.addTower(new FoxTower(AnimalTowers.T1_FOX_TOWER, playerId, TeamId.RED, 1,
+            lane.addTower(new AnimalFoxTower(AnimalTowers.T1_FOX_TOWER, playerId, TeamId.RED, 1,
                     new GridPosition(base.getX() + index + 2, base.getY(), foxZ)));
         }
         SemionMonsterEntity belowAuraThreshold = spawnSummonEntity(
@@ -10014,7 +10014,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
 
     @GameTest
     public void villagerAntiTankerCatBonusesNonWaveAndTankTargets(GameTestHelper context) {
-        AntiTankerCatTower catTower = new AntiTankerCatTower(
+        VillagerAntiTankerCatTower catTower = new VillagerAntiTankerCatTower(
                 VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
                 stableUuid("anti-tanker-cat-owner"),
                 TeamId.RED,
@@ -10070,7 +10070,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionGame game = startedSinglePlayerGame(context, playerId, TeamId.RED);
         PlayerLane lane = redLane(game, 1);
         BlockPos base = towerPlacementPos(lane);
-        LaneClearCatTower catTower = new LaneClearCatTower(
+        VillagerLaneClearCatTower catTower = new VillagerLaneClearCatTower(
                 VillagerTowers.T2_LANE_CLEAR_CAT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -10175,7 +10175,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         SemionTowerEntity sourceEntity = (SemionTowerEntity) lane.arenaWorld().getEntity(source.entityId().orElseThrow());
 
         Vec3 illusionPosition = sourceEntity.position().add(1.0, 0.0, 0.0);
-        IllusionRuntimeTower illusion = new IllusionRuntimeTower(
+        LegionIllusionRuntimeTower illusion = new LegionIllusionRuntimeTower(
                 TestTowerTypes.TEST_DIRECT,
                 playerId,
                 TeamId.RED,
@@ -10210,7 +10210,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 2, result.candidateCount(), "Registered-and-clones mode should include one registered target and one illusion.")) {
             return;
         }
-        if (!assertEquals(context, 1L, result.hits().stream().filter(hit -> hit.target().illusion()).count(), "Only IllusionRuntimeTower should be marked as an illusion.")) {
+        if (!assertEquals(context, 1L, result.hits().stream().filter(hit -> hit.target().illusion()).count(), "Only LegionIllusionRuntimeTower should be marked as an illusion.")) {
             return;
         }
         if (!assertTrue(context, result.hits().stream().noneMatch(hit -> hit.target().tower() == unregisteredTower), "An unrelated unregistered tower entity should not be treated as an illusion.")) {
@@ -10227,7 +10227,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         Vec3 deathPosition = lane.laneLayout().positionAt(0.0);
         BlockPos towerBlock = BlockPos.containing(deathPosition.x, deathPosition.y - 1.0, deathPosition.z);
         GridPosition stackTowerPosition = GridPosition.from(towerBlock);
-        AntiTankerCatTower catTower = new AntiTankerCatTower(
+        VillagerAntiTankerCatTower catTower = new VillagerAntiTankerCatTower(
                 VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -10295,13 +10295,13 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 2, ProductionTowerCatalog.upgrades(VillagerTowers.T1_CAT_TOWER).size(), "Cat starter should branch to anti-tanker and lane-clear towers.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_ANTI_TANKER_CAT_TOWER).orElseThrow().create(stableUuid("cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof AntiTankerCatTower, "Anti-tanker cat catalog entry should create AntiTankerCatTower.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_ANTI_TANKER_CAT_TOWER).orElseThrow().create(stableUuid("cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof VillagerAntiTankerCatTower, "Anti-tanker cat catalog entry should create VillagerAntiTankerCatTower.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_LANE_CLEAR_CAT_TOWER).orElseThrow().create(stableUuid("lane-cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof LaneClearCatTower, "Lane-clear cat catalog entry should create LaneClearCatTower.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T2_LANE_CLEAR_CAT_TOWER).orElseThrow().create(stableUuid("lane-cat-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof VillagerLaneClearCatTower, "Lane-clear cat catalog entry should create VillagerLaneClearCatTower.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T1_ALLAY_TOWER).orElseThrow().create(stableUuid("allay-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof AllayTower, "Allay catalog entry should create AllayTower through the widened production factory.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(VillagerTowers.T1_ALLAY_TOWER).orElseThrow().create(stableUuid("allay-catalog-owner"), TeamId.RED, 1, new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)) instanceof VillagerAllayTower, "Allay catalog entry should create VillagerAllayTower through the widened production factory.")) {
             return;
         }
         context.succeed();
@@ -10421,16 +10421,16 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         if (!assertEquals(context, 4, ProductionTowerCatalog.entry(AnimalTowers.T4_FOX_LEADER_TOWER).orElseThrow().tier(), "Fox leader should be registered as tier 4.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_PIG_TOWER).orElseThrow().create(stableUuid("pig-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof PigTower, "Pig catalog entry should create PigTower.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_PIG_TOWER).orElseThrow().create(stableUuid("pig-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof AnimalPigTower, "Pig catalog entry should create AnimalPigTower.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_WOLF_TOWER).orElseThrow().create(stableUuid("wolf-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof WolfTower, "Wolf catalog entry should create WolfTower.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_WOLF_TOWER).orElseThrow().create(stableUuid("wolf-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof AnimalWolfTower, "Wolf catalog entry should create AnimalWolfTower.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_RABBIT_TOWER).orElseThrow().create(stableUuid("rabbit-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof RabbitTower, "Rabbit catalog entry should create RabbitTower.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_RABBIT_TOWER).orElseThrow().create(stableUuid("rabbit-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof AnimalRabbitTower, "Rabbit catalog entry should create AnimalRabbitTower.")) {
             return;
         }
-        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_FOX_TOWER).orElseThrow().create(stableUuid("fox-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof FoxTower, "Fox catalog entry should create FoxTower.")) {
+        if (!assertTrue(context, ProductionTowerCatalog.entry(AnimalTowers.T1_FOX_TOWER).orElseThrow().create(stableUuid("fox-catalog-owner"), TeamId.RED, 1, new GridPosition(0, 0, 0)) instanceof AnimalFoxTower, "Fox catalog entry should create AnimalFoxTower.")) {
             return;
         }
         context.succeed();
@@ -12634,14 +12634,14 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         GridPosition position = GridPosition.from(context.absolutePos(BlockPos.ZERO));
 
         for (Tower tower : List.of(
-                new AntiTankerCatTower(
+                new VillagerAntiTankerCatTower(
                         VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
                         stableUuid("maximum-health-sniper-cat"),
                         TeamId.RED,
                         1,
                         position
                 ),
-                new AntiTankerCatTower(
+                new VillagerAntiTankerCatTower(
                         VillagerTowers.ADV_T2_ANTI_TANKER_CAT_TOWER,
                         stableUuid("maximum-health-adv-sniper-cat"),
                         TeamId.RED,
@@ -12749,7 +12749,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     @GameTest
     public void villagerCatUpgradesCopyKillStackDamage(GameTestHelper context) {
         UUID playerId = stableUuid("cat-stack-copy-owner");
-        AntiTankerCatTower t2Anti = new AntiTankerCatTower(
+        VillagerAntiTankerCatTower t2Anti = new VillagerAntiTankerCatTower(
                 VillagerTowers.T2_ANTI_TANKER_CAT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -12757,7 +12757,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)
         );
         t2Anti.onNearbyMonsterDeath(null, null, new Vec3(0.5, 1.0, 0.5));
-        AntiTankerCatTower t3Anti = new AntiTankerCatTower(
+        VillagerAntiTankerCatTower t3Anti = new VillagerAntiTankerCatTower(
                 VillagerTowers.T3_ANTI_TANKER_CAT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -12780,7 +12780,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
             return;
         }
 
-        LaneClearCatTower t2LaneClear = new LaneClearCatTower(
+        VillagerLaneClearCatTower t2LaneClear = new VillagerLaneClearCatTower(
                 VillagerTowers.T2_LANE_CLEAR_CAT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -12788,7 +12788,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 new kim.biryeong.semiontd.game.GridPosition(0, 0, 0)
         );
         t2LaneClear.onNearbyMonsterDeath(null, null, new Vec3(0.5, 1.0, 0.5));
-        LaneClearCatTower t3LaneClear = new LaneClearCatTower(
+        VillagerLaneClearCatTower t3LaneClear = new VillagerLaneClearCatTower(
                 VillagerTowers.T3_LANE_CLEAR_CAT_TOWER,
                 playerId,
                 TeamId.RED,
@@ -13580,7 +13580,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
     }
 
     private static void tickLaneWithGlobalCloneQueue(PlayerLane lane, MinecraftServer server) {
-        IllusionCloneSpawnQueue.tick();
+        LegionIllusionSpawnQueue.tick();
         lane.tick(server);
     }
 
@@ -14097,8 +14097,8 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
     }
 
-    private static final class FixtureIllusionTower extends IllusionSummonerTower {
-        private final IllusionProfile profile;
+    private static final class FixtureIllusionTower extends LegionIllusionSummonerTower {
+        private final LegionIllusionProfile profile;
         private final List<SemionTowerEntity> spawnedCloneEntities = new ArrayList<>();
 
         private FixtureIllusionTower(
@@ -14107,7 +14107,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
                 TeamId teamId,
                 int laneId,
                 GridPosition position,
-                IllusionProfile profile
+                LegionIllusionProfile profile
         ) {
             super(type, ownerPlayer, teamId, laneId, position);
             this.profile = profile;
@@ -14118,7 +14118,7 @@ public final class SemionParticipantGameTest implements CustomTestMethodInvoker 
         }
 
         @Override
-        protected IllusionProfile illusionProfile(PlayerLane lane) {
+        protected LegionIllusionProfile illusionProfile(PlayerLane lane) {
             return profile;
         }
 

@@ -8,7 +8,7 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
 
-public class LegionGlobalIllusionTower extends IllusionSummonerTower {
+public class LegionGlobalIllusionTower extends LegionIllusionSummonerTower {
     public LegionGlobalIllusionTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
     }
@@ -30,7 +30,7 @@ public class LegionGlobalIllusionTower extends IllusionSummonerTower {
 
     @Override
     public void onDeath(PlayerLane lane) {
-        IllusionProfile profile = illusionProfile(lane);
+        LegionIllusionProfile profile = illusionProfile(lane);
         for (Tower tower : List.copyOf(lane.towers())) {
             if (tower == this || !ownerPlayer().equals(tower.ownerPlayer()) || tower.health() <= 0.0) {
                 continue;

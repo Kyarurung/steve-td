@@ -11,25 +11,25 @@ public final class AnimalTowerCatalogs {
     }
 
     public static void register() {
-        registerTower(AnimalTowers.T1_PIG_TOWER, PigTower::new, 1);
-        registerTower(AnimalTowers.T2_PIG_TOWER, PigTower::new, 2);
-        registerTower(AnimalTowers.T3_PIG_TOWER, PigTower::new, 3);
-        registerTower(AnimalTowers.T4_PIG_LEADER_TOWER, PigTower::new, 4);
+        registerTower(AnimalTowers.T1_PIG_TOWER, AnimalPigTower::new, 1);
+        registerTower(AnimalTowers.T2_PIG_TOWER, AnimalPigTower::new, 2);
+        registerTower(AnimalTowers.T3_PIG_TOWER, AnimalPigTower::new, 3);
+        registerTower(AnimalTowers.T4_PIG_LEADER_TOWER, AnimalPigTower::new, 4);
 
-        registerTower(AnimalTowers.T1_WOLF_TOWER, WolfTower::new, 1);
-        registerTower(AnimalTowers.T2_WOLF_DPS_TOWER, WolfTower::new, 2);
-        registerTower(AnimalTowers.T3_WOLF_DPS_TOWER, WolfTower::new, 3);
-        registerTower(AnimalTowers.T4_WOLF_LEADER_TOWER, WolfTower::new, 4);
+        registerTower(AnimalTowers.T1_WOLF_TOWER, AnimalWolfTower::new, 1);
+        registerTower(AnimalTowers.T2_WOLF_DPS_TOWER, AnimalWolfTower::new, 2);
+        registerTower(AnimalTowers.T3_WOLF_DPS_TOWER, AnimalWolfTower::new, 3);
+        registerTower(AnimalTowers.T4_WOLF_LEADER_TOWER, AnimalWolfTower::new, 4);
 
-        registerTower(AnimalTowers.T1_RABBIT_TOWER, RabbitTower::new, 1);
-        registerTower(AnimalTowers.T2_RABBIT_TOWER, RabbitTower::new, 2);
-        registerTower(AnimalTowers.T3_RABBIT_TOWER, RabbitTower::new, 3);
-        registerTower(AnimalTowers.T4_RABBIT_LEADER_TOWER, RabbitTower::new, 4);
+        registerTower(AnimalTowers.T1_RABBIT_TOWER, AnimalRabbitTower::new, 1);
+        registerTower(AnimalTowers.T2_RABBIT_TOWER, AnimalRabbitTower::new, 2);
+        registerTower(AnimalTowers.T3_RABBIT_TOWER, AnimalRabbitTower::new, 3);
+        registerTower(AnimalTowers.T4_RABBIT_LEADER_TOWER, AnimalRabbitTower::new, 4);
 
-        registerTower(AnimalTowers.T1_FOX_TOWER, FoxTower::new, 1);
-        registerTower(AnimalTowers.T2_FOX_TOWER, FoxTower::new, 2);
-        registerTower(AnimalTowers.T3_FOX_TOWER, FoxTower::new, 3);
-        registerTower(AnimalTowers.T4_FOX_LEADER_TOWER, FoxTower::new, 4);
+        registerTower(AnimalTowers.T1_FOX_TOWER, AnimalFoxTower::new, 1);
+        registerTower(AnimalTowers.T2_FOX_TOWER, AnimalFoxTower::new, 2);
+        registerTower(AnimalTowers.T3_FOX_TOWER, AnimalFoxTower::new, 3);
+        registerTower(AnimalTowers.T4_FOX_LEADER_TOWER, AnimalFoxTower::new, 4);
 
 
         link(AnimalTowers.T1_PIG_TOWER, "t2_pig_tower", "돼지 타워", AnimalTowers.T2_PIG_TOWER);

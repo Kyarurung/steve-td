@@ -49,7 +49,7 @@ public class UndeadDrownedTower extends UndeadHuskTower {
                 towerEntity.level().getGameTime(),
                 towerEntity.getHealth(),
                 damageAmount,
-                ticks("lastStandTicks")
+                ticks(UndeadAbilityKey.LAST_STAND_TICKS)
         );
     }
 
@@ -62,7 +62,7 @@ public class UndeadDrownedTower extends UndeadHuskTower {
             double currentHealth
     ) {
         super.onDamaged(towerEntity, damageSource, damageAmount, previousHealth, currentHealth);
-        applyFlatDamageBoost(towerEntity, value("damageBoostOnHit"));
+        applyFlatDamageBoost(towerEntity, value(UndeadAbilityKey.DAMAGE_BOOST_ON_HIT));
     }
 
     @Override
@@ -73,6 +73,6 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     protected int thornCooldownTicks() {
-        return ticks("thornCooldownTicks");
+        return ticks(UndeadAbilityKey.THORN_COOLDOWN_TICKS);
     }
 }

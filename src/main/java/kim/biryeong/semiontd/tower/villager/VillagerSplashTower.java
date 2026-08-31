@@ -3,7 +3,6 @@ package kim.biryeong.semiontd.tower.villager;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.entity.tower.vfx.TowerVfxService;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -39,13 +38,13 @@ public class VillagerSplashTower extends SplashTower {
 
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        return damageAmount * (1 + survivalBonus());
+        return VillagerCombat.addPercentBonus(damageAmount, survivalBonus());
     }
 
     @Override
     public int adjustAttackInterval(int baseIntervalTicks) {
         if (isT3()) {
-            return (int) (baseIntervalTicks * (1 - survivalBonus()));
+            return VillagerCombat.reduceInterval(baseIntervalTicks, survivalBonus());
         }
 
         return super.adjustAttackInterval(baseIntervalTicks);
@@ -65,11 +64,11 @@ public class VillagerSplashTower extends SplashTower {
         super.onAttack(towerEntity, target, damageAmount, killedTarget); // splash
         if (isT3()) {
             attackAttempt++; // attack attempt
-            int every = Math.max(1, TowerBalanceRuntime.abilityInt(type().id(), "extraAttackEvery"));
+            int every = Math.max(1, VillagerConfig.RUNTIME.integer(type(), VillagerAbilityKey.EXTRA_ATTACK_EVERY));
             if (!killedTarget && attackAttempt >= every) { // skip if target is dead. but stack attack attempt value
                 attackAttempt -= every + 1; // remove stack. it will stack 1 because calls itself
                 boolean killed = damageBasicAttackTargetResult(towerEntity, target, damageAmount).killed(); // damage main target
-                TowerVfxService.showSecondaryAttack(towerEntity, target);
+                VillagerVfx.secondaryAttack(towerEntity, target);
                 this.onAttack(towerEntity, target, damageAmount, killed); // splash and trigger addition attack if has more stack
                 if (killed) {
                     this.onKill(towerEntity, target, damageAmount); // trigger kill event
@@ -87,24 +86,28 @@ public class VillagerSplashTower extends SplashTower {
 
     @Override
     public float getSplashRange() {
-        return (float) value("splashRadius");
+        return (float) value(VillagerAbilityKey.SPLASH_RADIUS);
     }
 
     @Override
     public float getSplashRatio() {
-        return (float) value("splashDamageRatio");
+        return (float) value(VillagerAbilityKey.SPLASH_DAMAGE_RATIO);
     }
 
-    private double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    private double value(VillagerAbilityKey ability) {
+        return VillagerConfig.RUNTIME.value(type(), ability);
     }
 
     private int maxSurvivalStacks() {
-        return TowerBalanceRuntime.abilityInt(type().id(), "maxSurvivalStacks");
+        return VillagerConfig.RUNTIME.integer(type(), VillagerAbilityKey.MAX_SURVIVAL_STACKS);
     }
 
     private double survivalBonus() {
-        return value("bonusPerSurvivedRound") * survival.stacks() * VillagerAdvStates.survivalBonusMultiplier(this);
+        return VillagerCombat.survivalBonus(
+                value(VillagerAbilityKey.BONUS_PER_SURVIVED_ROUND),
+                survival.stacks(),
+                VillagerAdvStates.survivalBonusMultiplier(this)
+        );
     }
 
     private boolean isT3() {

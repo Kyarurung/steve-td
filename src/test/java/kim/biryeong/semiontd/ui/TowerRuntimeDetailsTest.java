@@ -19,7 +19,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryFoxTower;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
 import kim.biryeong.semiontd.tower.adversary.FoxForm;
 import kim.biryeong.semiontd.tower.animal.AnimalTowers;
-import kim.biryeong.semiontd.tower.animal.PigTower;
+import kim.biryeong.semiontd.tower.animal.AnimalPigTower;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTower;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
@@ -69,7 +69,7 @@ class TowerRuntimeDetailsTest {
 
     @Test
     void towerDetailsUsePrimaryDamageTypeFromPlacement() {
-        PigTower physicalTower = new PigTower(AnimalTowers.T2_PIG_TOWER, OWNER, TeamId.RED, 1, POSITION);
+        AnimalPigTower physicalTower = new AnimalPigTower(AnimalTowers.T2_PIG_TOWER, OWNER, TeamId.RED, 1, POSITION);
         assertEquals(
                 "<#ec8d34>🪓 피해</#ec8d34><white>: </white><#ec8d34>42</#ec8d34>",
                 SemionDialogService.formatTowerDamage(physicalTower, 42.0)

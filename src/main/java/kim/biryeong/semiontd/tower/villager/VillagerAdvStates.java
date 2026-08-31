@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.PlayerLane;
@@ -78,7 +77,7 @@ public final class VillagerAdvStates {
             return;
         }
 
-        TowerBalanceConfig.VillagerAdvConfig config = TowerBalanceRuntime.villagerAdv();
+        TowerBalanceConfig.VillagerAdvConfig config = VillagerConfig.RUNTIME.advanced();
         List<ExperienceGainSnapshot> snapshots = new ArrayList<>();
         for (SemionPlayer player : game.players().values()) {
             if (!isAdvPlayer(player)) {
@@ -135,7 +134,7 @@ public final class VillagerAdvStates {
         if (game == null) {
             return;
         }
-        TowerBalanceConfig.VillagerAdvConfig config = TowerBalanceRuntime.villagerAdv();
+        TowerBalanceConfig.VillagerAdvConfig config = VillagerConfig.RUNTIME.advanced();
         for (SemionPlayer player : game.players().values()) {
             if (!isAdvPlayer(player)) {
                 continue;
@@ -163,7 +162,7 @@ public final class VillagerAdvStates {
         if (!isAdvPlayer(laneOwner)) {
             return;
         }
-        TowerBalanceConfig.VillagerAdvConfig config = TowerBalanceRuntime.villagerAdv();
+        TowerBalanceConfig.VillagerAdvConfig config = VillagerConfig.RUNTIME.advanced();
         addReputation(laneOwner.uuid(), -config.resolvedReputationLossPerLeak(), config);
         if (lane != null) {
             for (Tower tower : lane.towers()) {
@@ -179,7 +178,7 @@ public final class VillagerAdvStates {
         if (tower == null || upgrade == null) {
             return false;
         }
-        double requirement = TowerBalanceRuntime.villagerAdvUpgradeRequirement(tower.type(), upgrade.id());
+        double requirement = VillagerConfig.RUNTIME.advancedUpgradeRequirement(tower.type(), upgrade.id());
         return VillagerAdvRules.meetsUpgradeRequirement(experience(tower), requirement);
     }
 
@@ -196,7 +195,7 @@ public final class VillagerAdvStates {
     }
 
     private static void refreshTowerEffects(SemionPlayer player, Tower tower, SemionTowerEntity entity) {
-        TowerBalanceConfig.VillagerAdvConfig config = TowerBalanceRuntime.villagerAdv();
+        TowerBalanceConfig.VillagerAdvConfig config = VillagerConfig.RUNTIME.advanced();
         double experience = experience(tower);
         double reputation = reputation(player.uuid());
         int durationTicks = config.resolvedEffectDurationTicks();

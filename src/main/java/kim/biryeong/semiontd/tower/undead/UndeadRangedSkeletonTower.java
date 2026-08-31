@@ -3,7 +3,6 @@ package kim.biryeong.semiontd.tower.undead;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
@@ -52,7 +51,7 @@ public class UndeadRangedSkeletonTower extends EntityBackedTower {
         heal(towerEntity, damageAmount);
         for (SemionMonsterEntity extraTarget : pickExtraTargets(towerEntity, target, extraTargetCount())) {
             boolean killed = damageBasicAttackTargetResult(towerEntity, extraTarget, damageAmount).killed();
-            TowerVfxService.showSecondaryAttack(towerEntity, extraTarget);
+            UndeadVfx.secondaryAttack(towerEntity, extraTarget);
             heal(towerEntity, damageAmount);
             if (killed) {
                 onKill(towerEntity, extraTarget, damageAmount);
@@ -79,7 +78,7 @@ public class UndeadRangedSkeletonTower extends EntityBackedTower {
     }
 
     private void incrementDeathStack() {
-        killStackDamage = UndeadCombatRules.addCappedDamage(killStackDamage, stackDamageStep(), stackDamageCap());
+        killStackDamage = UndeadCombat.addCappedDamage(killStackDamage, stackDamageStep(), stackDamageCap());
     }
 
     @Override
@@ -93,7 +92,7 @@ public class UndeadRangedSkeletonTower extends EntityBackedTower {
         if (towerEntity == null || count <= 0) {
             return List.of();
         }
-        double extraTargetRange = towerEntity.attackRange() + Math.max(0.0, value("extraTargetRangeBonus"));
+        double extraTargetRange = towerEntity.attackRange() + Math.max(0.0, value(UndeadAbilityKey.EXTRA_TARGET_RANGE_BONUS));
         List<SemionMonsterEntity> candidates = new ArrayList<>(towerEntity.level().getEntities(
                 towerEntity,
                 towerEntity.targetSearchBox(),
@@ -112,29 +111,29 @@ public class UndeadRangedSkeletonTower extends EntityBackedTower {
     }
 
     private void heal(SemionTowerEntity towerEntity, double damageAmount) {
-        double healing = UndeadCombatRules.lifeStealAmount(damageAmount, lifeStealRatio());
+        double healing = UndeadCombat.lifeStealAmount(damageAmount, lifeStealRatio());
         if (towerEntity != null && healing > 0.0) {
             towerEntity.healTarget(towerEntity, healing);
         }
     }
 
     private int extraTargetCount() {
-        return TowerBalanceRuntime.abilityInt(type().id(), "extraTargets");
+        return UndeadConfig.RUNTIME.integer(type(), UndeadAbilityKey.EXTRA_TARGETS);
     }
 
     private double lifeStealRatio() {
-        return value("lifeStealRatio");
+        return value(UndeadAbilityKey.LIFE_STEAL_RATIO);
     }
 
     private double stackDamageStep() {
-        return value("stackDamage");
+        return value(UndeadAbilityKey.STACK_DAMAGE);
     }
 
     private double stackDamageCap() {
-        return value("stackDamageCap");
+        return value(UndeadAbilityKey.STACK_DAMAGE_CAP);
     }
 
-    private double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    private double value(UndeadAbilityKey ability) {
+        return UndeadConfig.RUNTIME.value(type(), ability);
     }
 }

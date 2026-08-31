@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.RoundPhase;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionPlayer;
@@ -44,7 +43,7 @@ public final class VillagerAdvReputationBossBarService {
                 continue;
             }
             visiblePlayerIds.add(playerId);
-            update(player, VillagerAdvStates.reputation(playerId), TowerBalanceRuntime.villagerAdv().resolvedReputationMax());
+            update(player, VillagerAdvStates.reputation(playerId), VillagerConfig.RUNTIME.advanced().resolvedReputationMax());
         }
         for (UUID playerId : Set.copyOf(bossBars.keySet())) {
             if (!visiblePlayerIds.contains(playerId)) {

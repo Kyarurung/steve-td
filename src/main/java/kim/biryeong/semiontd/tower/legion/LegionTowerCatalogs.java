@@ -11,15 +11,15 @@ public final class LegionTowerCatalogs {
     }
 
     public static void register() {
-        registerTower(LegionTowers.T1_CHICKEN, LegionChickenTower::new, 1);
-        registerTower(LegionTowers.T2_CHICKEN_TOWER, LegionChickenTower::new, 2);
-        registerTower(LegionTowers.T2_DPS_CHICKEN_TOWER, LegionChickenTower::new, 2);
+        registerTower(LegionTowers.T1_CHICKEN, LegionSplashIllusionTower::new, 1);
+        registerTower(LegionTowers.T2_CHICKEN_TOWER, LegionSplashIllusionTower::new, 2);
+        registerTower(LegionTowers.T2_DPS_CHICKEN_TOWER, LegionSplashIllusionTower::new, 2);
 
         registerTower(LegionTowers.T1_SLIME_TOWER, LegionSlimeTower::new, 1);
         registerTower(LegionTowers.T2_SLIME_TOWER, LegionSlimeTower::new, 2);
 
-        registerTower(LegionTowers.T1_PENGUIN, LegionPenguinTower::new, 1);
-        registerTower(LegionTowers.T2_PENGUIN, LegionPenguinTower::new, 2);
+        registerTower(LegionTowers.T1_PENGUIN, LegionSplashIllusionTower::new, 1);
+        registerTower(LegionTowers.T2_PENGUIN, LegionSplashIllusionTower::new, 2);
 
         registerTower(LegionTowers.T1_PARROT_TOWER, LegionParrotTower::new, 1);
         registerTower(LegionTowers.T2_PARROT_TOWER, LegionParrotTower::new, 2);
@@ -28,9 +28,9 @@ public final class LegionTowerCatalogs {
         registerTower(LegionTowers.T2_STRONG_GOAT_TOWER, LegionGoatTower::new, 2);
         registerTower(LegionTowers.T3_EXTREME_GOAT_TOWER, LegionGoatTower::new, 3);
 
-//        registerTower(LegionTowers.T1_BEE_TOWER, BeeTower::new, 1);
-//        registerTower(LegionTowers.T2_BEE_TOWER, BeeTower::new, 2);
-//        registerTower(LegionTowers.T3_BEE_TOWER, BeeTower::new, 3);
+//        registerTower(LegionTowers.T1_BEE_TOWER, LegionBeeTower::new, 1);
+//        registerTower(LegionTowers.T2_BEE_TOWER, LegionBeeTower::new, 2);
+//        registerTower(LegionTowers.T3_BEE_TOWER, LegionBeeTower::new, 3);
 
         registerTower(LegionTowers.ILLUSION_TOWER, LegionGlobalIllusionTower::new, 1);
 

@@ -1,10 +1,7 @@
 package kim.biryeong.semiontd.tower.undead;
 
 import java.util.UUID;
-import kim.biryeong.semiontd.api.area.AreaVfxSpec;
-import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -14,7 +11,7 @@ import kim.biryeong.semiontd.tower.area.AreaEffectIds;
 import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import net.minecraft.world.damagesource.DamageSource;
 
-public class UndeadHuskTower extends UndeadTowerSupport {
+public class UndeadHuskTower extends UndeadCombatTower {
     private int thornCooldownTicks;
 
     public UndeadHuskTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
@@ -34,7 +31,7 @@ public class UndeadHuskTower extends UndeadTowerSupport {
 
     @Override
     public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
-        healFromDamage(towerEntity, damageAmount, value("lifeStealRatio"));
+        healFromDamage(towerEntity, damageAmount, value(UndeadAbilityKey.LIFE_STEAL_RATIO));
     }
 
     @Override
@@ -45,7 +42,7 @@ public class UndeadHuskTower extends UndeadTowerSupport {
             double previousHealth,
             double currentHealth
     ) {
-        applyFlatDamageBoost(towerEntity, value("damageBoostOnHit"));
+        applyFlatDamageBoost(towerEntity, value(UndeadAbilityKey.DAMAGE_BOOST_ON_HIT));
         triggerThorns(towerEntity);
     }
 
@@ -58,11 +55,11 @@ public class UndeadHuskTower extends UndeadTowerSupport {
     }
 
     protected double thornRadius() {
-        return value("thornRadius");
+        return value(UndeadAbilityKey.THORN_RADIUS);
     }
 
     protected int thornCooldownTicks() {
-        return ticks("thornCooldownTicks");
+        return ticks(UndeadAbilityKey.THORN_COOLDOWN_TICKS);
     }
 
     private void triggerThorns(SemionTowerEntity towerEntity) {
@@ -71,7 +68,7 @@ public class UndeadHuskTower extends UndeadTowerSupport {
         }
         MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(this, "thorns"), towerEntity, thornRadius(),
-                AreaVfxSpec.onTrigger(AreaVfxStyles.PULSE)
+                UndeadVfx.pulse()
         );
         int hitCount = TowerAreaDamage.applyResolved(
                 this,
@@ -82,16 +79,16 @@ public class UndeadHuskTower extends UndeadTowerSupport {
                 (target, damage, killed) -> {}
         ).appliedCount();
         if (hitCount > 0) {
-            towerEntity.healTarget(towerEntity, value("thornHealPerHit") * hitCount);
+            towerEntity.healTarget(towerEntity, value(UndeadAbilityKey.THORN_HEAL_PER_HIT) * hitCount);
             thornCooldownTicks = thornCooldownTicks();
         }
     }
 
-    protected double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    protected double value(UndeadAbilityKey ability) {
+        return UndeadConfig.RUNTIME.value(type(), ability);
     }
 
-    protected int ticks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
+    protected int ticks(UndeadAbilityKey ability) {
+        return UndeadConfig.RUNTIME.ticks(type(), ability);
     }
 }

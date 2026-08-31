@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.undead;
 
 import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
@@ -88,7 +87,7 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
         if (deathPosition == null) {
             return false;
         }
-        double radius = Math.max(0.0, value("deathStackRange"));
+        double radius = Math.max(0.0, value(UndeadAbilityKey.DEATH_STACK_RANGE));
         return deathPosition.distanceToSqr(
                 position().x() + 0.5,
                 position().y() + 1.0,
@@ -100,7 +99,7 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
         if (killStacks >= stackCap()) {
             return;
         }
-        killStacks = UndeadCombatRules.addCappedStack(killStacks, stackCap());
+        killStacks = UndeadCombat.addCappedStack(killStacks, stackCap());
         syncHealth(health() + healthPerStack());
         if (lane != null) {
             onStateChanged(lane);
@@ -116,38 +115,38 @@ public class UndeadMeleeSkeletonTower extends SplashTower {
 
     @Override
     public float getSplashRange() {
-        return (float) value("splashRadius");
+        return (float) value(UndeadAbilityKey.SPLASH_RADIUS);
     }
 
     @Override
     public float getSplashRatio() {
-        return (float) value("splashDamageRatio");
+        return (float) value(UndeadAbilityKey.SPLASH_DAMAGE_RATIO);
     }
 
     private void heal(SemionTowerEntity towerEntity, double damageAmount) {
-        double healing = UndeadCombatRules.lifeStealAmount(damageAmount, lifeStealRatio());
+        double healing = UndeadCombat.lifeStealAmount(damageAmount, lifeStealRatio());
         if (towerEntity != null && healing > 0.0) {
             towerEntity.healTarget(towerEntity, healing);
         }
     }
 
     private double lifeStealRatio() {
-        return value("lifeStealRatio");
+        return value(UndeadAbilityKey.LIFE_STEAL_RATIO);
     }
 
     private double damagePerStack() {
-        return value("damagePerStack");
+        return value(UndeadAbilityKey.DAMAGE_PER_STACK);
     }
 
     private double healthPerStack() {
-        return value("healthPerStack");
+        return value(UndeadAbilityKey.HEALTH_PER_STACK);
     }
 
     private int stackCap() {
-        return TowerBalanceRuntime.abilityInt(type().id(), "stackCap");
+        return UndeadConfig.RUNTIME.integer(type(), UndeadAbilityKey.STACK_CAP);
     }
 
-    private double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    private double value(UndeadAbilityKey ability) {
+        return UndeadConfig.RUNTIME.value(type(), ability);
     }
 }

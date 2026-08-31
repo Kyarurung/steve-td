@@ -7,8 +7,6 @@ import java.util.OptionalInt;
 import kim.biryeong.semiontd.SemionTd;
 import kim.biryeong.semiontd.api.SemionTdApi;
 import kim.biryeong.semiontd.api.area.AreaEffectOutcome;
-import kim.biryeong.semiontd.api.area.AreaVfxSpec;
-import kim.biryeong.semiontd.api.area.AreaVfxStyles;
 import kim.biryeong.semiontd.api.area.TowerAreaEffectRequest;
 import kim.biryeong.semiontd.api.area.TowerAreaTargetMode;
 import kim.biryeong.semiontd.effect.TimedEffectType;
@@ -48,7 +46,7 @@ final class LegionGoatSupportController {
                 source,
                 owner.radius(),
                 TowerAreaTargetMode.REGISTERED_AND_CLONES,
-                AreaVfxSpec.onChange(AreaVfxStyles.BUFF)
+                LegionVfx.buff()
         ).withFilter(target -> isBuffTarget(target.tower()) && stackIndexFor(target.tower(), lane).isPresent());
         return SemionTdApi.areaEffects().applyToTowers(request, target -> {
             OptionalInt stackIndex = stackIndexFor(target.tower(), lane);
@@ -59,14 +57,14 @@ final class LegionGoatSupportController {
             boolean applied;
             if (target.illusion()) {
                 applied = applyEffect(entity, TimedEffectType.TOWER_DAMAGE_BONUS,
-                        CLONE_DAMAGE_SOURCES[stackIndex.getAsInt()], owner.value("cloneDamageBonus"));
+                        CLONE_DAMAGE_SOURCES[stackIndex.getAsInt()], owner.value(LegionAbilityKey.CLONE_DAMAGE_BONUS));
                 applied |= applyEffect(entity, TimedEffectType.TOWER_DAMAGE_REDUCTION,
-                        CLONE_DAMAGE_REDUCTION_SOURCES[stackIndex.getAsInt()], owner.value("cloneDamageReduction"));
+                        CLONE_DAMAGE_REDUCTION_SOURCES[stackIndex.getAsInt()], owner.value(LegionAbilityKey.CLONE_DAMAGE_REDUCTION));
             } else {
                 applied = applyEffect(entity, TimedEffectType.TOWER_DAMAGE_BONUS,
-                        DAMAGE_SOURCES[stackIndex.getAsInt()], owner.value("damageBonus"));
+                        DAMAGE_SOURCES[stackIndex.getAsInt()], owner.value(LegionAbilityKey.DAMAGE_BONUS));
                 applied |= applyEffect(entity, TimedEffectType.TOWER_DAMAGE_REDUCTION,
-                        DAMAGE_REDUCTION_SOURCES[stackIndex.getAsInt()], owner.value("damageReduction"));
+                        DAMAGE_REDUCTION_SOURCES[stackIndex.getAsInt()], owner.value(LegionAbilityKey.DAMAGE_REDUCTION));
             }
             return applied ? AreaEffectOutcome.APPLIED : AreaEffectOutcome.UNCHANGED;
         }).appliedCount() > 0;
@@ -118,7 +116,7 @@ final class LegionGoatSupportController {
             double magnitude
     ) {
         return magnitude > 0.0
-                && entity.refreshTimedEffect(type, source, magnitude, owner.ticks("buffDurationTicks"));
+                && entity.refreshTimedEffect(type, source, magnitude, owner.ticks(LegionAbilityKey.BUFF_DURATION_TICKS));
     }
 
     private static Optional<SemionTowerEntity> towerEntity(Tower target, PlayerLane lane) {

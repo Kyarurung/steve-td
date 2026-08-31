@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.legion;
 
 import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
@@ -32,18 +31,18 @@ public class LegionGoatTower extends SupportTower {
     }
 
     double radius() {
-        return value("radius");
+        return value(LegionAbilityKey.RADIUS);
     }
 
-    double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
+    double value(LegionAbilityKey ability) {
+        return LegionConfig.RUNTIME.value(type(), ability);
     }
 
-    int ticks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
+    int ticks(LegionAbilityKey ability) {
+        return LegionConfig.RUNTIME.ticks(type(), ability);
     }
 
     int configuredMaxStacks() {
-        return TowerBalanceRuntime.abilityInt(type().id(), "maxStacks");
+        return LegionConfig.RUNTIME.integer(type(), LegionAbilityKey.MAX_STACKS);
     }
 }

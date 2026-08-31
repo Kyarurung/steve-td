@@ -7,20 +7,22 @@ import net.minecraft.world.phys.Vec3;
 
 /** Recomputes the two-phase pack/leader transition from lane state. */
 final class AnimalPackController {
-    private final AnimalStackTower tower;
-    private final AnimalPackState state = new AnimalPackState();
+    private final AnimalPackTower tower;
+    private int stacks;
+    private boolean leaderAuraActive;
+    private boolean livingLeaderExists;
 
-    AnimalPackController(AnimalStackTower tower) {
+    AnimalPackController(AnimalPackTower tower) {
         this.tower = tower;
     }
 
-    int stacks() { return state.stacks(); }
+    int stacks() { return stacks; }
 
     boolean atMaximum() { return stacks() >= tower.maxStacks(); }
 
-    boolean leaderAuraActive() { return state.leaderAuraActive(); }
+    boolean leaderAuraActive() { return leaderAuraActive; }
 
-    boolean livingLeaderExists() { return state.livingLeaderExists(); }
+    boolean livingLeaderExists() { return livingLeaderExists; }
 
     boolean meetsUpgradeRequirements(PlayerLane lane, TowerUpgradeOption option) {
         if (option == null || !option.targetType().id().equals(tower.leaderType().id())) {
@@ -41,19 +43,19 @@ final class AnimalPackController {
                 .filter(candidate -> tower.ownerPlayer().equals(candidate.ownerPlayer()))
                 .filter(tower::isStackFamily)
                 .count();
-        state.stacks(AnimalPackRules.cappedStacks(matching, tower.maxStacks()));
+        stacks = AnimalPackRules.cappedStacks(matching, tower.maxStacks());
         tower.onStacksChanged(lane, previous, stacks());
     }
 
     void refreshLeaderState(PlayerLane lane) {
-        boolean previousLeaderExists = state.livingLeaderExists();
-        boolean previousAuraActive = state.leaderAuraActive();
-        state.livingLeaderExists(hasOtherLivingLeader(lane));
-        state.leaderAuraActive(!tower.isLeader() && tower.health() > 0.0 && findActiveLeader(lane) != null);
-        if (previousAuraActive != state.leaderAuraActive()) {
-            tower.onLeaderAuraChanged(lane, previousAuraActive, state.leaderAuraActive());
+        boolean previousLeaderExists = livingLeaderExists;
+        boolean previousAuraActive = leaderAuraActive;
+        livingLeaderExists = hasOtherLivingLeader(lane);
+        leaderAuraActive = !tower.isLeader() && tower.health() > 0.0 && findActiveLeader(lane) != null;
+        if (previousAuraActive != leaderAuraActive) {
+            tower.onLeaderAuraChanged(lane, previousAuraActive, leaderAuraActive);
         }
-        if (previousLeaderExists != state.livingLeaderExists() || previousAuraActive != state.leaderAuraActive()) {
+        if (previousLeaderExists != livingLeaderExists || previousAuraActive != leaderAuraActive) {
             tower.onStateChanged(lane);
         }
     }
@@ -66,31 +68,31 @@ final class AnimalPackController {
                         && candidate.type().id().equals(tower.leaderType().id()));
     }
 
-    private AnimalStackTower findActiveLeader(PlayerLane lane) {
+    private AnimalPackTower findActiveLeader(PlayerLane lane) {
         if (lane == null) {
             return null;
         }
         return lane.towers().stream()
                 .filter(candidate -> candidate != tower)
                 .filter(candidate -> tower.ownerPlayer().equals(candidate.ownerPlayer()))
-                .filter(AnimalStackTower.class::isInstance)
-                .map(AnimalStackTower.class::cast)
+                .filter(AnimalPackTower.class::isInstance)
+                .map(AnimalPackTower.class::cast)
                 .filter(candidate -> candidate.health() > 0.0)
                 .filter(candidate -> candidate.type().id().equals(tower.leaderType().id()))
-                .filter(AnimalStackTower::atMaxStacks)
+                .filter(AnimalPackTower::atMaxStacks)
                 .filter(candidate -> withinLeaderAura(lane, candidate))
                 .findFirst()
                 .orElse(null);
     }
 
-    private boolean withinLeaderAura(PlayerLane lane, AnimalStackTower leader) {
+    private boolean withinLeaderAura(PlayerLane lane, AnimalPackTower leader) {
         return AnimalPackRules.withinAura(
                 center(lane, tower).distanceToSqr(center(lane, leader)),
-                tower.leaderValue("leaderAuraRadius")
+                tower.leaderValue(AnimalAbilityKey.LEADER_AURA_RADIUS)
         );
     }
 
-    private static Vec3 center(PlayerLane lane, AnimalStackTower animalTower) {
+    private static Vec3 center(PlayerLane lane, AnimalPackTower animalTower) {
         if (lane != null && lane.arenaWorld() != null) {
             var currentEntity = animalTower.entityId().isPresent()
                     ? lane.arenaWorld().getEntity(animalTower.entityId().getAsInt())

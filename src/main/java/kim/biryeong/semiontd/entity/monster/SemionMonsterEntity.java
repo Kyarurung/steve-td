@@ -26,7 +26,7 @@ import kim.biryeong.semiontd.summon.SummonRegistry;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordState;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordStates;
-import kim.biryeong.semiontd.tower.legion.BeeStingPolicy;
+import kim.biryeong.semiontd.tower.legion.LegionBeeStingPolicy;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
 import kim.biryeong.semiontd.trait.TraitVfx;
@@ -473,7 +473,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
             return;
         }
         BeePoisonState previous = beePoisons.get(sourceTower);
-        BeeStingPolicy.State sting = BeeStingPolicy.applySting(
+        LegionBeeStingPolicy.State sting = LegionBeeStingPolicy.applySting(
                 previous == null ? null : previous.sting(),
                 maxStacks,
                 durationTicks,
@@ -584,7 +584,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
         while (iterator.hasNext()) {
             Map.Entry<Tower, BeePoisonState> entry = iterator.next();
             BeePoisonState poison = entry.getValue();
-            BeeStingPolicy.TickResult result = BeeStingPolicy.tick(
+            LegionBeeStingPolicy.TickResult result = LegionBeeStingPolicy.tick(
                     poison.sting(),
                     poison.damagePerStack(),
                     poison.tickIntervalTicks()
@@ -651,7 +651,7 @@ public class SemionMonsterEntity extends PathfinderMob implements AnimatedEntity
             Tower sourceTower,
             double damagePerStack,
             int tickIntervalTicks,
-            BeeStingPolicy.State sting
+            LegionBeeStingPolicy.State sting
     ) {
     }
 

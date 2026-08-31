@@ -86,7 +86,7 @@ import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroCompanionSkins;
 import kim.biryeong.semiontd.tower.hero.FakePlayerTowerVisuals;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidBossBarService;
-import kim.biryeong.semiontd.tower.legion.IllusionCloneSpawnQueue;
+import kim.biryeong.semiontd.tower.legion.LegionIllusionSpawnQueue;
 import kim.biryeong.semiontd.tower.mage.MageManaBossBarService;
 import kim.biryeong.semiontd.tower.queen.QueenBossBarService;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvReputationBossBarService;
@@ -1919,7 +1919,7 @@ public final class SemionGameManager {
 
     public void tick(MinecraftServer server) {
         tickCombatSpeed(server);
-        IllusionCloneSpawnQueue.tick();
+        LegionIllusionSpawnQueue.tick();
         musicService.tick(server, activeGame, java.util.stream.Stream
                 .concat(sandboxGames.values().stream(), tutorialGames.values().stream())
                 .toList());
@@ -2073,7 +2073,7 @@ public final class SemionGameManager {
     }
 
     public void shutdown() {
-        IllusionCloneSpawnQueue.clear();
+        LegionIllusionSpawnQueue.clear();
         jobStatisticsService.shutdown();
         closeAllPracticeGames();
         if (activeGame != null) {
@@ -2485,7 +2485,7 @@ public final class SemionGameManager {
         if (game == null) {
             return;
         }
-        IllusionCloneSpawnQueue.clear();
+        LegionIllusionSpawnQueue.clear();
         if (activeGame == game) {
             activeGame = null;
             clearStartCountdown();

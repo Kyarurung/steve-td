@@ -1,7 +1,6 @@
 package kim.biryeong.semiontd.tower.legion;
 
 import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -35,7 +34,7 @@ public class LegionParrotTower extends EntityBackedTower {
     @Override
     public java.util.List<String> runtimeDetailLines() {
         return java.util.List.of("공격 스택 " + attackStacks + "/" + maxAttackStacks()
-                + " (피해/공속 +" + percent(attackStacks * TowerBalanceRuntime.ability(type().id(), "attackStackBonus")) + ")");
+                + " (피해/공속 +" + percent(attackStacks * LegionConfig.RUNTIME.value(type(), LegionAbilityKey.ATTACK_STACK_BONUS)) + ")");
     }
 
     @Override
@@ -45,7 +44,7 @@ public class LegionParrotTower extends EntityBackedTower {
 
     @Override
     public int adjustAttackInterval(int baseIntervalTicks) {
-        return Math.max(1, (int) Math.ceil(baseIntervalTicks / attackMultiplier()));
+        return LegionCombat.attackInterval(baseIntervalTicks, attackMultiplier());
     }
 
     @Override
@@ -63,10 +62,13 @@ public class LegionParrotTower extends EntityBackedTower {
     }
 
     private double attackMultiplier() {
-        return 1.0 + attackStacks * TowerBalanceRuntime.ability(type().id(), "attackStackBonus");
+        return LegionCombat.attackMultiplier(
+                attackStacks,
+                LegionConfig.RUNTIME.value(type(), LegionAbilityKey.ATTACK_STACK_BONUS)
+        );
     }
 
     private int maxAttackStacks() {
-        return TowerBalanceRuntime.abilityInt(type().id(), "maxAttackStacks");
+        return LegionConfig.RUNTIME.integer(type(), LegionAbilityKey.MAX_ATTACK_STACKS);
     }
 }

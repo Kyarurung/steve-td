@@ -27,7 +27,7 @@ import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
-import kim.biryeong.semiontd.tower.legion.IllusionRuntimeTower;
+import kim.biryeong.semiontd.tower.legion.LegionIllusionRuntimeTower;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
@@ -104,7 +104,7 @@ public final class AreaEffectService implements AreaEffectApi {
                     target -> validTowerEntity(request.source(), target)
             )) {
                 Tower tower = entity.runtimeTower();
-                boolean illusion = entity.isIllusionClone() || tower instanceof IllusionRuntimeTower;
+                boolean illusion = entity.isIllusionClone() || tower instanceof LegionIllusionRuntimeTower;
                 if (request.targetMode() == TowerAreaTargetMode.REGISTERED_AND_CLONES && !illusion) {
                     continue;
                 }

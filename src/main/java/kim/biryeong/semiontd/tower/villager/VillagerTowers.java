@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.visual.CatVisual;
 import kim.biryeong.semiontd.entity.visual.VillagerVisual;
 import kim.biryeong.semiontd.tower.TowerType;
@@ -613,11 +612,11 @@ public final class VillagerTowers {
     }
 
     private static String advPercent(TowerType type, String key) {
-        return PERCENT_FORMAT.format(TowerBalanceRuntime.villagerAdv().buff(type.id(), key));
+        return PERCENT_FORMAT.format(VillagerConfig.RUNTIME.advanced().buff(type.id(), key));
     }
 
     private static String advInterval(TowerType type, String key) {
-        return NUMBER_FORMAT.format(TowerBalanceRuntime.villagerAdv().buffInterval(type.id(), key));
+        return NUMBER_FORMAT.format(VillagerConfig.RUNTIME.advanced().buffInterval(type.id(), key));
     }
 
     private record AdvLine(String stat, String key) {
