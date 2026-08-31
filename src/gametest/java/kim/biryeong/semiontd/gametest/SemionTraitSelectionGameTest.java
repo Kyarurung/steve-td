@@ -280,8 +280,8 @@ public final class SemionTraitSelectionGameTest {
         context.succeed();
     }
 
-    @GameTest
-    public void doubleEdgedSwordDoesNotBypassDrownedLastStand(GameTestHelper context) {
+    @GameTest(maxTicks = 80)
+    public void doubleEdgedSwordTriggersDrownedRevivalWithoutInvulnerability(GameTestHelper context) {
         UUID ownerId = playerId("double-edged-drowned");
         UUID blueId = playerId("double-edged-drowned-blue");
         SemionGame game = syntheticGame(context, EconomyConfig.defaultConfig());
@@ -315,15 +315,27 @@ public final class SemionTraitSelectionGameTest {
                 .getEntity(drowned.entityId().orElseThrow());
         float lethalDamage = entity.getHealth();
         context.hurt(entity, entity.damageSources().generic(), lethalDamage);
-        if (!assertDoubleEquals(context, 1.0, entity.getHealth(), "Drowned Last Stand should survive lethal Double-Edged Sword damage at one health.")) {
+        if (!assertDoubleEquals(
+                context,
+                drowned.currentMaxHealth(),
+                entity.getHealth(),
+                "Lethal Double-Edged Sword damage should revive the Drowned at full health."
+        )) {
             return;
         }
 
-        context.hurt(entity, entity.damageSources().generic(), lethalDamage);
-        if (!assertDoubleEquals(context, 1.0, entity.getHealth(), "Drowned should ignore damage during Last Stand even with Double-Edged Sword.")) {
-            return;
-        }
-        context.succeed();
+        context.runAfterDelay(21, () -> {
+            float healthBeforeDamage = entity.getHealth();
+            context.hurt(entity, entity.damageSources().generic(), 1.0F);
+            if (!assertTrue(
+                    context,
+                    entity.getHealth() < healthBeforeDamage,
+                    "Drowned revival must not ignore later Double-Edged Sword damage."
+            )) {
+                return;
+            }
+            context.succeed();
+        });
     }
 
     @GameTest

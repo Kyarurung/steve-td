@@ -21,7 +21,7 @@
       "kim.biryeong.semiontd.tower.undead.UndeadZombieCombatGameTest",
       "kim.biryeong.semiontd.tower.undead.UndeadHuskThornsGameTest",
       "kim.biryeong.semiontd.tower.undead.UndeadSkeletonUpgradeGameTest",
-      "kim.biryeong.semiontd.tower.undead.UndeadDrownedLastStandGameTest",
+      "kim.biryeong.semiontd.tower.undead.UndeadDrownedRevivalLifecycleGameTest",
       "kim.biryeong.semiontd.tower.undead.UndeadAnimalDebuffGameTest",
       "kim.biryeong.semiontd.tower.animal.AnimalPackLifecycleGameTest",
       "kim.biryeong.semiontd.tower.animal.AnimalFoxCombatAndUpgradeGameTest",

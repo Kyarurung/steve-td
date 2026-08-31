@@ -10,7 +10,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.damagesource.DamageSource;
 
 public class UndeadDrownedTower extends UndeadHuskTower {
-    private final UndeadDrownedLastStandState lastStand = new UndeadDrownedLastStandState();
+    private final UndeadDrownedRevivalController revival = new UndeadDrownedRevivalController();
 
     public UndeadDrownedTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -29,7 +29,7 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
-        return applyLastStand(towerEntity, damageAmount);
+        return applyRevival(towerEntity, damageAmount);
     }
 
     @Override
@@ -38,19 +38,17 @@ public class UndeadDrownedTower extends UndeadHuskTower {
             DamageSource damageSource,
             double damageAmount
     ) {
-        return applyLastStand(towerEntity, damageAmount);
+        return applyRevival(towerEntity, damageAmount);
     }
 
-    private double applyLastStand(SemionTowerEntity towerEntity, double damageAmount) {
-        if (towerEntity == null || damageAmount <= 0.0) {
-            return damageAmount;
-        }
-        return lastStand.modifyDamage(
-                towerEntity.level().getGameTime(),
-                towerEntity.getHealth(),
-                damageAmount,
-                ticks(UndeadAbilityKey.LAST_STAND_TICKS)
-        );
+    private double applyRevival(SemionTowerEntity towerEntity, double damageAmount) {
+        return revival.modifyIncomingDamage(this, towerEntity, damageAmount);
+    }
+
+    @Override
+    public void tick(PlayerLane lane) {
+        revival.tick(this, lane);
+        super.tick(lane);
     }
 
     @Override
@@ -67,8 +65,17 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     public void resetForRound(PlayerLane lane) {
-        lastStand.resetRound();
+        revival.resetRound();
         super.resetForRound(lane);
+    }
+
+    @Override
+    public java.util.List<String> runtimeDetailLines() {
+        java.util.ArrayList<String> lines = new java.util.ArrayList<>(super.runtimeDetailLines());
+        if (revival.reviving()) {
+            lines.add("부활 상태: 체력 붕괴 " + oneDecimal(revival.remainingTicks() / 20.0) + "초");
+        }
+        return lines;
     }
 
     @Override
