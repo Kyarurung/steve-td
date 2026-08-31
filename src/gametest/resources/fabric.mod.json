@@ -16,6 +16,7 @@
       "kim.biryeong.semiontd.gametest.SemionWaveGameTest",
       "kim.biryeong.semiontd.gametest.PlantIntegrationGameTest",
       "kim.biryeong.semiontd.tower.villager.VillagerSurvivalUpgradeGameTest",
+      "kim.biryeong.semiontd.tower.villager.VillagerClericAttackGameTest",
       "kim.biryeong.semiontd.tower.undead.UndeadZombieCombatGameTest",
       "kim.biryeong.semiontd.tower.undead.UndeadHuskThornsGameTest",
       "kim.biryeong.semiontd.tower.undead.UndeadSkeletonUpgradeGameTest",
