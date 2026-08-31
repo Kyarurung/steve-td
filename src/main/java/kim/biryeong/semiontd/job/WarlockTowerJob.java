@@ -36,7 +36,9 @@ public final class WarlockTowerJob extends SemionJob {
         if (!WarlockTowers.isWarlockTower(towerType)) {
             return false;
         }
-        if (!WarlockTowers.isWarlockCore(towerType) || !towerType.id().equals(WarlockTowers.BASE_WARLOCK_TOWER.id())) {
+        if (!WarlockTowers.isWarlockCore(towerType)
+                || !towerType.id().equals(WarlockTowers.BASE_WARLOCK_TOWER.id())
+                || context == null) {
             return true;
         }
         return context.game().playerLane(context.player().uuid())
@@ -52,11 +54,6 @@ public final class WarlockTowerJob extends SemionJob {
     }
 
     @Override
-    public void onMatchStarted(JobContext context) {
-        clearProgress(context);
-    }
-
-    @Override
     public void onMonsterKilled(JobContext context, Monster monster, long mineralReward) {
         if (!WarlockAwakeningProgress.recordKill(context.player().uuid())) {
             return;
@@ -65,21 +62,7 @@ public final class WarlockTowerJob extends SemionJob {
                 .ifPresent(lane -> WarlockTower.onAwakeningUnlocked(lane, context.player().uuid()));
     }
 
-    @Override
-    public void onEliminated(JobContext context) {
-        clearProgress(context);
-    }
-
-    @Override
-    public void onMatchClosed(JobContext context) {
-        clearProgress(context);
-    }
-
     private static int awakeningKills() {
         return WarlockConfig.RUNTIME.requiredAwakeningKills();
-    }
-
-    private static void clearProgress(JobContext context) {
-        WarlockAwakeningProgress.clear(context.player().uuid());
     }
 }

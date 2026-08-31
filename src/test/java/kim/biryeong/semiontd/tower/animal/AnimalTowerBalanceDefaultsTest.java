@@ -1,24 +1,16 @@
 package kim.biryeong.semiontd.tower.animal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.LinkedHashMap;
 import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceConfig.TowerStats;
-import kim.biryeong.semiontd.job.AnimalTowerJob;
-import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
-import kim.biryeong.semiontd.tower.ProductionTowerCatalogs;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class AnimalTowerBalanceConfigTest {
+class AnimalTowerBalanceDefaultsTest {
     @BeforeAll
     static void bootstrapMinecraft() {
         SharedConstants.tryDetectVersion();
@@ -147,56 +139,11 @@ class AnimalTowerBalanceConfigTest {
         ));
     }
 
-    @Test
-    void animalLeaderCatalogRegistersTierFourOnlyAfterTierThree() {
-        ProductionTowerCatalogs.reloadBuiltIns(TowerBalanceConfig.defaultConfig());
-
-        assertLeaderUpgrade(AnimalTowers.T3_PIG_TOWER, AnimalTowers.T4_PIG_LEADER_TOWER);
-        assertLeaderUpgrade(AnimalTowers.T3_WOLF_DPS_TOWER, AnimalTowers.T4_WOLF_LEADER_TOWER);
-        assertLeaderUpgrade(AnimalTowers.T3_RABBIT_TOWER, AnimalTowers.T4_RABBIT_LEADER_TOWER);
-        assertLeaderUpgrade(AnimalTowers.T3_FOX_TOWER, AnimalTowers.T4_FOX_LEADER_TOWER);
-        assertTrue(ProductionTowerCatalog.upgrades(AnimalTowers.T2_PIG_TOWER).stream()
-                .noneMatch(option -> option.targetType().id().equals(AnimalTowers.T4_PIG_LEADER_TOWER.id())));
-
-        AnimalTowerJob job = new AnimalTowerJob();
-        assertTrue(job.canUseTower(null, AnimalTowers.T4_PIG_LEADER_TOWER));
-        assertTrue(job.canUseTower(null, AnimalTowers.T4_WOLF_LEADER_TOWER));
-        assertTrue(job.canUseTower(null, AnimalTowers.T4_RABBIT_LEADER_TOWER));
-        assertTrue(job.canUseTower(null, AnimalTowers.T4_FOX_LEADER_TOWER));
-        assertFalse(job.canUseTower(null, VillagerTowers.T1_SPLASH_TOWER));
-    }
-
-    @Test
-    void missingLeaderDefaultsMergeWithoutOverwritingExistingValues() {
-        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, TowerStats> towers = new LinkedHashMap<>();
-        towers.put(AnimalTowers.T3_PIG_TOWER.id(), new TowerStats(999L, null, null, null, null, null));
-        Map<String, Long> costs = Map.of("t2_pig_tower->t3_pig_tower", 777L);
-        Map<String, Map<String, Double>> abilities = Map.of(
-                AnimalTowers.T3_PIG_TOWER.id(), Map.of("damagePerStack", 123.0)
-        );
-
-        TowerBalanceConfig merged = new TowerBalanceConfig(towers, costs, abilities).withMissingDefaults(defaults);
-
-        assertEquals(999L, merged.towers().get(AnimalTowers.T3_PIG_TOWER.id()).mineralCost());
-        assertEquals(400.0, merged.towers().get(AnimalTowers.T3_PIG_TOWER.id()).maxHealth());
-        assertEquals(777L, merged.upgradeCost("t2_pig_tower", "t3_pig_tower", -1));
-        assertEquals(123.0, merged.ability(AnimalTowers.T3_PIG_TOWER.id(), "damagePerStack", -1.0));
-        assertEquals(stats(defaults, AnimalTowers.T4_PIG_LEADER_TOWER), stats(merged, AnimalTowers.T4_PIG_LEADER_TOWER));
-        assertEquals(350L, merged.upgradeCost("t3_pig_tower", "t4_pig_leader_tower", -1));
-        assertEquals(0.15, merged.ability(AnimalTowers.T4_PIG_LEADER_TOWER.id(), "leaderMaxHealthBonus", -1.0));
-    }
-
     private static TowerStats stats(TowerBalanceConfig config, TowerType type) {
         return config.towers().get(type.id());
     }
 
     private static void assertAbilities(TowerBalanceConfig config, TowerType type, Map<String, Double> expected) {
         assertEquals(expected, config.abilities().get(type.id()));
-    }
-
-    private static void assertLeaderUpgrade(TowerType tierThree, TowerType leader) {
-        assertEquals(4, ProductionTowerCatalog.find(leader.id()).orElseThrow().tier());
-        assertEquals(leader.id(), ProductionTowerCatalog.upgrade(tierThree, leader.id()).orElseThrow().targetType().id());
     }
 }

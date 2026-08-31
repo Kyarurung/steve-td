@@ -25,7 +25,7 @@ public final class AnimalTowerJob extends SemionJob {
 
     @Override
     public boolean canUseTower(JobContext context, TowerType towerType) {
-        return AnimalTowers.isAnimalTower(towerType);
+        return includesTowerInCatalog(towerType);
     }
 
     @Override

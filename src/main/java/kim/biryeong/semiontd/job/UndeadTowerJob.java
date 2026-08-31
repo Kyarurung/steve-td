@@ -24,7 +24,7 @@ public final class UndeadTowerJob extends SemionJob {
 
     @Override
     public boolean canUseTower(JobContext context, TowerType towerType) {
-        return UndeadTowers.isUndeadTower(towerType);
+        return includesTowerInCatalog(towerType);
     }
 
     @Override

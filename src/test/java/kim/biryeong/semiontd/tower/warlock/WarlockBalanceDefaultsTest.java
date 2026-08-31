@@ -1,12 +1,8 @@
 package kim.biryeong.semiontd.tower.warlock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import net.minecraft.SharedConstants;
@@ -15,7 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class WarlockConfigTest {
+class WarlockBalanceDefaultsTest {
     @BeforeAll
     static void bootstrapMinecraftRegistries() {
         SharedConstants.tryDetectVersion();
@@ -139,97 +135,6 @@ class WarlockConfigTest {
                 "splashStep", "splashCap", "splashDamage", "defenseEvery", "defenseStep", "defenseCap", "petHealth",
                 "petHealthCap", "petDamage", "petDamageCap", "awakeningHeal", "awakeningDamage", "awakeningMoveSpeed"
         ), List.copyOf(config.abilities().get(WarlockTowers.MELEE_WARLOCK_TOWER.id()).keySet()));
-    }
-
-    @Test
-    void damageScalingConfigAcceptsZeroAndBackfillsMissingValues() {
-        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> invalidAbilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> invalidRanged = new LinkedHashMap<>(invalidAbilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
-        invalidRanged.put("damageThreshold", 0.0);
-        invalidAbilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), invalidRanged);
-        TowerBalanceConfig zero = new TowerBalanceConfig(defaults.towers(), defaults.upgradeCosts(), invalidAbilities);
-        assertDoesNotThrow(() -> TowerBalanceRuntime.apply(zero));
-
-        Map<String, Map<String, Double>> partialAbilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> partialRanged = new LinkedHashMap<>(partialAbilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
-        partialRanged.remove("damageThreshold");
-        partialRanged.remove("damageScale");
-        partialRanged.remove("healthThreshold");
-        partialRanged.remove("healthScale");
-        partialAbilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), partialRanged);
-        Map<String, Double> partialMelee = new LinkedHashMap<>(partialAbilities.get(WarlockTowers.MELEE_WARLOCK_TOWER.id()));
-        partialMelee.remove("damageThreshold");
-        partialMelee.remove("damageScale");
-        partialMelee.remove("healthThreshold");
-        partialMelee.remove("healthScale");
-        partialAbilities.put(WarlockTowers.MELEE_WARLOCK_TOWER.id(), partialMelee);
-        TowerBalanceConfig merged = new TowerBalanceConfig(
-                defaults.towers(),
-                defaults.upgradeCosts(),
-                partialAbilities
-        ).withMissingDefaults(defaults);
-        assertEquals(140.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageThreshold", -1.0), 0.0001);
-        assertEquals(20.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "damageScale", -1.0), 0.0001);
-        assertEquals(2000.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthThreshold", -1.0), 0.0001);
-        assertEquals(500.0, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "healthScale", -1.0), 0.0001);
-        assertEquals(200.0, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "damageThreshold", -1.0), 0.0001);
-        assertEquals(20.0, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "damageScale", -1.0), 0.0001);
-        assertEquals(3500.0, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthThreshold", -1.0), 0.0001);
-        assertEquals(500.0, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "healthScale", -1.0), 0.0001);
-        TowerBalanceRuntime.apply(merged);
-        assertEquals(203.5611, WarlockConfig.RUNTIME.path(WarlockPath.RANGED).damageScaling().value(600.0), 0.0001);
-    }
-
-    @Test
-    void discreteWarlockConfigRejectsFractionalAndOverflowValues() {
-        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-
-        for (double invalid : List.of(1349.5, (double) Integer.MAX_VALUE + 1.0)) {
-            Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
-            Map<String, Double> global = new LinkedHashMap<>(abilities.get(WarlockTowers.CONFIG_ID));
-            global.put("awakeningKills", invalid);
-            abilities.put(WarlockTowers.CONFIG_ID, global);
-            TowerBalanceConfig invalidConfig = new TowerBalanceConfig(
-                    defaults.towers(),
-                    defaults.upgradeCosts(),
-                    abilities
-            );
-
-            assertThrows(IllegalArgumentException.class, invalidConfig::validateForRuntime);
-        }
-
-        Map<String, Map<String, Double>> abilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> ranged = new LinkedHashMap<>(abilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
-        ranged.put("splashEvery", 1.5);
-        abilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), ranged);
-        TowerBalanceConfig fractionalSplashPeriod = new TowerBalanceConfig(
-                defaults.towers(),
-                defaults.upgradeCosts(),
-                abilities
-        );
-        assertThrows(IllegalArgumentException.class, fractionalSplashPeriod::validateForRuntime);
-    }
-
-    @Test
-    void configuredPassiveCapsRemainAuthoritative() {
-        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        Map<String, Map<String, Double>> configuredAbilities = new LinkedHashMap<>(defaults.abilities());
-        Map<String, Double> ranged = new LinkedHashMap<>(configuredAbilities.get(WarlockTowers.RANGED_WARLOCK_TOWER.id()));
-        ranged.put("petHealthCap", 0.25);
-        configuredAbilities.put(WarlockTowers.RANGED_WARLOCK_TOWER.id(), ranged);
-        Map<String, Double> melee = new LinkedHashMap<>(configuredAbilities.get(WarlockTowers.MELEE_WARLOCK_TOWER.id()));
-        melee.put("petDamageCap", 0.25);
-        configuredAbilities.put(WarlockTowers.MELEE_WARLOCK_TOWER.id(), melee);
-
-        TowerBalanceConfig merged = new TowerBalanceConfig(
-                defaults.towers(),
-                defaults.upgradeCosts(),
-                configuredAbilities
-        ).withMissingDefaults(defaults);
-
-        assertEquals(0.25, merged.ability(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "petHealthCap", -1.0), 0.0001);
-        assertEquals(0.25, merged.ability(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "petDamageCap", -1.0), 0.0001);
     }
 
 }

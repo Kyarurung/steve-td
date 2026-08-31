@@ -28,7 +28,7 @@ public final class LegionTowerJob extends SemionJob {
         if (!LegionTowers.isLegionTower(towerType)) {
             return false;
         }
-        if (!towerType.id().equals(LegionTowers.ILLUSION_TOWER.id())) {
+        if (!towerType.id().equals(LegionTowers.ILLUSION_TOWER.id()) || context == null) {
             return true;
         }
         return context.game().playerLane(context.player().uuid())

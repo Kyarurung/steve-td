@@ -42,6 +42,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
 import kim.biryeong.semiontd.tower.mage.MageStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningProgress;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.army.ArmyStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
@@ -889,6 +890,7 @@ public final class SemionGame {
             VillagerAdvStates.clear(playerId);
             AncientCityStates.clear(playerId);
             EngineerPressStates.clear(playerId);
+            WarlockAwakeningProgress.clear(playerId);
         }
         for (SemionTeam team : teams.values()) {
             team.closeRuntime();
@@ -1174,6 +1176,7 @@ public final class SemionGame {
         matchSpectatorIds.remove(participant.uuid());
         VanillaTeamBridge.assignPlayer(server, player, participant.teamId());
         placeActivePlayer(player, latePlayer);
+        WarlockAwakeningProgress.clear(latePlayer.uuid());
         job.onMatchStarted(new JobContext(this, latePlayer));
         server.getPlayerList().broadcastSystemMessage(
                 SemionText.prefixedMini(lateJoinAnnouncementMarkup(participant.teamId(), participant.name())),
@@ -1894,6 +1897,7 @@ public final class SemionGame {
             player.sendSystemMessage(SemionText.prefixedPlain("소속 팀이 탈락했습니다. 관전 모드로 전환됩니다."));
         }
         for (UUID memberId : team.memberIds()) {
+            WarlockAwakeningProgress.clear(memberId);
             SemionPlayer semionPlayer = players.get(memberId);
             if (semionPlayer != null) {
                 semionPlayer.job().ifPresent(job -> job.onEliminated(new JobContext(this, semionPlayer)));
@@ -1986,6 +1990,7 @@ public final class SemionGame {
 
     private void notifyMatchStarted() {
         for (SemionPlayer player : players.values()) {
+            WarlockAwakeningProgress.clear(player.uuid());
             player.job().ifPresent(job -> job.onMatchStarted(new JobContext(this, player)));
         }
     }

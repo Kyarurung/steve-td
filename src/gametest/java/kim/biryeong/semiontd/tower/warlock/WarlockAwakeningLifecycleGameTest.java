@@ -21,7 +21,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 
-public final class WarlockIntegrationGameTest {
+public final class WarlockAwakeningLifecycleGameTest {
     @GameTest
     public void progressClearsOnMatchStartEliminationCloseAndPlayerReuse(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();

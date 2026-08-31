@@ -22,7 +22,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 
-public final class VillagerIntegrationGameTest {
+public final class VillagerSurvivalUpgradeGameTest {
     @GameTest
     public void splashUpgradeKeepsSurvivalStateAndExtraAttackCadence(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
