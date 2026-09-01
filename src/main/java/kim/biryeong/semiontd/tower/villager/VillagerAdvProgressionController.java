@@ -3,9 +3,6 @@ package kim.biryeong.semiontd.tower.villager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.SemionGame;
@@ -14,12 +11,6 @@ import kim.biryeong.semiontd.job.VillagerAdvTowerJob;
 import kim.biryeong.semiontd.tower.Tower;
 
 public final class VillagerAdvProgressionController {
-    private static final ExecutorService EXPERIENCE_EXECUTOR = Executors.newSingleThreadExecutor(task -> {
-        Thread thread = new Thread(task, "SemionTD Villager ADV Experience");
-        thread.setDaemon(true);
-        return thread;
-    });
-
     private VillagerAdvProgressionController() {
     }
 
@@ -60,26 +51,13 @@ public final class VillagerAdvProgressionController {
                 }
             });
         }
-        if (!snapshots.isEmpty()) {
-            CompletableFuture
-                    .supplyAsync(() -> calculateExperienceGains(List.copyOf(snapshots), config), EXPERIENCE_EXECUTOR)
-                    .thenAccept(VillagerAdvStates::enqueue);
-        }
-    }
-
-    public static void applyPending(SemionGame game) {
-        if (game == null) {
-            return;
-        }
-        for (var entry : game.players().entrySet()) {
-            for (VillagerAdvExperienceResult result : VillagerAdvStates.drain(entry.getKey())) {
-                SemionPlayer player = game.players().get(result.ownerPlayer());
-                if (!isAdvPlayer(player) || !result.lane().towers().contains(result.tower())) {
-                    continue;
-                }
-                result.tower().setData(VillagerAdvStates.EXPERIENCE, result.nextExperience());
-                VillagerAdvEffectController.refresh(player, result.lane(), result.tower());
+        for (VillagerAdvExperienceResult result : calculateExperienceGains(List.copyOf(snapshots), config)) {
+            SemionPlayer player = game.players().get(result.ownerPlayer());
+            if (!isAdvPlayer(player) || !result.lane().towers().contains(result.tower())) {
+                continue;
             }
+            result.tower().setData(VillagerAdvStates.EXPERIENCE, result.nextExperience());
+            VillagerAdvEffectController.refresh(player, result.lane(), result.tower());
         }
     }
 

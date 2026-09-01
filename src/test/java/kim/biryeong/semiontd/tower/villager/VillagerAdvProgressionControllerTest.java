@@ -39,13 +39,11 @@ class VillagerAdvProgressionControllerTest {
     }
 
     @Test
-    void keyedStateClearsReputationAndPendingResultsTogether() {
+    void keyedStateClearsReputation() {
         TowerBalanceConfig.VillagerAdvConfig config = TowerBalanceConfig.defaultConfig().villagerAdv();
         VillagerAdvStates.addReputation(OWNER, 10.0, config);
-        VillagerAdvStates.enqueue(List.of(new VillagerAdvExperienceResult(OWNER, null, null, 5.5)));
         VillagerAdvProgressionController.onEliminated(OWNER);
         assertEquals(0.0, VillagerAdvStates.reputation(OWNER));
-        assertEquals(List.of(), VillagerAdvStates.drain(OWNER));
     }
 
     @Test

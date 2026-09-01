@@ -39,12 +39,6 @@ abstract class AnimalPackTower extends EntityBackedTower {
         refreshAnimalStacks(lane);
     }
 
-    @Override
-    public void tick(PlayerLane lane) {
-        refreshAnimalStacks(lane);
-        super.tick(lane);
-    }
-
     protected final int currentStacks() { return pack.stacks(); }
 
     protected final boolean atMaxStacks() { return pack.atMaximum(); }
@@ -97,19 +91,15 @@ abstract class AnimalPackTower extends EntityBackedTower {
 
     protected abstract TowerType leaderType();
 
+    void refreshPackStacks(PlayerLane lane) {
+        pack.refreshStacks(lane);
+    }
+
+    void refreshPackLeaderState(PlayerLane lane) {
+        pack.refreshLeaderState(lane);
+    }
+
     static void refreshAnimalStacks(PlayerLane lane) {
-        if (lane == null) {
-            return;
-        }
-        for (Tower tower : lane.towers()) {
-            if (tower instanceof AnimalPackTower animalTower) {
-                animalTower.pack.refreshStacks(lane);
-            }
-        }
-        for (Tower tower : lane.towers()) {
-            if (tower instanceof AnimalPackTower animalTower) {
-                animalTower.pack.refreshLeaderState(lane);
-            }
-        }
+        AnimalPackController.refreshLane(lane);
     }
 }

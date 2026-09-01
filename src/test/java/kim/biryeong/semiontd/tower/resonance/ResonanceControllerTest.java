@@ -59,4 +59,25 @@ class ResonanceControllerTest {
         ResonanceController.refresh(towers);
         assertEquals(0.0, recipient.auraAttackSpeedBonus(), 0.0001);
     }
+
+    @Test
+    void duplicateAspectDoesNotLinkItsPeersButRaisesEveryDifferentAspectRecipient() {
+        ResonanceTower firstFocus = ResonanceTestFixture.tower(ResonanceTowers.FOCUS_CORE, 0, 0);
+        ResonanceTower wave = ResonanceTestFixture.tower(ResonanceTowers.WAVE_CRYSTAL, 1, 0);
+        ResonanceTower frost = ResonanceTestFixture.tower(ResonanceTowers.FROST_CRYSTAL, 0, 1);
+        List<kim.biryeong.semiontd.tower.Tower> towers = new ArrayList<>(List.of(firstFocus, wave, frost));
+        ResonanceController.refresh(towers);
+        assertEquals(2, firstFocus.resonanceLinks());
+        assertEquals(2, wave.resonanceLinks());
+        assertEquals(2, frost.resonanceLinks());
+
+        ResonanceTower secondFocus = ResonanceTestFixture.tower(ResonanceTowers.FOCUS_PRISM, 1, 1);
+        towers.add(secondFocus);
+        ResonanceController.refresh(towers);
+
+        assertEquals(2, firstFocus.resonanceLinks());
+        assertEquals(2, secondFocus.resonanceLinks());
+        assertEquals(3, wave.resonanceLinks());
+        assertEquals(3, frost.resonanceLinks());
+    }
 }

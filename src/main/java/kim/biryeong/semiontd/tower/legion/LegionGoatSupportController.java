@@ -1,7 +1,9 @@
 package kim.biryeong.semiontd.tower.legion;
 
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import kim.biryeong.semiontd.SemionTd;
@@ -41,15 +43,23 @@ final class LegionGoatSupportController {
         if (source == null) {
             return false;
         }
+        List<LegionGoatTower> providers = lane.towers().stream()
+                .filter(LegionGoatTower.class::isInstance)
+                .map(LegionGoatTower.class::cast)
+                .filter(goat -> goat.health() > 0.0)
+                .sorted(STACK_ORDER)
+                .toList();
+        Map<Tower, OptionalInt> stackIndices = new IdentityHashMap<>();
         TowerAreaEffectRequest request = TowerAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(owner, "goat_buff"),
                 source,
                 owner.radius(),
                 TowerAreaTargetMode.REGISTERED_AND_CLONES,
                 LegionVfx.buff()
-        ).withFilter(target -> isBuffTarget(target.tower()) && stackIndexFor(target.tower(), lane).isPresent());
+        ).withFilter(target -> isBuffTarget(target.tower())
+                && stackIndexFor(target.tower(), providers, stackIndices).isPresent());
         return SemionTdApi.areaEffects().applyToTowers(request, target -> {
-            OptionalInt stackIndex = stackIndexFor(target.tower(), lane);
+            OptionalInt stackIndex = stackIndexFor(target.tower(), providers, stackIndices);
             if (stackIndex.isEmpty() || target.entity().isEmpty()) {
                 return AreaEffectOutcome.UNCHANGED;
             }
@@ -85,14 +95,14 @@ final class LegionGoatSupportController {
                 && withinRange(target);
     }
 
-    private OptionalInt stackIndexFor(Tower target, PlayerLane lane) {
-        List<LegionGoatTower> providers = lane.towers().stream()
-                .filter(LegionGoatTower.class::isInstance)
-                .map(LegionGoatTower.class::cast)
+    private OptionalInt stackIndexFor(
+            Tower target,
+            List<LegionGoatTower> providers,
+            Map<Tower, OptionalInt> stackIndices
+    ) {
+        return stackIndices.computeIfAbsent(target, ignored -> LegionGoatRules.providerIndex(providers.stream()
                 .filter(goat -> canBuff(goat, target))
-                .sorted(STACK_ORDER)
-                .toList();
-        return LegionGoatRules.providerIndex(providers, owner, maxStacks());
+                .toList(), owner, maxStacks()));
     }
 
     private boolean canBuff(LegionGoatTower goat, Tower target) {

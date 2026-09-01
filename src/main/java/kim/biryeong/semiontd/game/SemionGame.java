@@ -39,17 +39,14 @@ import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityTerritoryController;
 import kim.biryeong.semiontd.tower.army.ArmyStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.engineer.EngineerPressStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
-import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
+import kim.biryeong.semiontd.tower.lifecycle.BuilderLifecycleRegistry;
 import kim.biryeong.semiontd.tower.mage.MageStates;
-import kim.biryeong.semiontd.tower.villager.VillagerAdvProgressionController;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -887,12 +884,10 @@ public final class SemionGame {
                 DemonLordService.cleanupPlayer(online);
             }
         }
-        for (UUID playerId : players.keySet()) {
-            VillagerAdvProgressionController.onMatchClosed(playerId);
-            AncientCityTerritoryController.onMatchClosed(playerId);
+        for (SemionPlayer player : players.values()) {
+            BuilderLifecycleRegistry.runtime().onMatchClosed(this, player);
+            UUID playerId = player.uuid();
             EngineerPressStates.clear(playerId);
-            WarlockAwakeningStates.clear(playerId);
-            IllagerRaidController.onMatchClosed(playerId);
         }
         for (SemionTeam team : teams.values()) {
             team.closeRuntime();
@@ -1178,8 +1173,7 @@ public final class SemionGame {
         matchSpectatorIds.remove(participant.uuid());
         VanillaTeamBridge.assignPlayer(server, player, participant.teamId());
         placeActivePlayer(player, latePlayer);
-        WarlockAwakeningStates.clear(latePlayer.uuid());
-        AncientCityTerritoryController.onMatchStarted(latePlayer.uuid());
+        BuilderLifecycleRegistry.runtime().onMatchStarted(this, latePlayer);
         job.onMatchStarted(new JobContext(this, latePlayer));
         server.getPlayerList().broadcastSystemMessage(
                 SemionText.prefixedMini(lateJoinAnnouncementMarkup(participant.teamId(), participant.name())),
@@ -1218,7 +1212,6 @@ public final class SemionGame {
     public void tick(MinecraftServer server) {
         tickCounter++;
         advancementService.tick(server, this);
-        VillagerAdvProgressionController.applyPending(this);
         if (phase != RoundPhase.WAITING && phase != RoundPhase.ENDED) {
             activeMatchTicks++;
             if (activeMatchTicks % 20 == 0) {
@@ -1282,7 +1275,7 @@ public final class SemionGame {
             }
             enqueueWave(team, roundWave);
         }
-        VillagerAdvProgressionController.onWaveStarted(this, currentRound);
+        BuilderLifecycleRegistry.runtime().onWaveStarted(this, currentRound);
     }
 
     private void tickWave(MinecraftServer server) {
@@ -1335,7 +1328,7 @@ public final class SemionGame {
         }
         recordBuilderRoundResults(currentRound);
         advancementService.onRoundCompleted(server, this, currentRound);
-        VillagerAdvProgressionController.onWaveCleared(this, currentRound);
+        BuilderLifecycleRegistry.runtime().onWaveCleared(this, currentRound);
         notifyRoundEnded(currentRound);
         economyService.payRoundIncome(players.values(), teams);
         recordRoundMetrics(currentRound, completedWaveDurationTicks);
@@ -1900,12 +1893,9 @@ public final class SemionGame {
             player.sendSystemMessage(SemionText.prefixedPlain("소속 팀이 탈락했습니다. 관전 모드로 전환됩니다."));
         }
         for (UUID memberId : team.memberIds()) {
-            WarlockAwakeningStates.clear(memberId);
-            IllagerRaidController.onEliminated(memberId);
-            VillagerAdvProgressionController.onEliminated(memberId);
-            AncientCityTerritoryController.onEliminated(memberId);
             SemionPlayer semionPlayer = players.get(memberId);
             if (semionPlayer != null) {
+                BuilderLifecycleRegistry.runtime().onEliminated(this, semionPlayer);
                 semionPlayer.job().ifPresent(job -> job.onEliminated(new JobContext(this, semionPlayer)));
             }
         }
@@ -1996,10 +1986,7 @@ public final class SemionGame {
 
     private void notifyMatchStarted() {
         for (SemionPlayer player : players.values()) {
-            WarlockAwakeningStates.clear(player.uuid());
-            IllagerRaidController.onMatchStarted(player.uuid());
-            VillagerAdvProgressionController.onMatchStarted(player.uuid());
-            AncientCityTerritoryController.onMatchStarted(player.uuid());
+            BuilderLifecycleRegistry.runtime().onMatchStarted(this, player);
             player.job().ifPresent(job -> job.onMatchStarted(new JobContext(this, player)));
         }
     }
@@ -2008,8 +1995,7 @@ public final class SemionGame {
         for (SemionPlayer player : players.values()) {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
-                IllagerRaidController.onRoundStarted(this, player);
-                AncientCityTerritoryController.onRoundStarted(player, round);
+                BuilderLifecycleRegistry.runtime().onRoundStarted(this, player, round);
                 player.job().ifPresent(job -> job.onRoundStarted(new JobContext(this, player), round));
                 notifyTraitRoundStarted(player, round);
                 awardPerformanceBonus(player, round);
@@ -2021,7 +2007,7 @@ public final class SemionGame {
         for (SemionPlayer player : players.values()) {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
-                IllagerRaidController.onRoundEnded(player.uuid());
+                BuilderLifecycleRegistry.runtime().onRoundEnded(this, player, round);
                 player.job().ifPresent(job -> job.onRoundEnded(new JobContext(this, player), round));
                 notifyTraitRoundEnded(player, round);
                 awardCleanLaneBonus(player, round);

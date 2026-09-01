@@ -30,6 +30,7 @@ import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.ProductionTowerCatalog;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerRoundMetricsTracker;
+import kim.biryeong.semiontd.tower.animal.AnimalPackController;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
@@ -457,6 +458,7 @@ public final class PlayerLane {
     }
 
     void tickTowers() {
+        AnimalPackController.refreshLane(this);
         for (Tower tower : List.copyOf(towers)) {
             if (towers.contains(tower)) {
                 tower.tick(this);

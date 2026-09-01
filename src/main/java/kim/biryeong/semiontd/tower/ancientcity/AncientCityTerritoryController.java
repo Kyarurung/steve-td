@@ -84,7 +84,7 @@ public final class AncientCityTerritoryController {
         ensureSeeded(tower, lane);
         AncientCityTerritoryState state = AncientCityTerritoryStates.get(tower.ownerPlayer()).orElse(null);
         if (state == null || !state.seeded() || state.waveSpreadRound() == round
-                || !hasAliveTower(lane, tower.ownerPlayer())) {
+                || !hasAliveTower(lane, tower.ownerPlayer(), false)) {
             return;
         }
         state.recordWaveSpread(round);
@@ -94,7 +94,7 @@ public final class AncientCityTerritoryController {
     public static void recordAttributedDeath(UUID playerId, PlayerLane lane, int round, Vec3 deathPosition) {
         AncientCityTerritoryState state = AncientCityTerritoryStates.get(playerId).orElse(null);
         if (state == null || lane == null || deathPosition == null || !state.seeded()
-                || !hasAliveMainLaneTower(lane, playerId)) {
+                || !hasAliveTower(lane, playerId, true)) {
             return;
         }
         state.beginRound(round);
@@ -272,15 +272,10 @@ public final class AncientCityTerritoryController {
                 && lane.arenaWorld().getBlockState(position.above()).isAir();
     }
 
-    private static boolean hasAliveTower(PlayerLane lane, UUID ownerPlayer) {
-        return lane.towers().stream().anyMatch(tower -> tower instanceof AncientCityTower
-                && tower.ownerPlayer().equals(ownerPlayer) && tower.health() > 0.0);
-    }
-
-    private static boolean hasAliveMainLaneTower(PlayerLane lane, UUID ownerPlayer) {
+    private static boolean hasAliveTower(PlayerLane lane, UUID ownerPlayer, boolean mainLaneOnly) {
         return lane.towers().stream().anyMatch(tower -> tower instanceof AncientCityTower
                 && tower.ownerPlayer().equals(ownerPlayer) && tower.health() > 0.0
-                && !tower.deployedAtFinalDefense());
+                && (!mainLaneOnly || !tower.deployedAtFinalDefense()));
     }
 
     private static int manhattanXZ(BlockPos first, BlockPos second) {

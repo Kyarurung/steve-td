@@ -15,11 +15,10 @@ import kim.biryeong.semiontd.tower.Tower;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.network.chat.Component;
 
 public final class VillagerAdvProgressionLifecycleGameTest extends VillagerAdvGameTestSupport {
     @GameTest(maxTicks = 240)
-    public void waveSnapshotAppliesAsynchronousExperienceToTheSameLiveTower(GameTestHelper context) {
+    public void waveStartAppliesExperienceToTheSameLiveTower(GameTestHelper context) {
         UUID owner = BuilderIntegrationGameTestSupport.stableUuid("villager-adv-wave-experience");
         SemionGame game = startedGame(context, owner);
         PlayerLane lane = lane(game, owner);
@@ -31,7 +30,9 @@ public final class VillagerAdvProgressionLifecycleGameTest extends VillagerAdvGa
         );
         GridPosition gridPosition = GridPosition.from(position);
         VillagerAdvProgressionController.onWaveStarted(game, 1);
-        waitForExperience(context, game, lane, gridPosition, 0);
+        Tower tower = lane.towerAt(gridPosition);
+        requireClose(5.5, VillagerAdvStates.experience(tower), "Wave start should apply ADV experience immediately.");
+        context.succeed();
     }
 
     @GameTest
@@ -94,26 +95,4 @@ public final class VillagerAdvProgressionLifecycleGameTest extends VillagerAdvGa
         context.succeed();
     }
 
-    private static void waitForExperience(
-            GameTestHelper context,
-            SemionGame game,
-            PlayerLane lane,
-            GridPosition position,
-            int waitedTicks
-    ) {
-        context.runAfterDelay(1, () -> {
-            VillagerAdvProgressionController.applyPending(game);
-            Tower tower = lane.towerAt(position);
-            if (tower != null && Math.abs(VillagerAdvStates.experience(tower) - 5.5) <= 0.01) {
-                context.succeed();
-                return;
-            }
-            if (waitedTicks >= 180) {
-                double experience = tower == null ? 0.0 : VillagerAdvStates.experience(tower);
-                context.fail(Component.literal("Expected 5.5 ADV experience, got " + experience + '.'));
-                return;
-            }
-            waitForExperience(context, game, lane, position, waitedTicks + 1);
-        });
-    }
 }

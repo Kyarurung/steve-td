@@ -2,11 +2,12 @@ package kim.biryeong.semiontd.tower.animal;
 
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.PlayerLane;
+import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerUpgradeOption;
 import net.minecraft.world.phys.Vec3;
 
 /** Recomputes the two-phase pack/leader transition from lane state. */
-final class AnimalPackController {
+public final class AnimalPackController {
     private final AnimalPackTower tower;
     private int stacks;
     private boolean leaderAuraActive;
@@ -14,6 +15,22 @@ final class AnimalPackController {
 
     AnimalPackController(AnimalPackTower tower) {
         this.tower = tower;
+    }
+
+    public static void refreshLane(PlayerLane lane) {
+        if (lane == null) {
+            return;
+        }
+        for (Tower tower : lane.towers()) {
+            if (tower instanceof AnimalPackTower animalTower) {
+                animalTower.refreshPackStacks(lane);
+            }
+        }
+        for (Tower tower : lane.towers()) {
+            if (tower instanceof AnimalPackTower animalTower) {
+                animalTower.refreshPackLeaderState(lane);
+            }
+        }
     }
 
     int stacks() { return stacks; }

@@ -2,7 +2,6 @@ package kim.biryeong.semiontd.entity.tower.vfx;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,36 +32,8 @@ import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.SemionGameManager;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
-import kim.biryeong.semiontd.tower.animal.AnimalTowers;
-import kim.biryeong.semiontd.tower.army.ArmyTowers;
-import kim.biryeong.semiontd.tower.body.BodyTowers;
-import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
-import kim.biryeong.semiontd.tower.end.EndTowers;
-import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
-import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
-import kim.biryeong.semiontd.tower.frost.FrostTowers;
-import kim.biryeong.semiontd.tower.gamble.GambleTowers;
-import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
-import kim.biryeong.semiontd.tower.illager.IllagerTowers;
-import kim.biryeong.semiontd.tower.insect.InsectTowers;
-import kim.biryeong.semiontd.tower.legion.LegionTowers;
-import kim.biryeong.semiontd.tower.mage.MageTowers;
-import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
-import kim.biryeong.semiontd.tower.nether.NetherTowers;
-import kim.biryeong.semiontd.tower.ocean.OceanTowers;
-import kim.biryeong.semiontd.tower.pet.PetTowers;
-import kim.biryeong.semiontd.tower.plant.PlantTowers;
-import kim.biryeong.semiontd.tower.queen.QueenTowers;
-import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
-import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
-import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.area.AreaVfxStyleRegistryImpl;
 import kim.biryeong.semiontd.tower.area.AreaEffectIds;
-import kim.biryeong.semiontd.tower.undead.UndeadTowers;
-import kim.biryeong.semiontd.tower.villager.VillagerTowers;
-import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.mcbrincie.apel.lib.renderers.BaseApelRenderer;
 import net.mcbrincie.apel.lib.util.math.bezier.QuadraticBezierCurve;
@@ -86,8 +56,6 @@ import net.minecraft.world.entity.LightningBolt;
 public final class TowerVfxService {
     private static final double RANGED_ATTACK_RANGE_THRESHOLD = 3.0;
     private static final double SPECTATOR_RADIUS_SQR = 64.0 * 64.0;
-    private static final int MAX_QUEUE_DEPTH_PER_LANE = 512;
-    private static final long MAX_EVENT_AGE_TICKS = 2L;
     private static final long LANE_STATE_TTL_TICKS = 200L;
     private static final int MIN_RAY_POINTS = 12;
     private static final int MAX_RAY_POINTS = 64;
@@ -97,10 +65,6 @@ public final class TowerVfxService {
 
     private static final DustParticleOptions MARK_PARTICLE = new DustParticleOptions(0xB388FF, 0.9F);
     private static final DustParticleOptions LIFE_STEAL_PARTICLE = new DustParticleOptions(0xE53935, 0.85F);
-    private static final DustParticleOptions NETHER_TRANSITION_PARTICLE = new DustParticleOptions(0xFF6D00, 1.2F);
-    private static final DustParticleOptions ZOMBIE_TRANSITION_PARTICLE = new DustParticleOptions(0x6D8B3D, 1.0F);
-    private static final DustParticleOptions ILLAGER_RAID_POWER_PARTICLE = new DustParticleOptions(0xE53935, 1.2F);
-    private static final DustParticleOptions ILLAGER_RAID_ARMOR_PARTICLE = new DustParticleOptions(0xB0BEC5, 1.0F);
     private static final DustParticleOptions WARLOCK_SACRIFICE_DARK_PARTICLE = new DustParticleOptions(0x512DA8, 1.15F);
     private static final DustParticleOptions WARLOCK_SACRIFICE_SOUL_PARTICLE = new DustParticleOptions(0xD500F9, 0.95F);
     private static final DustParticleOptions TRANSCENDENCE_GOLD_PARTICLE = new DustParticleOptions(0xF4D35E, 1.15F);
@@ -113,11 +77,8 @@ public final class TowerVfxService {
     private static final DustParticleOptions BODY_EYE_LASER_PARTICLE = new DustParticleOptions(0xFF1744, 1.1F);
     private static final DustParticleOptions BODY_EYE_LASER_CORE_PARTICLE = new DustParticleOptions(0xFFCDD2, 0.7F);
 
-    private static final ConcurrentLinkedQueue<PendingEvent> EVENTS = new ConcurrentLinkedQueue<>();
-    private static final Map<VfxLaneKey, Integer> QUEUED_BY_LANE = new HashMap<>();
-    private static final Map<VfxLaneKey, TowerVfxBudget> VANILLA_BUDGETS = new ConcurrentHashMap<>();
+    private static final TowerVfxScheduler<PendingEvent> SCHEDULER = new TowerVfxScheduler<>(512, 2L);
     private static final Map<VfxLaneKey, LaneStats> STATS = new ConcurrentHashMap<>();
-    private static final AtomicLong SEQUENCE = new AtomicLong();
     private static final Object EXECUTOR_LOCK = new Object();
 
     private static volatile VfxConfig config = VfxConfig.defaultConfig();
@@ -541,11 +502,7 @@ public final class TowerVfxService {
     }
 
     public static void shutdown() {
-        EVENTS.clear();
-        synchronized (QUEUED_BY_LANE) {
-            QUEUED_BY_LANE.clear();
-        }
-        VANILLA_BUDGETS.clear();
+        SCHEDULER.clear();
         gameManager = null;
         synchronized (EXECUTOR_LOCK) {
             if (executor != null) {
@@ -595,94 +552,7 @@ public final class TowerVfxService {
     }
 
     public static BuilderPalette paletteFor(TowerType type) {
-        if (VillagerTowers.isAdvVillagerTower(type)) {
-            return BuilderPalette.VILLAGER_ADV;
-        }
-        if (VillagerTowers.isBaseVillagerTower(type)) {
-            return BuilderPalette.VILLAGER;
-        }
-        if (UndeadTowers.isUndeadTower(type)) {
-            return BuilderPalette.UNDEAD;
-        }
-        if (AnimalTowers.isAnimalTower(type)) {
-            return BuilderPalette.ANIMAL;
-        }
-        if (WarlockTowers.isWarlockTower(type)) {
-            return BuilderPalette.WARLOCK;
-        }
-        if (LegionTowers.isLegionTower(type)) {
-            return BuilderPalette.LEGION;
-        }
-        if (ResonanceTowers.isResonanceTower(type)) {
-            return BuilderPalette.RESONANCE;
-        }
-        if (IllagerTowers.isIllagerTower(type)) {
-            return BuilderPalette.ILLAGER;
-        }
-        if (NetherTowers.isNetherTower(type)) {
-            return BuilderPalette.NETHER;
-        }
-        if (EndTowers.isEndTower(type)) {
-            return BuilderPalette.END;
-        }
-        if (OceanTowers.isOceanTower(type)) {
-            return BuilderPalette.OCEAN;
-        }
-        if (AncientCityTowers.isAncientCityTower(type)) {
-            return BuilderPalette.ANCIENT_CITY;
-        }
-        if (AdversaryTowers.isAdversaryTower(type)) {
-            return BuilderPalette.ADVERSARY;
-        }
-        if (FutureAgencyTowers.isFutureAgencyTower(type)) {
-            return BuilderPalette.FUTURE_AGENCY;
-        }
-        if (QueenTowers.isQueenTower(type)) {
-            return BuilderPalette.QUEEN;
-        }
-        if (EngineerTowers.isEngineerTower(type)) {
-            return BuilderPalette.ENGINEER;
-        }
-        if (MageTowers.isMageTower(type)) {
-            return BuilderPalette.MAGE;
-        }
-        if (HeroPartyTowers.isHeroPartyTower(type)) {
-            return BuilderPalette.HERO_PARTY;
-        }
-        if (InsectTowers.isInsectTower(type)) {
-            return BuilderPalette.INSECT;
-        }
-        if (PlantTowers.isPlantTower(type)) {
-            return BuilderPalette.PLANT;
-        }
-        if (ArmyTowers.isArmyTower(type)) {
-            return BuilderPalette.ARMY;
-        }
-        if (ThunderTowers.isThunderTower(type)) {
-            return BuilderPalette.THUNDER;
-        }
-        if (DemonLordTowers.isDemonLordTower(type)) {
-            return BuilderPalette.DEMON_LORD;
-        }
-        if (GambleTowers.isGambleTower(type)) {
-            return BuilderPalette.GAMBLE;
-        }
-        if (DeveloperTowers.isDeveloperTower(type)) {
-            return BuilderPalette.DEVELOPER;
-        }
-        if (SuccubusTowers.isSuccubusTower(type)) {
-            return BuilderPalette.SUCCUBUS;
-        }
-        if (BodyTowers.isBodyTower(type)) {
-            return BuilderPalette.BODY;
-        }
-        if (FrostTowers.isFrostTower(type)) {
-            return BuilderPalette.FROST;
-        }
-        if (PetTowers.isPetTower(type)) {
-            return BuilderPalette.PET;
-        }
-        return BuilderPalette.DEFAULT;
+        return BuilderTowerVfxRenderer.paletteFor(type);
     }
 
     static int preferredRayPointCount(double distance) {
@@ -876,41 +746,19 @@ public final class TowerVfxService {
 
     private static void enqueue(PendingEvent event) {
         VfxLaneKey lane = event.context().lane();
-        int depth;
-        synchronized (QUEUED_BY_LANE) {
-            depth = QUEUED_BY_LANE.getOrDefault(lane, 0);
-            if (depth >= MAX_QUEUE_DEPTH_PER_LANE) {
-                stats(lane).dropped.increment();
-                return;
-            }
-            QUEUED_BY_LANE.put(lane, depth + 1);
+        int depth = SCHEDULER.enqueue(event);
+        if (depth < 0) {
+            stats(lane).dropped.increment();
+            return;
         }
-        event.assignSequence(SEQUENCE.incrementAndGet());
-        EVENTS.add(event);
         LaneStats stats = stats(lane);
         stats.queued.increment();
-        stats.maxQueueDepth.accumulateAndGet(depth + 1, Math::max);
+        stats.maxQueueDepth.accumulateAndGet(depth, Math::max);
         stats.lastTouchedTick.set(event.context().gameTime());
     }
 
     private static List<PendingEvent> drainEvents(long gameTime) {
-        List<PendingEvent> batch = new ArrayList<>();
-        PendingEvent event;
-        while ((event = EVENTS.poll()) != null) {
-            synchronized (QUEUED_BY_LANE) {
-                QUEUED_BY_LANE.computeIfPresent(event.context().lane(), (lane, count) -> count <= 1 ? null : count - 1);
-            }
-            if (gameTime - event.context().gameTime() > MAX_EVENT_AGE_TICKS) {
-                stats(event.context().lane()).dropped.increment();
-                continue;
-            }
-            batch.add(event);
-        }
-        batch.sort(Comparator
-                .comparingLong((PendingEvent pending) -> pending.context().gameTime())
-                .thenComparingInt(pending -> pending.phase().order)
-                .thenComparingLong(PendingEvent::sequence));
-        return batch;
+        return SCHEDULER.drain(gameTime, event -> stats(event.context().lane()).dropped.increment());
     }
 
     private static void processBatch(List<PendingEvent> batch, long gameTime, VfxConfig batchConfig) {
@@ -1197,37 +1045,9 @@ public final class TowerVfxService {
     }
 
     private static void renderTransition(TransitionEvent event, long gameTime, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts) {
-        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 160, 64, true);
-        int orangeSpherePoints = points * 22 / 100;
-        int greenSpherePoints = points * 26 / 100;
-        int groundRingPoints = points * 14 / 100;
-        int middleRingPoints = points * 14 / 100;
-        int trailPoints = Math.max(4, (points - orangeSpherePoints - greenSpherePoints - groundRingPoints - middleRingPoints) / 4);
-
-        sendSphere(event.context(), NETHER_TRANSITION_PARTICLE, "minecraft:flame", event.center, 1.15, orangeSpherePoints,
-                true, config, packetCounts, shapeCounts);
-        sendSphere(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", event.center.add(0.0, 0.05, 0.0), 0.78,
-                greenSpherePoints, true, config, packetCounts, shapeCounts);
-        sendCircle(event.context(), NETHER_TRANSITION_PARTICLE, "minecraft:flame", event.center.add(0.0, -0.68, 0.0), 1.05,
-                groundRingPoints, true, config, packetCounts, shapeCounts);
-        sendCircle(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", event.center.add(0.0, -0.08, 0.0), 0.72,
-                middleRingPoints, true, config, packetCounts, shapeCounts);
-
-        for (int index = 0; index < 4; index++) {
-            double angle = Math.PI * 2.0 * index / 4.0;
-            Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
-            Vec3 start = event.center.add(direction.scale(0.72)).add(0.0, -0.48, 0.0);
-            Vec3 control = event.center.add(direction.scale(1.05)).add(0.0, 0.48, 0.0);
-            Vec3 end = event.center.add(direction.scale(0.28)).add(0.0, 1.42, 0.0);
-            sendTrail(event.context(), ZOMBIE_TRANSITION_PARTICLE, "minecraft:smoke", start, control, end,
-                    trailPoints, true, config, packetCounts, shapeCounts);
-        }
-
-        int smokePoints = claimVanillaPoints(event.context().lane(), gameTime, config, 18, 0, false);
-        if (smokePoints > 0) {
-            sendSphere(event.context(), ParticleTypes.LARGE_SMOKE, "minecraft:large_smoke", event.center, 0.58,
-                    smokePoints, false, config, packetCounts, shapeCounts);
-        }
+        BuilderTowerVfxRenderer.renderNetherTransition(
+                event.context(), event.center, gameTime, config, packetCounts, shapeCounts
+        );
     }
 
     private static void renderIllagerRaidActivation(
@@ -1237,44 +1057,10 @@ public final class TowerVfxService {
             Map<UUID, Integer> packetCounts,
             Map<VfxLaneKey, Integer> shapeCounts
     ) {
-        int points = claimVanillaPoints(event.context().lane(), gameTime, config, 180, 72, true);
-        int armorSpherePoints = points * 22 / 100;
-        int powerSpherePoints = points * 28 / 100;
-        int baseRingPoints = points * 16 / 100;
-        int upperRingPoints = points * 12 / 100;
-        int trailPoints = Math.max(4, (points - armorSpherePoints - powerSpherePoints - baseRingPoints - upperRingPoints) / 6);
-        Vec3 base = event.center.add(0.0, -event.height * 0.5, 0.0);
-
-        sendSphere(event.context(), ILLAGER_RAID_ARMOR_PARTICLE, "minecraft:ash", event.center, event.radius,
-                armorSpherePoints, true, config, packetCounts, shapeCounts);
-        sendSphere(event.context(), ILLAGER_RAID_POWER_PARTICLE, "minecraft:damage_indicator", event.center, event.radius * 0.68,
-                powerSpherePoints, true, config, packetCounts, shapeCounts);
-        sendCircle(event.context(), ILLAGER_RAID_POWER_PARTICLE, "minecraft:damage_indicator", base, event.radius,
-                baseRingPoints, true, config, packetCounts, shapeCounts);
-        sendCircle(event.context(), ILLAGER_RAID_ARMOR_PARTICLE, "minecraft:ash", event.center.add(0.0, event.height * 0.12, 0.0),
-                event.radius * 0.62, upperRingPoints, true, config, packetCounts, shapeCounts);
-
-        for (int index = 0; index < 6; index++) {
-            double angle = Math.PI * 2.0 * index / 6.0;
-            Vec3 direction = new Vec3(Math.cos(angle), 0.0, Math.sin(angle));
-            Vec3 start = base.add(direction.scale(event.radius * 0.82));
-            Vec3 control = event.center.add(direction.scale(event.radius * 1.05));
-            Vec3 end = event.center.add(direction.scale(event.radius * 0.24)).add(0.0, event.height * 0.5, 0.0);
-            sendTrail(event.context(), ILLAGER_RAID_POWER_PARTICLE, "minecraft:damage_indicator", start, control, end,
-                    trailPoints, true, config, packetCounts, shapeCounts);
-        }
-
-        int sparkPoints = claimVanillaPoints(event.context().lane(), gameTime, config, 24, 0, false);
-        if (sparkPoints > 0) {
-            sendSphere(event.context(), ParticleTypes.ELECTRIC_SPARK, "minecraft:electric_spark", event.center,
-                    event.radius * 0.58, sparkPoints, false, config, packetCounts, shapeCounts);
-        }
-        int angerPoints = claimVanillaPoints(event.context().lane(), gameTime, config, 8, 0, false);
-        if (angerPoints > 0) {
-            sendSphere(event.context(), ParticleTypes.ANGRY_VILLAGER, "minecraft:angry_villager",
-                    event.center.add(0.0, event.height * 0.32, 0.0), event.radius * 0.48,
-                    angerPoints, false, config, packetCounts, shapeCounts);
-        }
+        BuilderTowerVfxRenderer.renderIllagerRaidActivation(
+                event.context(), event.center, event.radius, event.height,
+                gameTime, config, packetCounts, shapeCounts
+        );
     }
 
     private static void renderWarlockSacrifice(
@@ -1411,7 +1197,7 @@ public final class TowerVfxService {
         sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
     }
 
-    private static void sendCircle(
+    static void sendCircle(
             EventContext context, ParticleOptions particle, String gcbParticle, Vec3 center, double radius, int points,
             boolean essential, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts
     ) {
@@ -1433,7 +1219,7 @@ public final class TowerVfxService {
         sendGcb(context, particle, gcbParticle, shape, essential, config, shapeCounts);
     }
 
-    private static void sendSphere(
+    static void sendSphere(
             EventContext context, ParticleOptions particle, String gcbParticle, Vec3 center, double radius, int points,
             boolean essential, VfxConfig config, Map<UUID, Integer> packetCounts, Map<VfxLaneKey, Integer> shapeCounts
     ) {
@@ -1464,7 +1250,7 @@ public final class TowerVfxService {
         sendGcbBezier(context, particle, gcbParticle, start, control, end, points, essential, config, shapeCounts);
     }
 
-    private static void sendTrail(
+    static void sendTrail(
             EventContext context,
             ParticleOptions particle,
             String gcbParticle,
@@ -1624,7 +1410,7 @@ public final class TowerVfxService {
         );
     }
 
-    private static int claimVanillaPoints(
+    static int claimVanillaPoints(
             VfxLaneKey lane,
             long gameTime,
             VfxConfig config,
@@ -1632,17 +1418,13 @@ public final class TowerVfxService {
             int minimum,
             boolean essential
     ) {
-        TowerVfxBudget bucket = VANILLA_BUDGETS.computeIfAbsent(
+        int claimed = SCHEDULER.claimVanillaPoints(
                 lane,
-                ignored -> new TowerVfxBudget(config.vanilla().burstCapacityPoints(), gameTime)
-        );
-        int claimed = bucket.claim(
+                gameTime,
+                config,
                 preferred,
                 minimum,
-                essential,
-                gameTime,
-                config.vanilla().refillPointsPerTick(),
-                config.vanilla().burstCapacityPoints()
+                essential
         );
         if (claimed < preferred) {
             stats(lane).dropped.add(preferred - claimed);
@@ -1681,7 +1463,7 @@ public final class TowerVfxService {
         });
         for (VfxLaneKey lane : expired) {
             STATS.remove(lane);
-            VANILLA_BUDGETS.remove(lane);
+            SCHEDULER.removeBudget(lane);
         }
     }
 
@@ -1731,7 +1513,7 @@ public final class TowerVfxService {
         }
     }
 
-    private record EventContext(
+    record EventContext(
             VfxLaneKey lane,
             UUID sourceTowerId,
             BuilderPalette palette,
@@ -1740,7 +1522,7 @@ public final class TowerVfxService {
     ) {
     }
 
-    private abstract static class PendingEvent {
+    private abstract static class PendingEvent implements TowerVfxScheduler.ScheduledEvent {
         private final EventContext context;
         private final Phase phase;
         private long sequence;
@@ -1754,15 +1536,30 @@ public final class TowerVfxService {
             return context;
         }
 
+        @Override
+        public VfxLaneKey lane() {
+            return context.lane();
+        }
+
+        @Override
+        public long gameTime() {
+            return context.gameTime();
+        }
+
+        @Override
+        public int phaseOrder() {
+            return phase.order;
+        }
+
         Phase phase() {
             return phase;
         }
 
-        long sequence() {
+        public long sequence() {
             return sequence;
         }
 
-        void assignSequence(long sequence) {
+        public void assignSequence(long sequence) {
             this.sequence = sequence;
         }
     }
