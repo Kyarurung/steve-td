@@ -13,7 +13,7 @@ final class BuilderTowerVfxRenderer {
     private static final DustParticleOptions ZOMBIE_TRANSITION_PARTICLE = new DustParticleOptions(0x6D8B3D, 1.0F);
     private static final DustParticleOptions ILLAGER_RAID_POWER_PARTICLE = new DustParticleOptions(0xE53935, 1.2F);
     private static final DustParticleOptions ILLAGER_RAID_ARMOR_PARTICLE = new DustParticleOptions(0xB0BEC5, 1.0F);
-    private static final BuilderPaletteResolver PALETTES = BuilderPaletteResolver.builtIn();
+    private static final BuilderPaletteRegistry PALETTES = BuilderPaletteRegistry.builtIn();
 
     private BuilderTowerVfxRenderer() {
     }

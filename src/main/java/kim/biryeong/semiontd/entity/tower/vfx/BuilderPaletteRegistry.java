@@ -34,16 +34,16 @@ import kim.biryeong.semiontd.tower.undead.UndeadTowers;
 import kim.biryeong.semiontd.tower.villager.VillagerTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 
-final class BuilderPaletteResolver {
+final class BuilderPaletteRegistry {
     private final BuilderPalette fallback;
-    private final List<Route> routes = new ArrayList<>();
+    private final List<BuilderPaletteDescriptor> descriptors = new ArrayList<>();
 
-    BuilderPaletteResolver(BuilderPalette fallback) {
+    BuilderPaletteRegistry(BuilderPalette fallback) {
         this.fallback = Objects.requireNonNull(fallback, "fallback");
     }
 
-    static BuilderPaletteResolver builtIn() {
-        return new BuilderPaletteResolver(BuilderPalette.DEFAULT)
+    static BuilderPaletteRegistry builtIn() {
+        return new BuilderPaletteRegistry(BuilderPalette.DEFAULT)
                 .register(VillagerTowers::isAdvVillagerTower, BuilderPalette.VILLAGER_ADV)
                 .register(VillagerTowers::isBaseVillagerTower, BuilderPalette.VILLAGER)
                 .register(UndeadTowers::isUndeadTower, BuilderPalette.UNDEAD)
@@ -75,11 +75,12 @@ final class BuilderPaletteResolver {
                 .register(PetTowers::isPetTower, BuilderPalette.PET);
     }
 
-    BuilderPaletteResolver register(Predicate<TowerType> matcher, BuilderPalette palette) {
-        routes.add(new Route(
-                Objects.requireNonNull(matcher, "matcher"),
-                Objects.requireNonNull(palette, "palette")
-        ));
+    BuilderPaletteRegistry register(Predicate<TowerType> matcher, BuilderPalette palette) {
+        return register(new BuilderPaletteDescriptor(matcher, palette));
+    }
+
+    BuilderPaletteRegistry register(BuilderPaletteDescriptor descriptor) {
+        descriptors.add(Objects.requireNonNull(descriptor, "descriptor"));
         return this;
     }
 
@@ -87,13 +88,10 @@ final class BuilderPaletteResolver {
         if (type == null) {
             return fallback;
         }
-        return routes.stream()
-                .filter(route -> route.matcher().test(type))
-                .map(Route::palette)
+        return descriptors.stream()
+                .filter(descriptor -> descriptor.matches(type))
+                .map(BuilderPaletteDescriptor::palette)
                 .findFirst()
                 .orElse(fallback);
-    }
-
-    private record Route(Predicate<TowerType> matcher, BuilderPalette palette) {
     }
 }

@@ -17,11 +17,12 @@ import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
-import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
+import kim.biryeong.semiontd.tower.succubus.SuccubusDreamLaneIndex.Snapshot;
+import kim.biryeong.semiontd.tower.succubus.SuccubusDreamLaneIndex.TowerKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.phys.Vec3;
@@ -32,6 +33,7 @@ public final class SuccubusDreams {
     private static final Map<TowerKey, DreamState> TOWERS = new HashMap<>();
     private static final Map<UUID, DreamState> MONSTERS = new HashMap<>();
     private static final Map<TowerKey, Long> LULLABY_READY_AT = new HashMap<>();
+    private static final SuccubusDreamLaneIndex LANES = new SuccubusDreamLaneIndex();
     private static final int SLEEP_SMOKE_INTERVAL_TICKS = 10;
     private static boolean propagatingWake;
 
@@ -44,6 +46,7 @@ public final class SuccubusDreams {
         DreamState state = TOWERS.computeIfAbsent(TowerKey.of(target), ignored -> new DreamState());
         boolean wasAsleep = state.asleep;
         boolean changed = add(state, lane, source, amount, SuccubusBalance.towerSleepDurationTicks());
+        LANES.indexTower(state.lane, TowerKey.of(target));
         syncTowerEffects(target, lane, state);
         if (changed) {
             SemionTowerEntity sourceEntity = sourceEntity(lane, source, source.ownerPlayer());
@@ -61,6 +64,7 @@ public final class SuccubusDreams {
         DreamState state = MONSTERS.computeIfAbsent(target.getUUID(), ignored -> new DreamState());
         boolean wasAsleep = state.asleep;
         boolean changed = add(state, lane, source, amount, SuccubusBalance.sleepDurationTicks());
+        LANES.indexMonster(state.lane, target.getUUID());
         syncMonsterEffects(target, state);
         if (changed) {
             SemionTowerEntity sourceEntity = sourceEntity(lane, source, source.ownerPlayer());
@@ -83,6 +87,7 @@ public final class SuccubusDreams {
         if (now < LULLABY_READY_AT.getOrDefault(key, 0L)) return false;
         if (!add(target, lane, source, amount)) return false;
         LULLABY_READY_AT.put(key, now + 80L);
+        LANES.indexLullaby(lane, key);
         return true;
     }
 
@@ -167,25 +172,36 @@ public final class SuccubusDreams {
 
     public static void tick(PlayerLane lane) {
         if (lane == null) return;
-        for (Map.Entry<TowerKey, DreamState> entry : List.copyOf(TOWERS.entrySet())) {
-            DreamState state = entry.getValue();
-            if (state.lane != lane) continue;
-            Tower tower = lane.towers().stream().filter(candidate -> entry.getKey().equals(TowerKey.of(candidate))).findFirst().orElse(null);
+        Snapshot snapshot = LANES.snapshot(lane);
+        Map<TowerKey, Tower> towers = towerRoster(lane);
+        for (TowerKey key : snapshot.towerKeys()) {
+            DreamState state = TOWERS.get(key);
+            if (state == null) {
+                LANES.removeTower(key);
+                continue;
+            }
+            Tower tower = towers.get(key);
             if (tower == null || tower.health() <= 0.0) {
                 removeTowerEffects(tower, lane);
-                TOWERS.remove(entry.getKey());
+                TOWERS.remove(key);
+                LANES.removeTower(key);
                 continue;
             }
             tickTower(tower, lane, state);
         }
 
-        for (Map.Entry<UUID, DreamState> entry : List.copyOf(MONSTERS.entrySet())) {
-            DreamState state = entry.getValue();
-            if (state.lane != lane) continue;
-            SemionMonsterEntity monster = monsterEntity(lane, entry.getKey());
+        Map<UUID, SemionMonsterEntity> monsters = monsterRoster(lane);
+        for (UUID monsterId : snapshot.monsterIds()) {
+            DreamState state = MONSTERS.get(monsterId);
+            if (state == null) {
+                LANES.removeMonster(monsterId);
+                continue;
+            }
+            SemionMonsterEntity monster = monsters.get(monsterId);
             if (monster == null || !monster.isAlive()) {
                 if (monster != null) removeMonsterEffects(monster);
-                MONSTERS.remove(entry.getKey());
+                MONSTERS.remove(monsterId);
+                LANES.removeMonster(monsterId);
                 continue;
             }
             tickMonster(monster, state);
@@ -346,40 +362,49 @@ public final class SuccubusDreams {
 
     public static void clearLane(PlayerLane lane) {
         if (lane == null) return;
-        TOWERS.entrySet().removeIf(entry -> {
-            if (entry.getValue().lane != lane) return false;
-            Tower tower = lane.towers().stream().filter(candidate -> entry.getKey().equals(TowerKey.of(candidate))).findFirst().orElse(null);
-            removeTowerEffects(tower, lane);
-            return true;
-        });
-        LULLABY_READY_AT.keySet().removeIf(key -> lane.towers().stream()
-                .anyMatch(tower -> key.equals(TowerKey.of(tower))));
-        MONSTERS.entrySet().removeIf(entry -> {
-            if (entry.getValue().lane != lane) return false;
-            SemionMonsterEntity monster = monsterEntity(lane, entry.getKey());
+        Snapshot snapshot = LANES.removeLane(lane);
+        Map<TowerKey, Tower> towers = towerRoster(lane);
+        Map<UUID, SemionMonsterEntity> monsters = monsterRoster(lane);
+        for (TowerKey key : snapshot.towerKeys()) {
+            TOWERS.remove(key);
+            removeTowerEffects(towers.get(key), lane);
+        }
+        snapshot.lullabyKeys().forEach(LULLABY_READY_AT::remove);
+        for (UUID monsterId : snapshot.monsterIds()) {
+            MONSTERS.remove(monsterId);
+            SemionMonsterEntity monster = monsters.get(monsterId);
             if (monster != null) removeMonsterEffects(monster);
-            return true;
-        });
+        }
     }
 
     public static void clearPlayer(UUID playerId) {
         if (playerId == null) return;
-        TOWERS.entrySet().removeIf(entry -> {
+        List<TowerKey> towerKeys = TOWERS.entrySet().stream().filter(entry -> {
             DreamState state = entry.getValue();
-            if (!playerId.equals(entry.getKey().owner) && !playerId.equals(state.sourceOwner)) return false;
+            return playerId.equals(entry.getKey().owner()) || playerId.equals(state.sourceOwner);
+        }).map(Map.Entry::getKey).toList();
+        for (TowerKey key : towerKeys) {
+            DreamState state = TOWERS.remove(key);
             Tower tower = state.lane == null ? null : state.lane.towers().stream()
-                    .filter(candidate -> entry.getKey().equals(TowerKey.of(candidate))).findFirst().orElse(null);
+                    .filter(candidate -> key.equals(TowerKey.of(candidate))).findFirst().orElse(null);
             removeTowerEffects(tower, state.lane);
-            return true;
-        });
-        LULLABY_READY_AT.keySet().removeIf(key -> playerId.equals(key.owner()));
-        MONSTERS.entrySet().removeIf(entry -> {
-            DreamState state = entry.getValue();
-            if (!playerId.equals(state.sourceOwner)) return false;
-            SemionMonsterEntity monster = monsterEntity(state.lane, entry.getKey());
+            LANES.removeTower(key);
+        }
+        List<TowerKey> lullabyKeys = LULLABY_READY_AT.keySet().stream()
+                .filter(key -> playerId.equals(key.owner())).toList();
+        for (TowerKey key : lullabyKeys) {
+            LULLABY_READY_AT.remove(key);
+            LANES.removeLullaby(key);
+        }
+        List<UUID> monsterIds = MONSTERS.entrySet().stream()
+                .filter(entry -> playerId.equals(entry.getValue().sourceOwner))
+                .map(Map.Entry::getKey).toList();
+        for (UUID monsterId : monsterIds) {
+            DreamState state = MONSTERS.remove(monsterId);
+            SemionMonsterEntity monster = monsterEntity(state.lane, monsterId);
             if (monster != null) removeMonsterEffects(monster);
-            return true;
-        });
+            LANES.removeMonster(monsterId);
+        }
     }
 
     private static void clearTower(Tower tower, PlayerLane lane) {
@@ -387,12 +412,16 @@ public final class SuccubusDreams {
         TowerKey key = TowerKey.of(tower);
         TOWERS.remove(key);
         LULLABY_READY_AT.remove(key);
+        LANES.removeTower(key);
+        LANES.removeLullaby(key);
         removeTowerEffects(tower, lane);
     }
 
     private static void clearMonster(SemionMonsterEntity monster) {
         if (monster == null) return;
-        MONSTERS.remove(monster.getUUID());
+        UUID monsterId = monster.getUUID();
+        MONSTERS.remove(monsterId);
+        LANES.removeMonster(monsterId);
         removeMonsterEffects(monster);
     }
 
@@ -427,18 +456,30 @@ public final class SuccubusDreams {
     }
 
     private static SemionMonsterEntity monsterEntity(PlayerLane lane, UUID id) {
-        if (lane == null || id == null) return null;
+        if (lane == null || lane.arenaWorld() == null || id == null) return null;
         return lane.activeMonsters().stream().filter(monster -> monster.minecraftEntityId() >= 0)
                 .map(monster -> lane.arenaWorld().getEntity(monster.minecraftEntityId()))
                 .filter(SemionMonsterEntity.class::isInstance).map(SemionMonsterEntity.class::cast)
                 .filter(entity -> id.equals(entity.getUUID())).findFirst().orElse(null);
     }
 
-    private static String oneDecimal(double value) {return String.format(java.util.Locale.ROOT, "%.1f", value);}
-
-    private record TowerKey(UUID owner, GridPosition originalPosition) {
-        private static TowerKey of(Tower tower) {return new TowerKey(tower.ownerPlayer(), tower.originalPosition());}
+    private static Map<TowerKey, Tower> towerRoster(PlayerLane lane) {
+        Map<TowerKey, Tower> towers = new HashMap<>();
+        for (Tower tower : lane.towers()) towers.put(TowerKey.of(tower), tower);
+        return towers;
     }
+
+    private static Map<UUID, SemionMonsterEntity> monsterRoster(PlayerLane lane) {
+        Map<UUID, SemionMonsterEntity> monsters = new HashMap<>();
+        if (lane.arenaWorld() == null) return monsters;
+        lane.activeMonsters().stream().filter(monster -> monster.minecraftEntityId() >= 0)
+                .map(monster -> lane.arenaWorld().getEntity(monster.minecraftEntityId()))
+                .filter(SemionMonsterEntity.class::isInstance).map(SemionMonsterEntity.class::cast)
+                .forEach(monster -> monsters.put(monster.getUUID(), monster));
+        return monsters;
+    }
+
+    private static String oneDecimal(double value) {return String.format(java.util.Locale.ROOT, "%.1f", value);}
 
     private static final class DreamState {
         private UUID sourceOwner;
