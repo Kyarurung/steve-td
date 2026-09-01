@@ -53,7 +53,7 @@ public final class IllagerRaidBossBarService {
                 continue;
             }
             visiblePlayerIds.add(playerId);
-            update(player, state.get(), IllagerRaidStates.gaugeMax());
+            update(player, state.get(), IllagerRaidController.gaugeMax());
         }
         for (UUID playerId : Set.copyOf(bossBars.keySet())) {
             if (!visiblePlayerIds.contains(playerId)) {

@@ -17,7 +17,7 @@ import kim.biryeong.semiontd.tower.army.ArmyBalance;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
 import kim.biryeong.semiontd.tower.end.EndTowers;
 import kim.biryeong.semiontd.tower.hero.HeroWeapon;
-import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
+import kim.biryeong.semiontd.tower.illager.IllagerConfig;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.legion.LegionTowers;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
@@ -746,7 +746,7 @@ final class SemionConfigLoaderTest {
                 IllagerTowers.T2_VINDICATOR_CAPTAIN.id(),
                 0
         ));
-        assertEquals(100.0, towerBalance.ability(IllagerRaidStates.RAID_CONFIG_ID, "gaugeMax", -1), 0.0001);
+        assertEquals(100.0, towerBalance.ability(IllagerConfig.CONFIG_ID, "gaugeMax", -1), 0.0001);
         assertEquals(0.15, towerBalance.ability(IllagerTowers.T1_VINDICATOR.id(), "raidDamageReduction", -1), 0.0001);
         String written = Files.readString(tempDir.resolve("tower_balance.json"));
         assertTrue(written.contains("illager_vindicator_t1"));

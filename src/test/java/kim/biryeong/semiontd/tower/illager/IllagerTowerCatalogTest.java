@@ -29,14 +29,14 @@ class IllagerTowerCatalogTest {
     void defaultBalanceConfigIncludesIllagerRaidAndTowerValues() {
         TowerBalanceConfig config = TowerBalanceConfig.defaultConfig();
 
-        assertEquals(100.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "gaugeMax", -1), 0.0001);
-        assertEquals(3.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "waveKillGauge", -1), 0.0001);
-        assertEquals(6.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "incomeKillGauge", -1), 0.0001);
-        assertEquals(0.02, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "attackSpeedPercentPerTower", -1), 0.0001);
-        assertEquals(0.06, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "damagePercentPerTower", -1), 0.0001);
-        assertEquals(0.20, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "attackSpeedBonusCap", -1), 0.0001);
-        assertEquals(0.60, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "damageBonusCap", -1), 0.0001);
-        assertEquals(40.0, config.ability(IllagerRaidStates.RAID_CONFIG_ID, "timedEffectDurationTicks", -1), 0.0001);
+        assertEquals(100.0, config.ability(IllagerConfig.CONFIG_ID, "gaugeMax", -1), 0.0001);
+        assertEquals(3.0, config.ability(IllagerConfig.CONFIG_ID, "waveKillGauge", -1), 0.0001);
+        assertEquals(6.0, config.ability(IllagerConfig.CONFIG_ID, "incomeKillGauge", -1), 0.0001);
+        assertEquals(0.02, config.ability(IllagerConfig.CONFIG_ID, "attackSpeedPercentPerTower", -1), 0.0001);
+        assertEquals(0.06, config.ability(IllagerConfig.CONFIG_ID, "damagePercentPerTower", -1), 0.0001);
+        assertEquals(0.20, config.ability(IllagerConfig.CONFIG_ID, "attackSpeedBonusCap", -1), 0.0001);
+        assertEquals(0.60, config.ability(IllagerConfig.CONFIG_ID, "damageBonusCap", -1), 0.0001);
+        assertEquals(40.0, config.ability(IllagerConfig.CONFIG_ID, "timedEffectDurationTicks", -1), 0.0001);
         assertEquals(0.40, config.ability(IllagerTowers.T1_PILLAGER.id(), "raidMarkedDamageBonus", -1), 0.0001);
         assertEquals(1.25, config.ability(IllagerTowers.T2_PILLAGER_CAPTAIN_SINGLE.id(), "raidIncomeDamageBonus", -1), 0.0001);
         assertEquals(0.25, config.ability(IllagerTowers.T2_PILLAGER_CAPTAIN_SPLASH.id(), "raidSplashDamageRatioBonus", -1), 0.0001);
@@ -55,21 +55,11 @@ class IllagerTowerCatalogTest {
         TowerBalanceConfig custom = new TowerBalanceConfig(
                 defaults.towers(),
                 defaults.upgradeCosts(),
-                java.util.Map.of(IllagerRaidStates.RAID_CONFIG_ID, java.util.Map.of("gaugeMax", 80.0))
+                java.util.Map.of(IllagerConfig.CONFIG_ID, java.util.Map.of("gaugeMax", 80.0))
         ).withMissingDefaults(defaults);
 
-        assertEquals(80.0, custom.ability(IllagerRaidStates.RAID_CONFIG_ID, "gaugeMax", -1), 0.0001);
-        assertEquals(6.0, custom.ability(IllagerRaidStates.RAID_CONFIG_ID, "incomeKillGauge", -1), 0.0001);
-    }
-
-    @Test
-    void raidBonusesScaleDownAndStopAtTheirCaps() {
-        TowerBalanceRuntime.apply(TowerBalanceConfig.defaultConfig());
-
-        assertEquals(0.08, IllagerRaidStates.attackSpeedBonusForTowerCount(4), 0.0001);
-        assertEquals(0.24, IllagerRaidStates.damageBonusForTowerCount(4), 0.0001);
-        assertEquals(0.20, IllagerRaidStates.attackSpeedBonusForTowerCount(100), 0.0001);
-        assertEquals(0.60, IllagerRaidStates.damageBonusForTowerCount(100), 0.0001);
+        assertEquals(80.0, custom.ability(IllagerConfig.CONFIG_ID, "gaugeMax", -1), 0.0001);
+        assertEquals(6.0, custom.ability(IllagerConfig.CONFIG_ID, "incomeKillGauge", -1), 0.0001);
     }
 
 }

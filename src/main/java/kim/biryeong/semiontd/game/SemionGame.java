@@ -41,6 +41,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
 import kim.biryeong.semiontd.tower.mage.MageStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
+import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
@@ -891,6 +892,7 @@ public final class SemionGame {
             AncientCityStates.clear(playerId);
             EngineerPressStates.clear(playerId);
             WarlockAwakeningStates.clear(playerId);
+            IllagerRaidController.onMatchClosed(playerId);
         }
         for (SemionTeam team : teams.values()) {
             team.closeRuntime();
@@ -1898,6 +1900,7 @@ public final class SemionGame {
         }
         for (UUID memberId : team.memberIds()) {
             WarlockAwakeningStates.clear(memberId);
+            IllagerRaidController.onEliminated(memberId);
             SemionPlayer semionPlayer = players.get(memberId);
             if (semionPlayer != null) {
                 semionPlayer.job().ifPresent(job -> job.onEliminated(new JobContext(this, semionPlayer)));
@@ -1991,6 +1994,7 @@ public final class SemionGame {
     private void notifyMatchStarted() {
         for (SemionPlayer player : players.values()) {
             WarlockAwakeningStates.clear(player.uuid());
+            IllagerRaidController.onMatchStarted(player.uuid());
             player.job().ifPresent(job -> job.onMatchStarted(new JobContext(this, player)));
         }
     }
@@ -1999,6 +2003,7 @@ public final class SemionGame {
         for (SemionPlayer player : players.values()) {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
+                IllagerRaidController.onRoundStarted(this, player);
                 player.job().ifPresent(job -> job.onRoundStarted(new JobContext(this, player), round));
                 notifyTraitRoundStarted(player, round);
                 awardPerformanceBonus(player, round);
@@ -2010,6 +2015,7 @@ public final class SemionGame {
         for (SemionPlayer player : players.values()) {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
+                IllagerRaidController.onRoundEnded(player.uuid());
                 player.job().ifPresent(job -> job.onRoundEnded(new JobContext(this, player), round));
                 notifyTraitRoundEnded(player, round);
                 awardCleanLaneBonus(player, round);

@@ -11,6 +11,7 @@ import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
 import kim.biryeong.semiontd.entity.monster.Monster;
+import kim.biryeong.semiontd.entity.monster.DamageType;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.AssignedParticipant;
@@ -21,6 +22,8 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.SemionGame;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
+import kim.biryeong.semiontd.summon.SummonRole;
+import kim.biryeong.semiontd.summon.SummonTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
@@ -123,6 +126,46 @@ public final class BuilderIntegrationGameTestSupport {
         context.getLevel().addFreshEntity(entity);
         monster.markMinecraftEntitySpawned(entity.getId(), x, y, z);
         lane.activeMonsters().add(monster);
+        return entity;
+    }
+
+    public static SemionMonsterEntity spawnRoleMonster(
+            GameTestHelper context,
+            String id,
+            Optional<TeamId> senderTeam,
+            TeamId targetTeam,
+            int targetLaneId,
+            double maximumHealth,
+            double armor,
+            double resistance,
+            List<SummonRole> roles,
+            double x,
+            double y,
+            double z
+    ) {
+        Monster monster = new Monster(
+                id,
+                targetTeam,
+                targetLaneId,
+                Optional.empty(),
+                senderTeam,
+                maximumHealth,
+                armor,
+                0.0,
+                AttackKind.MELEE,
+                "minecraft:zombie",
+                null,
+                DamageType.PHYSICAL,
+                resistance,
+                SummonTier.T1,
+                roles,
+                0L
+        );
+        SemionMonsterEntity entity = new SemionMonsterEntity(SemionEntityTypes.MONSTER, context.getLevel());
+        entity.configureFrom(monster, null);
+        entity.setNoGravity(true);
+        entity.setPos(x, y, z);
+        context.getLevel().addFreshEntity(entity);
         return entity;
     }
 

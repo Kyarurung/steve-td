@@ -12,25 +12,35 @@ import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.TeamId;
 import org.junit.jupiter.api.Test;
 
-class IllagerMarkTest {
+class IllagerMarkDomainTest {
     @Test
     void markIsActiveForOwnerAndExpiresByMonsterTick() {
         UUID owner = UUID.randomUUID();
         Monster monster = monster();
 
-        IllagerMarks.apply(monster, owner, 0.2, 2, new GridPosition(1, 64, 1), 1.0);
+        IllagerMarkDomain.apply(monster, owner, 0.2, 2, new GridPosition(1, 64, 1), 1.0);
 
-        Optional<IllagerMark> mark = IllagerMarks.activeMark(monster, owner);
+        Optional<IllagerMark> mark = IllagerMarkDomain.activeMark(monster, owner);
         assertTrue(mark.isPresent());
         assertEquals(0.2, mark.get().damageTakenBonus(), 0.0001);
         assertTrue(mark.get().forcesTargetFor(new GridPosition(1, 64, 2)));
-        assertFalse(IllagerMarks.activeMark(monster, UUID.randomUUID()).isPresent());
+        assertFalse(IllagerMarkDomain.activeMark(monster, UUID.randomUUID()).isPresent());
 
         monster.tickSurvivalScaling(null, 0);
         monster.tickSurvivalScaling(null, 0);
         monster.tickSurvivalScaling(null, 0);
 
-        assertFalse(IllagerMarks.activeMark(monster, owner).isPresent());
+        assertFalse(IllagerMarkDomain.activeMark(monster, owner).isPresent());
+    }
+
+    @Test
+    void invalidMarkInputDoesNotCreateState() {
+        UUID owner = UUID.randomUUID();
+        Monster monster = monster();
+
+        IllagerMarkDomain.apply(monster, owner, 0.2, 0, new GridPosition(1, 64, 1), 1.0);
+
+        assertFalse(IllagerMarkDomain.activeMark(monster, owner).isPresent());
     }
 
     private static Monster monster() {

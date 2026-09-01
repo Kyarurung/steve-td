@@ -8,13 +8,13 @@ import kim.biryeong.semiontd.entity.monster.MonsterDataKey;
 import kim.biryeong.semiontd.game.GridPosition;
 import net.minecraft.resources.ResourceLocation;
 
-public final class IllagerMarks {
+public final class IllagerMarkDomain {
     private static final MonsterDataKey<IllagerMark> MARK = MonsterDataKey.of(
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "illager_mark"),
             IllagerMark.class
     );
 
-    private IllagerMarks() {
+    private IllagerMarkDomain() {
     }
 
     public static void apply(

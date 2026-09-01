@@ -41,11 +41,11 @@ class NetherTowerCatalogTest {
 
         assertTrue(config.towers().containsKey(NetherTowers.T1_STRIDER.id()));
         assertTrue(config.towers().containsKey(NetherTowers.T3_WITHER.id()));
-        assertEquals(0.0667, config.ability(NetherTower.CONFIG_ID, "netherDecayMaxHealthRatioPerSecond", -1), 0.0001);
-        assertEquals(0.20, config.ability(NetherTower.CONFIG_ID, "zombieDecayMaxHealthRatioPerSecond", -1), 0.0001);
-        assertEquals(1.0, config.ability(NetherTower.CONFIG_ID, "zombieReviveHealthRatio", -1), 0.0001);
-        assertEquals(0.70, config.ability(NetherTower.CONFIG_ID, "lowHealthThreshold", -1), 0.0001);
-        assertEquals(0.35, config.ability(NetherTower.CONFIG_ID, "criticalHealthThreshold", -1), 0.0001);
+        assertEquals(0.0667, config.ability(NetherConfig.CONFIG_ID, "netherDecayMaxHealthRatioPerSecond", -1), 0.0001);
+        assertEquals(0.20, config.ability(NetherConfig.CONFIG_ID, "zombieDecayMaxHealthRatioPerSecond", -1), 0.0001);
+        assertEquals(1.0, config.ability(NetherConfig.CONFIG_ID, "zombieReviveHealthRatio", -1), 0.0001);
+        assertEquals(0.70, config.ability(NetherConfig.CONFIG_ID, "lowHealthThreshold", -1), 0.0001);
+        assertEquals(0.35, config.ability(NetherConfig.CONFIG_ID, "criticalHealthThreshold", -1), 0.0001);
         assertEquals(0.12, config.ability(NetherTowers.T2_PIGLIN.id(), "lifeStealBonus", -1), 0.0001);
         assertEquals(0.16, config.ability(NetherTowers.T3_PIGLIN_BRUTE.id(), "lifeStealBonus", -1), 0.0001);
         assertEquals(0.75, config.ability(NetherTowers.T3_PIGLIN_BRUTE.id(), "tankDamageBonus", -1), 0.0001);

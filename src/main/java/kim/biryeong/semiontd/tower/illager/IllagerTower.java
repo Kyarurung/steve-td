@@ -1,16 +1,8 @@
 package kim.biryeong.semiontd.tower.illager;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import kim.biryeong.semiontd.api.area.AreaVfxSpec;
-import kim.biryeong.semiontd.api.area.AreaVfxStyles;
-import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
-import kim.biryeong.semiontd.SemionTd;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
-import kim.biryeong.semiontd.effect.TimedEffectType;
-import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -18,19 +10,12 @@ import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.area.AreaEffectIds;
-import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.raid.Raid;
 
 public class IllagerTower extends EntityBackedTower {
-    private static final ResourceLocation RAID_DAMAGE_SOURCE = raidSource("damage");
-    private static final ResourceLocation RAID_ATTACK_SPEED_SOURCE = raidSource("attack_speed");
-    private static final ResourceLocation RAID_DAMAGE_REDUCTION_SOURCE = raidSource("damage_reduction");
-
-    private final IllagerTargetPolicy targetPolicy;
+    private final IllagerCombat combat;
 
     public IllagerTower(
             TowerType type,
@@ -53,7 +38,7 @@ public class IllagerTower extends EntityBackedTower {
             IllagerTargetPolicy targetPolicy
     ) {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
-        this.targetPolicy = targetPolicy == null ? IllagerTargetPolicy.DEFAULT : targetPolicy;
+        this.combat = new IllagerCombat(IllagerConfig.RUNTIME, targetPolicy);
     }
 
     @Override
@@ -66,24 +51,11 @@ public class IllagerTower extends EntityBackedTower {
     }
 
     @Override
-    public Optional<SemionMonsterEntity> selectAttackTarget(SemionTowerEntity towerEntity, List<SemionMonsterEntity> candidates) {
-        Optional<SemionMonsterEntity> forced = selectForcedAttackTarget(towerEntity, candidates);
-        if (forced.isPresent()) {
-            return forced;
-        }
-        return switch (targetPolicy) {
-            case LOW_HEALTH -> candidates.stream()
-                    .filter(this::validRuntimeMonster)
-                    .min(Comparator.comparingDouble(monster -> monster.runtimeMonster().health()));
-            case HIGH_HEALTH -> candidates.stream()
-                    .filter(this::validRuntimeMonster)
-                    .max(Comparator.comparingDouble(monster -> monster.runtimeMonster().maxHealth()));
-            case INCOME -> candidates.stream()
-                    .filter(this::validRuntimeMonster)
-                    .filter(monster -> monster.runtimeMonster().ownerPlayer().isPresent())
-                    .max(Comparator.comparingDouble(monster -> monster.runtimeMonster().targetPriorityScore()));
-            case DEFAULT -> Optional.empty();
-        };
+    public Optional<SemionMonsterEntity> selectAttackTarget(
+            SemionTowerEntity towerEntity,
+            List<SemionMonsterEntity> candidates
+    ) {
+        return combat.selectAttackTarget(this, candidates);
     }
 
     @Override
@@ -92,152 +64,35 @@ public class IllagerTower extends EntityBackedTower {
     }
 
     @Override
-    public Optional<SemionMonsterEntity> selectForcedAttackTarget(SemionTowerEntity towerEntity, List<SemionMonsterEntity> candidates) {
-        return forcedMarkedTarget(candidates);
+    public Optional<SemionMonsterEntity> selectForcedAttackTarget(
+            SemionTowerEntity towerEntity,
+            List<SemionMonsterEntity> candidates
+    ) {
+        return combat.selectForcedAttackTarget(this, candidates);
     }
 
     @Override
-    public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        double multiplier = 1.0;
-        Monster monster = target == null ? null : target.runtimeMonster();
-        boolean raidActive = IllagerRaidStates.active(ownerPlayer());
-        Optional<IllagerMark> mark = IllagerMarks.activeMark(monster, ownerPlayer());
-        if (mark.isPresent()) {
-            multiplier += mark.get().damageTakenBonus();
-            if (raidActive) {
-                multiplier += ability("raidMarkedDamageBonus");
-            }
-        }
-        if (monster != null && monster.ownerPlayer().isPresent()) {
-            multiplier += ability("incomeDamageBonus");
-            if (raidActive) {
-                multiplier += ability("raidIncomeDamageBonus");
-            }
-        }
-        return damageAmount * Math.max(0.0, multiplier);
+    public double modifyAttackDamage(
+            SemionTowerEntity towerEntity,
+            SemionMonsterEntity target,
+            double damageAmount
+    ) {
+        return combat.modifyAttackDamage(this, target, damageAmount);
     }
 
     @Override
     public void tick(PlayerLane lane) {
-        refreshRaidTimedEffects(lane);
+        combat.refreshRaidTimedEffects(this, lane);
         super.tick(lane);
     }
 
     @Override
-    public void onAttack(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount, boolean killedTarget) {
-        applyMark(target);
-        applySplash(towerEntity, target, damageAmount);
-    }
-
-    protected void applyMark(SemionMonsterEntity target) {
-        Monster monster = target == null ? null : target.runtimeMonster();
-        if (monster == null) {
-            return;
-        }
-        int duration = abilityTicks("markDurationTicks");
-        double damageBonus = ability("markDamageTakenBonus");
-        double forceTargetRadius = ability("forceTargetRadius");
-        if (IllagerRaidStates.active(ownerPlayer())) {
-            duration += abilityTicks("raidMarkDurationBonusTicks");
-            damageBonus += ability("raidMarkDamageTakenBonus");
-            damageBonus += raidTargetPolicyMarkBonus();
-            forceTargetRadius += ability("raidForceTargetRadiusBonus");
-        }
-        if (duration <= 0 || damageBonus <= 0) {
-            return;
-        }
-        IllagerMarks.apply(
-                monster,
-                ownerPlayer(),
-                damageBonus,
-                duration,
-                position(),
-                forceTargetRadius
-        );
-        target.applyTimedEffect(TimedEffectType.MONSTER_MARKED, 1.0, duration);
-    }
-
-    protected void applySplash(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        if (towerEntity == null || target == null) {
-            return;
-        }
-        double splashRadius = ability("splashRadius");
-        double splashRatio = ability("splashDamageRatio");
-        if (IllagerRaidStates.active(ownerPlayer())) {
-            splashRadius += ability("raidSplashRadiusBonus");
-            splashRatio += ability("raidSplashDamageRatioBonus");
-        }
-        if (splashRadius <= 0 || splashRatio <= 0) {
-            return;
-        }
-
-        double finalSplashRatio = splashRatio;
-        MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTarget(
-                AreaEffectIds.tower(this, "splash"), towerEntity, target, splashRadius,
-                AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
-        );
-        TowerAreaDamage.applyBasicAttackSplash(this, towerEntity, request, entity -> damageAmount * finalSplashRatio, true);
-    }
-
-    protected double ability(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
-    }
-
-    protected int abilityTicks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
-    }
-
-    private void refreshRaidTimedEffects(PlayerLane lane) {
-        if (lane == null || health() <= 0.0 || !IllagerRaidStates.active(ownerPlayer()) || entityId().isEmpty()) {
-            return;
-        }
-        if (!(lane.arenaWorld().getEntity(entityId().getAsInt()) instanceof SemionTowerEntity towerEntity)) {
-            return;
-        }
-
-        int ticks = Math.max(1, TowerBalanceRuntime.abilityTicks(IllagerRaidStates.RAID_CONFIG_ID, "timedEffectDurationTicks", 40));
-        refreshTimedEffect(towerEntity, TimedEffectType.TOWER_DAMAGE_BONUS, RAID_DAMAGE_SOURCE, IllagerRaidStates.damageBonus(ownerPlayer()), ticks);
-        refreshTimedEffect(towerEntity, TimedEffectType.TOWER_ATTACK_SPEED_BONUS, RAID_ATTACK_SPEED_SOURCE, IllagerRaidStates.attackSpeedBonus(ownerPlayer()), ticks);
-        refreshTimedEffect(towerEntity, TimedEffectType.TOWER_DAMAGE_REDUCTION, RAID_DAMAGE_REDUCTION_SOURCE, ability("raidDamageReduction"), ticks);
-    }
-
-    private void refreshTimedEffect(
+    public void onAttack(
             SemionTowerEntity towerEntity,
-            TimedEffectType type,
-            ResourceLocation sourceId,
-            double magnitude,
-            int ticks
+            SemionMonsterEntity target,
+            double damageAmount,
+            boolean killedTarget
     ) {
-        if (magnitude > 0.0) {
-            towerEntity.refreshTimedEffect(type, sourceId, magnitude, ticks);
-        }
-    }
-
-    private double raidTargetPolicyMarkBonus() {
-        return switch (targetPolicy) {
-            case LOW_HEALTH -> ability("raidLowHealthMarkDamageTakenBonus");
-            case HIGH_HEALTH -> ability("raidHighHealthMarkDamageTakenBonus");
-            case DEFAULT, INCOME -> 0.0;
-        };
-    }
-
-    private Optional<SemionMonsterEntity> forcedMarkedTarget(List<SemionMonsterEntity> candidates) {
-        if (candidates == null || candidates.isEmpty()) {
-            return Optional.empty();
-        }
-        return candidates.stream()
-                .filter(this::validRuntimeMonster)
-                .filter(monster -> IllagerMarks.activeMark(monster.runtimeMonster(), ownerPlayer())
-                        .map(mark -> mark.forcesTargetFor(position()))
-                        .orElse(false))
-                .max(Comparator.comparingDouble(monster -> monster.runtimeMonster().targetPriorityScore()));
-    }
-
-    private boolean validRuntimeMonster(SemionMonsterEntity monster) {
-        return monster != null && monster.runtimeMonster() != null;
-    }
-
-    private static ResourceLocation raidSource(String path) {
-        return ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "illager_raid/" + path);
+        combat.onAttack(this, towerEntity, target, damageAmount);
     }
 }

@@ -34,7 +34,7 @@ import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
 import kim.biryeong.semiontd.tower.plant.PlantSoilEnvironment;
-import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
+import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
 import kim.biryeong.semiontd.tower.resonance.ResonanceService;
 import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
@@ -433,7 +433,7 @@ public final class PlayerLane {
                 if (economyService != null) {
                     economyService.awardMonsterKillReward(monster, players);
                 }
-                IllagerRaidStates.onMonsterKilled(players, monster);
+                IllagerRaidController.onMonsterKilled(players, monster);
                 notifyNearbyMonsterDeath(monster, monsterDeathPosition(monster));
                 discardMinecraftEntity(monster);
                 monster.markRemoved();
@@ -453,7 +453,7 @@ public final class PlayerLane {
             }
             clearedThisRound = true;
         }
-        IllagerRaidStates.playPendingActivationEffects(server, this);
+        IllagerRaidController.playPendingActivationEffects(server, this);
     }
 
     void tickTowers() {
@@ -837,7 +837,7 @@ public final class PlayerLane {
     }
 
     private void notifyNearbyTowerDeath(Tower destroyedTower, List<Tower> notificationTargets) {
-        IllagerRaidStates.onTowerDeath(this, destroyedTower);
+        IllagerRaidController.onTowerDeath(this, destroyedTower);
         for (PlayerLane recipientLane : notificationLanes()) {
             List<Tower> targets = recipientLane == this
                     ? notificationTargets

@@ -39,7 +39,7 @@ import kim.biryeong.semiontd.tower.hero.HeroCompanionRole;
 import kim.biryeong.semiontd.tower.hero.HeroPartyBalance;
 import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
 import kim.biryeong.semiontd.tower.hero.HeroWeapon;
-import kim.biryeong.semiontd.tower.illager.IllagerRaidStates;
+import kim.biryeong.semiontd.tower.illager.IllagerConfig;
 import kim.biryeong.semiontd.tower.illager.IllagerTowers;
 import kim.biryeong.semiontd.tower.insect.InsectBalance;
 import kim.biryeong.semiontd.tower.insect.InsectTowers;
@@ -51,7 +51,7 @@ import kim.biryeong.semiontd.tower.pet.PetBalance;
 import kim.biryeong.semiontd.tower.pet.PetTowers;
 import kim.biryeong.semiontd.tower.succubus.SuccubusBalance;
 import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
-import kim.biryeong.semiontd.tower.nether.NetherTower;
+import kim.biryeong.semiontd.tower.nether.NetherConfig;
 import kim.biryeong.semiontd.tower.nether.NetherTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanTower;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
@@ -348,7 +348,7 @@ public record TowerBalanceConfig(
         putPetUpgrades(upgradeCosts);
 
         LinkedHashMap<String, Map<String, Double>> abilities = new LinkedHashMap<>();
-        putAbilities(abilities, IllagerRaidStates.RAID_CONFIG_ID, Map.of(
+        putAbilities(abilities, IllagerConfig.CONFIG_ID, Map.of(
                 "gaugeMax", 100.0,
                 "waveKillGauge", 3.0,
                 "incomeKillGauge", 8.0,
@@ -1704,7 +1704,7 @@ public record TowerBalanceConfig(
         validateIntegralAbility(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "defenseEvery");
         validateRatios(WarlockTowers.RANGED_WARLOCK_TOWER.id(), "incomeDebuffResistance");
         validateRatios(WarlockTowers.MELEE_WARLOCK_TOWER.id(), "incomeDebuffResistance");
-        validateRatios(IllagerRaidStates.RAID_CONFIG_ID,
+        validateRatios(IllagerConfig.CONFIG_ID,
                 "attackSpeedPercentPerTower", "damagePercentPerTower",
                 "attackSpeedBonusCap", "damageBonusCap");
         validateMageBalance();
@@ -4251,7 +4251,7 @@ public record TowerBalanceConfig(
     }
 
     private static void putNetherAbilities(Map<String, Map<String, Double>> abilities) {
-        putAbilities(abilities, NetherTower.CONFIG_ID, Map.ofEntries(
+        putAbilities(abilities, NetherConfig.CONFIG_ID, Map.ofEntries(
                 Map.entry("netherDecayMaxHealthRatioPerSecond", 0.0667),
                 Map.entry("zombieDecayMaxHealthRatioPerSecond", 0.143),
                 Map.entry("zombieReviveHealthRatio", 1.0),
