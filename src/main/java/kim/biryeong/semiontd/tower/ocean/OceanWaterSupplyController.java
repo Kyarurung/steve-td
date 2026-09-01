@@ -67,8 +67,8 @@ final class OceanWaterSupplyController {
 
     void onWaveStarted(OceanWaterTower tower, PlayerLane lane) {
         state.startWave();
-        OceanLaneSnapshot snapshot = OceanLaneSnapshot.capture(lane);
-        state.captureSupplyTargets(nearbyTargets(tower, snapshot.combatTowers()).stream()
+        OceanSupplySnapshot snapshot = OceanSupplySnapshot.capture(lane, config);
+        state.captureSupplyTargets(snapshot.targetsFor(tower).stream()
                 .map(OceanWaterSupplyController::supplyTargetId)
                 .collect(Collectors.toUnmodifiableSet()));
         List<OceanTower> targets = supply(tower, snapshot, config.value(tower.type(), OceanAbilityKey.WAVE_START_WATER));
@@ -83,7 +83,7 @@ final class OceanWaterSupplyController {
         }
         List<OceanTower> targets = supply(
                 tower,
-                OceanLaneSnapshot.capture(lane),
+                OceanSupplySnapshot.capture(lane, config),
                 config.value(tower.type(), OceanAbilityKey.WATER_PER_SUPPLY)
         );
         if (targets.isEmpty()) {
@@ -93,7 +93,7 @@ final class OceanWaterSupplyController {
         return true;
     }
 
-    private List<OceanTower> supply(OceanWaterTower tower, OceanLaneSnapshot snapshot, double amount) {
+    private List<OceanTower> supply(OceanWaterTower tower, OceanSupplySnapshot snapshot, double amount) {
         if (tower.deployedAtFinalDefense() || snapshot.combatTowers().isEmpty()
                 || amount <= 0.0 || state.supplyTargetIds().isEmpty()) {
             return List.of();
@@ -109,7 +109,7 @@ final class OceanWaterSupplyController {
             );
             double supplied = Math.min(
                     remainingCapacity,
-                    amount * supplyStackMultiplier(snapshot.waterSources(), target)
+                    amount * supplyStackMultiplier(snapshot.sourceCountFor(target))
                             * OceanRules.supplyEfficiency(
                                     target.water(),
                                     config.global(OceanAbilityKey.WATER_SOFT_CAP),
@@ -124,21 +124,7 @@ final class OceanWaterSupplyController {
         return List.copyOf(suppliedTargets);
     }
 
-    private List<OceanTower> nearbyTargets(OceanWaterTower tower, List<OceanTower> combatTowers) {
-        double radius = config.value(tower.type(), OceanAbilityKey.SUPPLY_RADIUS);
-        double radiusSqr = radius * radius;
-        return combatTowers.stream()
-                .filter(target -> distanceSqr(tower, target) <= radiusSqr)
-                .toList();
-    }
-
-    private double supplyStackMultiplier(List<OceanWaterTower> waterSources, OceanTower target) {
-        int sourceCount = (int) waterSources.stream()
-                .filter(source -> {
-                    double radius = config.value(source.type(), OceanAbilityKey.SUPPLY_RADIUS);
-                    return distanceSqr(source, target) <= radius * radius;
-                })
-                .count();
+    private double supplyStackMultiplier(int sourceCount) {
         return OceanRules.stackedSupplyMultiplier(
                 Math.max(1, sourceCount),
                 config.global(OceanAbilityKey.WATER_SUPPLY_STACK_DECAY)
@@ -151,13 +137,6 @@ final class OceanWaterSupplyController {
             target.setData(SUPPLY_TARGET_ID, id);
             return id;
         });
-    }
-
-    private static double distanceSqr(OceanWaterTower source, OceanTower target) {
-        return OceanRules.distanceSquared(
-                source.originalPosition().x(), source.originalPosition().y(), source.originalPosition().z(),
-                target.originalPosition().x(), target.originalPosition().y(), target.originalPosition().z()
-        );
     }
 
     private void placeWater(OceanWaterTower tower, PlayerLane lane) {
@@ -200,22 +179,4 @@ final class OceanWaterSupplyController {
         OceanVfx.showWaterSupply(lane.arenaWorld(), source, targets, burst);
     }
 
-    private record OceanLaneSnapshot(List<OceanTower> combatTowers, List<OceanWaterTower> waterSources) {
-        private static OceanLaneSnapshot capture(PlayerLane lane) {
-            if (lane == null) {
-                return new OceanLaneSnapshot(List.of(), List.of());
-            }
-            ArrayList<OceanTower> combatTowers = new ArrayList<>();
-            ArrayList<OceanWaterTower> waterSources = new ArrayList<>();
-            lane.towers().forEach(tower -> {
-                if (tower instanceof OceanTower combatTower && combatTower.health() > 0.0) {
-                    combatTowers.add(combatTower);
-                } else if (tower instanceof OceanWaterTower waterSource && waterSource.health() > 0.0
-                        && !waterSource.deployedAtFinalDefense()) {
-                    waterSources.add(waterSource);
-                }
-            });
-            return new OceanLaneSnapshot(List.copyOf(combatTowers), List.copyOf(waterSources));
-        }
-    }
 }

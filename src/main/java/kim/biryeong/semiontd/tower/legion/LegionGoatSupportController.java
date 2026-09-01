@@ -1,9 +1,5 @@
 package kim.biryeong.semiontd.tower.legion;
 
-import java.util.Comparator;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import kim.biryeong.semiontd.SemionTd;
@@ -26,12 +22,6 @@ final class LegionGoatSupportController {
     private static final ResourceLocation[] DAMAGE_REDUCTION_SOURCES = stackSources("goat_damage_reduction");
     private static final ResourceLocation[] CLONE_DAMAGE_SOURCES = stackSources("goat_clone_damage");
     private static final ResourceLocation[] CLONE_DAMAGE_REDUCTION_SOURCES = stackSources("goat_clone_damage_reduction");
-    private static final Comparator<LegionGoatTower> STACK_ORDER = Comparator
-            .comparingInt((LegionGoatTower tower) -> tower.originalPosition().x())
-            .thenComparingInt(tower -> tower.originalPosition().y())
-            .thenComparingInt(tower -> tower.originalPosition().z())
-            .thenComparing(tower -> tower.type().id());
-
     private final LegionGoatTower owner;
 
     LegionGoatSupportController(LegionGoatTower owner) {
@@ -43,13 +33,9 @@ final class LegionGoatSupportController {
         if (source == null) {
             return false;
         }
-        List<LegionGoatTower> providers = lane.towers().stream()
-                .filter(LegionGoatTower.class::isInstance)
-                .map(LegionGoatTower.class::cast)
-                .filter(goat -> goat.health() > 0.0)
-                .sorted(STACK_ORDER)
-                .toList();
-        Map<Tower, OptionalInt> stackIndices = new IdentityHashMap<>();
+        LegionGoatProviderResolver providers = LegionGoatProviderResolver.capture(
+                lane, owner, maxStacks(), this::canBuff
+        );
         TowerAreaEffectRequest request = TowerAreaEffectRequest.aroundTower(
                 AreaEffectIds.tower(owner, "goat_buff"),
                 source,
@@ -57,9 +43,9 @@ final class LegionGoatSupportController {
                 TowerAreaTargetMode.REGISTERED_AND_CLONES,
                 LegionVfx.buff()
         ).withFilter(target -> isBuffTarget(target.tower())
-                && stackIndexFor(target.tower(), providers, stackIndices).isPresent());
+                && providers.stackIndex(target.tower()).isPresent());
         return SemionTdApi.areaEffects().applyToTowers(request, target -> {
-            OptionalInt stackIndex = stackIndexFor(target.tower(), providers, stackIndices);
+            OptionalInt stackIndex = providers.stackIndex(target.tower());
             if (stackIndex.isEmpty() || target.entity().isEmpty()) {
                 return AreaEffectOutcome.UNCHANGED;
             }
@@ -93,16 +79,6 @@ final class LegionGoatSupportController {
                 && target.laneId() == owner.laneId()
                 && LegionTowers.isLegionTower(target.type())
                 && withinRange(target);
-    }
-
-    private OptionalInt stackIndexFor(
-            Tower target,
-            List<LegionGoatTower> providers,
-            Map<Tower, OptionalInt> stackIndices
-    ) {
-        return stackIndices.computeIfAbsent(target, ignored -> LegionGoatRules.providerIndex(providers.stream()
-                .filter(goat -> canBuff(goat, target))
-                .toList(), owner, maxStacks()));
     }
 
     private boolean canBuff(LegionGoatTower goat, Tower target) {

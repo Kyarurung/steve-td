@@ -74,7 +74,7 @@ public final class AncientCityTerritoryController {
             return;
         }
         state.seedAt(origin);
-        spread(lane, state.territory(), origin, CONFIG.globalInt(AncientCityAbilityKey.INITIAL_SCULK), true);
+        spread(lane, state, origin, CONFIG.globalInt(AncientCityAbilityKey.INITIAL_SCULK), true);
     }
 
     public static void onWaveStarted(AncientCityTower tower, PlayerLane lane, int round) {
@@ -107,9 +107,9 @@ public final class AncientCityTerritoryController {
         if (deathFloor == null) {
             return;
         }
-        boolean added = state.territory().contains(deathFloor)
-                ? spread(lane, state.territory(), deathFloor, 1, true) == 1
-                : addSculk(lane, state.territory(), deathFloor, true);
+        boolean added = state.containsMain(deathFloor)
+                ? spread(lane, state, deathFloor, 1, true) == 1
+                : addSculk(lane, state, deathFloor, true);
         if (added) {
             state.recordDeathSpread();
         }
@@ -130,7 +130,7 @@ public final class AncientCityTerritoryController {
         state.seedFinalDefense();
         spread(
                 lane,
-                state.finalDefenseTerritory(),
+                state,
                 origin,
                 CONFIG.globalInt(AncientCityAbilityKey.FINAL_DEFENSE_SEED_COUNT),
                 false
@@ -145,8 +145,7 @@ public final class AncientCityTerritoryController {
         if (state == null) {
             return false;
         }
-        return containsPosition(state.territory(), tower.position())
-                || containsPosition(state.finalDefenseTerritory(), tower.position());
+        return state.contains(tower.position());
     }
 
     public static double resonanceBonus(Tower tower) {
@@ -168,21 +167,24 @@ public final class AncientCityTerritoryController {
                 .orElse(false);
     }
 
-    private static boolean containsPosition(Set<BlockPos> territory, GridPosition position) {
-        return territory.stream().anyMatch(block -> block.getX() == position.x() && block.getZ() == position.z());
-    }
-
     private static int growMainTerritory(PlayerLane lane, AncientCityTerritoryState state, int amount) {
         int remaining = Math.max(0, CONFIG.globalInt(AncientCityAbilityKey.MAX_SCULK) - state.territory().size());
-        return spread(lane, state.territory(), state.seedOrigin(), Math.min(Math.max(0, amount), remaining), true);
+        return spread(lane, state, state.seedOrigin(), Math.min(Math.max(0, amount), remaining), true);
     }
 
-    private static int spread(PlayerLane lane, Set<BlockPos> territory, BlockPos origin, int amount, boolean mainTerritory) {
+    private static int spread(
+            PlayerLane lane,
+            AncientCityTerritoryState state,
+            BlockPos origin,
+            int amount,
+            boolean mainTerritory
+    ) {
         if (lane == null || origin == null || amount <= 0) {
             return 0;
         }
+        Set<BlockPos> territory = mainTerritory ? state.territory() : state.finalDefenseTerritory();
         int added = 0;
-        if (territory.isEmpty() && addSculk(lane, territory, origin, mainTerritory)) {
+        if (territory.isEmpty() && addSculk(lane, state, origin, mainTerritory)) {
             added++;
         }
         PriorityQueue<BlockPos> frontier = new PriorityQueue<>(frontierOrder(origin));
@@ -192,7 +194,7 @@ public final class AncientCityTerritoryController {
         }
         while (added < amount && !frontier.isEmpty()) {
             BlockPos next = frontier.remove();
-            if (!addSculk(lane, territory, next, mainTerritory)) {
+            if (!addSculk(lane, state, next, mainTerritory)) {
                 continue;
             }
             added++;
@@ -224,7 +226,13 @@ public final class AncientCityTerritoryController {
                 .thenComparingInt(BlockPos::getY);
     }
 
-    private static boolean addSculk(PlayerLane lane, Set<BlockPos> territory, BlockPos position, boolean mainTerritory) {
+    private static boolean addSculk(
+            PlayerLane lane,
+            AncientCityTerritoryState state,
+            BlockPos position,
+            boolean mainTerritory
+    ) {
+        Set<BlockPos> territory = mainTerritory ? state.territory() : state.finalDefenseTerritory();
         if (position == null || territory.contains(position) || !eligibleFloor(lane, position)) {
             return false;
         }
@@ -233,7 +241,7 @@ public final class AncientCityTerritoryController {
                 && !lane.arenaWorld().setBlock(position, Blocks.SCULK.defaultBlockState(), Block.UPDATE_CLIENTS)) {
             return false;
         }
-        territory.add(position.immutable());
+        state.add(position, mainTerritory);
         AncientCityVfx.showGrowth(lane.arenaWorld(), position, mainTerritory);
         return true;
     }

@@ -4,34 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.VfxConfig;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
-import kim.biryeong.semiontd.tower.animal.AnimalTowers;
-import kim.biryeong.semiontd.tower.army.ArmyTowers;
-import kim.biryeong.semiontd.tower.body.BodyTowers;
-import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
-import kim.biryeong.semiontd.tower.developer.DeveloperTowers;
-import kim.biryeong.semiontd.tower.end.EndTowers;
-import kim.biryeong.semiontd.tower.engineer.EngineerTowers;
-import kim.biryeong.semiontd.tower.frost.FrostTowers;
-import kim.biryeong.semiontd.tower.futureagency.FutureAgencyTowers;
-import kim.biryeong.semiontd.tower.gamble.GambleTowers;
-import kim.biryeong.semiontd.tower.hero.HeroPartyTowers;
-import kim.biryeong.semiontd.tower.illager.IllagerTowers;
-import kim.biryeong.semiontd.tower.insect.InsectTowers;
-import kim.biryeong.semiontd.tower.legion.LegionTowers;
-import kim.biryeong.semiontd.tower.mage.MageTowers;
-import kim.biryeong.semiontd.tower.nether.NetherTowers;
-import kim.biryeong.semiontd.tower.ocean.OceanTowers;
-import kim.biryeong.semiontd.tower.pet.PetTowers;
-import kim.biryeong.semiontd.tower.plant.PlantTowers;
-import kim.biryeong.semiontd.tower.queen.QueenTowers;
-import kim.biryeong.semiontd.tower.resonance.ResonanceTowers;
-import kim.biryeong.semiontd.tower.succubus.SuccubusTowers;
-import kim.biryeong.semiontd.tower.thunder.ThunderTowers;
-import kim.biryeong.semiontd.tower.undead.UndeadTowers;
-import kim.biryeong.semiontd.tower.villager.VillagerTowers;
-import kim.biryeong.semiontd.tower.warlock.WarlockTowers;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.phys.Vec3;
@@ -41,41 +13,13 @@ final class BuilderTowerVfxRenderer {
     private static final DustParticleOptions ZOMBIE_TRANSITION_PARTICLE = new DustParticleOptions(0x6D8B3D, 1.0F);
     private static final DustParticleOptions ILLAGER_RAID_POWER_PARTICLE = new DustParticleOptions(0xE53935, 1.2F);
     private static final DustParticleOptions ILLAGER_RAID_ARMOR_PARTICLE = new DustParticleOptions(0xB0BEC5, 1.0F);
+    private static final BuilderPaletteResolver PALETTES = BuilderPaletteResolver.builtIn();
 
     private BuilderTowerVfxRenderer() {
     }
 
     static BuilderPalette paletteFor(TowerType type) {
-        if (VillagerTowers.isAdvVillagerTower(type)) return BuilderPalette.VILLAGER_ADV;
-        if (VillagerTowers.isBaseVillagerTower(type)) return BuilderPalette.VILLAGER;
-        if (UndeadTowers.isUndeadTower(type)) return BuilderPalette.UNDEAD;
-        if (AnimalTowers.isAnimalTower(type)) return BuilderPalette.ANIMAL;
-        if (WarlockTowers.isWarlockTower(type)) return BuilderPalette.WARLOCK;
-        if (LegionTowers.isLegionTower(type)) return BuilderPalette.LEGION;
-        if (ResonanceTowers.isResonanceTower(type)) return BuilderPalette.RESONANCE;
-        if (IllagerTowers.isIllagerTower(type)) return BuilderPalette.ILLAGER;
-        if (NetherTowers.isNetherTower(type)) return BuilderPalette.NETHER;
-        if (EndTowers.isEndTower(type)) return BuilderPalette.END;
-        if (OceanTowers.isOceanTower(type)) return BuilderPalette.OCEAN;
-        if (AncientCityTowers.isAncientCityTower(type)) return BuilderPalette.ANCIENT_CITY;
-        if (AdversaryTowers.isAdversaryTower(type)) return BuilderPalette.ADVERSARY;
-        if (FutureAgencyTowers.isFutureAgencyTower(type)) return BuilderPalette.FUTURE_AGENCY;
-        if (QueenTowers.isQueenTower(type)) return BuilderPalette.QUEEN;
-        if (EngineerTowers.isEngineerTower(type)) return BuilderPalette.ENGINEER;
-        if (MageTowers.isMageTower(type)) return BuilderPalette.MAGE;
-        if (HeroPartyTowers.isHeroPartyTower(type)) return BuilderPalette.HERO_PARTY;
-        if (InsectTowers.isInsectTower(type)) return BuilderPalette.INSECT;
-        if (PlantTowers.isPlantTower(type)) return BuilderPalette.PLANT;
-        if (ArmyTowers.isArmyTower(type)) return BuilderPalette.ARMY;
-        if (ThunderTowers.isThunderTower(type)) return BuilderPalette.THUNDER;
-        if (DemonLordTowers.isDemonLordTower(type)) return BuilderPalette.DEMON_LORD;
-        if (GambleTowers.isGambleTower(type)) return BuilderPalette.GAMBLE;
-        if (DeveloperTowers.isDeveloperTower(type)) return BuilderPalette.DEVELOPER;
-        if (SuccubusTowers.isSuccubusTower(type)) return BuilderPalette.SUCCUBUS;
-        if (BodyTowers.isBodyTower(type)) return BuilderPalette.BODY;
-        if (FrostTowers.isFrostTower(type)) return BuilderPalette.FROST;
-        if (PetTowers.isPetTower(type)) return BuilderPalette.PET;
-        return BuilderPalette.DEFAULT;
+        return PALETTES.resolve(type);
     }
 
     static void renderNetherTransition(
