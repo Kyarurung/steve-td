@@ -7,7 +7,12 @@
   "entrypoints": {
     "fabric-gametest": [
       "kim.biryeong.semiontd.gametest.SemionParticipantGameTest",
-      "kim.biryeong.semiontd.gametest.SemionVillagerAdvGameTest",
+      "kim.biryeong.semiontd.tower.villager.VillagerAdvCatalogAndUpgradeGameTest",
+      "kim.biryeong.semiontd.tower.villager.VillagerAdvProgressionLifecycleGameTest",
+      "kim.biryeong.semiontd.tower.villager.VillagerAdvEffectsGameTest",
+      "kim.biryeong.semiontd.tower.resonance.ResonanceLifecycleAndUpgradeGameTest",
+      "kim.biryeong.semiontd.tower.resonance.ResonanceCombatGameTest",
+      "kim.biryeong.semiontd.tower.resonance.ResonanceMoobloomVisualGameTest",
       "kim.biryeong.semiontd.gametest.SemionEmeraldIncomeBoostGameTest",
       "kim.biryeong.semiontd.gametest.SemionSandboxGameTest",
       "kim.biryeong.semiontd.gametest.SemionTutorialGameTest",

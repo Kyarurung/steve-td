@@ -35,8 +35,8 @@ import kim.biryeong.semiontd.tower.frost.FrostFullOperationService;
 import kim.biryeong.semiontd.tower.succubus.SuccubusDreams;
 import kim.biryeong.semiontd.tower.plant.PlantSoilEnvironment;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
-import kim.biryeong.semiontd.tower.resonance.ResonanceService;
-import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
+import kim.biryeong.semiontd.tower.resonance.ResonanceController;
+import kim.biryeong.semiontd.tower.villager.VillagerAdvProgressionController;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.TraitEffects;
 import kim.biryeong.semiontd.trait.TraitLoadout;
@@ -385,7 +385,7 @@ public final class PlayerLane {
         }
         applyRoundTraitEffects();
         applyOpeningAttackSpeed();
-        ResonanceService.captureWaveStart(this);
+        ResonanceController.captureWaveStart(this);
         // 마왕은 여기서 전투 상태가 됩니다. 라운드 시작(준비 단계)에 걸면 상점을 열 수 없는
         // 채로 준비 시간을 보내게 되고, 스스로 물러난 뒤 웨이브가 시작돼도 복귀하지 못합니다.
         DemonLordService.beginWave(ownerPlayer);
@@ -989,7 +989,7 @@ public final class PlayerLane {
         if (laneOwner != null) {
             leakedThisRound = true;
             laneOwner.matchStats().recordOwnLaneLeakedThreat(threat);
-            VillagerAdvStates.onLaneLeak(laneOwner, this);
+            VillagerAdvProgressionController.onLaneLeak(laneOwner, this);
         }
         monster.ownerPlayer()
                 .map(players::get)

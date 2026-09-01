@@ -42,7 +42,7 @@ import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
 import kim.biryeong.semiontd.tower.mage.MageStates;
 import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
 import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
-import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
+import kim.biryeong.semiontd.tower.villager.VillagerAdvProgressionController;
 import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
 import kim.biryeong.semiontd.tower.army.ArmyStates;
@@ -888,7 +888,7 @@ public final class SemionGame {
             }
         }
         for (UUID playerId : players.keySet()) {
-            VillagerAdvStates.clear(playerId);
+            VillagerAdvProgressionController.onMatchClosed(playerId);
             AncientCityStates.clear(playerId);
             EngineerPressStates.clear(playerId);
             WarlockAwakeningStates.clear(playerId);
@@ -1217,7 +1217,7 @@ public final class SemionGame {
     public void tick(MinecraftServer server) {
         tickCounter++;
         advancementService.tick(server, this);
-        VillagerAdvStates.applyPending(this);
+        VillagerAdvProgressionController.applyPending(this);
         if (phase != RoundPhase.WAITING && phase != RoundPhase.ENDED) {
             activeMatchTicks++;
             if (activeMatchTicks % 20 == 0) {
@@ -1281,7 +1281,7 @@ public final class SemionGame {
             }
             enqueueWave(team, roundWave);
         }
-        VillagerAdvStates.onWaveStarted(this, currentRound);
+        VillagerAdvProgressionController.onWaveStarted(this, currentRound);
     }
 
     private void tickWave(MinecraftServer server) {
@@ -1334,7 +1334,7 @@ public final class SemionGame {
         }
         recordBuilderRoundResults(currentRound);
         advancementService.onRoundCompleted(server, this, currentRound);
-        VillagerAdvStates.onWaveCleared(this, currentRound);
+        VillagerAdvProgressionController.onWaveCleared(this, currentRound);
         notifyRoundEnded(currentRound);
         economyService.payRoundIncome(players.values(), teams);
         recordRoundMetrics(currentRound, completedWaveDurationTicks);
@@ -1901,6 +1901,7 @@ public final class SemionGame {
         for (UUID memberId : team.memberIds()) {
             WarlockAwakeningStates.clear(memberId);
             IllagerRaidController.onEliminated(memberId);
+            VillagerAdvProgressionController.onEliminated(memberId);
             SemionPlayer semionPlayer = players.get(memberId);
             if (semionPlayer != null) {
                 semionPlayer.job().ifPresent(job -> job.onEliminated(new JobContext(this, semionPlayer)));
@@ -1995,6 +1996,7 @@ public final class SemionGame {
         for (SemionPlayer player : players.values()) {
             WarlockAwakeningStates.clear(player.uuid());
             IllagerRaidController.onMatchStarted(player.uuid());
+            VillagerAdvProgressionController.onMatchStarted(player.uuid());
             player.job().ifPresent(job -> job.onMatchStarted(new JobContext(this, player)));
         }
     }

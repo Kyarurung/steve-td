@@ -19,7 +19,8 @@ import kim.biryeong.semiontd.tower.demonlord.DemonLordBinding;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordSkill;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordTowers;
-import kim.biryeong.semiontd.tower.villager.VillagerAdvStates;
+import kim.biryeong.semiontd.tower.villager.VillagerAdvEffectController;
+import kim.biryeong.semiontd.tower.villager.VillagerAdvUpgradeRules;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.tower.ocean.OceanWaterTower;
 import kim.biryeong.semiontd.tower.plant.PlantSoilStates;
@@ -91,7 +92,7 @@ public final class ProductionTowerService {
         );
         tower.recordPlacementEconomy(mineralCost, game.currentRound());
         laneContext.lane.addTower(tower);
-        VillagerAdvStates.refreshTowerEffects(laneContext.player, laneContext.lane, tower);
+        VillagerAdvEffectController.refresh(laneContext.player, laneContext.lane, tower);
         game.recordTowerPlacement(playerId, towerType.id(), position, mineralCost);
         return TowerPlacementResult.SUCCESS;
     }
@@ -227,7 +228,7 @@ public final class ProductionTowerService {
         if (!game.canFitUpgrade(playerId, tower.type(), targetType)) {
             return TowerUpgradeResult.TOWER_LIMIT_REACHED;
         }
-        if (!VillagerAdvStates.canUpgrade(laneContext.player, tower, upgrade)) {
+        if (!VillagerAdvUpgradeRules.canUpgrade(laneContext.player, tower, upgrade)) {
             return TowerUpgradeResult.NOT_ENOUGH_ADV_EXPERIENCE;
         }
 
@@ -250,7 +251,7 @@ public final class ProductionTowerService {
             return TowerUpgradeResult.NO_TOWER_AT_POSITION;
         }
         upgradedTower.onUpgradeApplied(laneContext.lane, upgrade);
-        VillagerAdvStates.refreshTowerEffects(laneContext.player, laneContext.lane, upgradedTower);
+        VillagerAdvEffectController.refresh(laneContext.player, laneContext.lane, upgradedTower);
         upgradedTower.onUpgradeCompleted(laneContext.lane, tower, upgrade);
         game.recordTowerUpgrade(playerId, upgradeId, position, mineralCost);
         return TowerUpgradeResult.SUCCESS;

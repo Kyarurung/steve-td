@@ -5,10 +5,25 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class VillagerAdvRulesTest {
-    private final TowerBalanceConfig.VillagerAdvConfig config = TowerBalanceConfig.defaultConfig().villagerAdv();
+    private TowerBalanceConfig.VillagerAdvConfig config;
+
+    @BeforeAll
+    static void bootstrapMinecraft() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
+
+    @BeforeEach
+    void loadConfig() {
+        config = TowerBalanceConfig.defaultConfig().villagerAdv();
+    }
 
     @Test
     void experienceAndReputationClampToConfiguredBounds() {

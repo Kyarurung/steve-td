@@ -31,6 +31,7 @@ import kim.biryeong.semiontd.tower.resonance.ResonanceTowerCatalogs;
 import kim.biryeong.semiontd.tower.thunder.ThunderTowerCatalogs;
 import kim.biryeong.semiontd.tower.undead.UndeadTowerCatalogs;
 import kim.biryeong.semiontd.tower.villager.VillagerTowerCatalogs;
+import kim.biryeong.semiontd.tower.villager.VillagerAdvTowerCatalogs;
 import kim.biryeong.semiontd.tower.warlock.WarlockTowerCatalogs;
 
 public final class ProductionTowerCatalogs {
@@ -43,6 +44,7 @@ public final class ProductionTowerCatalogs {
             ProductionTowerCatalog.clear();
             JobRegistry.registerBuiltIns();
             VillagerTowerCatalogs.register();
+            VillagerAdvTowerCatalogs.register();
             UndeadTowerCatalogs.register();
             AnimalTowerCatalogs.register();
             WarlockTowerCatalogs.register();

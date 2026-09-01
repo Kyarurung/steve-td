@@ -206,6 +206,15 @@ public final class ResonanceTowers {
     private ResonanceTowers() {
     }
 
+    public static List<TowerType> all() {
+        return List.of(
+                FOCUS_CRYSTAL, FOCUS_PRISM, FOCUS_CORE,
+                WAVE_CRYSTAL, WAVE_PRISM, WAVE_CORE,
+                FROST_CRYSTAL, FROST_PRISM, FROST_CORE,
+                AMPLIFY_CRYSTAL, AMPLIFY_PRISM, AMPLIFY_CORE
+        );
+    }
+
     public static ResonanceAspect aspectOf(TowerType type) {
         if (type == null) {
             return null;

@@ -329,25 +329,6 @@ public final class VillagerTowers {
             T3_ANTI_TANKER_CAT_TOWER,
             T3_LANE_CLEAR_CAT_TOWER
     );
-    private static final List<TowerType> ADV_TOWERS = List.of(
-            ADV_T1_SPLASH_TOWER,
-            ADV_T2_LIBRARIAN_TOWER,
-            ADV_T3_CLERIC_TOWER,
-            ADV_T1_GOLEM_TOWER,
-            ADV_T2_GOLEM_TOWER,
-            ADV_T3_GOLEM_TOWER,
-            ADV_T1_ALLAY_TOWER,
-            ADV_T2_ALLAY_TOWER,
-            ADV_T2_WEAPON_SMITH_TOWER,
-            ADV_T3_ARMORER_TOWER,
-            ADV_T3_WEAPON_SMITH_TOWER,
-            ADV_T1_CAT_TOWER,
-            ADV_T2_ANTI_TANKER_CAT_TOWER,
-            ADV_T2_LANE_CLEAR_CAT_TOWER,
-            ADV_T3_ANTI_TANKER_CAT_TOWER,
-            ADV_T3_LANE_CLEAR_CAT_TOWER
-    );
-
     static {
         registerBaseTemplates();
         registerAdvTemplate(ADV_T1_SPLASH_TOWER, T1_SPLASH_TOWER.description(), List.of(
@@ -538,15 +519,15 @@ public final class VillagerTowers {
     }
 
     public static List<TowerType> advTowers() {
-        return ADV_TOWERS;
+        return VillagerAdvTowers.all();
     }
 
     public static List<TowerType> all() {
-        return java.util.stream.Stream.concat(BASE_TOWERS.stream(), ADV_TOWERS.stream()).toList();
+        return java.util.stream.Stream.concat(BASE_TOWERS.stream(), VillagerAdvTowers.all().stream()).toList();
     }
 
     public static boolean isAdvVillagerTower(TowerType type) {
-        return type != null && ADV_TOWERS.stream().anyMatch(adv -> type.id().equals(adv.id()));
+        return VillagerAdvTowers.contains(type);
     }
 
     public static boolean isVillagerTower(TowerType type) {
