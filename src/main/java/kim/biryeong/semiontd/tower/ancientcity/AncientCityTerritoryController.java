@@ -1,18 +1,17 @@
 package kim.biryeong.semiontd.tower.ancientcity;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.UUID;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
-import kim.biryeong.semiontd.job.JobContext;
+import kim.biryeong.semiontd.game.SemionGame;
+import kim.biryeong.semiontd.game.SemionPlayer;
+import kim.biryeong.semiontd.job.AncientCityTowerJob;
 import kim.biryeong.semiontd.tower.Tower;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -22,38 +21,60 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.map_templates.BlockBounds;
 
-public final class AncientCityStates {
-    public static final String CONFIG_ID = "ancient_city_global";
+public final class AncientCityTerritoryController {
     private static final Direction[] HORIZONTAL = {
             Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
-    private static final Map<UUID, AncientCityState> STATES = new HashMap<>();
+    private static final AncientCityConfig CONFIG = AncientCityConfig.RUNTIME;
 
-    private AncientCityStates() {
+    private AncientCityTerritoryController() {
+    }
+
+    public static void onMatchStarted(UUID playerId) {
+        AncientCityTerritoryStates.clear(playerId);
+    }
+
+    public static void onRoundStarted(SemionPlayer player, int round) {
+        if (isAncientCityBuilder(player)) {
+            AncientCityTerritoryStates.get(player.uuid()).ifPresent(state -> state.beginRound(round));
+        }
+    }
+
+    public static void onEliminated(UUID playerId) {
+        AncientCityTerritoryStates.clear(playerId);
+    }
+
+    public static void onMatchClosed(UUID playerId) {
+        AncientCityTerritoryStates.clear(playerId);
+    }
+
+    public static void onMonsterKilled(SemionGame game, SemionPlayer player, Monster monster) {
+        if (game == null || !isAncientCityBuilder(player) || monster == null) {
+            return;
+        }
+        PlayerLane lane = game.playerLane(player.uuid()).orElse(null);
+        recordAttributedDeath(
+                player.uuid(),
+                lane,
+                game.currentRound(),
+                lane == null ? null : lane.monsterDeathPosition(monster)
+        );
     }
 
     public static void ensureSeeded(AncientCityTower tower, PlayerLane lane) {
         if (tower == null || lane == null) {
             return;
         }
-        AncientCityState state = STATES.computeIfAbsent(tower.ownerPlayer(), ignored -> new AncientCityState());
-        if (state.seeded) {
+        AncientCityTerritoryState state = AncientCityTerritoryStates.state(tower.ownerPlayer());
+        if (state.seeded()) {
             return;
         }
         BlockPos origin = floorAt(lane, tower.originalPosition()).orElse(null);
         if (origin == null) {
             return;
         }
-        state.seeded = true;
-        state.seedOrigin = origin;
-        spread(lane, state.territory, origin, abilityInt("initialSculk"), true);
-    }
-
-    public static void onRoundStarted(UUID playerId, int round) {
-        AncientCityState state = STATES.get(playerId);
-        if (state != null) {
-            state.beginRound(round);
-        }
+        state.seedAt(origin);
+        spread(lane, state.territory(), origin, CONFIG.globalInt(AncientCityAbilityKey.INITIAL_SCULK), true);
     }
 
     public static void onWaveStarted(AncientCityTower tower, PlayerLane lane, int round) {
@@ -61,45 +82,36 @@ public final class AncientCityStates {
             return;
         }
         ensureSeeded(tower, lane);
-        AncientCityState state = STATES.get(tower.ownerPlayer());
-        if (state == null || !state.seeded || state.waveSpreadRound == round || !hasAliveTower(lane, tower.ownerPlayer())) {
+        AncientCityTerritoryState state = AncientCityTerritoryStates.get(tower.ownerPlayer()).orElse(null);
+        if (state == null || !state.seeded() || state.waveSpreadRound() == round
+                || !hasAliveTower(lane, tower.ownerPlayer())) {
             return;
         }
-        state.beginRound(round);
-        state.waveSpreadRound = round;
-        growMainTerritory(lane, state, abilityInt("waveStartSpread"));
-    }
-
-    public static void onMonsterKilled(JobContext context, Monster monster) {
-        if (context == null || monster == null) {
-            return;
-        }
-        UUID playerId = context.player().uuid();
-        PlayerLane lane = context.game().playerLane(playerId).orElse(null);
-        recordAttributedDeath(playerId, lane, context.game().currentRound(),
-                lane == null ? null : lane.monsterDeathPosition(monster));
+        state.recordWaveSpread(round);
+        growMainTerritory(lane, state, CONFIG.globalInt(AncientCityAbilityKey.WAVE_START_SPREAD));
     }
 
     public static void recordAttributedDeath(UUID playerId, PlayerLane lane, int round, Vec3 deathPosition) {
-        AncientCityState state = STATES.get(playerId);
-        if (state == null || lane == null || deathPosition == null || !state.seeded
+        AncientCityTerritoryState state = AncientCityTerritoryStates.get(playerId).orElse(null);
+        if (state == null || lane == null || deathPosition == null || !state.seeded()
                 || !hasAliveMainLaneTower(lane, playerId)) {
             return;
         }
         state.beginRound(round);
-        int cap = Math.max(0, abilityInt("deathSpreadCapPerRound"));
-        if (state.deathSpreadsThisRound >= cap || state.territory.size() >= abilityInt("maxSculk")) {
+        int cap = Math.max(0, CONFIG.globalInt(AncientCityAbilityKey.DEATH_SPREAD_CAP_PER_ROUND));
+        if (state.deathSpreadsThisRound() >= cap
+                || state.territory().size() >= CONFIG.globalInt(AncientCityAbilityKey.MAX_SCULK)) {
             return;
         }
         BlockPos deathFloor = floorAt(lane, GridPosition.from(BlockPos.containing(deathPosition))).orElse(null);
         if (deathFloor == null) {
             return;
         }
-        boolean added = state.territory.contains(deathFloor)
-                ? spread(lane, state.territory, deathFloor, 1, true) == 1
-                : addSculk(lane, state.territory, deathFloor, true);
+        boolean added = state.territory().contains(deathFloor)
+                ? spread(lane, state.territory(), deathFloor, 1, true) == 1
+                : addSculk(lane, state.territory(), deathFloor, true);
         if (added) {
-            state.deathSpreadsThisRound++;
+            state.recordDeathSpread();
         }
     }
 
@@ -107,83 +119,65 @@ public final class AncientCityStates {
         if (tower == null || lane == null || !tower.deployedAtFinalDefense()) {
             return;
         }
-        AncientCityState state = STATES.get(tower.ownerPlayer());
-        if (state == null || state.finalDefenseSeeded) {
+        AncientCityTerritoryState state = AncientCityTerritoryStates.get(tower.ownerPlayer()).orElse(null);
+        if (state == null || state.finalDefenseSeeded()) {
             return;
         }
         BlockPos origin = floorAt(lane, tower.position()).orElse(null);
         if (origin == null) {
             return;
         }
-        state.finalDefenseSeeded = true;
-        spread(lane, state.finalDefenseTerritory, origin, abilityInt("finalDefenseSeedCount"), false);
+        state.seedFinalDefense();
+        spread(
+                lane,
+                state.finalDefenseTerritory(),
+                origin,
+                CONFIG.globalInt(AncientCityAbilityKey.FINAL_DEFENSE_SEED_COUNT),
+                false
+        );
     }
 
     public static boolean resonanceActive(Tower tower) {
         if (tower == null) {
             return false;
         }
-        AncientCityState state = STATES.get(tower.ownerPlayer());
+        AncientCityTerritoryState state = AncientCityTerritoryStates.get(tower.ownerPlayer()).orElse(null);
         if (state == null) {
             return false;
         }
-        GridPosition current = tower.position();
-        return containsPosition(state.territory, current)
-                || containsPosition(state.finalDefenseTerritory, current);
-    }
-
-    private static boolean containsPosition(Set<BlockPos> territory, GridPosition position) {
-        return territory.stream().anyMatch(block ->
-                block.getX() == position.x() && block.getZ() == position.z()
-        );
+        return containsPosition(state.territory(), tower.position())
+                || containsPosition(state.finalDefenseTerritory(), tower.position());
     }
 
     public static double resonanceBonus(Tower tower) {
-        if (!resonanceActive(tower)) {
-            return 0.0;
-        }
-        return resonanceBonusForCount(territoryCount(tower.ownerPlayer()));
+        return resonanceActive(tower) ? resonanceBonusForCount(AncientCityTerritoryStates.territoryCount(tower.ownerPlayer())) : 0.0;
     }
 
     public static double resonanceBonusForCount(int territoryCount) {
-        int maxSculk = Math.max(1, abilityInt("maxSculk"));
-        int fullAt = Math.min(maxSculk, Math.max(1, abilityInt("resonanceFullAt")));
-        double cap = Math.max(0.0, ability("resonanceDamageCap"));
-        return Math.min(cap, Math.max(0, territoryCount) / (double) fullAt * cap);
+        return AncientCityRules.resonanceBonus(
+                territoryCount,
+                CONFIG.globalInt(AncientCityAbilityKey.MAX_SCULK),
+                CONFIG.globalInt(AncientCityAbilityKey.RESONANCE_FULL_AT),
+                CONFIG.global(AncientCityAbilityKey.RESONANCE_DAMAGE_CAP)
+        );
     }
 
-    public static int territoryCount(UUID playerId) {
-        AncientCityState state = STATES.get(playerId);
-        return state == null ? 0 : state.territory.size();
+    private static boolean isAncientCityBuilder(SemionPlayer player) {
+        return player != null && player.job()
+                .map(job -> AncientCityTowerJob.ID.equals(job.id()))
+                .orElse(false);
     }
 
-    public static Set<BlockPos> territoryPositions(UUID playerId) {
-        AncientCityState state = STATES.get(playerId);
-        return state == null ? Set.of() : Set.copyOf(state.territory);
+    private static boolean containsPosition(Set<BlockPos> territory, GridPosition position) {
+        return territory.stream().anyMatch(block -> block.getX() == position.x() && block.getZ() == position.z());
     }
 
-    public static void clear(UUID playerId) {
-        if (playerId != null) {
-            STATES.remove(playerId);
-        }
+    private static int growMainTerritory(PlayerLane lane, AncientCityTerritoryState state, int amount) {
+        int remaining = Math.max(0, CONFIG.globalInt(AncientCityAbilityKey.MAX_SCULK) - state.territory().size());
+        return spread(lane, state.territory(), state.seedOrigin(), Math.min(Math.max(0, amount), remaining), true);
     }
 
-    public static void clearAllForTesting() {
-        STATES.clear();
-    }
-
-    private static int growMainTerritory(PlayerLane lane, AncientCityState state, int amount) {
-        int remaining = Math.max(0, abilityInt("maxSculk") - state.territory.size());
-        return spread(lane, state.territory, state.seedOrigin, Math.min(Math.max(0, amount), remaining), true);
-    }
-
-    private static int spread(
-            PlayerLane lane,
-            Set<BlockPos> territory,
-            BlockPos origin,
-            int amount,
-            boolean mainTerritory
-    ) {
+    private static int spread(PlayerLane lane, Set<BlockPos> territory, BlockPos origin, int amount, boolean mainTerritory) {
         if (lane == null || origin == null || amount <= 0) {
             return 0;
         }
@@ -224,8 +218,7 @@ public final class AncientCityStates {
     }
 
     private static Comparator<BlockPos> frontierOrder(BlockPos origin) {
-        return Comparator
-                .comparingInt((BlockPos pos) -> manhattanXZ(pos, origin))
+        return Comparator.comparingInt((BlockPos pos) -> manhattanXZ(pos, origin))
                 .thenComparingInt(BlockPos::getX)
                 .thenComparingInt(BlockPos::getZ)
                 .thenComparingInt(BlockPos::getY);
@@ -281,45 +274,16 @@ public final class AncientCityStates {
 
     private static boolean hasAliveTower(PlayerLane lane, UUID ownerPlayer) {
         return lane.towers().stream().anyMatch(tower -> tower instanceof AncientCityTower
-                && tower.ownerPlayer().equals(ownerPlayer)
-                && tower.health() > 0.0);
+                && tower.ownerPlayer().equals(ownerPlayer) && tower.health() > 0.0);
     }
 
     private static boolean hasAliveMainLaneTower(PlayerLane lane, UUID ownerPlayer) {
         return lane.towers().stream().anyMatch(tower -> tower instanceof AncientCityTower
-                && tower.ownerPlayer().equals(ownerPlayer)
-                && tower.health() > 0.0
+                && tower.ownerPlayer().equals(ownerPlayer) && tower.health() > 0.0
                 && !tower.deployedAtFinalDefense());
     }
 
     private static int manhattanXZ(BlockPos first, BlockPos second) {
         return Math.abs(first.getX() - second.getX()) + Math.abs(first.getZ() - second.getZ());
-    }
-
-    private static double ability(String key) {
-        return TowerBalanceRuntime.ability(CONFIG_ID, key);
-    }
-
-    private static int abilityInt(String key) {
-        return TowerBalanceRuntime.abilityInt(CONFIG_ID, key);
-    }
-
-    private static final class AncientCityState {
-        private final Set<BlockPos> territory = new HashSet<>();
-        private final Set<BlockPos> finalDefenseTerritory = new HashSet<>();
-        private BlockPos seedOrigin;
-        private boolean seeded;
-        private boolean finalDefenseSeeded;
-        private int activeRound;
-        private int waveSpreadRound = -1;
-        private int deathSpreadsThisRound;
-
-        private void beginRound(int round) {
-            if (activeRound == round) {
-                return;
-            }
-            activeRound = round;
-            deathSpreadsThisRound = 0;
-        }
     }
 }

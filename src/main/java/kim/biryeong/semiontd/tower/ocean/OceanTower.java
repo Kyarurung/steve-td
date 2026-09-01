@@ -1,16 +1,9 @@
 package kim.biryeong.semiontd.tower.ocean;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import kim.biryeong.semiontd.api.area.AreaVfxSpec;
-import kim.biryeong.semiontd.api.area.AreaVfxStyles;
-import kim.biryeong.semiontd.api.area.MonsterAreaEffectRequest;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
-import kim.biryeong.semiontd.effect.TimedEffectType;
-import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -19,23 +12,20 @@ import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.tower.EntityBackedTower;
 import kim.biryeong.semiontd.tower.Tower;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.area.AreaEffectIds;
-import kim.biryeong.semiontd.tower.area.TowerAreaDamage;
 import net.minecraft.world.damagesource.DamageSource;
 
 public final class OceanTower extends EntityBackedTower {
-    public static final String CONFIG_ID = "ocean_global";
-    private static final double EPSILON = 1.0E-9;
-
-    private double water;
-    private boolean waveActive;
-    private int dehydrationTicks;
-    private int transferCooldownTicks;
-    private PlayerLane currentLane;
+    public static final String CONFIG_ID = OceanConfig.GLOBAL_ID;
+    private final OceanConfig config = OceanConfig.RUNTIME;
+    private final OceanResourceState resourceState;
+    private final OceanCombat combat;
+    private final OceanAbilityController abilities;
 
     public OceanTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
-        water = global("initialWater");
+        resourceState = new OceanResourceState(config.global(OceanAbilityKey.INITIAL_WATER));
+        combat = new OceanCombat(config, resourceState);
+        abilities = new OceanAbilityController(config, resourceState);
     }
 
     public OceanTower(
@@ -47,110 +37,60 @@ public final class OceanTower extends EntityBackedTower {
             GridPosition currentPosition
     ) {
         super(type, ownerPlayer, teamId, laneId, originalPosition, currentPosition);
-        water = global("initialWater");
+        resourceState = new OceanResourceState(config.global(OceanAbilityKey.INITIAL_WATER));
+        combat = new OceanCombat(config, resourceState);
+        abilities = new OceanAbilityController(config, resourceState);
     }
 
     public double water() {
-        return water;
+        return resourceState.water();
     }
 
     public void addWater(double amount) {
-        if (Double.isFinite(amount) && amount > 0.0) {
-            water += amount;
-        }
+        resourceState.addWater(amount);
     }
 
     public boolean spendWater(double amount) {
-        if (!Double.isFinite(amount) || amount <= 0.0) {
-            return true;
-        }
-        if (water + EPSILON < amount) {
-            return false;
-        }
-        water = Math.max(0.0, water - amount);
-        return true;
+        return resourceState.spendWater(amount);
     }
 
     public double waterDamageMultiplier() {
-        if (water <= 0.0) {
-            return global("dehydratedDamageMultiplier");
-        }
-        return normalWaterMultiplier();
+        return combat.waterDamageMultiplier(this);
     }
 
     @Override
     public void onPlaced(PlayerLane lane) {
-        currentLane = lane;
+        abilities.attach(lane);
         super.onPlaced(lane);
     }
 
     @Override
     public void onWaveStarted(PlayerLane lane, int currentRound) {
-        waveActive = true;
+        resourceState.startWave();
     }
 
     @Override
     public void resetForRound(PlayerLane lane) {
-        waveActive = false;
-        dehydrationTicks = 0;
-        transferCooldownTicks = 0;
-        currentLane = lane;
+        resourceState.resetRound();
+        abilities.attach(lane);
         super.resetForRound(lane);
     }
 
     @Override
     public void tick(PlayerLane lane) {
-        currentLane = lane;
+        abilities.attach(lane);
         super.tick(lane);
-        if (transferCooldownTicks > 0) {
-            transferCooldownTicks--;
-        }
-        tickDehydration(lane);
+        abilities.tick(this, lane);
     }
 
     @Override
     protected boolean execute(PlayerLane lane) {
-        if (!waveActive || (!OceanTowers.isSupport(type()) && !OceanTowers.isHealer(type()))) {
-            return false;
-        }
-        if (OceanTowers.isHealer(type())) {
-            return healNearbyTowers(lane);
-        }
-        boolean empowered = empoweredAbility();
-        double effectMultiplier = empowered ? global("empoweredAbilityEffectMultiplier") : 1.0;
-        double cost = value("abilityWaterCost")
-                * (empowered ? global("empoweredAbilityWaterCostMultiplier") : 1.0);
-        if (water + EPSILON < cost) {
-            return false;
-        }
-
-        List<SemionTowerEntity> targets = nearbyOceanCombatTowers(lane, value("supportRadius")).stream()
-                .filter(target -> target != this && target.type().damage() > 0.0)
-                .map(target -> towerEntity(target, lane).orElse(null))
-                .filter(java.util.Objects::nonNull)
-                .toList();
-        if (targets.isEmpty() || !spendWater(cost)) {
-            return false;
-        }
-
-        int duration = ticks("buffDurationTicks");
-        for (SemionTowerEntity target : targets) {
-            target.applyTimedEffect(TimedEffectType.TOWER_DAMAGE_BONUS, value("damageBonus") * effectMultiplier, duration);
-            target.applyTimedEffect(
-                    TimedEffectType.TOWER_ATTACK_SPEED_BONUS,
-                    value("attackSpeedBonus") * effectMultiplier,
-                    duration
-            );
-        }
-        return true;
+        return abilities.execute(this, lane);
     }
 
     @Override
     protected int cooldownTicksAfterExecute(PlayerLane lane) {
-        if (OceanTowers.isHealer(type())) {
-            return Math.max(1, ticks("healIntervalTicks"));
-        }
-        return OceanTowers.isSupport(type()) ? Math.max(1, ticks("supportIntervalTicks")) : super.cooldownTicksAfterExecute(lane);
+        return abilities.cooldownTicks(this, super.cooldownTicksAfterExecute(lane));
     }
 
     @Override
@@ -158,40 +98,22 @@ public final class OceanTower extends EntityBackedTower {
             SemionTowerEntity towerEntity,
             List<SemionMonsterEntity> candidates
     ) {
-        if (!OceanTowers.isHunter(type()) || water <= 0.0) {
-            return Optional.empty();
-        }
-        return candidates.stream()
-                .filter(candidate -> candidate != null && candidate.runtimeMonster() != null)
-                .max(Comparator.comparingDouble(candidate -> candidate.runtimeMonster().maxHealth()));
+        return combat.selectAttackTarget(this, candidates);
     }
 
     @Override
     public double modifyAttackDamage(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        if (water <= 0.0) {
-            return damageAmount * global("dehydratedDamageMultiplier");
-        }
-        if (OceanTowers.isHunter(type()) && isIncomeTarget(target) && canPayAttackAndExtra("incomeWaterCost")) {
-            return damageAmount * incomeWaterMultiplier();
-        }
-        return damageAmount * normalWaterMultiplier();
+        return combat.modifyAttackDamage(this, target, damageAmount);
     }
 
     @Override
     public int adjustAttackInterval(int baseIntervalTicks) {
-        if (water > 0.0 || type().damage() <= 0.0) {
-            return baseIntervalTicks;
-        }
-        double remainingSpeed = Math.max(0.01, 1.0 - global("dehydratedAttackSpeedReduction"));
-        return Math.max(1, (int) Math.ceil(baseIntervalTicks / remainingSpeed));
+        return combat.adjustAttackInterval(this, baseIntervalTicks);
     }
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
-        if (!OceanTowers.isTank(type()) || water <= 0.0) {
-            return damageAmount;
-        }
-        return damageAmount * Math.max(0.0, 1.0 - value("damageReduction"));
+        return combat.modifyIncomingDamage(this, damageSource, damageAmount);
     }
 
     @Override
@@ -202,35 +124,7 @@ public final class OceanTower extends EntityBackedTower {
             double previousHealth,
             double currentHealth
     ) {
-        if (deployedAtFinalDefense() || !OceanTowers.isTank(type()) || currentLane == null || currentHealth <= 0.0
-                || water <= 0.0 || transferCooldownTicks > 0) {
-            return;
-        }
-        double received = Math.max(0.0, previousHealth - currentHealth);
-        double pool = Math.min(received, value("transferCap"));
-        if (pool <= 0.0) {
-            return;
-        }
-        List<OceanTower> recipients = nearbyOceanCombatTowers(currentLane, value("transferRadius")).stream()
-                .filter(target -> target != this)
-                .filter(target -> !OceanTowers.isTank(target.type()))
-                .toList();
-        if (recipients.isEmpty() || !spendWater(value("transferWaterCost"))) {
-            return;
-        }
-        double share = pool / recipients.size();
-        recipients.forEach(target -> target.addWater(share));
-        transferCooldownTicks = Math.max(1, ticks("transferCooldownTicks"));
-        OceanVfx.showWaterSupply(
-                currentLane.arenaWorld(),
-                new net.minecraft.world.phys.Vec3(
-                        towerEntity.getX(),
-                        towerEntity.getY() + towerEntity.getBbHeight() * 0.5,
-                        towerEntity.getZ()
-                ),
-                recipients,
-                true
-        );
+        abilities.onDamaged(this, towerEntity, previousHealth, currentHealth);
     }
 
     @Override
@@ -240,38 +134,29 @@ public final class OceanTower extends EntityBackedTower {
             double damageAmount,
             boolean killedTarget
     ) {
-        double baseCost = value("attackWaterCost");
-        double extraCost = 0.0;
-        if (OceanTowers.isSplash(type()) && water + EPSILON >= baseCost + value("splashWaterCost")) {
-            extraCost = value("splashWaterCost");
-            splash(towerEntity, target, damageAmount);
-        } else if (OceanTowers.isHunter(type()) && isIncomeTarget(target)
-                && water + EPSILON >= baseCost + value("incomeWaterCost")) {
-            extraCost = value("incomeWaterCost");
-        }
-        drainWater(baseCost + extraCost);
+        combat.onAttack(this, towerEntity, target, damageAmount);
     }
 
     @Override
     public List<String> runtimeDetailLines() {
         ArrayList<String> lines = new ArrayList<>();
-        lines.add("물 " + oneDecimal(water));
+        lines.add("물 " + oneDecimal(water()));
         if (type().damage() > 0.0) {
             lines.add("물 공격력 " + percent(waterDamageMultiplier() - 1.0));
-            lines.add("물 " + oneDecimal(global("waterSoftCap")) + " 초과분은 공격력에 완만하게 반영");
-            lines.add("공격당 물 -" + oneDecimal(value("attackWaterCost")));
+            lines.add("물 " + oneDecimal(config.global(OceanAbilityKey.WATER_SOFT_CAP)) + " 초과분은 공격력에 완만하게 반영");
+            lines.add("공격당 물 -" + oneDecimal(config.value(type(), OceanAbilityKey.ATTACK_WATER_COST)));
         }
         if (OceanTowers.isSupport(type()) || OceanTowers.isHealer(type())) {
-            lines.add("능력당 물 -" + oneDecimal(value("abilityWaterCost")));
-            lines.add("물 " + oneDecimal(global("empoweredAbilityWaterThreshold"))
-                    + " 이상: 소모 " + oneDecimal(global("empoweredAbilityWaterCostMultiplier"))
-                    + "배, 효과 " + oneDecimal(global("empoweredAbilityEffectMultiplier")) + "배");
+            lines.add("능력당 물 -" + oneDecimal(config.value(type(), OceanAbilityKey.ABILITY_WATER_COST)));
+            lines.add("물 " + oneDecimal(config.global(OceanAbilityKey.EMPOWERED_ABILITY_WATER_THRESHOLD))
+                    + " 이상: 소모 " + oneDecimal(config.global(OceanAbilityKey.EMPOWERED_ABILITY_WATER_COST_MULTIPLIER))
+                    + "배, 효과 " + oneDecimal(config.global(OceanAbilityKey.EMPOWERED_ABILITY_EFFECT_MULTIPLIER)) + "배");
         }
         if (OceanTowers.isTank(type())) {
-            lines.add("물 분배 최대 " + oneDecimal(value("transferCap"))
-                    + " / " + oneDecimal(value("transferCooldownTicks") / 20.0) + "초");
+            lines.add("물 분배 최대 " + oneDecimal(config.value(type(), OceanAbilityKey.TRANSFER_CAP))
+                    + " / " + oneDecimal(config.value(type(), OceanAbilityKey.TRANSFER_COOLDOWN_TICKS) / 20.0) + "초");
         }
-        if (water <= 0.0) {
+        if (water() <= 0.0) {
             lines.add("탈수: 능력 정지, 공격력·공격 속도 감소");
         }
         return lines;
@@ -279,98 +164,16 @@ public final class OceanTower extends EntityBackedTower {
 
     @Override
     protected void copyRuntimeStateFrom(Tower previousTower) {
-        if (!(previousTower instanceof OceanTower oceanTower)) {
-            return;
+        if (previousTower instanceof OceanTower oceanTower) {
+            resourceState.restore(oceanTower.resourceState.snapshot());
         }
-        water = oceanTower.water;
-        waveActive = oceanTower.waveActive;
-        dehydrationTicks = oceanTower.dehydrationTicks;
-        transferCooldownTicks = oceanTower.transferCooldownTicks;
     }
 
-    private void splash(SemionTowerEntity towerEntity, SemionMonsterEntity target, double damageAmount) {
-        if (towerEntity == null || target == null) {
-            return;
-        }
-        MonsterAreaEffectRequest request = MonsterAreaEffectRequest.aroundTarget(
-                AreaEffectIds.tower(this, "ocean_splash"),
-                towerEntity,
-                target,
-                value("splashRadius"),
-                AreaVfxSpec.onTrigger(AreaVfxStyles.SPLASH)
-        );
-        TowerAreaDamage.applyBasicAttackSplash(this, towerEntity, request, ignored -> damageAmount * value("splashDamageRatio"), true);
+    double incomeWaterMultiplier() {
+        return combat.incomeWaterMultiplier(this);
     }
 
-    private boolean healNearbyTowers(PlayerLane lane) {
-        boolean empowered = empoweredAbility();
-        double healAmount = value("healAmount")
-                * (empowered ? global("empoweredAbilityEffectMultiplier") : 1.0);
-        double cost = value("abilityWaterCost")
-                * (empowered ? global("empoweredAbilityWaterCostMultiplier") : 1.0);
-        if (water + EPSILON < cost) {
-            return false;
-        }
-        List<SemionTowerEntity> targets = nearbyOceanCombatTowers(lane, value("healRadius")).stream()
-                .filter(target -> target != this && target.health() < target.currentMaxHealth())
-                .map(target -> towerEntity(target, lane).orElse(null))
-                .filter(java.util.Objects::nonNull)
-                .toList();
-        if (targets.isEmpty() || !spendWater(cost)) {
-            return false;
-        }
-        targets.forEach(target -> {
-            if (healTarget(target, healAmount)) {
-                target.playHealingAnimation();
-            }
-        });
-        return true;
-    }
-
-    private boolean empoweredAbility() {
-        return water + EPSILON >= global("empoweredAbilityWaterThreshold");
-    }
-
-    private void tickDehydration(PlayerLane lane) {
-        if (!waveActive || water > 0.0 || health() <= 0.0) {
-            dehydrationTicks = 0;
-            return;
-        }
-        dehydrationTicks++;
-        if (dehydrationTicks < 20) {
-            return;
-        }
-        dehydrationTicks = 0;
-        syncHealth(health() - currentMaxHealth() * global("dehydrationMaxHealthDamagePerSecond"));
-        towerEntity(this, lane).ifPresent(entity -> {
-            OceanVfx.showDehydrated(
-                    lane.arenaWorld(),
-                    new net.minecraft.world.phys.Vec3(entity.getX(), entity.getY() + 0.12, entity.getZ())
-            );
-            entity.setHealth((float) health());
-        });
-    }
-
-    private List<OceanTower> nearbyOceanCombatTowers(PlayerLane lane, double radius) {
-        if (lane == null || radius <= 0.0) {
-            return List.of();
-        }
-        double radiusSqr = radius * radius;
-        return lane.towers().stream()
-                .filter(OceanTower.class::isInstance)
-                .map(OceanTower.class::cast)
-                .filter(target -> target.health() > 0.0 && distanceSqr(target) <= radiusSqr)
-                .toList();
-    }
-
-    private double distanceSqr(Tower target) {
-        double x = target.position().x() - position().x();
-        double y = target.position().y() - position().y();
-        double z = target.position().z() - position().z();
-        return x * x + y * y + z * z;
-    }
-
-    private Optional<SemionTowerEntity> towerEntity(OceanTower target, PlayerLane lane) {
+    Optional<SemionTowerEntity> runtimeEntity(OceanTower target, PlayerLane lane) {
         if (target == null || lane == null || target.entityId().isEmpty()) {
             return Optional.empty();
         }
@@ -379,46 +182,11 @@ public final class OceanTower extends EntityBackedTower {
                 .map(SemionTowerEntity.class::cast);
     }
 
-    private void drainWater(double amount) {
-        if (Double.isFinite(amount) && amount > 0.0) {
-            water = Math.max(0.0, water - amount);
-        }
+    Optional<SemionTowerEntity> ownRuntimeEntity(PlayerLane lane) {
+        return super.runtimeEntity(lane);
     }
 
-    private boolean canPayAttackAndExtra(String extraCostKey) {
-        return water + EPSILON >= value("attackWaterCost") + value(extraCostKey);
-    }
-
-    private double normalWaterMultiplier() {
-        return 1.0 + value("waterDamageCoefficient") * waterRoot();
-    }
-
-    double incomeWaterMultiplier() {
-        return 1.0 + global("incomeCoefficientMultiplier") * value("waterDamageCoefficient") * waterRoot();
-    }
-
-    private double waterRoot() {
-        double softCap = Math.max(EPSILON, global("waterSoftCap"));
-        double effectiveWater = water <= softCap
-                ? Math.max(0.0, water)
-                : softCap + softCap * Math.log1p((water - softCap) / softCap);
-        return Math.sqrt(effectiveWater / Math.max(EPSILON, global("waterScale")));
-    }
-
-    private boolean isIncomeTarget(SemionMonsterEntity target) {
-        Monster monster = target == null ? null : target.runtimeMonster();
-        return monster != null && monster.senderTeam().isPresent();
-    }
-
-    private double value(String key) {
-        return TowerBalanceRuntime.ability(type().id(), key);
-    }
-
-    private int ticks(String key) {
-        return TowerBalanceRuntime.abilityTicks(type().id(), key);
-    }
-
-    private double global(String key) {
-        return TowerBalanceRuntime.ability(CONFIG_ID, key);
+    boolean healRuntimeTarget(SemionTowerEntity target, double amount) {
+        return healTarget(target, amount);
     }
 }

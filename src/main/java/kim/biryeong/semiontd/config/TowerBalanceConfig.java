@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityConfig;
 import kim.biryeong.semiontd.tower.ancientcity.AncientCityTowers;
 import kim.biryeong.semiontd.tower.adversary.AdversaryBalance;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTowers;
@@ -4156,7 +4156,7 @@ public record TowerBalanceConfig(
     }
 
     private static void putAncientCityAbilities(Map<String, Map<String, Double>> abilities) {
-        putAbilities(abilities, AncientCityStates.CONFIG_ID, Map.of(
+        putAbilities(abilities, AncientCityConfig.GLOBAL_ID, Map.of(
                 "maxSculk", 256.0,
                 "resonanceFullAt", 224.0,
                 "initialSculk", 9.0,

@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.entity.monster.KillSourceKind;
 import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.job.JobContext;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTerritoryController;
 import kim.biryeong.semiontd.summon.SummonMonsterType;
 
 public final class EconomyService {
@@ -140,6 +141,7 @@ public final class EconomyService {
             player.matchStats().recordAssistMonsterKill(finalReward, monster.attributionThreat());
         }
         if (jobContext != null) {
+            AncientCityTerritoryController.onMonsterKilled(game, player, monster);
             player.job().ifPresent(job -> job.onMonsterKilled(jobContext, monster, finalReward));
         }
         monster.markRewardGranted();

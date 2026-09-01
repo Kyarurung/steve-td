@@ -38,7 +38,7 @@ final class AncientCityTowerCatalogTest {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
         TowerBalanceRuntime.apply(defaults);
         ProductionTowerCatalogs.reloadBuiltIns(defaults);
-        AncientCityStates.clearAllForTesting();
+        AncientCityTerritoryStates.clearAllForTesting();
     }
 
     @Test
@@ -85,12 +85,12 @@ final class AncientCityTowerCatalogTest {
 
     @Test
     void resonanceAndCombinedBonusRespectTheirCaps() {
-        assertEquals(0.0, AncientCityStates.resonanceBonusForCount(0), EPSILON);
-        assertEquals(0.5625, AncientCityStates.resonanceBonusForCount(56), EPSILON);
-        assertEquals(1.125, AncientCityStates.resonanceBonusForCount(112), EPSILON);
-        assertEquals(1.6875, AncientCityStates.resonanceBonusForCount(168), EPSILON);
-        assertEquals(2.25, AncientCityStates.resonanceBonusForCount(224), EPSILON);
-        assertEquals(2.25, AncientCityStates.resonanceBonusForCount(256), EPSILON);
+        assertEquals(0.0, AncientCityTerritoryController.resonanceBonusForCount(0), EPSILON);
+        assertEquals(0.5625, AncientCityTerritoryController.resonanceBonusForCount(56), EPSILON);
+        assertEquals(1.125, AncientCityTerritoryController.resonanceBonusForCount(112), EPSILON);
+        assertEquals(1.6875, AncientCityTerritoryController.resonanceBonusForCount(168), EPSILON);
+        assertEquals(2.25, AncientCityTerritoryController.resonanceBonusForCount(224), EPSILON);
+        assertEquals(2.25, AncientCityTerritoryController.resonanceBonusForCount(256), EPSILON);
         assertEquals(2.55, AncientCityTower.combinedMagicBonus(2.25 + 0.30), EPSILON);
         assertEquals(2.55, AncientCityTower.combinedMagicBonus(9.0), EPSILON);
         assertEquals(10.0, AncientCityTower.incomeAdjustedMagicDamage(10.0, false), EPSILON);
@@ -100,14 +100,14 @@ final class AncientCityTowerCatalogTest {
     @Test
     void defaultAndMissingConfigContainEveryAncientCityValue() {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
-        assertEquals(256.0, defaults.ability(AncientCityStates.CONFIG_ID, "maxSculk", -1), EPSILON);
-        assertEquals(224.0, defaults.ability(AncientCityStates.CONFIG_ID, "resonanceFullAt", -1), EPSILON);
-        assertEquals(9.0, defaults.ability(AncientCityStates.CONFIG_ID, "initialSculk", -1), EPSILON);
-        assertEquals(4.0, defaults.ability(AncientCityStates.CONFIG_ID, "waveStartSpread", -1), EPSILON);
-        assertEquals(6.0, defaults.ability(AncientCityStates.CONFIG_ID, "deathSpreadCapPerRound", -1), EPSILON);
-        assertEquals(2.25, defaults.ability(AncientCityStates.CONFIG_ID, "resonanceDamageCap", -1), EPSILON);
-        assertEquals(2.55, defaults.ability(AncientCityStates.CONFIG_ID, "maxCombinedDamageBonus", -1), EPSILON);
-        assertEquals(1.75, defaults.ability(AncientCityStates.CONFIG_ID, "incomeMagicDamageMultiplier", -1), EPSILON);
+        assertEquals(256.0, defaults.ability(AncientCityConfig.GLOBAL_ID, "maxSculk", -1), EPSILON);
+        assertEquals(224.0, defaults.ability(AncientCityConfig.GLOBAL_ID, "resonanceFullAt", -1), EPSILON);
+        assertEquals(9.0, defaults.ability(AncientCityConfig.GLOBAL_ID, "initialSculk", -1), EPSILON);
+        assertEquals(4.0, defaults.ability(AncientCityConfig.GLOBAL_ID, "waveStartSpread", -1), EPSILON);
+        assertEquals(6.0, defaults.ability(AncientCityConfig.GLOBAL_ID, "deathSpreadCapPerRound", -1), EPSILON);
+        assertEquals(2.25, defaults.ability(AncientCityConfig.GLOBAL_ID, "resonanceDamageCap", -1), EPSILON);
+        assertEquals(2.55, defaults.ability(AncientCityConfig.GLOBAL_ID, "maxCombinedDamageBonus", -1), EPSILON);
+        assertEquals(1.75, defaults.ability(AncientCityConfig.GLOBAL_ID, "incomeMagicDamageMultiplier", -1), EPSILON);
         assertEquals(30.0, defaults.ability(AncientCityTowers.CATALYST_T3.id(), "magicDamage", -1), EPSILON);
         assertEquals(0.30, defaults.ability(AncientCityTowers.SENSOR_T3.id(), "markDamageBonus", -1), EPSILON);
         assertEquals(2.25, defaults.ability(AncientCityTowers.SHRIEKER_T3.id(), "magicRadius", -1), EPSILON);
@@ -122,19 +122,19 @@ final class AncientCityTowerCatalogTest {
         assertEquals(0.75, defaults.ability(AncientCityTowers.WARDEN_T4.id(), "secondaryDamageRatio", -1), EPSILON);
 
         TowerBalanceConfig merged = new TowerBalanceConfig(
-                Map.of(), Map.of(), Map.of(AncientCityStates.CONFIG_ID, Map.of("maxSculk", 40.0))
+                Map.of(), Map.of(), Map.of(AncientCityConfig.GLOBAL_ID, Map.of("maxSculk", 40.0))
         ).withMissingDefaults(defaults);
-        assertEquals(40.0, merged.ability(AncientCityStates.CONFIG_ID, "maxSculk", -1), EPSILON);
-        assertEquals(224.0, merged.ability(AncientCityStates.CONFIG_ID, "resonanceFullAt", -1), EPSILON);
-        assertEquals(2.25, merged.ability(AncientCityStates.CONFIG_ID, "resonanceDamageCap", -1), EPSILON);
-        assertEquals(1.75, merged.ability(AncientCityStates.CONFIG_ID, "incomeMagicDamageMultiplier", -1), EPSILON);
+        assertEquals(40.0, merged.ability(AncientCityConfig.GLOBAL_ID, "maxSculk", -1), EPSILON);
+        assertEquals(224.0, merged.ability(AncientCityConfig.GLOBAL_ID, "resonanceFullAt", -1), EPSILON);
+        assertEquals(2.25, merged.ability(AncientCityConfig.GLOBAL_ID, "resonanceDamageCap", -1), EPSILON);
+        assertEquals(1.75, merged.ability(AncientCityConfig.GLOBAL_ID, "incomeMagicDamageMultiplier", -1), EPSILON);
         assertTrue(merged.towers().containsKey(AncientCityTowers.WARDEN_T3.id()));
         assertTrue(merged.towers().containsKey(AncientCityTowers.WARDEN_T4.id()));
     }
 
     @Test
     void marksStayOwnerScopedPreferStrongestAndExpireIndividually() {
-        AncientCityMarks.MarkSet marks = new AncientCityMarks.MarkSet();
+        AncientCityMarkDomain.MarkSet marks = new AncientCityMarkDomain.MarkSet();
         UUID ownerA = uuid("owner-a");
         UUID ownerB = uuid("owner-b");
         marks.apply(ownerA, uuid("weak"), 0.10, 10);

@@ -39,17 +39,17 @@ import kim.biryeong.semiontd.tower.TowerCapacity;
 import kim.biryeong.semiontd.tower.TowerType;
 import kim.biryeong.semiontd.tower.adversary.AdversaryProgressStates;
 import kim.biryeong.semiontd.tower.adversary.AdversaryTeamEffects;
-import kim.biryeong.semiontd.tower.mage.MageStates;
-import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
-import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
-import kim.biryeong.semiontd.tower.villager.VillagerAdvProgressionController;
-import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
-import kim.biryeong.semiontd.tower.ancientcity.AncientCityStates;
+import kim.biryeong.semiontd.tower.ancientcity.AncientCityTerritoryController;
 import kim.biryeong.semiontd.tower.army.ArmyStates;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisPressure;
 import kim.biryeong.semiontd.tower.atlantis.AtlantisStates;
 import kim.biryeong.semiontd.tower.demonlord.DemonLordService;
 import kim.biryeong.semiontd.tower.engineer.EngineerPressStates;
+import kim.biryeong.semiontd.tower.hero.HeroPartyStates;
+import kim.biryeong.semiontd.tower.illager.IllagerRaidController;
+import kim.biryeong.semiontd.tower.mage.MageStates;
+import kim.biryeong.semiontd.tower.villager.VillagerAdvProgressionController;
+import kim.biryeong.semiontd.tower.warlock.WarlockAwakeningStates;
 import kim.biryeong.semiontd.trait.BuiltInTraits;
 import kim.biryeong.semiontd.trait.SemionTrait;
 import kim.biryeong.semiontd.trait.TraitContext;
@@ -889,7 +889,7 @@ public final class SemionGame {
         }
         for (UUID playerId : players.keySet()) {
             VillagerAdvProgressionController.onMatchClosed(playerId);
-            AncientCityStates.clear(playerId);
+            AncientCityTerritoryController.onMatchClosed(playerId);
             EngineerPressStates.clear(playerId);
             WarlockAwakeningStates.clear(playerId);
             IllagerRaidController.onMatchClosed(playerId);
@@ -1179,6 +1179,7 @@ public final class SemionGame {
         VanillaTeamBridge.assignPlayer(server, player, participant.teamId());
         placeActivePlayer(player, latePlayer);
         WarlockAwakeningStates.clear(latePlayer.uuid());
+        AncientCityTerritoryController.onMatchStarted(latePlayer.uuid());
         job.onMatchStarted(new JobContext(this, latePlayer));
         server.getPlayerList().broadcastSystemMessage(
                 SemionText.prefixedMini(lateJoinAnnouncementMarkup(participant.teamId(), participant.name())),
@@ -1902,6 +1903,7 @@ public final class SemionGame {
             WarlockAwakeningStates.clear(memberId);
             IllagerRaidController.onEliminated(memberId);
             VillagerAdvProgressionController.onEliminated(memberId);
+            AncientCityTerritoryController.onEliminated(memberId);
             SemionPlayer semionPlayer = players.get(memberId);
             if (semionPlayer != null) {
                 semionPlayer.job().ifPresent(job -> job.onEliminated(new JobContext(this, semionPlayer)));
@@ -1997,6 +1999,7 @@ public final class SemionGame {
             WarlockAwakeningStates.clear(player.uuid());
             IllagerRaidController.onMatchStarted(player.uuid());
             VillagerAdvProgressionController.onMatchStarted(player.uuid());
+            AncientCityTerritoryController.onMatchStarted(player.uuid());
             player.job().ifPresent(job -> job.onMatchStarted(new JobContext(this, player)));
         }
     }
@@ -2006,6 +2009,7 @@ public final class SemionGame {
             SemionTeam team = teams.get(player.teamId());
             if (team != null && team.active() && !team.eliminated()) {
                 IllagerRaidController.onRoundStarted(this, player);
+                AncientCityTerritoryController.onRoundStarted(player, round);
                 player.job().ifPresent(job -> job.onRoundStarted(new JobContext(this, player), round));
                 notifyTraitRoundStarted(player, round);
                 awardPerformanceBonus(player, round);

@@ -9,13 +9,13 @@ import kim.biryeong.semiontd.entity.monster.Monster;
 import kim.biryeong.semiontd.entity.monster.MonsterDataKey;
 import net.minecraft.resources.ResourceLocation;
 
-public final class AncientCityMarks {
+public final class AncientCityMarkDomain {
     private static final MonsterDataKey<MarkSet> MARKS = MonsterDataKey.of(
             ResourceLocation.fromNamespaceAndPath(SemionTd.MOD_ID, "ancient_city_marks"),
             MarkSet.class
     );
 
-    private AncientCityMarks() {
+    private AncientCityMarkDomain() {
     }
 
     public static void apply(

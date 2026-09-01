@@ -4,8 +4,9 @@ import static kim.biryeong.semiontd.tower.description.TowerDescriptionTemplate.f
 
 import java.util.List;
 import kim.biryeong.semiontd.SemionTd;
-import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.tower.TowerType;
+import kim.biryeong.semiontd.tower.ocean.OceanAbilityKey;
+import kim.biryeong.semiontd.tower.ocean.OceanConfig;
 import kim.biryeong.semiontd.tower.ocean.OceanTowers;
 import kim.biryeong.semiontd.ui.SemionText;
 import net.minecraft.network.chat.Component;
@@ -25,7 +26,7 @@ public final class OceanTowerJob extends SemionJob {
     @Override
     public List<Component> description() {
         String supplyRadius = format(
-                TowerBalanceRuntime.ability(OceanTowers.T1_WATER.id(), "supplyRadius"),
+                OceanConfig.RUNTIME.value(OceanTowers.T1_WATER, OceanAbilityKey.SUPPLY_RADIUS),
                 "number"
         );
         return List.of(
