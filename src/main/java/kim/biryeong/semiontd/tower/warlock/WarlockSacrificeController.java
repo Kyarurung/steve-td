@@ -57,12 +57,12 @@ final class WarlockSacrificeController {
         return true;
     }
 
-    double passiveHealthBonus(WarlockTower warlock, PlayerLane lane) {
-        return config.path(warlock.path()).passive().healthBonus(passiveStackCount(warlock, lane));
+    double passiveHealthBonus(WarlockTower warlock) {
+        return config.path(warlock.path()).passive().healthBonus(warlock.passiveStackCount());
     }
 
-    double passiveDamageBonus(WarlockTower warlock, PlayerLane lane) {
-        return config.path(warlock.path()).passive().damageBonus(passiveStackCount(warlock, lane));
+    double passiveDamageBonus(WarlockTower warlock) {
+        return config.path(warlock.path()).passive().damageBonus(warlock.passiveStackCount());
     }
 
     double damageReduction(WarlockPath path) {
@@ -83,18 +83,6 @@ final class WarlockSacrificeController {
                 config.combat(),
                 warlock.type().attackIntervalTicks()
         );
-    }
-
-    private int passiveStackCount(WarlockTower warlock, PlayerLane lane) {
-        if (lane == null || warlock.path() == WarlockPath.BASE) {
-            return 0;
-        }
-        return (int) lane.towers().stream()
-                .filter(tower -> tower != warlock)
-                .filter(tower -> tower.health() > 0.0)
-                .filter(tower -> sameOwner(warlock, tower))
-                .filter(tower -> warlock.path().acceptsSacrificeTower(tower.type()))
-                .count();
     }
 
     private static boolean sameOwner(WarlockTower warlock, Tower tower) {

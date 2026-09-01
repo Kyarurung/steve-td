@@ -8,6 +8,7 @@ import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
 import kim.biryeong.semiontd.game.PlayerLane;
 import kim.biryeong.semiontd.game.SemionGame;
+import kim.biryeong.semiontd.game.TeamId;
 import kim.biryeong.semiontd.game.TowerPlacementResult;
 import kim.biryeong.semiontd.game.TowerUpgradeResult;
 import kim.biryeong.semiontd.gametest.BuilderIntegrationGameTestSupport;
@@ -20,6 +21,62 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 
 public final class WarlockSacrificeUpgradeGameTest {
+    @GameTest
+    public void passiveStackCacheRefreshesOnPlacementDeathAndRoundRespawn(GameTestHelper context) {
+        UUID owner = BuilderIntegrationGameTestSupport.stableUuid("warlock-passive-stack-cache");
+        SemionGame game = BuilderIntegrationGameTestSupport.startedGame(
+                context, owner, WarlockTowerJob.ID, "warlock-passive-stack-cache"
+        );
+        try {
+            PlayerLane lane = BuilderIntegrationGameTestSupport.lane(game, owner);
+            GridPosition origin = GridPosition.from(BuilderIntegrationGameTestSupport.primaryPosition(lane));
+            WarlockTower core = new WarlockTower(
+                    TowerBalanceRuntime.resolve(WarlockTowers.RANGED_WARLOCK_TOWER),
+                    owner,
+                    TeamId.RED,
+                    lane.laneId(),
+                    origin
+            );
+            WarlockSacrificeTower matching = new WarlockSacrificeTower(
+                    TowerBalanceRuntime.resolve(WarlockTowers.T1_RANGED_SLAVE),
+                    owner,
+                    TeamId.RED,
+                    lane.laneId(),
+                    new GridPosition(origin.x() + 1, origin.y(), origin.z())
+            );
+            WarlockSacrificeTower differentPath = new WarlockSacrificeTower(
+                    TowerBalanceRuntime.resolve(WarlockTowers.T1_SLAVE),
+                    owner,
+                    TeamId.RED,
+                    lane.laneId(),
+                    new GridPosition(origin.x() + 2, origin.y(), origin.z())
+            );
+
+            lane.addTower(core);
+            double withoutStacks = core.currentMaxHealth();
+            lane.addTower(matching);
+            double withMatchingStack = core.currentMaxHealth();
+            BuilderIntegrationGameTestSupport.require(withMatchingStack > withoutStacks,
+                    "A living ranged sacrifice tower must increase the ranged core passive stack.");
+
+            lane.addTower(differentPath);
+            BuilderIntegrationGameTestSupport.requireClose(withMatchingStack, core.currentMaxHealth(),
+                    "A melee sacrifice tower must not enter the ranged passive stack cache.");
+
+            BuilderIntegrationGameTestSupport.require(lane.killTower(matching),
+                    "The matching sacrifice tower must die through the lane lifecycle.");
+            BuilderIntegrationGameTestSupport.requireClose(withoutStacks, core.currentMaxHealth(),
+                    "A dead sacrifice tower must be removed from the passive stack cache immediately.");
+
+            game.teams().get(lane.teamId()).resetForRound();
+            BuilderIntegrationGameTestSupport.requireClose(withMatchingStack, core.currentMaxHealth(),
+                    "Round respawn must restore the matching sacrifice tower to the passive stack cache.");
+            context.succeed();
+        } finally {
+            game.close();
+        }
+    }
+
     @GameTest
     public void sacrificeProgressTransfersToBranchUpgradeAndRoundStateResets(GameTestHelper context) {
         TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();

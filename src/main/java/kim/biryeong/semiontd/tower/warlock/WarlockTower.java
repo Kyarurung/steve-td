@@ -24,6 +24,7 @@ public class WarlockTower extends EntityBackedTower {
     private final WarlockAwakeningController awakening;
     private final WarlockStatsAssembler stats;
     private PlayerLane currentLane;
+    private int passiveStackCount;
 
     public WarlockTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         this(type, ownerPlayer, teamId, laneId, position, position);
@@ -219,11 +220,11 @@ public class WarlockTower extends EntityBackedTower {
     }
 
     private double passiveHealthBonus() {
-        return sacrifice.passiveHealthBonus(this, currentLane);
+        return sacrifice.passiveHealthBonus(this);
     }
 
     private double passiveDamageBonus() {
-        return sacrifice.passiveDamageBonus(this, currentLane);
+        return sacrifice.passiveDamageBonus(this);
     }
 
     double damageReduction() {
@@ -238,8 +239,10 @@ public class WarlockTower extends EntityBackedTower {
         if (lane == null) {
             return;
         }
+        WarlockPassiveStackIndex passiveStacks = WarlockPassiveStackIndex.capture(lane.towers());
         for (Tower tower : lane.towers()) {
             if (tower instanceof WarlockTower warlockTower) {
+                warlockTower.passiveStackCount = passiveStacks.count(warlockTower);
                 warlockTower.syncHealth(warlockTower.health());
                 warlockTower.onStateChanged(lane);
             }
@@ -274,6 +277,10 @@ public class WarlockTower extends EntityBackedTower {
 
     WarlockPath path() {
         return path;
+    }
+
+    int passiveStackCount() {
+        return passiveStackCount;
     }
 
     WarlockProgressionSnapshot progressionSnapshot() {
