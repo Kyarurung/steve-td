@@ -10,7 +10,7 @@ import kim.biryeong.semiontd.tower.TowerType;
 import net.minecraft.world.damagesource.DamageSource;
 
 public class UndeadDrownedTower extends UndeadHuskTower {
-    private final UndeadDrownedRevivalController revival = new UndeadDrownedRevivalController();
+    private final UndeadDrownedLastStandController lastStand = new UndeadDrownedLastStandController();
 
     public UndeadDrownedTower(TowerType type, UUID ownerPlayer, TeamId teamId, int laneId, GridPosition position) {
         super(type, ownerPlayer, teamId, laneId, position);
@@ -29,7 +29,7 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     public double modifyIncomingDamage(SemionTowerEntity towerEntity, DamageSource damageSource, double damageAmount) {
-        return applyRevival(towerEntity, damageAmount);
+        return applyLastStand(towerEntity, damageAmount);
     }
 
     @Override
@@ -38,16 +38,16 @@ public class UndeadDrownedTower extends UndeadHuskTower {
             DamageSource damageSource,
             double damageAmount
     ) {
-        return applyRevival(towerEntity, damageAmount);
+        return applyLastStand(towerEntity, damageAmount);
     }
 
-    private double applyRevival(SemionTowerEntity towerEntity, double damageAmount) {
-        return revival.modifyIncomingDamage(this, towerEntity, damageAmount);
+    private double applyLastStand(SemionTowerEntity towerEntity, double damageAmount) {
+        return lastStand.modifyIncomingDamage(this, towerEntity, damageAmount);
     }
 
     @Override
     public void tick(PlayerLane lane) {
-        revival.tick(this, lane);
+        lastStand.tick();
         super.tick(lane);
     }
 
@@ -65,15 +65,15 @@ public class UndeadDrownedTower extends UndeadHuskTower {
 
     @Override
     public void resetForRound(PlayerLane lane) {
-        revival.resetRound();
+        lastStand.resetRound();
         super.resetForRound(lane);
     }
 
     @Override
     public java.util.List<String> runtimeDetailLines() {
         java.util.ArrayList<String> lines = new java.util.ArrayList<>(super.runtimeDetailLines());
-        if (revival.reviving()) {
-            lines.add("부활 상태: 체력 붕괴 " + oneDecimal(revival.remainingTicks() / 20.0) + "초");
+        if (lastStand.active()) {
+            lines.add("최후의 저항: 피해 무효 " + oneDecimal(lastStand.remainingTicks() / 20.0) + "초");
         }
         return lines;
     }

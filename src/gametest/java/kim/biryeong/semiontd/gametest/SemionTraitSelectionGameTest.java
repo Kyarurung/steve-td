@@ -9,6 +9,7 @@ import java.util.UUID;
 import kim.biryeong.semiontd.config.AttackKind;
 import kim.biryeong.semiontd.config.EconomyConfig;
 import kim.biryeong.semiontd.config.MonsterScalingConfig;
+import kim.biryeong.semiontd.config.TowerBalanceRuntime;
 import kim.biryeong.semiontd.config.WaveConfig;
 import kim.biryeong.semiontd.effect.TimedEffectType;
 import kim.biryeong.semiontd.entity.SemionEntityTypes;
@@ -281,7 +282,7 @@ public final class SemionTraitSelectionGameTest {
     }
 
     @GameTest(maxTicks = 80)
-    public void doubleEdgedSwordTriggersDrownedRevivalWithoutInvulnerability(GameTestHelper context) {
+    public void doubleEdgedSwordTriggersDrownedLastStandAndItExpires(GameTestHelper context) {
         UUID ownerId = playerId("double-edged-drowned");
         UUID blueId = playerId("double-edged-drowned-blue");
         SemionGame game = syntheticGame(context, EconomyConfig.defaultConfig());
@@ -317,25 +318,37 @@ public final class SemionTraitSelectionGameTest {
         context.hurt(entity, entity.damageSources().generic(), lethalDamage);
         if (!assertDoubleEquals(
                 context,
-                drowned.currentMaxHealth(),
+                1.0,
                 entity.getHealth(),
-                "Lethal Double-Edged Sword damage should revive the Drowned at full health."
+                "Lethal Double-Edged Sword damage should leave the Drowned at one health."
         )) {
             return;
         }
 
-        context.runAfterDelay(21, () -> {
-            float healthBeforeDamage = entity.getHealth();
-            context.hurt(entity, entity.damageSources().generic(), 1.0F);
-            if (!assertTrue(
-                    context,
-                    entity.getHealth() < healthBeforeDamage,
-                    "Drowned revival must not ignore later Double-Edged Sword damage."
-            )) {
-                return;
-            }
-            context.succeed();
-        });
+        float healthBeforeDamage = entity.getHealth();
+        entity.hurtIgnoringReductions(entity.damageSources().generic(), 1.0);
+        if (!assertTrue(
+                context,
+                entity.getHealth() == healthBeforeDamage,
+                "Drowned Last Stand must block Double-Edged Sword damage during its duration."
+        )) {
+            return;
+        }
+        int durationTicks = TowerBalanceRuntime.abilityTicks(
+                drowned.type().id(), "lastStandTicks"
+        );
+        for (int tick = 0; tick < durationTicks; tick++) {
+            drowned.tick(lane);
+        }
+        entity.hurtIgnoringReductions(entity.damageSources().generic(), 1.0);
+        if (!assertTrue(
+                context,
+                entity.getHealth() < healthBeforeDamage,
+                "Drowned Last Stand must stop blocking damage after its configured duration."
+        )) {
+            return;
+        }
+        context.succeed();
     }
 
     @GameTest
