@@ -23,9 +23,7 @@ final class UndeadDrownedLastStandController {
         )) {
             return damageAmount;
         }
-        owner.syncHealth(1.0);
-        towerEntity.setHealth(1.0F);
-        return 0.0;
+        return Math.max(0.0, towerEntity.getHealth() - 1.0);
     }
 
     void tick() {

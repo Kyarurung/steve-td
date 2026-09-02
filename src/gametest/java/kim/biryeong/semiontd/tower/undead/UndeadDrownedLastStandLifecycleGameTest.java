@@ -3,7 +3,6 @@ package kim.biryeong.semiontd.tower.undead;
 import java.util.UUID;
 import kim.biryeong.semiontd.config.TowerBalanceConfig;
 import kim.biryeong.semiontd.config.TowerBalanceRuntime;
-import kim.biryeong.semiontd.entity.goal.SiegeTrueDamageGoal;
 import kim.biryeong.semiontd.entity.monster.SemionMonsterEntity;
 import kim.biryeong.semiontd.entity.tower.SemionTowerEntity;
 import kim.biryeong.semiontd.game.GridPosition;
@@ -32,9 +31,7 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
                     context, owner, UndeadTowerJob.ID, "undead-drowned-last-stand-expiry"
             );
             DrownedFixture fixture = drowned(game, owner);
-            SemionMonsterEntity attacker = attacker(context, fixture.lane(), fixture.entity(), "expiry");
-
-            castFixedDamage(attacker, 100.0);
+            fixture.entity().hurtIgnoringReductions(fixture.entity().damageSources().generic(), 100.0);
 
             BuilderIntegrationGameTestSupport.requireClose(1.0, fixture.drowned().health(),
                     "Lethal damage must leave the Drowned runtime tower at one health.");
@@ -45,7 +42,7 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
                     "The tower details must expose active Last Stand immunity."
             );
 
-            fixture.entity().hurtIgnoringReductions(attacker.damageSources().mobAttack(attacker), 100.0);
+            fixture.entity().hurtIgnoringReductions(fixture.entity().damageSources().generic(), 100.0);
             BuilderIntegrationGameTestSupport.requireClose(1.0, fixture.entity().getHealth(),
                     "Damage during Last Stand must be blocked.");
 
@@ -55,12 +52,12 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
             for (int tick = 1; tick < durationTicks; tick++) {
                 fixture.drowned().tick(fixture.lane());
             }
-            fixture.entity().hurtIgnoringReductions(attacker.damageSources().mobAttack(attacker), 100.0);
+            fixture.entity().hurtIgnoringReductions(fixture.entity().damageSources().generic(), 100.0);
             BuilderIntegrationGameTestSupport.requireClose(1.0, fixture.entity().getHealth(),
                     "Last Stand must remain active until the configured final tick.");
 
             fixture.drowned().tick(fixture.lane());
-            fixture.entity().hurtIgnoringReductions(attacker.damageSources().mobAttack(attacker), 100.0);
+            fixture.entity().hurtIgnoringReductions(fixture.entity().damageSources().generic(), 100.0);
             BuilderIntegrationGameTestSupport.require(
                     fixture.drowned().health() <= 0.0 && fixture.entity().getHealth() <= 0.0F
                             && !fixture.entity().isAlive(),
@@ -89,9 +86,7 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
                     context, owner, UndeadTowerJob.ID, "undead-drowned-last-stand-reset"
             );
             DrownedFixture fixture = drowned(game, owner);
-            SemionMonsterEntity firstAttacker = attacker(context, fixture.lane(), fixture.entity(), "first-round");
-
-            castFixedDamage(firstAttacker, 100.0);
+            fixture.entity().hurtIgnoringReductions(fixture.entity().damageSources().generic(), 100.0);
             BuilderIntegrationGameTestSupport.requireClose(1.0, fixture.entity().getHealth(),
                     "The first round must activate Last Stand once.");
 
@@ -101,10 +96,7 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
             );
             fixture.drowned().syncHealth(10.0);
             nextRoundEntity.setHealth(10.0F);
-            SemionMonsterEntity secondAttacker = attacker(
-                    context, fixture.lane(), nextRoundEntity, "second-round"
-            );
-            castFixedDamage(secondAttacker, 100.0);
+            nextRoundEntity.hurtIgnoringReductions(nextRoundEntity.damageSources().generic(), 100.0);
 
             BuilderIntegrationGameTestSupport.requireClose(1.0, fixture.drowned().health(),
                     "Round reset must restore Last Stand for the runtime tower.");
@@ -114,6 +106,47 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
         } catch (RuntimeException | Error failure) {
             failure.printStackTrace();
             context.fail(Component.literal("Undead Drowned Last Stand reset failed: " + failure.getMessage()));
+        } finally {
+            if (game != null) {
+                game.close();
+            }
+            TowerBalanceRuntime.apply(defaults);
+        }
+    }
+
+    @GameTest(maxTicks = 100)
+    public void activationDamageUsesSharedDamagePipeline(GameTestHelper context) {
+        TowerBalanceConfig defaults = TowerBalanceConfig.defaultConfig();
+        UUID owner = BuilderIntegrationGameTestSupport.stableUuid("undead-drowned-last-stand-pipeline");
+        SemionGame game = null;
+        try {
+            ProductionTowerCatalogs.reloadBuiltIns(defaults);
+            game = BuilderIntegrationGameTestSupport.startedGame(
+                    context, owner, UndeadTowerJob.ID, "undead-drowned-last-stand-pipeline"
+            );
+            DrownedFixture fixture = drowned(game, owner);
+            SemionMonsterEntity nearbyMonster = attacker(
+                    context, fixture.lane(), fixture.entity(), "pipeline"
+            );
+            double monsterHealthBefore = nearbyMonster.runtimeMonster().health();
+            double baseDamage = fixture.entity().attackDamageAmount(nearbyMonster);
+
+            fixture.entity().hurtIgnoringReductions(fixture.entity().damageSources().generic(), 100.0);
+
+            BuilderIntegrationGameTestSupport.requireClose(9.0, fixture.drowned().roundDamageTaken(),
+                    "Last Stand activation damage must be recorded by the shared damage pipeline.");
+            BuilderIntegrationGameTestSupport.require(
+                    nearbyMonster.runtimeMonster().health() < monsterHealthBefore,
+                    "Last Stand activation damage must trigger inherited thorns."
+            );
+            BuilderIntegrationGameTestSupport.require(
+                    fixture.drowned().modifyAttackDamage(fixture.entity(), nearbyMonster, baseDamage) > baseDamage,
+                    "Last Stand activation damage must trigger the on-hit attack boost."
+            );
+            context.succeed();
+        } catch (RuntimeException | Error failure) {
+            failure.printStackTrace();
+            context.fail(Component.literal("Undead Drowned Last Stand pipeline failed: " + failure.getMessage()));
         } finally {
             if (game != null) {
                 game.close();
@@ -149,10 +182,6 @@ public final class UndeadDrownedLastStandLifecycleGameTest {
         attacker.setNoAi(true);
         attacker.setTarget(target);
         return attacker;
-    }
-
-    private static void castFixedDamage(SemionMonsterEntity attacker, double damage) {
-        new SiegeTrueDamageGoal(attacker, damage, 60, 1, 0.0).tick();
     }
 
     private static void place(SemionGame game, UUID owner, BlockPos position, String towerId) {
